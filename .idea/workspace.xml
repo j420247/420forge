@@ -2,13 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="492b3ec2-ccbd-4241-b8e0-f5f80a6b6c94" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/css/aui-experimental.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/css/aui.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/css/index.css" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/img/acforge.png" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/acforge.py" afterPath="$PROJECT_DIR$/acforge.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/requirements.txt" afterPath="$PROJECT_DIR$/requirements.txt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/templates/index.html" afterPath="$PROJECT_DIR$/templates/index.html" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/templates/layout.html" afterPath="$PROJECT_DIR$/templates/layout.html" />
     </list>
@@ -23,7 +18,7 @@
     <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature_Upgrade_service_returns_expected_title.coverage" NAME="acforge.feature:Upgrade service returns expected title Coverage Results" MODIFIED="1514345472993" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_steps.coverage" NAME="atl-cfn-forge_steps Coverage Results" MODIFIED="1513738237282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/features/steps" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature.coverage" NAME="acforge.feature Coverage Results" MODIFIED="1514931683548" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge.coverage" NAME="atl-cfn-forge Coverage Results" MODIFIED="1514946279832" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge.coverage" NAME="atl-cfn-forge Coverage Results" MODIFIED="1514949006916" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_feature.coverage" NAME="atl-cfn-forge.feature Coverage Results" MODIFIED="1513736041478" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_feature_Upgrade_service_returns_expected_title.coverage" NAME="atl-cfn-forge.feature:Upgrade service returns expected title Coverage Results" MODIFIED="1513737050789" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
@@ -86,9 +81,50 @@
       <file leaf-file-name="layout.html" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/templates/layout.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="320">
-              <caret line="45" column="121" lean-forward="true" selection-start-line="45" selection-start-column="121" selection-end-line="45" selection-end-column="121" />
+            <state relative-caret-position="306">
+              <caret line="61" column="72" lean-forward="true" selection-start-line="61" selection-start-column="72" selection-end-line="61" selection-end-column="72" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="aui.min.css" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/static/css/aui.min.css">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2970">
+              <caret line="5170" column="12" lean-forward="true" selection-start-line="5170" selection-start-column="12" selection-end-line="5170" selection-end-column="12" />
+              <folding>
+                <element signature="e#44847#45264#1" expanded="true" />
+                <element signature="e#59769#59970#2" expanded="true" />
+                <element signature="e#60178#60383#2" expanded="true" />
+                <element signature="e#60631#60844#2" expanded="true" />
+                <element signature="e#60943#61108#2" expanded="true" />
+                <element signature="e#61310#61475#2" expanded="true" />
+                <element signature="e#61717#61890#2" expanded="true" />
+                <element signature="e#82566#82739#2" expanded="true" />
+                <element signature="e#82789#82974#2" expanded="true" />
+                <element signature="e#83026#83187#2" expanded="true" />
+                <element signature="e#83227#83388#2" expanded="true" />
+                <element signature="e#83433#83594#2" expanded="true" />
+                <element signature="e#83641#83802#2" expanded="true" />
+                <element signature="e#83840#83985#2" expanded="true" />
+                <element signature="e#84025#84174#2" expanded="true" />
+                <element signature="e#84212#84369#2" expanded="true" />
+                <element signature="e#84409#84566#2" expanded="true" />
+                <element signature="e#84624#84821#2" expanded="true" />
+                <element signature="e#84881#85082#2" expanded="true" />
+                <element signature="e#85124#85321#2" expanded="true" />
+                <element signature="e#85381#85718#2" expanded="true" />
+                <element signature="e#85825#86310#2" expanded="true" />
+                <element signature="e#86374#86555#2" expanded="true" />
+                <element signature="e#86668#86853#2" expanded="true" />
+                <element signature="e#120312#133185#1" expanded="true" />
+                <element signature="e#142921#150424#1" expanded="true" />
+                <element signature="e#150741#158264#2" expanded="true" />
+                <element signature="e#158331#160306#2" expanded="true" />
+                <element signature="e#160457#162420#2" expanded="true" />
+                <element signature="e#164729#165044#1" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -96,8 +132,8 @@
       <file leaf-file-name="index.html" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/templates/index.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="15">
-              <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+            <state relative-caret-position="60">
+              <caret line="4" column="14" lean-forward="true" selection-start-line="4" selection-start-column="14" selection-end-line="4" selection-end-column="14" />
               <folding />
             </state>
           </provider>
@@ -135,6 +171,8 @@
       <find>ak-field-rad</find>
       <find>login</find>
       <find>acforge</find>
+      <find>forge</find>
+      <find>restart</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -159,11 +197,11 @@
         <option value="$PROJECT_DIR$/features/steps/acforge_steps.py" />
         <option value="$PROJECT_DIR$/requirements.txt" />
         <option value="$PROJECT_DIR$/acforge.py" />
-        <option value="$PROJECT_DIR$/templates/index.html" />
         <option value="$PROJECT_DIR$/static/css/index.css" />
         <option value="$PROJECT_DIR$/static/css/aui.min.css" />
         <option value="$PROJECT_DIR$/static/css/aui-experimental.min.css" />
         <option value="$PROJECT_DIR$/templates/layout.html" />
+        <option value="$PROJECT_DIR$/templates/index.html" />
       </list>
     </option>
   </component>
@@ -413,6 +451,14 @@
       <option name="presentableId" value="Default" />
       <updated>1513735254329</updated>
     </task>
+    <task id="LOCAL-00001" summary="AUI'ing shite">
+      <created>1514946500606</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1514946500606</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -499,6 +545,10 @@
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="AUI'ing shite" />
+    <option name="LAST_COMMIT_MESSAGE" value="AUI'ing shite" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -713,14 +763,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/templates/index.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/templates/forge_selection.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
@@ -729,10 +771,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/static/css/aui.min.css">
+    <entry file="file://$PROJECT_DIR$/static/css/aui-experimental.min.css">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="455">
-          <caret line="5244" column="0" lean-forward="true" selection-start-line="5244" selection-start-column="0" selection-end-line="5244" selection-end-column="0" />
+          <caret line="2132" column="0" lean-forward="true" selection-start-line="2132" selection-start-column="0" selection-end-line="2132" selection-end-column="0" />
+          <folding>
+            <element signature="e#935#1096#1" expanded="true" />
+            <element signature="e#30713#30874#1" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/static/css/aui.min.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2970">
+          <caret line="5170" column="12" lean-forward="true" selection-start-line="5170" selection-start-column="12" selection-end-line="5170" selection-end-column="12" />
           <folding>
             <element signature="e#44847#45264#1" expanded="true" />
             <element signature="e#59769#59970#2" expanded="true" />
@@ -768,21 +821,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/static/css/aui-experimental.min.css">
+    <entry file="file://$PROJECT_DIR$/templates/index.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="455">
-          <caret line="2132" column="0" lean-forward="true" selection-start-line="2132" selection-start-column="0" selection-end-line="2132" selection-end-column="0" />
-          <folding>
-            <element signature="e#935#1096#1" expanded="true" />
-            <element signature="e#30713#30874#1" expanded="true" />
-          </folding>
+        <state relative-caret-position="60">
+          <caret line="4" column="14" lean-forward="true" selection-start-line="4" selection-start-column="14" selection-end-line="4" selection-end-column="14" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/templates/layout.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="320">
-          <caret line="45" column="121" lean-forward="true" selection-start-line="45" selection-start-column="121" selection-end-line="45" selection-end-column="121" />
+        <state relative-caret-position="306">
+          <caret line="61" column="72" lean-forward="true" selection-start-line="61" selection-start-column="72" selection-end-line="61" selection-end-column="72" />
           <folding />
         </state>
       </provider>

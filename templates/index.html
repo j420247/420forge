@@ -1,13 +1,5 @@
 {% extends "layout.html" %}
 
 {% block forgetype %}
-    {% if saves.get('forgetype', '') == 'upgrade' %}
-        {% include 'upgrade.html' %}
-    {% elif saves.get('forgetype', '') == 'clone' %}
-        {% include 'clone.html' %}
-    {% elif saves.get('forgetype', '') == 'restart' %}
-        {% include 'restart.html' %}
-    {% else %}
-        <h2> unknown {{ saves.get('forgetype', '') }}</h2>
-    {% endif %}
+    <img src="/static/img/acforge.png">
 {% endblock %}

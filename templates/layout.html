@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
 
-        {% block title %} Atlassian Cloudformation Forge {% endblock %}
+        <title>Atlassian Cloudformation Forge </title>
 <!--
         <title>Inline Dialog - AUI Documentation</title>
 -->
@@ -42,29 +42,15 @@
                                 </a>
                             </h1>
                             <ul class="aui-nav">
-                                <li>
-                                    <a aria-owns="aui-menu-documentation" class="aui-dropdown2-trigger">Documentation</a>
-                                    <div id="aui-menu-documentation" class="aui-style-default aui-dropdown2">
-                                        <div class="aui-dropdown2-section">
-                                            <ul>
-                                                <li><a href="./">Components</a></li>
-                                                <li><a href="upgrade-guide.html">Upgrade guide</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                <li class="aui-nav-selected">
+                                    <a href="upgrade.html" aria-owns="aui-menu-upgrade" >Upgrade</a>
                                 </li>
                                 <li>
-                                    <a aria-owns="aui-menu-support" class="aui-dropdown2-trigger">Support</a>
-                                    <div id="aui-menu-support" class="aui-style-default aui-dropdown2">
-                                        <div class="aui-dropdown2-section">
-                                            <ul>
-                                                <li><a href="../../getting-started.html">Getting started</a></li>
-                                                <li><a href="../../faq.html">FAQ</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                    <a href="clone.html" aria-owns="aui-menu-clone" >Clone</a>
                                 </li>
-                                <li class="aui-version-picker-container"></li>
+                                <li>
+                                    <a href="restart.html" aria-owns="aui-menu-restart" >Restart</a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -90,7 +76,7 @@
 
                         {% block content %}
                             <div class=container>
-                                <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
+
                                 <p><br></p>
                                 {% block forgeselection %}{% endblock %}
                                 <p><br></p>
