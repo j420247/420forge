@@ -74,19 +74,7 @@
                     <section class="aui-page-panel-content">
                         <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
 
-                        {% block content %}
-                            <div class=container>
-
-                                <p><br></p>
-                                {% block forgeselection %}{% endblock %}
-                                <p><br></p>
-                                {% block forgetype %}{% endblock %}
-                                <p><br></p>
-                                {% for message in get_flashed_messages() %}
-                                    <div class=flash>{{ message }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endblock %}
+                        {% block content %}{% endblock %}
 
                     </section>
                 </div>

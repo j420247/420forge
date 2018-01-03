@@ -29,6 +29,18 @@ def get_saved_data():
 def index():
     return render_template('index.html', saves=get_saved_data())
 
+@app.route('/upgrade.html', methods=['GET', 'POST'])
+def upgrade():
+    return render_template('upgrade.html', saves=get_saved_data())
+
+@app.route('/clone.html', methods=['GET', 'POST'])
+def clone():
+    return render_template('clone.html', saves=get_saved_data())
+
+@app.route('/restart.html', methods=['GET', 'POST'])
+def restart():
+    return render_template('restart.html', saves=get_saved_data())
+
 @app.route('/settype', methods=['POST'])
 def settype():
     response = make_response(redirect(url_for('index')))
