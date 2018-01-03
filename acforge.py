@@ -2,6 +2,7 @@
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
+from flask_bootstrap import Bootstrap
 import json
 import boto3
 
@@ -14,6 +15,7 @@ PASSWORD = 'admin'
 
 # create and initialize app
 app = Flask(__name__)
+bootstrap = Bootstrap(app)
 app.config.from_object(__name__)
 
 def get_saved_data():

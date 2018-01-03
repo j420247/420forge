@@ -1,23 +1,121 @@
 <!doctype html>
-<html lang="en">
+<html>
     <head>
-        <title>Atlassian Cloudformation Forge</title>
-        <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/style.css') }}">
+        <meta charset="utf-8">
+
+        {% block title %} Atlassian Cloudformation Forge {% endblock %}
+<!--
+        <title>Inline Dialog - AUI Documentation</title>
+-->
+        <link rel="stylesheet" href="/static/css/index.css">
+        <link rel="stylesheet" href="/static/css/aui.min.css">
+        <link rel="stylesheet" href="/static/css/aui-experimental.min.css">
+        <script id="dist-location" type="text/html">//unpkg.com/@atlassian/aui@7.4.0/dist/aui</script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+        <!-- Minified version of sinon doesn't quite work: https://github.com/cjohansen/Sinon.JS/issues/332 -->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/sinon.js/1.15.4/sinon.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.13.4/codemirror.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.13.4/mode/css/css.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.13.4/mode/xml/xml.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.13.4/mode/javascript/javascript.min.js"></script>
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/codemirror/5.13.4/codemirror.min.css">
+        <script>
+            dataLayer = [{
+                auiVersion: '7.4.0',
+                pageCategory: 'component',
+                component: 'inline-dialog',
+                componentApiType: 'web-component'
+            }];
+        </script>
+        <script src="//ace-cdn.atlassian.com/stp/current/analytics/js/atl-analytics.min.js"></script>
+        <script src="../js/index.js"></script>
     </head>
-
     <body>
-        <div class=page>
+        <div id="page">
+            <header id="header" role="banner">
+                <nav class="aui-header aui-dropdown2-trigger-group" role="navigation" data-aui-responsive="true">
+                    <div class="aui-header-inner">
+                        <div class="aui-header-primary">
+                            <h1 id="logo" class="aui-header-logo aui-header-logo-textonly">
+                                <a href="../../">
+                                    <span class="aui-header-logo-device">ACFORGE</span>
+                                </a>
+                            </h1>
+                            <ul class="aui-nav">
+                                <li>
+                                    <a aria-owns="aui-menu-documentation" class="aui-dropdown2-trigger">Documentation</a>
+                                    <div id="aui-menu-documentation" class="aui-style-default aui-dropdown2">
+                                        <div class="aui-dropdown2-section">
+                                            <ul>
+                                                <li><a href="./">Components</a></li>
+                                                <li><a href="upgrade-guide.html">Upgrade guide</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <a aria-owns="aui-menu-support" class="aui-dropdown2-trigger">Support</a>
+                                    <div id="aui-menu-support" class="aui-style-default aui-dropdown2">
+                                        <div class="aui-dropdown2-section">
+                                            <ul>
+                                                <li><a href="../../getting-started.html">Getting started</a></li>
+                                                <li><a href="../../faq.html">FAQ</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li class="aui-version-picker-container"></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            </header>
+            <div class="aui-page-panel">
+                <div class="aui-page-panel-inner">
+                    <div class="aui-page-panel-nav">
+                        <nav class="aui-navgroup aui-navgroup-vertical">
+                            <div class="aui-navgroup-inner">
+                                <div class="aui-nav-heading">
+                                    <strong>ACforge vertical Nav</strong>
+                                </div>
+                                <ul class="aui-nav">
+                                    <li><a href="vnav1.html" class="docs-nav-link" id="aui-label-link">Vnav 1 <span class="aui-lozenge aui-lozenge-current">experimental</span></a></li>
+                                    <li><a href="vnav2.html" class="docs-nav-link" id="badges-link">Vnav 2 </a></li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                    <section class="aui-page-panel-content">
+                        <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
 
-            <h1>Atlassian Cloudformation Forge</h1>
-            <p><br></p>
-            {% block forgeselection %}{% endblock %}
-            <p><br></p>
-            {% block forgetype %}{% endblock %}
-            <p><br></p>
-            {% for message in get_flashed_messages() %}
-                <div class=flash>{{ message }}</div>
-            {% endfor %}
+                        {% block content %}
+                            <div class=container>
+                                <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
+                                <p><br></p>
+                                {% block forgeselection %}{% endblock %}
+                                <p><br></p>
+                                {% block forgetype %}{% endblock %}
+                                <p><br></p>
+                                {% for message in get_flashed_messages() %}
+                                    <div class=flash>{{ message }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endblock %}
 
+                    </section>
+                </div>
+            </div>
+            <footer id="footer" role="contentinfo">
+                <section class="footer-body">
+                    <ul id="aui-footer-list">
+                        <li>Copyright &#169; 2009-<script>document.write(new Date().getUTCFullYear());</script> Atlassian</li>
+                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li>
+                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li>
+                        <li>7.4.0</li>
+                    </ul>
+                    <div id="footer-logo"><a href="https://www.atlassian.com/">Atlassian</a></div>
+                </section>
+            </footer>
         </div>
     </body>
 </html>

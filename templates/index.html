@@ -1,7 +1,5 @@
 {% extends "layout.html" %}
-{% block forgeselection %}
-    {% include 'forge_selection.html' %}
-{% endblock %}
+
 {% block forgetype %}
     {% if saves.get('forgetype', '') == 'upgrade' %}
         {% include 'upgrade.html' %}
