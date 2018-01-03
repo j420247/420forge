@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <form class="aui">
+        <fieldset class="group">
+            <legend><span>Which Service ?</span></legend>
+            <div class="radio">
+                <input class="radio" type="radio" checked="checked"
+                       name="radiobuttons" id="radioButtonOne">
+                <label for="radioButtonOne">EAC Staging</label>
+            </div>
+            <div class="radio">
+                <input class="radio" type="radio"
+                       name="radiobuttons" id="radioButtonTwo">
+                <label for="radioButtonTwo">EAC/J Staging</label>
+            </div>
+            <div class="radio">
+                <input class="radio" type="radio"
+                       name="radiobuttons" id="radioButtonThree">
+                <label for="radioButtonThree">FOJ Staging</label>
+            </div>
+            <p><br></p>
+            <input type="submit" class="aui-button aui-button-primary" value="Next">
+        </fieldset>
+    </form>
+{% endblock %}
