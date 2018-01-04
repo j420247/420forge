@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <img src="/static/img/acforge.png">
+    {% if gtg_flag %}
+        <p> you are good to go !</p>
+    {% else %}
+        <img src="/static/img/acforge.png">
+    {% endif %}
 {% endblock %}

@@ -35,13 +35,13 @@
                             </h1>
                             <ul class="aui-nav">
                                 <li class="aui-nav-selected">
-                                    <a href="upgrade.html" aria-owns="aui-menu-upgrade" >Upgrade</a>
+                                    <a href="{{ session['environment'] }}/upgrade" aria-owns="aui-menu-upgrade" >Upgrade</a>
                                 </li>
                                 <li>
-                                    <a href="clone.html" aria-owns="aui-menu-clone" >Clone</a>
+                                    <a href="{{ session['environment'] }}/clone" aria-owns="aui-menu-clone" >Clone</a>
                                 </li>
                                 <li>
-                                    <a href="restart.html" aria-owns="aui-menu-restart" >Restart</a>
+                                    <a href="{{ session['environment'] }}/restart" aria-owns="aui-menu-restart" >Restart</a>
                                 </li>
                             </ul>
                         </div>
@@ -57,8 +57,8 @@
                                     <strong>Environment</strong>
                                 </div>
                                 <ul class="aui-nav">
-                                    <li><a href="stg.html" class="docs-nav-link" id="aui-label-link">Staging</a></li>
-                                    <li><a href="prod.html" class="docs-nav-link" id="badges-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
+                                    <li><a href="stg" class="docs-nav-link" id="aui-label-link">Staging</a></li>
+                                    <li><a href="prod" class="docs-nav-link" id="badges-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
                                 </ul>
                             </div>
                         </nav>
