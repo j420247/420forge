@@ -1,5 +1,15 @@
 {% extends "layout.html" %}
 
+{% block vnavitems %}
+    {{ super() }}
+    <li>
+        <a href="{{ session['environment'] }}/clone" aria-owns="aui-menu-clone" >Clone</a>
+    </li>
+    <li>
+        <a href="{{ session['environment'] }}/destroy" aria-owns="aui-menu-destroy" >Destroy</a>
+    </li>
+{% endblock %}
+
 {% block content %}
     <form class="aui">
         <fieldset class="group">

@@ -60,28 +60,39 @@ def index():
         stack_name_list = get_cfn_stacks_for_environment(session['environment'])
     return render_template('index.html')
 
-#@app.route('/stg')
-#@app.route('/prod')
-@app.route('/<environment>')
-def one_parm(environment):
+#@app.route('/env/stg')
+#@app.route('/env/prod')
+@app.route('/env/<environment>')
+def env(environment):
     session['environment'] = environment
-    print('env only environment = ', session['environment'])
-    return render_template(session['environment'] + '.html')
+    print('env = ', session['environment'])
+    if 'action' in session and 'environment' in session:
+        return redirect(url_for('show_stacks'))
+    else:
+        return redirect(url_for('index'))
 
-#@app.route('/stg/upgrade')
-@app.route('/<string:environment>/<string:action>')
-def two_parms(environment, action):
+#@app.route('/action/upgrade')
+@app.route('/action/<string:action>')
+def action(action):
     session['action'] = action
-
-    print('2parm environment = ', session['environment'])
-    print('2parm action = ', session['action'])
-    action_path = session['environment'] + '/' + session['action']
-    return redirect(url_for('show_stacks'))
+    print('action = ', session['action'])
+    if 'action' in session and 'environment' in session:
+        return redirect(url_for('show_stacks'))
+    else:
+        return redirect(url_for('index'))
 
 @app.route('/show_stacks')
 def show_stacks():
-    stack_name_list = get_cfn_stacks_for_environment(session['environment'])
-    return render_template('show_stacks.html', stack_name_list=stack_name_list)
+    stack_name_list = sorted(get_cfn_stacks_for_environment(session['environment']))
+#    selected_stack = request.form['stack_selection']
+#    print("selcted stack is ", selected_stack)
+    return render_template('stack_selection.html', stack_name_list=stack_name_list)
+
+#@app.route('/stg/upgrade')
+@app.route('/<string:env>/<string:action>', methods=['POST'])
+def envact(env, action):
+    print('after stack selection')
+    return render_template(action + '.html')
 
 # @app.route('/upgrade.html', methods=['GET', 'POST'])
 # def upgrade():

@@ -34,15 +34,10 @@
                                 </a>
                             </h1>
                             <ul class="aui-nav">
-                                <li class="aui-nav-selected">
-                                    <a href="{{ session['environment'] }}/upgrade" aria-owns="aui-menu-upgrade" >Upgrade</a>
-                                </li>
-                                <li>
-                                    <a href="{{ session['environment'] }}/clone" aria-owns="aui-menu-clone" >Clone</a>
-                                </li>
-                                <li>
-                                    <a href="{{ session['environment'] }}/restart" aria-owns="aui-menu-restart" >Restart</a>
-                                </li>
+                                {% block hnavitems %}
+                                <li><a href="env/stg" class="docs-nav-link" id="aui-label-link">Staging</a></li>
+                                <li><a href="env/prod" class="docs-nav-link" id="badges-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
+                                {% endblock %}
                             </ul>
                         </div>
                     </div>
@@ -54,11 +49,28 @@
                         <nav class="aui-navgroup aui-navgroup-vertical">
                             <div class="aui-navgroup-inner">
                                 <div class="aui-nav-heading">
-                                    <strong>Environment</strong>
+                                    <strong>Action Type</strong>
                                 </div>
                                 <ul class="aui-nav">
-                                    <li><a href="stg" class="docs-nav-link" id="aui-label-link">Staging</a></li>
-                                    <li><a href="prod" class="docs-nav-link" id="badges-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
+                                    {% block vnavitems %}
+                                    <li class="aui-nav-selected">
+                                        <a href="action/upgrade" aria-owns="aui-menu-upgrade" >Upgrade</a>
+                                    </li>
+                                    <li>
+                                        <a href="action/fullrestart" aria-owns="aui-menu-fullrestart" >Full Restart</a>
+                                    </li>
+                                    <li>
+                                        <a href="action/rollingrestart" aria-owns="aui-menu-rollingrestart" >Rolling Restart</a>
+                                    </li>
+                                    {% if session['environment'] == "stg" %}
+                                        <li>
+                                            <a href="action/clone" aria-owns="aui-menu-clone" >Clone from Prod</a>
+                                        </li>
+                                        <li>
+                                            <a href="action/destroy" aria-owns="aui-menu-destroy" >Destroy</a>
+                                        </li>
+                                    {% endif %}
+                                    {% endblock %}
                                 </ul>
                             </div>
                         </nav>
