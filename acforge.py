@@ -92,6 +92,7 @@ def show_stacks():
 @app.route('/<string:env>/<string:action>', methods=['POST'])
 def envact(env, action):
     print('after stack selection')
+    pprint(session)
     return render_template(action + '.html')
 
 # @app.route('/upgrade.html', methods=['GET', 'POST'])

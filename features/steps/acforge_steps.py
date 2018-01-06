@@ -10,8 +10,6 @@ def flask_is_setup(context):
 def step_impl(context):
     context.page = context.client.get('/', follow_redirects=True)
     context.soup = BeautifulSoup(context.page.data, "html.parser")
-
-    rblist = context.soup.find_all(type="radio")
     assert context.page
 
 @then("i should receive a 200")
@@ -25,13 +23,36 @@ def step_impl(context):
 
 @then("i see an option to upgrade")
 def step_impl(context):
-    assert context.soup.find(value="upgrade")
+    assert context.soup.find(id="upgrade-link")
 
 @then("i see an option to clone")
 def step_impl(context):
-    assert context.soup.find(value="clone")
+    assert context.soup.find(id="clone-link")
 
-
-@then("i see an option to restart")
+@then("i see an option to fullrestart")
 def step_impl(context):
-    context.soup.find(value="restart")
+    context.soup.find(id="fullrestart-link")
+
+@then("i see an option to rollingrestart")
+def step_impl(context):
+    context.soup.find(id="rollingrestart-link")
+
+@then("i see an option of staging")
+def step_impl(context):
+    context.soup.find(id="staging-link")
+
+
+@then("i see an option of production")
+def step_impl(context):
+    context.soup.find(id="production-link")
+
+
+@then("i see an option to destroy")
+def step_impl(context):
+    assert context.soup.find(id="destroy-link")
+
+@when("i select staging on acforge index")
+def step_impl(context):
+    context.page = context.client.get('/env/stg', follow_redirects=True)
+    context.soup = BeautifulSoup(context.page.data, "html.parser")
+    assert context.page

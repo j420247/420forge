@@ -11,20 +11,40 @@ Feature: As a service actor,
      When i browse to the acforge index
       Then i see the "Atlassian Cloudformation Forge" title
 
+  Scenario: AcForge index.html presents an environment of "Staging"
+   Given acforge is set up
+   When i browse to the acforge index
+    Then i see an option of staging
+
+  Scenario: AcForge index.html presents an environment of "Production"
+   Given acforge is set up
+   When i browse to the acforge index
+    Then i see an option of production
+
   Scenario: AcForge index.html presents an "upgrade" option
      Given acforge is set up
      When i browse to the acforge index
       Then i see an option to upgrade
 
-  Scenario: AcForge index.html presents an "clone" option
+  Scenario: AcForge index.html presents a "fullrestart" option
      Given acforge is set up
      When i browse to the acforge index
+      Then i see an option to fullrestart
+
+  Scenario: AcForge index.html presents a "rollingrestart" option
+   Given acforge is set up
+   When i browse to the acforge index
+    Then i see an option to rollingrestart
+
+  Scenario: AcForge index.html for staging environment presents a "clone" option
+     Given acforge is set up
+     When i select staging on acforge index
       Then i see an option to clone
 
-  Scenario: AcForge index.html presents an "restart" option
+  Scenario: AcForge index.html for staging environment presents a "destroy" option
      Given acforge is set up
-     When i browse to the acforge index
-      Then i see an option to restart
+     When i select staging on acforge index
+      Then i see an option to destroy
 
 #  Scenario: Upgrade dash presented
 #     Given acforge is setup
