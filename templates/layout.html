@@ -35,8 +35,8 @@
                             </h1>
                             <ul class="aui-nav">
                                 {% block hnavitems %}
-                                <li><a href="env/stg" class="docs-nav-link" id="staging-link">Staging</a></li>
-                                <li><a href="env/prod" class="docs-nav-link" id="production-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
+                                <li><a href="setenv/stg" class="docs-nav-link" id="staging-link">Staging</a></li>
+                                <li><a href="setenv/prod" class="docs-nav-link" id="production-link">Production <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span></a></li>
                                 {% endblock %}
                             </ul>
                         </div>
@@ -54,20 +54,20 @@
                                 <ul class="aui-nav">
                                     {% block vnavitems %}
                                     <li class="aui-nav-selected">
-                                        <a href="action/upgrade" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
+                                        <a href="setaction/upgrade" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
                                     </li>
                                     <li>
-                                        <a href="action/fullrestart" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
+                                        <a href="setaction/fullrestart" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
                                     </li>
                                     <li>
-                                        <a href="action/rollingrestart" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
+                                        <a href="setaction/rollingrestart" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
                                     </li>
                                     {% if session['environment'] == "stg" %}
                                         <li>
-                                            <a href="action/clone" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
+                                            <a href="setaction/clone" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
                                         </li>
                                         <li>
-                                            <a href="action/destroy" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
+                                            <a href="setaction/destroy" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
                                         </li>
                                     {% endif %}
                                     {% endblock %}

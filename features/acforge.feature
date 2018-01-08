@@ -46,6 +46,16 @@ Feature: As a service actor,
      When i select staging on acforge index
       Then i see an option to destroy
 
+  Scenario: after environment is set and i chose an action, the "stack selection" form is presented
+     Given environment has a value
+     When i select an action on acforge index
+      Then i see the stack_selection form
+
+  Scenario: after action is set and i chose an environment, the "stack selection" form is presented
+     Given action has a value
+     When i select an environment on acforge index
+      Then i see the stack_selection form
+
 #  Scenario: Upgrade dash presented
 #     Given acforge is setup
 #      When i login with "admin" and "default"

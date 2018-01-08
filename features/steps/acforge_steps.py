@@ -1,6 +1,7 @@
 from behave import given, when, then
 from acforge import app
 from bs4 import BeautifulSoup
+from pprint import pprint
 
 @given(u'acforge is set up')
 def flask_is_setup(context):
@@ -56,3 +57,41 @@ def step_impl(context):
     context.page = context.client.get('/env/stg', follow_redirects=True)
     context.soup = BeautifulSoup(context.page.data, "html.parser")
     assert context.page
+
+
+@given("environment has a value")
+def step_impl(context):
+    context.environment = 'stg'
+    pass
+
+
+@when("i select an action on acforge index")
+def step_impl(context):
+    context.action = 'upgrade'
+    context.page = context.client.get('/show_stacks', follow_redirects=True)
+    context.soup = BeautifulSoup(context.page.data, "html.parser")
+    cpd = context.page
+    mysoup = context.soup = BeautifulSoup(context.page.data, "html.parser")
+    pprint(context.soup)
+    assert context.page
+
+
+@then("i see the stack_selection form")
+def step_impl(context):
+    assert context.soup.find(id="stackForm")
+
+
+@given("action has a value")
+def step_impl(context):
+    """
+    :type context: behave.runner.Context
+    """
+    pass
+
+
+@when("i select an environment on acforge index")
+def step_impl(context):
+    """
+    :type context: behave.runner.Context
+    """
+    pass

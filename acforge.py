@@ -60,9 +60,9 @@ def index():
         stack_name_list = get_cfn_stacks_for_environment(session['environment'])
     return render_template('index.html')
 
-#@app.route('/env/stg')
-#@app.route('/env/prod')
-@app.route('/env/<environment>')
+#@app.route('/setenv/stg')
+#@app.route('/setenv/prod')
+@app.route('/setenv/<environment>')
 def env(environment):
     session['environment'] = environment
     print('env = ', session['environment'])
@@ -71,8 +71,8 @@ def env(environment):
     else:
         return redirect(url_for('index'))
 
-#@app.route('/action/upgrade')
-@app.route('/action/<string:action>')
+#@app.route('/setaction/upgrade')
+@app.route('/setaction/<string:action>')
 def action(action):
     session['action'] = action
     print('action = ', session['action'])
@@ -93,7 +93,7 @@ def show_stacks():
 def envact(env, action):
     print('after stack selection')
     pprint(session)
-    return render_template(action + '.html')
+    return render_template(action + 'Options.html')
 
 # @app.route('/upgrade.html', methods=['GET', 'POST'])
 # def upgrade():

@@ -2,11 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="492b3ec2-ccbd-4241-b8e0-f5f80a6b6c94" name="Default" comment="">
+      <change beforePath="" afterPath="$PROJECT_DIR$/templates/upgradeOptions.html" />
+      <change beforePath="" afterPath="$PROJECT_DIR$/templates/upgradeProgress.html" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/acforge.py" afterPath="$PROJECT_DIR$/acforge.py" />
       <change beforePath="$PROJECT_DIR$/features/acforge.feature" afterPath="$PROJECT_DIR$/features/acforge.feature" />
       <change beforePath="$PROJECT_DIR$/features/steps/acforge_steps.py" afterPath="$PROJECT_DIR$/features/steps/acforge_steps.py" />
       <change beforePath="$PROJECT_DIR$/templates/layout.html" afterPath="$PROJECT_DIR$/templates/layout.html" />
+      <change beforePath="$PROJECT_DIR$/templates/upgrade.html" afterPath="$PROJECT_DIR$/templates/upgrade.html" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -17,23 +20,54 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_steps.coverage" NAME="atl-cfn-forge_steps Coverage Results" MODIFIED="1513738237282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/features/steps" />
-    <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge.coverage" NAME="atl-cfn-forge Coverage Results" MODIFIED="1515243012841" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature_AcForge_service_index_page_returns_expected_status_code.coverage" NAME="acforge.feature:AcForge service index page returns expected status_code Coverage Results" MODIFIED="1515243019442" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge.coverage" NAME="atl-cfn-forge Coverage Results" MODIFIED="1515382586218" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature_after_environment_is_set_and_i_chose_an_action__the__stack_selection__form_is_presented.coverage" NAME="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented Coverage Results" MODIFIED="1515371219755" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_feature.coverage" NAME="atl-cfn-forge.feature Coverage Results" MODIFIED="1513736041478" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$atl_cfn_forge_feature_Upgrade_service_returns_expected_title.coverage" NAME="atl-cfn-forge.feature:Upgrade service returns expected title Coverage Results" MODIFIED="1513737050789" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature_Upgrade_service_returns_expected_title.coverage" NAME="acforge.feature:Upgrade service returns expected title Coverage Results" MODIFIED="1514345472993" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature.coverage" NAME="acforge.feature Coverage Results" MODIFIED="1515244071507" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/atl_cfn_forge$acforge_feature.coverage" NAME="acforge.feature Coverage Results" MODIFIED="1515365386466" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="acforge.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/acforge.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="629">
-              <caret line="94" column="19" lean-forward="false" selection-start-line="94" selection-start-column="19" selection-end-line="94" selection-end-column="19" />
+            <state relative-caret-position="279">
+              <caret line="99" column="55" lean-forward="true" selection-start-line="99" selection-start-column="55" selection-end-line="99" selection-end-column="55" />
               <folding>
                 <element signature="e#10#24#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="upgrade.html" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/templates/upgrade.html">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="120">
+              <caret line="8" column="14" lean-forward="true" selection-start-line="8" selection-start-column="14" selection-end-line="8" selection-end-column="14" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="upgradeOptions.html" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/templates/upgradeOptions.html">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="45">
+              <caret line="3" column="85" lean-forward="false" selection-start-line="3" selection-start-column="85" selection-end-line="3" selection-end-column="85" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="upgradeProgress.html" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/templates/upgradeProgress.html">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="45">
+              <caret line="3" column="38" lean-forward="false" selection-start-line="3" selection-start-column="38" selection-end-line="3" selection-end-column="38" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -48,11 +82,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="acforge.feature" pinned="false" current-in-tab="true">
+      <file leaf-file-name="acforge.feature" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/features/acforge.feature">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="3" lean-forward="false" selection-start-line="0" selection-start-column="3" selection-end-line="0" selection-end-column="3" />
+            <state relative-caret-position="248">
+              <caret line="48" column="48" lean-forward="false" selection-start-line="48" selection-start-column="48" selection-end-line="48" selection-end-column="48" />
               <folding />
             </state>
           </provider>
@@ -61,8 +95,8 @@
       <file leaf-file-name="acforge_steps.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/features/steps/acforge_steps.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="11" column="66" lean-forward="false" selection-start-line="11" selection-start-column="66" selection-end-line="11" selection-end-column="66" />
+            <state relative-caret-position="-549">
+              <caret line="6" column="28" lean-forward="true" selection-start-line="6" selection-start-column="28" selection-end-line="6" selection-end-column="28" />
               <folding>
                 <element signature="e#0#36#0" expanded="true" />
               </folding>
@@ -70,11 +104,21 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="model.py" pinned="false" current-in-tab="false">
+        <entry file="file:///Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/behave/model.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="159">
+              <caret line="1902" column="0" lean-forward="false" selection-start-line="1902" selection-start-column="0" selection-end-line="1902" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="layout.html" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/templates/layout.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="75">
-              <caret line="5" column="45" lean-forward="true" selection-start-line="5" selection-start-column="45" selection-end-line="5" selection-end-column="45" />
+            <state relative-caret-position="638">
+              <caret line="69" column="56" lean-forward="false" selection-start-line="69" selection-start-column="56" selection-end-line="69" selection-end-column="56" />
               <folding />
             </state>
           </provider>
@@ -83,18 +127,8 @@
       <file leaf-file-name="stack_selection.html" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/templates/stack_selection.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="17" column="14" lean-forward="true" selection-start-line="17" selection-start-column="14" selection-end-line="17" selection-end-column="14" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="fullrestart.html" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/templates/fullrestart.html">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="4" column="14" lean-forward="false" selection-start-line="4" selection-start-column="14" selection-end-line="4" selection-end-column="14" />
+            <state relative-caret-position="45">
+              <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="16" selection-end-column="11" />
               <folding />
             </state>
           </provider>
@@ -151,19 +185,21 @@
         <option value="$PROJECT_DIR$/static/css/aui.min.css" />
         <option value="$PROJECT_DIR$/static/css/aui-experimental.min.css" />
         <option value="$PROJECT_DIR$/static/js/index.js" />
-        <option value="$PROJECT_DIR$/templates/upgrade.html" />
         <option value="$PROJECT_DIR$/templates/clone.html" />
         <option value="$PROJECT_DIR$/templates/restart.html" />
         <option value="$PROJECT_DIR$/templates/index.html" />
         <option value="$PROJECT_DIR$/templates/stg.html" />
         <option value="$PROJECT_DIR$/templates/show_stacks.html" />
-        <option value="$PROJECT_DIR$/templates/stack_selection.html" />
         <option value="$PROJECT_DIR$/templates/rollingrestart.html" />
         <option value="$PROJECT_DIR$/templates/fullrestart.html" />
-        <option value="$PROJECT_DIR$/acforge.py" />
-        <option value="$PROJECT_DIR$/templates/layout.html" />
         <option value="$PROJECT_DIR$/features/acforge.feature" />
+        <option value="$PROJECT_DIR$/templates/stack_selection.html" />
         <option value="$PROJECT_DIR$/features/steps/acforge_steps.py" />
+        <option value="$PROJECT_DIR$/templates/layout.html" />
+        <option value="$PROJECT_DIR$/acforge.py" />
+        <option value="$PROJECT_DIR$/templates/upgradeOptions.html" />
+        <option value="$PROJECT_DIR$/templates/upgrade.html" />
+        <option value="$PROJECT_DIR$/templates/upgradeProgress.html" />
       </list>
     </option>
   </component>
@@ -180,13 +216,15 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds">
-    <option name="x" value="48" />
-    <option name="y" value="23" />
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="1441" />
+    <option name="y" value="-50" />
     <option name="width" value="1392" />
     <option name="height" value="873" />
   </component>
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
       <flattenPackages />
@@ -295,7 +333,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Behave.acforge.feature">
+  <component name="RunManager" selected="Python.atl-cfn-forge">
     <configuration name="acforge.feature" type="PyBehaveRunConfigurationType" factoryName="Behave" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -340,7 +378,7 @@
       <SCENRAIO_NAMES SCENRAIO_NAMES="Upgrade service returns expected title" />
       <option name="ADDITIONAL_ARGS" value="" />
     </configuration>
-    <configuration name="atl-cfn-forge.feature" type="PyBehaveRunConfigurationType" factoryName="Behave" temporary="true">
+    <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" type="PyBehaveRunConfigurationType" factoryName="Behave" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs />
@@ -351,7 +389,8 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="atl-cfn-forge" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <WHAT_TO_RUN WHAT_TO_RUN="$PROJECT_DIR$/features/atl-cfn-forge.feature" />
+      <WHAT_TO_RUN WHAT_TO_RUN="$PROJECT_DIR$/features/acforge.feature" />
+      <SCENRAIO_NAMES SCENRAIO_NAMES="after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" />
       <option name="ADDITIONAL_ARGS" value="" />
     </configuration>
     <configuration name="atl-cfn-forge.feature:Upgrade service returns 200" type="PyBehaveRunConfigurationType" factoryName="Behave">
@@ -426,19 +465,19 @@
       <item index="0" class="java.lang.String" itemvalue="Python.atl-cfn-forge" />
       <item index="1" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature:Upgrade service returns 200" />
       <item index="2" class="java.lang.String" itemvalue="Python.atl-cfn-forge_steps" />
-      <item index="3" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature" />
-      <item index="4" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature:Upgrade service returns expected title" />
-      <item index="5" class="java.lang.String" itemvalue="Behave.acforge.feature" />
-      <item index="6" class="java.lang.String" itemvalue="Behave.acforge.feature:Upgrade service returns expected title" />
-      <item index="7" class="java.lang.String" itemvalue="Behave.acforge.feature:AcForge service index page returns expected status_code" />
+      <item index="3" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature:Upgrade service returns expected title" />
+      <item index="4" class="java.lang.String" itemvalue="Behave.acforge.feature" />
+      <item index="5" class="java.lang.String" itemvalue="Behave.acforge.feature:Upgrade service returns expected title" />
+      <item index="6" class="java.lang.String" itemvalue="Behave.acforge.feature:AcForge service index page returns expected status_code" />
+      <item index="7" class="java.lang.String" itemvalue="Behave.acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Behave.acforge.feature" />
-        <item index="1" class="java.lang.String" itemvalue="Behave.acforge.feature:AcForge service index page returns expected status_code" />
-        <item index="2" class="java.lang.String" itemvalue="Behave.acforge.feature:Upgrade service returns expected title" />
-        <item index="3" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature:Upgrade service returns expected title" />
-        <item index="4" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature" />
+        <item index="0" class="java.lang.String" itemvalue="Behave.acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" />
+        <item index="1" class="java.lang.String" itemvalue="Behave.acforge.feature" />
+        <item index="2" class="java.lang.String" itemvalue="Behave.acforge.feature:AcForge service index page returns expected status_code" />
+        <item index="3" class="java.lang.String" itemvalue="Behave.acforge.feature:Upgrade service returns expected title" />
+        <item index="4" class="java.lang.String" itemvalue="Behave.atl-cfn-forge.feature:Upgrade service returns expected title" />
       </list>
     </recent_temporary>
   </component>
@@ -533,58 +572,65 @@
       <option name="project" value="LOCAL" />
       <updated>1515119414182</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="updated tests for all options">
+      <created>1515244126114</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1515244126114</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="acforge_feature - 2018.01.03 at 07h 14m 59s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 10h 37m 49s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.03 at 07h 16m 07s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 10h 38m 05s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.03 at 07h 16m 45s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 10h 41m 29s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.03 at 09h 21m 24s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 10h 43m 34s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.06 at 23h 50m 34s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 10h 44m 55s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.06 at 23h 57m 05s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 11h 23m 56s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.06 at 23h 59m 32s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 11h 24m 25s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.07 at 00h 04m 47s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 11h 26m 24s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature - 2018.01.07 at 00h 07m 52s.xml">
-      <configuration name="acforge.feature" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 11h 26m 53s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
-    <history-entry file="acforge_feature_AcForge_service_index_page_returns_expected_status_code - 2018.01.06 at 23h 50m 19s.xml">
-      <configuration name="acforge.feature:AcForge service index page returns expected status_code" configurationId="PyBehaveRunConfigurationType" />
+    <history-entry file="acforge_feature_after_environment_is_set_and_i_chose_an_action,_the__stack_selection__form_is_presented - 2018.01.08 at 11h 55m 53s.xml">
+      <configuration name="acforge.feature:after environment is set and i chose an action, the &quot;stack selection&quot; form is presented" configurationId="PyBehaveRunConfigurationType" />
     </history-entry>
   </component>
   <component name="ToolWindowManager">
-    <frame x="48" y="23" width="1392" height="873" extended-state="0" />
+    <frame x="1441" y="-50" width="1919" height="1052" extended-state="6" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32902467" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32904884" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33933163" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27586207" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32904884" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35777777" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25732553" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24973376" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4755784" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.47467726" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -632,20 +678,26 @@
     <MESSAGE value="consolidated cookie storage for navbar values" />
     <MESSAGE value="got as far as listing the stacks. yay !" />
     <MESSAGE value="better routing to get to action templates" />
-    <option name="LAST_COMMIT_MESSAGE" value="better routing to get to action templates" />
+    <MESSAGE value="updated tests for all options" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated tests for all options" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/features/steps/acforge_steps.py</url>
-          <line>21</line>
+          <line>22</line>
           <option name="timeStamp" value="16" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/acforge.py</url>
           <line>25</line>
           <option name="timeStamp" value="38" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/features/steps/acforge_steps.py</url>
+          <line>75</line>
+          <option name="timeStamp" value="41" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
@@ -655,7 +707,7 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="39" />
+      <option name="time" value="42" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -851,13 +903,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/behave/model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1882">
-          <caret line="1902" column="0" lean-forward="false" selection-start-line="1902" selection-start-column="0" selection-end-line="1902" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/templates/clone.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="45">
@@ -912,14 +957,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/templates/upgrade.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="4" selection-end-column="14" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/.virtualenvs/atl-cfn-forge/lib/python3.5/site-packages/flask/app.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="389">
@@ -936,21 +973,45 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/templates/stack_selection.html">
+    <entry file="file:///Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/behave/model.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="17" column="14" lean-forward="true" selection-start-line="17" selection-start-column="14" selection-end-line="17" selection-end-column="14" />
+        <state relative-caret-position="159">
+          <caret line="1902" column="0" lean-forward="false" selection-start-line="1902" selection-start-column="0" selection-end-line="1902" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/acforge.py">
+    <entry file="file://$PROJECT_DIR$/features/acforge.feature">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="629">
-          <caret line="94" column="19" lean-forward="false" selection-start-line="94" selection-start-column="19" selection-end-line="94" selection-end-column="19" />
+        <state relative-caret-position="248">
+          <caret line="48" column="48" lean-forward="false" selection-start-line="48" selection-start-column="48" selection-end-line="48" selection-end-column="48" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/features/steps/acforge_steps.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-549">
+          <caret line="6" column="28" lean-forward="true" selection-start-line="6" selection-start-column="28" selection-end-line="6" selection-end-column="28" />
           <folding>
-            <element signature="e#10#24#0" expanded="true" />
+            <element signature="e#0#36#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/layout.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="638">
+          <caret line="69" column="56" lean-forward="false" selection-start-line="69" selection-start-column="56" selection-end-line="69" selection-end-column="56" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/stack_selection.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="16" selection-end-column="11" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -962,28 +1023,36 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/templates/layout.html">
+    <entry file="file://$PROJECT_DIR$/acforge.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="5" column="45" lean-forward="true" selection-start-line="5" selection-start-column="45" selection-end-line="5" selection-end-column="45" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/features/steps/acforge_steps.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="66" lean-forward="false" selection-start-line="11" selection-start-column="66" selection-end-line="11" selection-end-column="66" />
+        <state relative-caret-position="279">
+          <caret line="99" column="55" lean-forward="true" selection-start-line="99" selection-start-column="55" selection-end-line="99" selection-end-column="55" />
           <folding>
-            <element signature="e#0#36#0" expanded="true" />
+            <element signature="e#10#24#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/features/acforge.feature">
+    <entry file="file://$PROJECT_DIR$/templates/upgrade.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="3" lean-forward="false" selection-start-line="0" selection-start-column="3" selection-end-line="0" selection-end-column="3" />
+        <state relative-caret-position="120">
+          <caret line="8" column="14" lean-forward="true" selection-start-line="8" selection-start-column="14" selection-end-line="8" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/upgradeOptions.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="85" lean-forward="false" selection-start-line="3" selection-start-column="85" selection-end-line="3" selection-end-column="85" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/upgradeProgress.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="38" lean-forward="false" selection-start-line="3" selection-start-column="38" selection-end-line="3" selection-end-column="38" />
           <folding />
         </state>
       </provider>
