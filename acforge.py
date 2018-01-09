@@ -81,6 +81,18 @@ def action(action):
     else:
         return redirect(url_for('index'))
 
+#@app.route('/go/stg/upgradeProgress')
+@app.route('/go/<environment>/<string:action>Progress')
+def progress(environment, action):
+    print("in progress")
+    print('env =', session['environment'])
+    print('action = ', session['action'])
+
+    if 'action' in session and 'environment' in session:
+        return redirect(url_for('show_stacks'))
+    else:
+        return redirect(url_for('index'))
+
 @app.route('/show_stacks')
 def show_stacks():
     stack_name_list = sorted(get_cfn_stacks_for_environment(session['environment']))
@@ -92,6 +104,8 @@ def show_stacks():
 @app.route('/<string:env>/<string:action>', methods=['POST'])
 def envact(env, action):
     print('after stack selection')
+    for key in request.form:
+        session['selected_stack'] = key.split("_")[1]
     pprint(session)
     return render_template(action + 'Options.html')
 

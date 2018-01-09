@@ -7,7 +7,7 @@
             {% for stack in stack_name_list %}
                 <div class="radio">
                     <input class="radio" type="radio"
-                           name="stackselection" id="{{ stack }}">
+                           name="stackselection_{{ stack }}" id="{{ stack }}">
                     <label for="{{ stack }}">{{ stack }}</label>
                 </div>
             {% endfor %}

@@ -1,7 +1,7 @@
 {% extends "upgrade.html" %}
 
 {% block upgradeOptions %}
-        <form id="upgradeVersion" class="aui" action="{{ session['action'] }}Progress" method="post">
+        <form id="upgradeVersion" class="aui" action="/go/{{ session['action'] }}Progress" method="post">
         <fieldset class="group">
             <legend><span>Specify Upgrade Version</span></legend>
             <div class="field-group">

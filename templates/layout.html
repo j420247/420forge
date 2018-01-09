@@ -62,6 +62,11 @@
                                     <li>
                                         <a href="setaction/rollingrestart" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
                                     </li>
+                                    {% if session['environment'] == "prod" %}
+                                        <li>
+                                            <a href="setaction/backup" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
+                                        </li>
+                                    {% endif %}
                                     {% if session['environment'] == "stg" %}
                                         <li>
                                             <a href="setaction/clone" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
