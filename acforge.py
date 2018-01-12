@@ -2,6 +2,7 @@
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
+from flask_restful import reqparse, abort, Api, Resource
 #from flask_bootstrap import Bootstrap
 import os
 import json
@@ -17,10 +18,139 @@ SECRET_KEY = 'key_to_the_forge'
 
 # create and initialize app
 app = Flask(__name__)
-#bootstrap = Bootstrap(app)
 app.config.from_object(__name__)
-# # set defaults to 'upgrade' and 'stg'
-# saved_data = {'environment': 'stg', 'forgetype': 'upgrade'}
+api = Api(app)
+
+class hello(Resource):
+    def get(self):
+        return {'hello': 'world'}
+
+class testing(Resource):
+    def get(self):
+        return "testing something"
+
+class upgrade(Resource):
+    def get(self, env, stack, newversion):
+        session['action'] = "upgrade"
+        session['environment'] = env
+        session['stack'] = stack
+        session['newversion'] = newversion
+        if env == 'prod':
+            session['region'] = 'us-west-2'
+        else:
+            session['region'] = 'us-east-1'
+        # get pre-upgrade state information
+        get_stack_current_state()
+        # spin stack down to 0 nodes
+ #       spindown_to_zero_appnodes()
+        # spin stack up to 1 node on new release version
+        spinup_to_one_appnode()
+        # wait for
+        return [ "starting upgrade for " + stack +" at " + env + " to version " + newversion ]
+    def put(self, env, stack):
+        return {env: stack}
+
+class status(Resource):
+    def get(self):
+        return "something is happening"
+
+
+api.add_resource(hello, '/hello')
+api.add_resource(testing, '/test')
+api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack>/<string:newversion>')
+api.add_resource(status, '/upgrade/status<string:env>/<string:stack>')
+
+def get_stack_current_state():
+    # store outcome in session
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    stack_details = cfn.describe_stacks( StackName=session['stack'] )
+
+    session['appnodemax'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax' ][0]
+    session['appnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMin'][0]
+
+    # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
+    # versions in different parms relative to products - we should probably abstract the product
+
+    #connie
+    try:
+        session['preupgrade_confluence_version'] = \
+        [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+         p['ParameterKey'] == 'ConfluenceVersion'][0]
+        # synchrony only exists for connie
+        session['syncnodemax'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                               p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+        session['syncnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                               p['ParameterKey'] == 'SynchronyClusterNodeMin'][0]
+    except:
+        print("not confluence")
+
+    #jira
+    try:
+        session['preupgrade_jira_version'] = \
+        [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'JiraVersion'][0]
+    except:
+        print("not jira")
+    pprint(session)
+    return
+
+def spindown_to_zero_appnodes():
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    spindown_parms = [
+        { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '0' },
+        { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '0' },
+        { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
+    ]
+    if 'preupgrade_confluence_version' in session:
+        spindown_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '0' })
+        spindown_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '0' })
+
+    pprint(spindown_parms)
+
+    update_stack = cfn.update_stack(
+        StackName=session['stack'],
+        Parameters=spindown_parms,
+        UsePreviousTemplate=True,
+        Capabilities=[ 'CAPABILITY_IAM' ],
+    )
+    pprint(update_stack)
+    wait_stackupdate_complete()
+    return
+
+def spinup_to_one_appnode():
+    # for connie 1 app node and 1 synchrony
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    spinup_parms = [
+        { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '1' },
+        { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1' },
+        { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
+    ]
+    if 'preupgrade_jira_version' in session:
+        spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': session['newversion']})
+    if 'preupgrade_confluence_version' in session:
+        spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': session['newversion']})
+        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '1' })
+        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '1' })
+
+    pprint(spinup_parms)
+
+    update_stack = cfn.update_stack(
+        StackName=session['stack'],
+        Parameters=spinup_parms,
+        UsePreviousTemplate=True,
+        Capabilities=[ 'CAPABILITY_IAM' ],
+    )
+    wait_stackupdate_complete()
+    pprint(update_stack)
+    return
+
+def wait_stackupdate_complete():
+    return
+
+def validate_service_responding():
+    return
+
+def spinup_remaining_nodes():
+    return
 
 def get_cfn_stacks_for_environment(env):
     if env == 'prod':
