@@ -6,6 +6,7 @@ from flask_restful import reqparse, abort, Api, Resource
 #from flask_bootstrap import Bootstrap
 import os
 import json
+import time
 import boto3
 from pprint import pprint
 
@@ -39,13 +40,18 @@ class upgrade(Resource):
             session['region'] = 'us-west-2'
         else:
             session['region'] = 'us-east-1'
+        # block traffic at vtm
         # get pre-upgrade state information
         get_stack_current_state()
         # spin stack down to 0 nodes
- #       spindown_to_zero_appnodes()
+        spindown_to_zero_appnodes()
         # spin stack up to 1 node on new release version
         spinup_to_one_appnode()
-        # wait for
+        # wait for service to respond
+        # spinup remaining appnodes in stack
+        # wait for remaining nodes to respond ???
+        # enable traffic at VTM
+
         return [ "starting upgrade for " + stack +" at " + env + " to version " + newversion ]
     def put(self, env, stack):
         return {env: stack}
@@ -143,7 +149,16 @@ def spinup_to_one_appnode():
     pprint(update_stack)
     return
 
+def check_stack_state():
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    stack_events = cfn.describe_stack_events(StackName=session['stack'])
+    return(stack_events)
+
 def wait_stackupdate_complete():
+    stack_state = check_stack_state()
+    while stack_state == "UPDATE_IN_PROGRESS":
+        time.sleep(30)
+        stack_state = check_stack_state()
     return
 
 def validate_service_responding():
