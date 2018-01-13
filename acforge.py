@@ -3,7 +3,7 @@ import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
 from flask_restful import reqparse, abort, Api, Resource
-#from flask_bootstrap import Bootstrap
+import requests
 import os
 import json
 import time
@@ -57,22 +57,29 @@ class upgrade(Resource):
         return {env: stack}
 
 class status(Resource):
-    def get(self):
+    def get(self, env, stack):
+        session['action'] = "status"
+        session['environment'] = env
+        session['stack'] = stack
+        get_stack_current_state()
+        validate_service_responding()
         return "something is happening"
 
 
 api.add_resource(hello, '/hello')
 api.add_resource(testing, '/test')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack>/<string:newversion>')
-api.add_resource(status, '/upgrade/status<string:env>/<string:stack>')
+api.add_resource(status, '/status/<string:env>/<string:stack>')
 
 def get_stack_current_state():
+    print("getting pre-upgrade stack state")
     # store outcome in session
     cfn = boto3.client('cloudformation', region_name=session['region'])
     stack_details = cfn.describe_stacks( StackName=session['stack'] )
 
     session['appnodemax'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax' ][0]
     session['appnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMin'][0]
+    session['lburl'] = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if p['OutputKey'] == 'LoadBalancerURL'][0]
 
     # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
     # versions in different parms relative to products - we should probably abstract the product
@@ -100,6 +107,7 @@ def get_stack_current_state():
     return
 
 def spindown_to_zero_appnodes():
+    print("spinning stack down to 0 nodes")
     cfn = boto3.client('cloudformation', region_name=session['region'])
     spindown_parms = [
         { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '0' },
@@ -123,6 +131,7 @@ def spindown_to_zero_appnodes():
     return
 
 def spinup_to_one_appnode():
+    print("spinning stack up to one appnode")
     # for connie 1 app node and 1 synchrony
     cfn = boto3.client('cloudformation', region_name=session['region'])
     spinup_parms = [
@@ -146,22 +155,36 @@ def spinup_to_one_appnode():
         Capabilities=[ 'CAPABILITY_IAM' ],
     )
     wait_stackupdate_complete()
+    validate_service_responding()
     pprint(update_stack)
     return
 
 def check_stack_state():
+    print(" ==> checking stack state ")
     cfn = boto3.client('cloudformation', region_name=session['region'])
-    stack_events = cfn.describe_stack_events(StackName=session['stack'])
-    return(stack_events)
+    stack_state = cfn.describe_stacks(StackName=session['stack'])
+    return(stack_state['Stacks'][0]['StackStatus'])
 
 def wait_stackupdate_complete():
+    print("waiting for stack update to complete")
     stack_state = check_stack_state()
     while stack_state == "UPDATE_IN_PROGRESS":
         time.sleep(30)
         stack_state = check_stack_state()
     return
 
+def check_service_status():
+    print(" ==> checking service status ")
+    service_status = requests.get(session['lburl'] + '/status')
+    return(service_status.text)
+
 def validate_service_responding():
+    print("waiting for service to reply RUNNING on /status")
+    service_state = check_service_status()
+    while service_state != '{"state":"RUNNING"}' :
+        time.sleep(60)
+        print("====> health check reports: ",service_state, " waiting for RUNNING ")
+        stack_state = check_service_status()
     return
 
 def spinup_remaining_nodes():
