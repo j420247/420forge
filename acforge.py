@@ -4,6 +4,8 @@ from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
 from flask_restful import reqparse, abort, Api, Resource
 from datetime import datetime
+from collections import defaultdict
+
 import requests
 import os
 import json
@@ -14,9 +16,11 @@ from pprint import pprint
 # configuration
 # DATABASE = 'acforge.db'
 # DEBUG = True
-SECRET_KEY = 'key_to_the_forge'
 # USERNAME = 'admin'
 # PASSWORD = 'admin'
+SECRET_KEY = 'key_to_the_forge'
+# using dict of dicts called forgestate to track state of all actions
+forgestate = defaultdict(dict)
 
 # create and initialize app
 app = Flask(__name__)
@@ -32,29 +36,34 @@ class hello(Resource):
         return {'hello': 'world'}
 
 class test(Resource):
-    def get(self, env, stack, newversion):
-        session['progress_log'] = "beginning testing " + str(datetime.now())
-        session['action'] = "status"
-        session['environment'] = env
-        session['stack'] = stack
-        session['newversion'] = newversion
+    def get(self, env, stack_name, new_version):
+        # using dict of dicts called forgestate to track state of all actions
+        forgestate = defaultdict(dict)
+        # initialise log for stack
+        forgestate[stack_name]['last_action_log'] = []
+
+        last_action_log(forgestate, stack_name, "beginning testing " + str(datetime.now()))
+        forgestate = forgestate_update(forgestate, stack_name, 'action', 'test')
+        forgestate = forgestate_update(forgestate, stack_name, 'environment', env)
+        forgestate = forgestate_update(forgestate, stack_name, 'stack_name', stack_name)
+        forgestate = forgestate_update(forgestate, stack_name, 'new_version', new_version)
         if env == 'prod':
-            session['region'] = 'us-west-2'
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
-            session['region'] = 'us-east-1'
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
         get_stack_current_state()
 
        # spinup_to_one_appnode()
 
-        session['appnodemax'] = '4'
-        session['appnodemin'] = '4'
-        session['syncnodemin'] = '2'
-        session['syncnodemax'] = '2'
-        session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMax', '4')
-        session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMin', '4')
-        session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMax', '2')
-        session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMin', '2')
-        spinup_remaining_nodes()
+        # session['appnodemax'] = '4'
+        # session['appnodemin'] = '4'
+        # session['syncnodemin'] = '2'
+        # session['syncnodemax'] = '2'
+        # session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMax', '4')
+        # session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMin', '4')
+        # session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMax', '2')
+        # session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMin', '2')
+        # spinup_remaining_nodes()
         # spinup_to_one_appnode()
         # # dummy up the numbers
         # session['appnodemin'] = '2'
@@ -68,23 +77,24 @@ class test(Resource):
         # elif 'syncnodemin' in session.keys() and session['syncnodemin'] != "1":
         #     spinup_remaining_nodes()
         # validate_service_responding()
-        print("final state")
-        spl = session['progress_log']
+        # print("final state")
+        # spl = session['last_action_log']
         #print(spl)
-        return(session['progress_log'])
+        last_action_log(forgestate, stack_name, "final state")
+        return(forgestate[stack_name]['last_action_log'])
 
 class clear(Resource):
     def get(self):
         session.clear()
-        session['progress_log'] = str ( "log cleared " + str(datetime.now()))
+        session['last_action_log'] = str ( "log cleared " + str(datetime.now()))
         return "session cleared"
 
 class upgrade(Resource):
-    def get(self, env, stack, newversion):
-        session['progress_log'] = ("beginning upgrade " + str(datetime.now()))
+    def get(self, env, stack_name, newversion):
+        session['last_action_log'] = ("beginning upgrade " + str(datetime.now()))
         session['action'] = "upgrade"
         session['environment'] = env
-        session['stack'] = stack
+        session['stack'] = stack_name
         session['newversion'] = newversion
         if env == 'prod':
             session['region'] = 'us-west-2'
@@ -105,36 +115,36 @@ class upgrade(Resource):
             spinup_remaining_nodes()
         # wait for remaining nodes to respond ???
         # enable traffic at VTM
-        progress_log([ "completed upgrade for " + stack +" at " + env + " to version " + newversion])
+        last_action_log([ "completed upgrade for " + stack_name +" at " + env + " to version " + newversion])
         print("final state")
-        spl = session['progress_log']
+        spl = session['last_action_log']
         print(spl)
-        return(session['progress_log'])
-    def put(self, env, stack):
-        return {env: stack}
+        return(session['last_action_log'])
+    def put(self, env, stack_name):
+        return {env: stack_name}
 
 class clone(Resource):
-    def get(self, stack, rdssnap, ):
-        return(session['progress_log'])
+    def get(self, stack_name, rdssnap, ):
+        return(session['last_action_log'])
 
 class status(Resource):
-    def get(self, stack):
-        return(session['progress_log'])
+    def get(self, stack_name):
+        return(session['last_action_log'])
 
 
 api.add_resource(hello, '/hello')
-api.add_resource(test, '/test/<string:env>/<string:stack>/<string:newversion>')
+api.add_resource(test, '/test/<string:env>/<string:stack_name>/<string:new_version>')
 api.add_resource(clear, '/clear')
-api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack>/<string:newversion>')
-api.add_resource(clone, '/clone/<string:stack>/<string:rdssnap>/<string:ebssnap>')
-api.add_resource(status, '/status/<string:stack>')
+api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
+api.add_resource(clone, '/clone/<string:stack_name>/<string:rdssnap>/<string:ebssnap>')
+api.add_resource(status, '/status/<string:stack_name>')
 
 ##
 #### stack action functions
 ##
 
 def get_stack_current_state():
-    progress_log("getting pre-upgrade stack state")
+    last_action_log("getting pre-upgrade stack state")
     # store outcome in session
     cfn = boto3.client('cloudformation', region_name=session['region'])
     stack_details = cfn.describe_stacks( StackName=session['stack'] )
@@ -163,19 +173,19 @@ def get_stack_current_state():
         session['syncnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                p['ParameterKey'] == 'SynchronyClusterNodeMin'][0]
     except:
-        progress_log("not confluence")
+        last_action_log("not confluence")
 
     #jira
     try:
         session['preupgrade_jira_version'] = \
         [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'JiraVersion'][0]
     except:
-        progress_log("not jira")
-    progress_log(str(session))
+        last_action_log("not jira")
+    last_action_log(str(session))
     return
 
 def spindown_to_zero_appnodes():
-    progress_log("spinning stack down to 0 nodes")
+    last_action_log("spinning stack down to 0 nodes")
     cfn = boto3.client('cloudformation', region_name=session['region'])
     spindown_parms = session['stack_parms']
     spindown_parms = update_parm(spindown_parms, 'ClusterNodeMax', '0')
@@ -185,7 +195,7 @@ def spindown_to_zero_appnodes():
         spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
         spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
 
-    progress_log(str(spindown_parms))
+    last_action_log(str(spindown_parms))
 
     update_stack = cfn.update_stack(
         StackName=session['stack'],
@@ -193,12 +203,12 @@ def spindown_to_zero_appnodes():
         UsePreviousTemplate=True,
         Capabilities=[ 'CAPABILITY_IAM' ],
     )
-    progress_log(str(update_stack))
+    last_action_log(str(update_stack))
     wait_stackupdate_complete()
     return
 
 def spinup_to_one_appnode():
-    progress_log("spinning stack up to one appnode")
+    last_action_log("spinning stack up to one appnode")
     # for connie 1 app node and 1 synchrony
     cfn = boto3.client('cloudformation', region_name=session['region'])
     spinup_parms = session['stack_parms']
@@ -216,7 +226,7 @@ def spinup_to_one_appnode():
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '1' })
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '1' })
 
-    progress_log(str(spinup_parms))
+    last_action_log(str(spinup_parms))
 
     update_stack = cfn.update_stack(
         StackName=session['stack'],
@@ -226,11 +236,11 @@ def spinup_to_one_appnode():
     )
     wait_stackupdate_complete()
     validate_service_responding()
-    progress_log(str(update_stack))
+    last_action_log(str(update_stack))
     return
 
 def spinup_remaining_nodes():
-    progress_log("spinning up any remaining nodes in stack")
+    last_action_log("spinning up any remaining nodes in stack")
     # for connie 1 app node and 1 synchrony
     cfn = boto3.client('cloudformation', region_name=session['region'])
     spinup_parms = session['stack_parms']
@@ -252,7 +262,7 @@ def spinup_remaining_nodes():
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': session['syncnodemax'] })
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': session['syncnodemin'] })
 
-    progress_log(str(spinup_parms))
+    last_action_log(str(spinup_parms))
 
     update_stack = cfn.update_stack(
         StackName=session['stack'],
@@ -261,16 +271,45 @@ def spinup_remaining_nodes():
         Capabilities=[ 'CAPABILITY_IAM' ],
     )
     wait_stackupdate_complete()
-    progress_log("stack restored to full node count")
+    last_action_log("stack restored to full node count")
     return
 
 ##
 #### Common functions
 ##
-def progress_log(log_this):
-    print(str(log_this))
-    session['progress_log'] = "\n".join([str(log_this), str(session['progress_log'])])
+def forgestate_write(stack_name, stack_state):
+    with open(stack_name+'.json', 'w') as outfile:
+        json.dump(stack_state, outfile)
+    outfile.close()
     return
+
+def forgestate_read(stack_name):
+    try:
+        with open(stack_name+'.json', 'r') as infile:
+            stack_state = json.load(stack_name, infile)
+            return (stack_state)
+    except FileNotFoundError:
+        pass
+    return
+
+def forgestate_update(forgestate, stack_name, update_key, update_value):
+    if not stack_name in forgestate:
+        forgestate[stack_name] = forgestate_read(stack_name)
+    forgestate[stack_name][update_key] = update_value
+    forgestate_write(stack_name, forgestate[stack_name])
+    return(forgestate)
+
+def forgestate_clear(forgestate, stack_name):
+    forgestate.pop(stack_name)
+    return(forgestate)
+
+def last_action_log(forgestate, stack_name, log_this):
+    print(str(log_this))
+    last_action_log = forgestate[stack_name]['last_action_log']
+    last_action_log.insert(0,log_this)
+    forgestate = forgestate_update(forgestate, stack_name, 'last_action_log', last_action_log)
+    #session['last_action_log'] = "\n".join([str(log_this), str(session['last_action_log'])])
+    return(forgestate)
 
 def update_parm(parmlist, parmkey, parmvalue):
     for dict in parmlist:
@@ -287,30 +326,30 @@ def update_parm(parmlist, parmkey, parmvalue):
     return(parmlist)
 
 def check_stack_state():
-    progress_log(" ==> checking stack state ")
+    last_action_log(" ==> checking stack state ")
     cfn = boto3.client('cloudformation', region_name=session['region'])
     stack_state = cfn.describe_stacks(StackName=session['stack'])
     return(stack_state['Stacks'][0]['StackStatus'])
 
 def wait_stackupdate_complete():
-    progress_log("waiting for stack update to complete")
+    last_action_log("waiting for stack update to complete")
     stack_state = check_stack_state()
     while stack_state == "UPDATE_IN_PROGRESS":
-        progress_log(str("====> stack_state is: " + stack_state + " waiting .... " + str(datetime.now())))
+        last_action_log(str("====> stack_state is: " + stack_state + " waiting .... " + str(datetime.now())))
         time.sleep(30)
         stack_state = check_stack_state()
     return
 
 def check_service_status():
-    progress_log(str(" ==> checking service status at " + session['lburl'] + "/status"))
+    last_action_log(str(" ==> checking service status at " + session['lburl'] + "/status"))
     service_status = requests.get(session['lburl'] + '/status')
     return(service_status.text)
 
 def validate_service_responding():
-    progress_log("waiting for service to reply RUNNING on /status")
+    last_action_log("waiting for service to reply RUNNING on /status")
     service_state = check_service_status()
     while service_state != '{"state":"RUNNING"}' :
-        progress_log(str("====> health check reports: " + service_state + " waiting for RUNNING " + str(datetime.now())))
+        last_action_log(str("====> health check reports: " + service_state + " waiting for RUNNING " + str(datetime.now())))
         time.sleep(60)
         service_state = check_service_status()
     return
@@ -328,7 +367,7 @@ def get_cfn_stacks_for_environment(env):
     )
     stack_name_list = []
     for stack in stack_list['StackSummaries']:
-        progress_log(stack['StackName'])
+        last_action_log(stack['StackName'])
         stack_name_list.append(stack['StackName'])
     return stack_name_list
 
