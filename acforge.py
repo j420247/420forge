@@ -24,14 +24,14 @@ app.config.from_object(__name__)
 api = Api(app)
 
 ##
-#### Endpoint classes
+#### REST Endpoint classes
 ##
 
 class hello(Resource):
     def get(self):
         return {'hello': 'world'}
 
-class testing(Resource):
+class test(Resource):
     def get(self, env, stack, newversion):
         session['progress_log'] = "beginning testing " + str(datetime.now())
         session['action'] = "status"
@@ -43,22 +43,34 @@ class testing(Resource):
         else:
             session['region'] = 'us-east-1'
         get_stack_current_state()
-        spinup_to_one_appnode()
-        # dummy up the numbers
-        session['appnodemin'] = '2'
-        session['appnodemax'] = '6'
+
+       # spinup_to_one_appnode()
+
+        session['appnodemax'] = '4'
+        session['appnodemin'] = '4'
         session['syncnodemin'] = '2'
-        session['syncnodemax'] = '6'
-        pprint(session)
-        #        if originial stack had more than one node spin up to same as before
-        if session['appnodemin'] != "1":
-            spinup_remaining_nodes()
-        elif 'syncnodemin' in session.keys() and session['syncnodemin'] != "1":
-            spinup_remaining_nodes()
+        session['syncnodemax'] = '2'
+        session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMax', '4')
+        session['stack_parms'] = update_parm(session['stack_parms'], 'ClusterNodeMin', '4')
+        session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMax', '2')
+        session['stack_parms'] = update_parm(session['stack_parms'], 'SynchronyClusterNodeMin', '2')
+        spinup_remaining_nodes()
+        # spinup_to_one_appnode()
+        # # dummy up the numbers
+        # session['appnodemin'] = '2'
+        # session['appnodemax'] = '6'
+        # session['syncnodemin'] = '2'
+        # session['syncnodemax'] = '6'
+        # pprint(session)
+        # #        if originial stack had more than one node spin up to same as before
+        # if session['appnodemin'] != "1":
+        #     spinup_remaining_nodes()
+        # elif 'syncnodemin' in session.keys() and session['syncnodemin'] != "1":
+        #     spinup_remaining_nodes()
         # validate_service_responding()
         print("final state")
         spl = session['progress_log']
-        print(spl)
+        #print(spl)
         return(session['progress_log'])
 
 class clear(Resource):
@@ -83,6 +95,7 @@ class upgrade(Resource):
         get_stack_current_state()
         # spin stack down to 0 nodes
         spindown_to_zero_appnodes()
+        # change template if required
         # spin stack up to 1 node on new release version
         spinup_to_one_appnode()
         # spinup remaining appnodes in stack if needed
@@ -100,16 +113,21 @@ class upgrade(Resource):
     def put(self, env, stack):
         return {env: stack}
 
+class clone(Resource):
+    def get(self, stack, rdssnap, ):
+        return(session['progress_log'])
+
 class status(Resource):
-    def get(self):
+    def get(self, stack):
         return(session['progress_log'])
 
 
 api.add_resource(hello, '/hello')
-api.add_resource(testing, '/test/<string:env>/<string:stack>/<string:newversion>')
+api.add_resource(test, '/test/<string:env>/<string:stack>/<string:newversion>')
 api.add_resource(clear, '/clear')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack>/<string:newversion>')
-api.add_resource(status, '/status')
+api.add_resource(clone, '/clone/<string:stack>/<string:rdssnap>/<string:ebssnap>')
+api.add_resource(status, '/status/<string:stack>')
 
 ##
 #### stack action functions
@@ -120,6 +138,12 @@ def get_stack_current_state():
     # store outcome in session
     cfn = boto3.client('cloudformation', region_name=session['region'])
     stack_details = cfn.describe_stacks( StackName=session['stack'] )
+    # lets store the parms (list of dicts) if they havnt been already stored
+
+    if session.get('stack_parms'):
+        print("stack parms already stored")
+    else:
+        session['stack_parms'] = stack_details['Stacks'][0]['Parameters']
 
     session['appnodemax'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax' ][0]
     session['appnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMin'][0]
@@ -153,14 +177,13 @@ def get_stack_current_state():
 def spindown_to_zero_appnodes():
     progress_log("spinning stack down to 0 nodes")
     cfn = boto3.client('cloudformation', region_name=session['region'])
-    spindown_parms = [
-        { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '0' },
-        { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '0' },
-        { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
-    ]
+    spindown_parms = session['stack_parms']
+    spindown_parms = update_parm(spindown_parms, 'ClusterNodeMax', '0')
+    spindown_parms = update_parm(spindown_parms, 'ClusterNodeMin', '0')
+
     if 'preupgrade_confluence_version' in session:
-        spindown_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '0' })
-        spindown_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '0' })
+        spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
+        spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
 
     progress_log(str(spindown_parms))
 
@@ -178,17 +201,20 @@ def spinup_to_one_appnode():
     progress_log("spinning stack up to one appnode")
     # for connie 1 app node and 1 synchrony
     cfn = boto3.client('cloudformation', region_name=session['region'])
-    spinup_parms = [
-        { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '1' },
-        { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1' },
-        { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
-    ]
+    spinup_parms = session['stack_parms']
+    spinup_parms = update_parm(spinup_parms, 'ClusterNodeMax', '1')
+    spinup_parms = update_parm(spinup_parms, 'ClusterNodeMin', '1')
+
     if 'preupgrade_jira_version' in session:
-        spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': session['newversion']})
+        spinup_parms = update_parm(spinup_parms, 'JiraVersion', session['newversion'])
+        #spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': session['newversion']})
     if 'preupgrade_confluence_version' in session:
-        spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': session['newversion']})
-        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '1' })
-        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '1' })
+        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', session['newversion'])
+        spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
+        spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
+        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': session['newversion']})
+        # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '1' })
+        # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '1' })
 
     progress_log(str(spinup_parms))
 
@@ -203,6 +229,41 @@ def spinup_to_one_appnode():
     progress_log(str(update_stack))
     return
 
+def spinup_remaining_nodes():
+    progress_log("spinning up any remaining nodes in stack")
+    # for connie 1 app node and 1 synchrony
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    spinup_parms = session['stack_parms']
+    spinup_parms = update_parm(spinup_parms, 'ClusterNodeMax', session['appnodemax'])
+    spinup_parms = update_parm(spinup_parms, 'ClusterNodeMin', session['appnodemin'])
+    # spinup_parms = [
+    #     { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': session['appnodemax'] },
+    #     { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': session['appnodemin'] },
+    #     { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
+    # ]
+    if 'preupgrade_jira_version' in session:
+        spinup_parms = update_parm(spinup_parms, 'JiraVersion', session['newversion'])
+        # spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': session['newversion']})
+    if 'preupgrade_confluence_version' in session:
+        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', session['newversion'])
+        spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', session['syncnodemax'])
+        spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', session['syncnodemin'])
+        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': session['newversion']})
+        # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': session['syncnodemax'] })
+        # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': session['syncnodemin'] })
+
+    progress_log(str(spinup_parms))
+
+    update_stack = cfn.update_stack(
+        StackName=session['stack'],
+        Parameters=spinup_parms,
+        UsePreviousTemplate=True,
+        Capabilities=[ 'CAPABILITY_IAM' ],
+    )
+    wait_stackupdate_complete()
+    progress_log("stack restored to full node count")
+    return
+
 ##
 #### Common functions
 ##
@@ -210,6 +271,20 @@ def progress_log(log_this):
     print(str(log_this))
     session['progress_log'] = "\n".join([str(log_this), str(session['progress_log'])])
     return
+
+def update_parm(parmlist, parmkey, parmvalue):
+    for dict in parmlist:
+        for k, v in dict.items():
+            if v == parmkey:
+                dict['ParameterValue'] = parmvalue
+            if v == 'DBMasterUserPassword' or v == 'DBPassword':
+                try:
+                    del dict['ParameterValue']
+                except:
+                    pass
+                dict['UsePreviousValue'] = True
+#        dict.update((dict['ParameterValue'] = parmvalue) for k, v in dict.items() if v == parmkey)
+    return(parmlist)
 
 def check_stack_state():
     progress_log(" ==> checking stack state ")
@@ -240,33 +315,7 @@ def validate_service_responding():
         service_state = check_service_status()
     return
 
-def spinup_remaining_nodes():
-    progress_log("spinning up any remaining nodes in stack")
-    # for connie 1 app node and 1 synchrony
-    cfn = boto3.client('cloudformation', region_name=session['region'])
-    spinup_parms = [
-        { 'ParameterKey': 'ClusterNodeMax', 'ParameterValue': session['appnodemax'] },
-        { 'ParameterKey': 'ClusterNodeMin', 'ParameterValue': session['appnodemin'] },
-        { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
-    ]
-    if 'preupgrade_jira_version' in session:
-        spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': session['newversion']})
-    if 'preupgrade_confluence_version' in session:
-        spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': session['newversion']})
-        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': session['syncnodemax'] })
-        spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': session['syncnodemin'] })
 
-    progress_log(str(spinup_parms))
-
-    update_stack = cfn.update_stack(
-        StackName=session['stack'],
-        Parameters=spinup_parms,
-        UsePreviousTemplate=True,
-        Capabilities=[ 'CAPABILITY_IAM' ],
-    )
-    wait_stackupdate_complete()
-    progress_log("stack restored to full node count")
-    return
 
 def get_cfn_stacks_for_environment(env):
     if env == 'prod':
