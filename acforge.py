@@ -294,18 +294,18 @@ def spinup_remaining_nodes(forgestate, stack_name):
 ##
 def forgestate_write(stack_state, stack_name):
     with open(stack_name+'.json', 'w') as outfile:
-        json.dumps(stack_state, outfile)
+        json.dump(stack_state, outfile)
     outfile.close()
     return
 
 def forgestate_read(stack_name):
     try:
         with open(stack_name+'.json', 'r') as infile:
-            stack_state = json.loads(stack_name, infile)
+            stack_state = json.load(infile)
             return (stack_state)
     except Exception as e:
         print('type is:', e.__class__.__name__)
-        pprint(e)
+        #pprint(e)
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(e).__name__, e.args)
         return ('failed')
