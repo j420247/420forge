@@ -51,7 +51,7 @@ class test(Resource):
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        get_stack_current_state(forgestate, stack_name)
+        forgestate = get_stack_current_state(forgestate, stack_name)
 
        # spinup_to_one_appnode(forgestate, stack_name)
 
@@ -135,6 +135,8 @@ class clone(Resource):
 
 class status(Resource):
     def get(self, stack_name):
+        forgestate = defaultdict(dict)
+        forgestate[stack_name] = forgestate_read(stack_name)
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -154,7 +156,7 @@ def get_stack_current_state(forgestate, stack_name):
 
     # store outcome in forgestate[stack_name]
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-    stack_details = cfn.describe_stacks( stack_name )
+    stack_details = cfn.describe_stacks( StackName=stack_name )
     # lets store the parms (list of dicts) if they havnt been already stored
 
     if forgestate[stack_name].get('stack_parms'):
@@ -189,8 +191,8 @@ def get_stack_current_state(forgestate, stack_name):
     except:
         last_action_log(forgestate, stack_name, "not jira")
 
-    last_action_log(forgestate, stack_name, forgestate[stack_name])
-    return
+    last_action_log(forgestate, stack_name, "end of testing")
+    return(forgestate)
 
 def spindown_to_zero_appnodes(forgestate, stack_name):
 
@@ -215,7 +217,7 @@ def spindown_to_zero_appnodes(forgestate, stack_name):
     last_action_log(forgestate, stack_name, str(update_stack))
 
     wait_stackupdate_complete(forgestate, stack_name)
-    return
+    return(forgestate)
 
 def spinup_to_one_appnode(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "spinning stack up to one appnode")
@@ -248,7 +250,7 @@ def spinup_to_one_appnode(forgestate, stack_name):
     wait_stackupdate_complete()
     validate_service_responding()
     last_action_log(forgestate, stack_name, str(update_stack))
-    return
+    return(forgestate)
 
 def spinup_remaining_nodes(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "spinning up any remaining nodes in stack")
@@ -285,31 +287,37 @@ def spinup_remaining_nodes(forgestate, stack_name):
     wait_stackupdate_complete()
     last_action_log(forgestate, stack_name, "stack restored to full node count")
 
-    return
+    return(forgestate)
 
 ##
 #### Common functions
 ##
-def forgestate_write(stack_name, stack_state):
+def forgestate_write(stack_state, stack_name):
     with open(stack_name+'.json', 'w') as outfile:
-        json.dump(stack_state, outfile)
+        json.dumps(stack_state, outfile)
     outfile.close()
     return
 
 def forgestate_read(stack_name):
     try:
         with open(stack_name+'.json', 'r') as infile:
-            stack_state = json.load(stack_name, infile)
+            stack_state = json.loads(stack_name, infile)
             return (stack_state)
-    except FileNotFoundError:
-        pass
-    return
+    except Exception as e:
+        print('type is:', e.__class__.__name__)
+        pprint(e)
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(e).__name__, e.args)
+        return ('failed')
+    # except FileNotFoundError:
+    #     pass
+    return(stack_state)
 
 def forgestate_update(forgestate, stack_name, update_key, update_value):
     if not stack_name in forgestate:
         forgestate[stack_name] = forgestate_read(stack_name)
     forgestate[stack_name][update_key] = update_value
-    forgestate_write(stack_name, forgestate[stack_name])
+    forgestate_write(forgestate[stack_name], stack_name)
     return(forgestate)
 
 def forgestate_clear(forgestate, stack_name):
