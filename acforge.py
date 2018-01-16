@@ -92,6 +92,7 @@ class clear(Resource):
 class upgrade(Resource):
     def get(self, env, stack_name, new_version):
         forgestate = defaultdict(dict)
+        forgestate[stack_name]['last_action_log'] = []
         last_action_log(forgestate, stack_name, "beginning upgrade " + str(datetime.now()))
         forgestate = forgestate_update(forgestate, stack_name, 'action', 'upgrade')
         forgestate = forgestate_update(forgestate, stack_name, 'environment', env)
@@ -229,13 +230,13 @@ def spinup_to_one_appnode(forgestate, stack_name):
     spinup_parms = update_parm(spinup_parms, 'ClusterNodeMin', '1')
 
     if 'preupgrade_jira_version' in forgestate[stack_name]:
-        spinup_parms = update_parm(spinup_parms, 'JiraVersion', forgestate[stack_name]['newversion'])
-        #spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': forgestate[stack_name]['newversion']})
+        spinup_parms = update_parm(spinup_parms, 'JiraVersion', forgestate[stack_name]['new_version'])
+        #spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': forgestate[stack_name]['new_version']})
     if 'preupgrade_confluence_version' in forgestate[stack_name]:
-        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['newversion'])
+        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['new_version'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
-        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': forgestate[stack_name]['newversion']})
+        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': forgestate[stack_name]['new_version']})
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': '1' })
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': '1' })
 
@@ -247,8 +248,8 @@ def spinup_to_one_appnode(forgestate, stack_name):
         UsePreviousTemplate=True,
         Capabilities=[ 'CAPABILITY_IAM' ],
     )
-    wait_stackupdate_complete()
-    validate_service_responding()
+    wait_stackupdate_complete(forgestate, stack_name)
+    validate_service_responding(forgestate, stack_name)
     last_action_log(forgestate, stack_name, str(update_stack))
     return(forgestate)
 
@@ -266,25 +267,25 @@ def spinup_remaining_nodes(forgestate, stack_name):
     #     { 'ParameterKey': 'CustomDnsName', 'UsePreviousValue': True },
     # ]
     if 'preupgrade_jira_version' in forgestate[stack_name]:
-        spinup_parms = update_parm(spinup_parms, 'JiraVersion', forgestate[stack_name]['newversion'])
-        # spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': forgestate[stack_name]['newversion']})
+        spinup_parms = update_parm(spinup_parms, 'JiraVersion', forgestate[stack_name]['new_version'])
+        # spinup_parms.append({'ParameterKey': 'JiraVersion', 'ParameterValue': forgestate[stack_name]['new_version']})
     if 'preupgrade_confluence_version' in forgestate[stack_name]:
-        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['newversion'])
+        spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['new_version'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', forgestate[stack_name]['syncnodemax'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', forgestate[stack_name]['syncnodemin'])
-        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': forgestate[stack_name]['newversion']})
+        # spinup_parms.append({ 'ParameterKey': 'ConfluenceVersion', 'ParameterValue': forgestate[stack_name]['new_version']})
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMax', 'ParameterValue': forgestate[stack_name]['syncnodemax'] })
         # spinup_parms.append({ 'ParameterKey': 'SynchronyClusterNodeMin', 'ParameterValue': forgestate[stack_name]['syncnodemin'] })
 
     last_action_log(forgestate, stack_name, str(spinup_parms))
 
     update_stack = cfn.update_stack(
-        StackName=forgestate[stack_name]['stack'],
+        StackName=stack_name,
         Parameters=spinup_parms,
         UsePreviousTemplate=True,
         Capabilities=[ 'CAPABILITY_IAM' ],
     )
-    wait_stackupdate_complete()
+    wait_stackupdate_complete(forgestate, stack_name)
     last_action_log(forgestate, stack_name, "stack restored to full node count")
 
     return(forgestate)
@@ -349,30 +350,30 @@ def update_parm(parmlist, parmkey, parmvalue):
 def check_stack_state(forgestate, stack_name):
     last_action_log(forgestate, stack_name, " ==> checking stack state ")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-    stack_state = cfn.describe_stacks(StackName=forgestate[stack_name]['stack'])
+    stack_state = cfn.describe_stacks(StackName=stack_name)
     return(stack_state['Stacks'][0]['StackStatus'])
 
 def wait_stackupdate_complete(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "waiting for stack update to complete")
-    stack_state = check_stack_state()
+    stack_state = check_stack_state(forgestate, stack_name)
     while stack_state == "UPDATE_IN_PROGRESS":
         last_action_log(forgestate, stack_name, "====> stack_state is: " + stack_state + " waiting .... " + str(datetime.now()))
         time.sleep(30)
-        stack_state = check_stack_state()
+        stack_state = check_stack_state(forgestate, stack_name)
     return
 
 def check_service_status(forgestate, stack_name):
-    last_action_log(str(" ==> checking service status at " + forgestate[stack_name]['lburl'] + "/status"))
+    last_action_log(forgestate, stack_name, " ==> checking service status at " + forgestate[stack_name]['lburl'] + "/status")
     service_status = requests.get(forgestate[stack_name]['lburl'] + '/status')
     return(service_status.text)
 
 def validate_service_responding(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "waiting for service to reply RUNNING on /status")
-    service_state = check_service_status()
+    service_state = check_service_status(forgestate, stack_name)
     while service_state != '{"state":"RUNNING"}' :
         last_action_log(forgestate, stack_name, "====> health check reports: " + service_state + " waiting for RUNNING " + str(datetime.now()))
         time.sleep(60)
-        service_state = check_service_status()
+        service_state = check_service_status(forgestate, stack_name)
     return
 
 def get_cfn_stacks_for_environment(forgestate, stack_name, env):
