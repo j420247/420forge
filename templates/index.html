@@ -1,9 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    {% if gtg_flag %}
-        <p> you are good to go !</p>
-    {% else %}
+    <a href="getparms/{{ session['action'] }}">
         <img src="/static/img/acforge.png">
-    {% endif %}
+    </a>
 {% endblock %}
