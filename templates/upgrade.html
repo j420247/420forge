@@ -15,7 +15,7 @@
                 <div id="stackSelection" class="aui-style-default aui-dropdown2">
                     <ul class="aui-list-truncate">
                         {% for stack in stacks %}
-                            <li><a class="selectStackOption" href="#">{{ stack }}</a></li>
+                            <li><a class="selectStackOption">{{ stack }}</a></li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -31,9 +31,9 @@
                 <div id="versionSelection" class="aui-style-default aui-dropdown2">
                     <ul class="aui-list-truncate">
                         {% for version in versions %}
-                            <li><a class="selectVersionOption" href="#">{{ version }}</a></li>
+                            <li><a class="selectVersionOption">{{ version }}</a></li>
                         {% endfor %}
-                            <li><a class="selectVersionOption" href="#">6.9.0-m37</a></li>
+                        <li><a class="selectVersionOption">bogus version for testing 6.9.0-m37</a></li>
                     </ul>
                 </div>
             </div>
@@ -41,7 +41,7 @@
             {#  Button to run upgrade  #}
             <div class="aui-panel">
                 <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
-                    Upgrade
+                    Upgrade (not hooked up anywhere yet)
                 </button>
             </div>
         </div>
