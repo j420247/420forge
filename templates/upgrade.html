@@ -1,48 +1,69 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{#        <form id="stackName" class="aui" action="/blah/{{ session['action'] }}Progress" method="post">#}
-                <!-- Trigger -->
-    <div class="aui-panel">
-        <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
-           class="aui-button aui-style-default aui-dropdown2-trigger">
-            Select Stack
-        </a>
+    {#  Upgrade options  #}
+    <div class="aui-group aui-group-split">
+        <div class="aui-item">
+            {#  Stack selector  #}
+            <div class="aui-panel">
+                <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
+                   class="aui-button aui-style-default aui-dropdown2-trigger">
+                    Select Stack
+                </a>
 
-        <!-- Dropdown -->
-        <div id="stackSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate">
-                {% for stack in stacks %}
-                    <li><a class="selectStackOption" href="#">{{ stack }}</a></li>
-                {% endfor %}
-            </ul>
+                <!-- Dropdown -->
+                <div id="stackSelection" class="aui-style-default aui-dropdown2">
+                    <ul class="aui-list-truncate">
+                        {% for stack in stacks %}
+                            <li><a class="selectStackOption" href="#">{{ stack }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            {#  Upgrade version selector  #}
+            <div class="aui-panel">
+                <a id="upgradeVersionSelector" href="#versionSelection" aria-owns="versionSelection"
+                   aria-haspopup="true" class="aui-button aui-style-default aui-dropdown2-trigger"
+                   aria-disabled="true">
+                    Select Version
+                </a>
+                <div id="versionSelection" class="aui-style-default aui-dropdown2">
+                    <ul class="aui-list-truncate">
+                        {% for version in versions %}
+                            <li><a class="selectVersionOption" href="#">{{ version }}</a></li>
+                        {% endfor %}
+                            <li><a class="selectVersionOption" href="#">6.9.0-m37</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            {#  Button to run upgrade  #}
+            <div class="aui-panel">
+                <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
+                    Upgrade
+                </button>
+            </div>
+        </div>
+
+
+        {#    Current Status Panel    #}
+        <div class="aui-item">
+            <section class="aui-page-notification aui-page-size-medium aui-page-panel aui-page-panel-content">
+                <h3 id="stackName"></h3>
+                <div id="pleaseSelectStackMsg" class="aui-page-notification-description">
+                    <p>Please select a stack to see it's current information</p>
+                </div>
+
+                <div id="stackInformation">
+                    <p id="stackState">Stack State: </p>
+                    <p id="serviceStatus">Service Status: </p>
+                    <p>Current Version: </p>
+                    <p>Nodes: </p>
+                </div>
+            </section>
         </div>
     </div>
-    <div class="aui-panel">
-        <a id="upgradeVersionSelector" href="#versionSelection" aria-owns="versionSelection"
-           aria-haspopup="true" class="aui-button aui-style-default aui-dropdown2-trigger"
-           aria-disabled="true"
-        >
-            Select Version
-        </a>
-
-        <!-- Dropdown -->
-        <div id="versionSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate">
-                {% for version in versions %}
-                    <li><a class="selectVersionOption" href="#">{{ version }}</a></li>
-                {% endfor %}
-                    <li><a class="selectVersionOption" href="#">6.9.0-m37</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="aui-panel">
-        <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
-            Upgrade
-        </button>
-    </div>
-
     {% block  upgradeProgress %}
     {% endblock  %}
 {% endblock %}
