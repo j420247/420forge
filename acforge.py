@@ -119,10 +119,12 @@ class fullrestart(Resource):
         forgestate,iplist,instancelist = get_nodes_in_stack(forgestate, stack_name)
         shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
         start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
-        if instancelist.count() > 1:
+        #status = check_node_status(forgestate, stack_name, "10.125.59.32")
+        if len(instancelist) > 1:
+            last_action_log(forgestate, stack_name, "INFO", f'Spinning up other nodes in stack')
             start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
         for ip in iplist:
-            check_state = wait_status_ready(forgestate, ip)
+            status = check_node_status(forgestate, stack_name, ip)
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -428,11 +430,22 @@ def wait_stackupdate_complete(forgestate, stack_name):
     return
 
 
+def check_node_status(forgestate, stack_name, node_ip):
+    last_action_log(forgestate, stack_name, "INFO",
+                    f' ==> checking node status at {node_ip}/status')
+    node_status = requests.get(f'http://{node_ip}/status', timeout=5)
+    last_action_log(forgestate, stack_name, "INFO",
+                    f' ==> node status is: {node_status.text}')
+    return node_status.text
+
+
 def check_service_status(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "INFO",
                     " ==> checking service status at " + forgestate[stack_name][
                         'lburl'] + "/status")
-    service_status = requests.get(forgestate[stack_name]['lburl'] + '/status')
+    service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
+    last_action_log(forgestate, stack_name, "INFO",
+                    f' ==> servie status is: {service_status.text}')
     return service_status.text
 
 
