@@ -1,20 +1,5 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{#    <form id="stackForm" class="aui" action="{{ session['environment'] + "/" +session['action'] }}" method="post">#}
-    <form id="stackForm" class="aui" action="session['action'] }}" method="post">
 
-        <fieldset class="group">
-            <legend><span>Which Service ?</span></legend>
-            {% for stack in stack_name_list %}
-                <div class="radio">
-                    <input class="radio" type="radio"
-                           name="stackselection_{{ stack }}" id="{{ stack }}">
-                    <label for="{{ stack }}">{{ stack }}</label>
-                </div>
-            {% endfor %}
-            <p><br></p>
-            <input type="submit" class="aui-button aui-button-primary" value="Next">
-        </fieldset>
-    </form>
 {% endblock %}
