@@ -310,10 +310,12 @@ def shutdown_node_app(forgestate, stack_name, instancelist):
     for cmd_id in cmd_id_list:
         result = ""
         while result != 'Success' and result != 'Failed':
-            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
+            result, status_details, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
             time.sleep(5)
-            level = "INFO" if result == 'Success' else "ERROR"
-        last_action_log(forgestate, stack_name, level, f'Shutdown result for {cmd_instance}: {result}')
+        if result == 'Failed':
+            last_action_log(forgestate, stack_name, "ERROR", f'Startup result for {cmd_instance}: {result}: {status_details}')
+        else:
+            last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
     return(forgestate)
 
 
@@ -326,10 +328,12 @@ def start_node_app(forgestate, stack_name, instancelist):
     for cmd_id in cmd_id_list:
         result = ""
         while result != 'Success' and result != 'Failed':
-            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
+            result, status_details, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
             time.sleep(5)
-            level = "INFO" if result == 'Success' else "ERROR"
-        last_action_log(forgestate, stack_name, level, f'Startup result for {cmd_instance}: {result}')
+        if result == 'Failed':
+            last_action_log(forgestate, stack_name, "ERROR", f'Startup result for {cmd_instance}: {result}: {status_details}')
+        else:
+            last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
     return(forgestate)
 
 
@@ -355,11 +359,12 @@ def ssm_cmd_check(forgestate, stack_name, cmd_id):
     ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
     list_command = ssm.list_commands(CommandId=cmd_id)
     cmd_status = list_command[u'Commands'][0][u'Status']
+    cmd_status_details = list_command[u'Commands'][0][u'StatusDetails']
     instance = list_command[u'Commands'][0][u'InstanceIds'][0]
     # result = ssm.get_command_invocation(CommandId=cmd_id, InstanceId=instance)
     # if status == 'Success':
     #     pprint.pprint(result[u'StandardOutputContent'])
-    return (cmd_status, instance)
+    return (cmd_status, cmd_status_details, instance)
 
 
 def forgestate_write(stack_state, stack_name):
@@ -451,7 +456,10 @@ def wait_stackupdate_complete(forgestate, stack_name):
 def check_node_status(forgestate, stack_name, node_ip):
     last_action_log(forgestate, stack_name, "INFO",
                     f' ==> checking node status at {node_ip}/status')
-    node_status = requests.get(f'http://{node_ip}/status', timeout=5)
+    try:
+        node_status = requests.get(f'http://{node_ip}:8080/status', timeout=5)
+    except requests.exceptions.ReadTimeout as e:
+        last_action_log(forgestate, stack_name, "INFO", f'Node status check timed out: {e.errno}, {e.strerror}')
     last_action_log(forgestate, stack_name, "INFO",
                     f' ==> node status is: {node_status.text}')
     return node_status.text
@@ -461,7 +469,10 @@ def check_service_status(forgestate, stack_name):
     last_action_log(forgestate, stack_name, "INFO",
                     " ==> checking service status at " + forgestate[stack_name][
                         'lburl'] + "/status")
-    service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
+    try:
+        service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
+    except requests.exceptions.ReadTimeout as e:
+        last_action_log(forgestate, stack_name, "INFO", f'Node status check timed out: {e.errno}, {e.strerror}')
     last_action_log(forgestate, stack_name, "INFO",
                     f' ==> servie status is: {service_status.text}')
     return service_status.text
