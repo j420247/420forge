@@ -8,4 +8,13 @@ $(document).ready(function() {
             $("#upgradeVersionSelector").attr("aria-disabled", false);
         }, false);
     }
+
+    var versions = document.getElementsByClassName("selectVersionOption");
+    for (var i = 0; i < versions.length; i ++) {
+        versions[i].addEventListener("click", function (data) {
+            var stackName = data.target.text;
+            $("#upgradeVersionSelector").text(stackName);
+            $("#upgrade-button").attr("aria-disabled", false);
+        }, false);
+    }
 });
