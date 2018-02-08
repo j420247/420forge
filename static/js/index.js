@@ -5,8 +5,7 @@ $(document).ready(function() {
         stacks[i].addEventListener("click", function (data) {
             var stackName = data.target.text;
             $("#stackSelector").text(stackName);
-
-
+            $("#upgradeVersionSelector").attr("aria-disabled", false);
         }, false);
     }
 });
