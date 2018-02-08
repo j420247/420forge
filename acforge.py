@@ -49,14 +49,14 @@ class test(Resource):
         forgestate[stack_name]['syncnodemin'] = '2'
         forgestate[stack_name]['syncnodemax'] = '2'
         spinup_remaining_nodes(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, "final state")
+        last_action_log(forgestate, stack_name, "Final state")
         return forgestate[stack_name]['last_action_log']
 
 
 class clear(Resource):
     def get(self, stack_name):
         forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, "log cleared " + str(datetime.now()))
+        last_action_log(forgestate, stack_name, "INFO", "Log cleared")
         return "forgestate[stack_name] cleared"
 
 
@@ -64,7 +64,7 @@ class upgrade(Resource):
     def get(self, env, stack_name, new_version):
         forgestate = defaultdict(dict)
         forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, "beginning upgrade " + str(datetime.now()))
+        last_action_log(forgestate, stack_name, "INFO", "Beginning upgrade")
         forgestate = forgestate_update(forgestate, stack_name, 'action', 'upgrade')
         forgestate = forgestate_update(forgestate, stack_name, 'environment', env)
         forgestate = forgestate_update(forgestate, stack_name, 'stack_name', stack_name)
@@ -89,9 +89,9 @@ class upgrade(Resource):
             spinup_remaining_nodes(forgestate, stack_name)
         # wait for remaining nodes to respond ???
         # enable traffic at VTM
-        last_action_log(forgestate, stack_name,
-                        "completed upgrade for " + stack_name + " at " + env + " to version " + new_version)
-        last_action_log(forgestate, stack_name, "final state")
+        last_action_log(forgestate, stack_name, "INFO",
+                        "Completed upgrade for " + stack_name + " at " + env + " to version " + new_version)
+        last_action_log(forgestate, stack_name, "INFO", "Final state")
         return (forgestate[stack_name]['last_action_log'])
 
 
@@ -111,7 +111,7 @@ class fullrestart(Resource):
     def get(self, env, stack_name):
         forgestate = defaultdict(dict)
         forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, "beginning full restart " + str(datetime.now()))
+        last_action_log(forgestate, stack_name, "INFO", "Beginning full restart")
         if env == 'prod':
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
@@ -146,7 +146,7 @@ api.add_resource(status, '/status/<string:stack_name>')
 ##
 
 def get_stack_current_state(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "getting pre-upgrade stack state")
+    last_action_log(forgestate, stack_name, "INFO", "Getting pre-upgrade stack state")
     # store outcome in forgestate[stack_name]
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     try:
@@ -182,21 +182,21 @@ def get_stack_current_state(forgestate, stack_name):
         [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
          p['ParameterKey'] == 'SynchronyClusterNodeMin'][0]
     except:
-        last_action_log(forgestate, stack_name, "not confluence")
+        last_action_log(forgestate, stack_name, "INFO", "Not confluence")
     # jira
     try:
         forgestate[stack_name]['preupgrade_jira_version'] = \
             [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
              p['ParameterKey'] == 'JiraVersion'][0]
     except:
-        last_action_log(forgestate, stack_name, "not jira")
+        last_action_log(forgestate, stack_name, "INFO", "Not jira")
 
-    last_action_log(forgestate, stack_name, "end of testing")
+    last_action_log(forgestate, stack_name, "INFO", "End of testing")
     return forgestate
 
 
 def spindown_to_zero_appnodes(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "spinning stack down to 0 nodes")
+    last_action_log(forgestate, stack_name, "INFO", "Spinning stack down to 0 nodes")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     spindown_parms = forgestate[stack_name]['stack_parms']
     spindown_parms = update_parm(spindown_parms, 'ClusterNodeMax', '0')
@@ -204,20 +204,20 @@ def spindown_to_zero_appnodes(forgestate, stack_name):
     if 'preupgrade_confluence_version' in forgestate[stack_name]:
         spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
         spindown_parms = update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
-    last_action_log(forgestate, stack_name, str(spindown_parms))
+    last_action_log(forgestate, stack_name, "INFO", f'Spindown params: {spindown_parms}')
     update_stack = cfn.update_stack(
         StackName=stack_name,
         Parameters=spindown_parms,
         UsePreviousTemplate=True,
         Capabilities=['CAPABILITY_IAM'],
     )
-    last_action_log(forgestate, stack_name, str(update_stack))
+    last_action_log(forgestate, stack_name, "INFO", str(update_stack))
     wait_stackupdate_complete(forgestate, stack_name)
     return forgestate
 
 
 def spinup_to_one_appnode(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "spinning stack up to one appnode")
+    last_action_log(forgestate, stack_name, "INFO", "Spinning stack up to one appnode")
     # for connie 1 app node and 1 synchrony
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     spinup_parms = forgestate[stack_name]['stack_parms']
@@ -229,7 +229,7 @@ def spinup_to_one_appnode(forgestate, stack_name):
         spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['new_version'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
-    last_action_log(forgestate, stack_name, str(spinup_parms))
+    last_action_log(forgestate, stack_name, "INFO", f'Spinup params: {spinup_parms}')
     update_stack = cfn.update_stack(
         StackName=stack_name,
         Parameters=spinup_parms,
@@ -238,12 +238,12 @@ def spinup_to_one_appnode(forgestate, stack_name):
     )
     wait_stackupdate_complete(forgestate, stack_name)
     validate_service_responding(forgestate, stack_name)
-    last_action_log(forgestate, stack_name, str(update_stack))
+    last_action_log(forgestate, stack_name, "INFO", f'Update stack: {update_stack}')
     return forgestate
 
 
 def spinup_remaining_nodes(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "spinning up any remaining nodes in stack")
+    last_action_log(forgestate, stack_name, "INFO", "Spinning up any remaining nodes in stack")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     spinup_parms = forgestate[stack_name]['stack_parms']
     spinup_parms = update_parm(spinup_parms, 'ClusterNodeMax', forgestate[stack_name]['appnodemax'])
@@ -254,7 +254,7 @@ def spinup_remaining_nodes(forgestate, stack_name):
         spinup_parms = update_parm(spinup_parms, 'ConfluenceVersion', forgestate[stack_name]['new_version'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMax', forgestate[stack_name]['syncnodemax'])
         spinup_parms = update_parm(spinup_parms, 'SynchronyClusterNodeMin', forgestate[stack_name]['syncnodemin'])
-    last_action_log(forgestate, stack_name, str(spinup_parms))
+    last_action_log(forgestate, stack_name, "INFO", f'Spinup params: {spinup_parms}')
     update_stack = cfn.update_stack(
         StackName=stack_name,
         Parameters=spinup_parms,
@@ -262,7 +262,7 @@ def spinup_remaining_nodes(forgestate, stack_name):
         Capabilities=['CAPABILITY_IAM'],
     )
     wait_stackupdate_complete(forgestate, stack_name)
-    last_action_log(forgestate, stack_name, "stack restored to full node count")
+    last_action_log(forgestate, stack_name, "INFO", "Stack restored to full node count")
     return forgestate
 
 
@@ -280,30 +280,36 @@ def get_nodes_in_stack(forgestate, stack_name):
     instancelist = [i.instance_id for i in ec2.instances.filter(Filters=filters)]
     return(forgestate, iplist, instancelist)
 
-9
+
 def shutdown_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
     for instance  in instancelist:
+        last_action_log(forgestate, stack_name, "INFO", f'Shutting down {instance}')
         cmd = "/etc/init.d/confluence stop"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
     for cmd_id in cmd_id_list:
         result = ""
         while result != 'Success' and result != 'Failed':
-            result = ssm_cmd_check(forgestate, stack_name, instance, cmd_id)
+            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
             time.sleep(5)
+            level = "INFO" if result == 'Success' else "ERROR"
+        last_action_log(forgestate, stack_name, level, f'Shutdown result for {cmd_instance}: {result}')
     return(forgestate)
 
 
 def start_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
     for instance  in instancelist:
+        last_action_log(forgestate, stack_name, "INFO", f'Starting up {instance}')
         cmd = "/etc/init.d/confluence start"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
     for cmd_id in cmd_id_list:
         result = ""
         while result != 'Success' and result != 'Failed':
-            ssm_cmd_check(forgestate, stack_name, instance, cmd_id)
+            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
             time.sleep(5)
+            level = "INFO" if result == 'Success' else "ERROR"
+        last_action_log(forgestate, stack_name, level, f'Startup result for {cmd_instance}: {result}')
     return(forgestate)
 
 
@@ -325,14 +331,15 @@ def ssm_send_command(forgestate, stack_name, instance, cmd):
         return (ssm_command['Command']['CommandId'])
 
 
-def ssm_cmd_check(forgestate, stack_name, instance, cmd_id):
+def ssm_cmd_check(forgestate, stack_name, cmd_id):
     ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
     list_command = ssm.list_commands(CommandId=cmd_id)
-    status = list_command[u'Commands'][0][u'Status']
+    cmd_status = list_command[u'Commands'][0][u'Status']
+    instance = list_command[u'Commands'][0][u'InstanceIds'][0]
     # result = ssm.get_command_invocation(CommandId=cmd_id, InstanceId=instance)
     # if status == 'Success':
     #     pprint.pprint(result[u'StandardOutputContent'])
-    return (list_command[u'Commands'][0][u'Status'])
+    return (cmd_status, instance)
 
 
 def forgestate_write(stack_state, stack_name):
@@ -376,13 +383,14 @@ def forgestate_clear(forgestate, stack_name):
     return (forgestate)
 
 
-def last_action_log(forgestate, stack_name, log_this):
-    print(str(log_this))
+def last_action_log(forgestate, stack_name, level, log_this):
+    print(f'{datetime.now()} {level} {log_this}')
+
     try:
         last_action_log = forgestate[stack_name]['last_action_log']
     except KeyError:
         last_action_log = []
-    last_action_log.insert(0, log_this)
+    last_action_log.insert(0, f'{datetime.now()} {level} {log_this}')
     forgestate = forgestate_update(forgestate, stack_name, 'last_action_log', last_action_log)
     return (forgestate)
 
@@ -402,17 +410,17 @@ def update_parm(parmlist, parmkey, parmvalue):
 
 
 def check_stack_state(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, " ==> checking stack state ")
+    last_action_log(forgestate, stack_name, "INFO", " ==> checking stack state")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     stack_state = cfn.describe_stacks(StackName=stack_name)
     return stack_state['Stacks'][0]['StackStatus']
 
 
 def wait_stackupdate_complete(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "waiting for stack update to complete")
+    last_action_log(forgestate, stack_name, "INFO", "Waiting for stack update to complete")
     stack_state = check_stack_state(forgestate, stack_name)
     while stack_state == "UPDATE_IN_PROGRESS":
-        last_action_log(forgestate, stack_name,
+        last_action_log(forgestate, stack_name, "INFO",
                         "====> stack_state is: " + stack_state + " waiting .... " + str(
                             datetime.now()))
         time.sleep(30)
@@ -421,7 +429,7 @@ def wait_stackupdate_complete(forgestate, stack_name):
 
 
 def check_service_status(forgestate, stack_name):
-    last_action_log(forgestate, stack_name,
+    last_action_log(forgestate, stack_name, "INFO",
                     " ==> checking service status at " + forgestate[stack_name][
                         'lburl'] + "/status")
     service_status = requests.get(forgestate[stack_name]['lburl'] + '/status')
@@ -429,15 +437,15 @@ def check_service_status(forgestate, stack_name):
 
 
 def validate_service_responding(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, "waiting for service to reply RUNNING on /status")
+    last_action_log(forgestate, stack_name, "INFO", "Waiting for service to reply RUNNING on /status")
     service_state = check_service_status(forgestate, stack_name)
     while service_state != '{"state":"RUNNING"}':
-        last_action_log(forgestate, stack_name,
+        last_action_log(forgestate, stack_name, "INFO",
                         "====> health check reports: " + service_state + " waiting for RUNNING " + str(
                             datetime.now()))
         time.sleep(60)
         service_state = check_service_status(forgestate, stack_name)
-    last_action_log(forgestate, stack_name, stack_name + "/status now reporting RUNNING")
+    last_action_log(forgestate, stack_name, "INFO", stack_name + "/status now reporting RUNNING")
     return
 
 
@@ -449,7 +457,7 @@ def get_cfn_stacks_for_environment():
     )
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
-    last_action_log(forgestate, 'general', stack_name_list)
+    last_action_log(forgestate, 'general', "INFO", f'Stack names: {stack_name_list}')
     return stack_name_list
 
 
