@@ -108,12 +108,19 @@ class clone(Resource):
 
 
 class fullrestart(Resource):
-    def get(self, stack_name):
+    def get(self, env, stack_name):
         forgestate = defaultdict(dict)
+        forgestate_clear(forgestate, stack_name)
+        last_action_log(forgestate, stack_name, "beginning full restart " + str(datetime.now()))
+        if env == 'prod':
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+        else:
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
         forgestate,iplist,instancelist = get_nodes_in_stack(forgestate, stack_name)
         shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
-        start_app_1 = start_node_app(forgestate,instancelist[0])
-        start_app_remaining = start_node_app(forgestate,instancelist[1:])
+        start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
+        if instancelist.count() > 1:
+            start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
         for ip in iplist:
             check_state = wait_status_ready(forgestate, ip)
         return(forgestate[stack_name]['last_action_log'])
@@ -131,6 +138,7 @@ api.add_resource(test, '/test/<string:env>/<string:stack_name>/<string:new_versi
 api.add_resource(clear, '/clear/<string:stack_name>')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
 api.add_resource(clone, '/clone/<app_type>/<string:stack_name>/<string:rdssnap>/<string:ebssnap>')
+api.add_resource(fullrestart, '/fullrestart/<string:env>/<string:stack_name>')
 api.add_resource(status, '/status/<string:stack_name>')
 
 ##
@@ -262,24 +270,27 @@ def get_nodes_in_stack(forgestate, stack_name):
     ec2 = boto3.resource('ec2', region_name=forgestate[stack_name]['region'])
     filters = [
         {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [stack_name]},
-        {'Name': 'tag:aws:cloudformation:logical-id', 'Values': 'ClusterNodeGroup'},
+        {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
         {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
     ]
+    inststruct = ec2.instances.filter(Filters=filters)
+    for i in ec2.instances.filter(Filters=filters):
+        print(i)
     iplist = [i.private_ip_address for i in ec2.instances.filter(Filters=filters)]
-    instancelist = [i.instance-id for i in ec2.instances.filter(Filters=filters)]
+    instancelist = [i.instance_id for i in ec2.instances.filter(Filters=filters)]
     return(forgestate, iplist, instancelist)
 
-
+9
 def shutdown_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
     for instance  in instancelist:
         cmd = "/etc/init.d/confluence stop"
-        cmd_id_list.append = ssm_send_command(forgestate, instance, cmd)
+        cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
     for cmd_id in cmd_id_list:
         result = ""
-        while result != 'success':
-            ssm_cmd_check(forgestate, instance, cmd_id)
-            time.sleep(10)
+        while result != 'Success' and result != 'Failed':
+            result = ssm_cmd_check(forgestate, stack_name, instance, cmd_id)
+            time.sleep(5)
     return(forgestate)
 
 
@@ -287,12 +298,12 @@ def start_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
     for instance  in instancelist:
         cmd = "/etc/init.d/confluence start"
-        cmd_id_list.append = ssm_send_command(forgestate, instance, cmd)
+        cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
     for cmd_id in cmd_id_list:
         result = ""
-        while result != 'success':
-            ssm_cmd_check(forgestate, instance, cmd_id)
-            time.sleep(10)
+        while result != 'Success' and result != 'Failed':
+            ssm_cmd_check(forgestate, stack_name, instance, cmd_id)
+            time.sleep(5)
     return(forgestate)
 
 
@@ -300,8 +311,8 @@ def app_active_in_lb(forgestate, node):
     return(forgestate)
 
 #### Common functions
-def ssm_send_command(forgestate, instance, cmd):
-    ssm = boto3.client('ssm', region_name=os.environ['AWS_REGION'])
+def ssm_send_command(forgestate, stack_name, instance, cmd):
+    ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
     ssm_command = ssm.send_command(
         InstanceIds=[instance],
         DocumentName='AWS-RunShellScript',
@@ -314,13 +325,13 @@ def ssm_send_command(forgestate, instance, cmd):
         return (ssm_command['Command']['CommandId'])
 
 
-def ssm_cmd_check(forgestate, instance, cmd_id):
-    ssm = boto3.client('ssm', region_name=os.environ['AWS_REGION'])
+def ssm_cmd_check(forgestate, stack_name, instance, cmd_id):
+    ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
     list_command = ssm.list_commands(CommandId=cmd_id)
     status = list_command[u'Commands'][0][u'Status']
-    result = ssm.get_command_invocation(CommandId=cmd_id, InstanceId=instance)
-    if status == 'Success':
-        pprint.pprint(result[u'StandardOutputContent'])
+    # result = ssm.get_command_invocation(CommandId=cmd_id, InstanceId=instance)
+    # if status == 'Success':
+    #     pprint.pprint(result[u'StandardOutputContent'])
     return (list_command[u'Commands'][0][u'Status'])
 
 
