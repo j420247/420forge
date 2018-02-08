@@ -128,6 +128,23 @@ class fullrestart(Resource):
         return(forgestate[stack_name]['last_action_log'])
 
 
+class rollingrestart(Resource):
+    def get(self, env, stack_name):
+        forgestate = defaultdict(dict)
+        forgestate_clear(forgestate, stack_name)
+        last_action_log(forgestate, stack_name, "INFO", "Beginning rolling restart")
+        if env == 'prod':
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+        else:
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
+        forgestate,iplist,instancelist = get_nodes_in_stack(forgestate, stack_name)
+        for instance in instancelist:
+            shutdown = shutdown_node_app(forgestate, stack_name, [instance])
+            startup = start_node_app(forgestate, stack_name, [instance])
+            check = check_state = wait_status_ready(forgestate, ip)
+        return(forgestate[stack_name]['last_action_log'])
+
+
 class status(Resource):
     def get(self, stack_name):
         forgestate = defaultdict(dict)
@@ -141,6 +158,7 @@ api.add_resource(clear, '/clear/<string:stack_name>')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
 api.add_resource(clone, '/clone/<app_type>/<string:stack_name>/<string:rdssnap>/<string:ebssnap>')
 api.add_resource(fullrestart, '/fullrestart/<string:env>/<string:stack_name>')
+api.add_resource(rollingrestart, '/fullrestart/<string:env>/<string:stack_name>')
 api.add_resource(status, '/status/<string:stack_name>')
 
 ##
