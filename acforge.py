@@ -116,7 +116,7 @@ class fullrestart(Resource):
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate,iplist,instancelist = get_nodes_in_stack(forgestate, stack_name)
+        forgestate,instancelist = get_nodes_in_stack(forgestate, stack_name)
         shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
         start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
         #status = check_node_status(forgestate, stack_name, "10.125.59.32")
@@ -137,7 +137,7 @@ class rollingrestart(Resource):
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate,iplist,instancelist = get_nodes_in_stack(forgestate, stack_name)
+        forgestate,instancelist = get_nodes_in_stack(forgestate, stack_name)
         for instance in instancelist:
             shutdown = shutdown_node_app(forgestate, stack_name, [instance])
             startup = start_node_app(forgestate, stack_name, [instance])
@@ -293,17 +293,16 @@ def get_nodes_in_stack(forgestate, stack_name):
         {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
         {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
     ]
-    inststruct = ec2.instances.filter(Filters=filters)
+    instancelist = []
     for i in ec2.instances.filter(Filters=filters):
-        print(i)
-    iplist = [i.private_ip_address for i in ec2.instances.filter(Filters=filters)]
-    instancelist = [i.instance_id for i in ec2.instances.filter(Filters=filters)]
-    return(forgestate, iplist, instancelist)
+        instancedict = { i.instance_id: i.private_ip_address }
+        instancelist.append(instancedict)
+    return(forgestate, instancelist)
 
 
 def shutdown_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
-    for instance  in instancelist:
+    for instance in [list(d.keys())[0] for d in instancelist]:
         last_action_log(forgestate, stack_name, "INFO", f'Shutting down {instance}')
         cmd = "/etc/init.d/confluence stop"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
@@ -319,7 +318,7 @@ def shutdown_node_app(forgestate, stack_name, instancelist):
 
 def start_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
-    for instance  in instancelist:
+    for instance in [list(d.keys())[0] for d in instancelist]:
         last_action_log(forgestate, stack_name, "INFO", f'Starting up {instance}')
         cmd = "/etc/init.d/confluence start"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
@@ -336,7 +335,9 @@ def start_node_app(forgestate, stack_name, instancelist):
 def app_active_in_lb(forgestate, node):
     return(forgestate)
 
+##
 #### Common functions
+##
 def ssm_send_command(forgestate, stack_name, instance, cmd):
     ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
     ssm_command = ssm.send_command(
