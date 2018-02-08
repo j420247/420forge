@@ -19,18 +19,30 @@
         </div>
     </div>
     <div class="aui-panel">
-        <form id="upgradeVersion" class="aui" action="/go/{{ session['action'] }}Progress" method="post">
-            <fieldset class="group">
-                <legend><span>Specify Upgrade Version</span></legend>
-                <div class="field-group">
-                    <input class="text" type="text" id="text-input" name="text-input" title="Text input">
-                    <div class="description">The software version you are upgrading to</div>
-                </div>
-                <p><br></p>
-                <input type="submit" class="aui-button aui-button-primary" value="Next">
-            </fieldset>
-        </form>
+        <a id="upgradeVersionSelector" href="#versionSelection" aria-owns="versionSelection"
+           aria-haspopup="true" class="aui-button aui-style-default aui-dropdown2-trigger"
+           aria-disabled="true"
+        >
+            Select Version
+        </a>
+
+        <!-- Dropdown -->
+        <div id="versionSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate">
+                {% for version in versions %}
+                    <li><a class="selectVersionOption" href="#">{{ version }}</a></li>
+                {% endfor %}
+                    <li><a class="selectVersionOption" href="#">6.9.0-m37</a></li>
+            </ul>
+        </div>
     </div>
+
+    <div class="aui-panel">
+        <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
+            Upgrade
+        </button>
+    </div>
+
     {% block  upgradeProgress %}
     {% endblock  %}
 {% endblock %}
