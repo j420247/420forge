@@ -472,9 +472,8 @@ def env(env):
 @app.route('/setaction/<string:action>')
 def action(action):
     session['action'] = action
-    # return redirect(url_for(action))
-    # return redirect(url_for(action + "SetParams"))
-    return render_template('upgrade.html', stacks=sorted(get_cfn_stacks_for_environment()))
+    envstacks=sorted(get_cfn_stacks_for_environment())
+    return render_template(action + ".html", stacks=envstacks)
 
 
 #@app.route('/getparms/upgrade')
