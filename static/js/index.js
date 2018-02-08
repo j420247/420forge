@@ -2,9 +2,11 @@
 $(document).ready(function() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
+    var stackName = "none";
+    var version = "none";
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
-            var stackName = data.target.text;
+            stackName = data.target.text;
             $("#stackSelector").text(stackName);
             $("#stackName").text(stackName);
             $("#pleaseSelectStackMsg").hide();
@@ -17,11 +19,17 @@ $(document).ready(function() {
     var versions = document.getElementsByClassName("selectVersionOption");
     for (var i = 0; i < versions.length; i ++) {
         versions[i].addEventListener("click", function (data) {
-            var stackName = data.target.text;
-            $("#upgradeVersionSelector").text(stackName);
+            version = data.target.text;
+            $("#upgradeVersionSelector").text(version);
             $("#upgrade-button").attr("aria-disabled", false);
         }, false);
     }
+
+    var upgradeButton = document.getElementById("upgrade-button");
+    upgradeButton.addEventListener("click", function (data) {
+        $("#log").setAttribute("src", "status/" + stackName);
+        $("#log").css("background", "rgba(0,20,70,.08)");
+    })
 });
 
 function updateStats(stackName) {

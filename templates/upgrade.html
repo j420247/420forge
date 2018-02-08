@@ -64,6 +64,15 @@
             </section>
         </div>
     </div>
-    {% block  upgradeProgress %}
-    {% endblock  %}
+
+
+    <div class="aui-group">
+        {#    Current Status Panel    #}
+        {% block  upgradeProgress %}
+            <iframe id="log" src="upgradeReadyToStart" width="1000" height="400">
+                Cannot display status because browser does not support iframes.
+            </iframe>
+        {% endblock  %}
+    </div>
+
 {% endblock %}
