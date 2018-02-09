@@ -119,13 +119,8 @@ class fullrestart(Resource):
         shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
         for instance in instancelist:
             startup = start_node_app(forgestate, stack_name, [instance])
+        last_action_log(forgestate, stack_name, "INFO", "Final state")
         return(forgestate[stack_name]['last_action_log'])
-        # start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
-        # #status = check_node_status(forgestate, stack_name, "10.125.59.32")
-        # if len(instancelist) > 1:
-        #     last_action_log(forgestate, stack_name, "INFO", f'Spinning up other nodes in stack')
-        #     start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
-        # return(forgestate[stack_name]['last_action_log'])
 
 
 class rollingrestart(Resource):
@@ -141,6 +136,7 @@ class rollingrestart(Resource):
         for instance in instancelist:
             shutdown = shutdown_node_app(forgestate, stack_name, [instance])
             startup = start_node_app(forgestate, stack_name, [instance])
+        last_action_log(forgestate, stack_name, "INFO", "Final state")
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -190,7 +186,7 @@ api.add_resource(clear, '/clear/<string:stack_name>')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
 api.add_resource(clone, '/clone/<app_type>/<string:stack_name>/<string:rdssnap>/<string:ebssnap>')
 api.add_resource(fullrestart, '/fullrestart/<string:env>/<string:stack_name>')
-api.add_resource(rollingrestart, '/fullrestart/<string:env>/<string:stack_name>')
+api.add_resource(rollingrestart, '/rollingrestart/<string:env>/<string:stack_name>')
 api.add_resource(status, '/status/<string:stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<string:env>/<string:stack_name>')
 api.add_resource(stackState, '/stackState/<string:env>/<string:stack_name>')
@@ -386,7 +382,7 @@ def start_node_app(forgestate, stack_name, instancelist):
             while result != '{"state":"RUNNING"}':
                 result = check_node_status(forgestate, stack_name, node_ip)
                 last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
-                time.sleep(5)
+                time.sleep(30)
     return(forgestate)
 
 
