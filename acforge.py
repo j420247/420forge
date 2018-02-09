@@ -122,8 +122,6 @@ class fullrestart(Resource):
         if len(instancelist) > 1:
             last_action_log(forgestate, stack_name, "INFO", f'Spinning up other nodes in stack')
             start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
-        for ip in iplist:
-            status = check_node_status(forgestate, stack_name, ip)
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -140,7 +138,6 @@ class rollingrestart(Resource):
         for instance in instancelist:
             shutdown = shutdown_node_app(forgestate, stack_name, [instance])
             startup = start_node_app(forgestate, stack_name, [instance])
-            check = check_state = wait_status_ready(forgestate, ip)
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -368,7 +365,10 @@ def shutdown_node_app(forgestate, stack_name, instancelist):
 
 def start_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
-    for instance in [list(d.keys())[0] for d in instancelist]:
+    #for instance in [d.keys() for d in instancelist]:
+    for instancedict in instancelist:
+        instance = list(instancedict.keys())[0]
+        node_ip = list(instancedict.values())[0]
         last_action_log(forgestate, stack_name, "INFO", f'Starting up {instance}')
         cmd = "/etc/init.d/confluence start"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
@@ -380,7 +380,11 @@ def start_node_app(forgestate, stack_name, instancelist):
         if result == 'Failed':
             last_action_log(forgestate, stack_name, "ERROR", f'Startup result for {cmd_instance}: {result}: {status_details}')
         else:
-            last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
+            result = ""
+            while result != '{"state":"RUNNING"}':
+                result = check_node_status(forgestate, stack_name, node_ip)
+                last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
+                time.sleep(5)
     return(forgestate)
 
 
@@ -507,11 +511,12 @@ def check_node_status(forgestate, stack_name, node_ip):
                     f' ==> checking node status at {node_ip}/status')
     try:
         node_status = requests.get(f'http://{node_ip}:8080/status', timeout=5)
+        last_action_log(forgestate, stack_name, "INFO",
+                        f' ==> node status is: {node_status.text}')
+        return node_status.text
     except requests.exceptions.ReadTimeout as e:
         last_action_log(forgestate, stack_name, "INFO", f'Node status check timed out: {e.errno}, {e.strerror}')
-    last_action_log(forgestate, stack_name, "INFO",
-                    f' ==> node status is: {node_status.text}')
-    return node_status.text
+        return "Timed Out"
 
 
 def check_service_status(forgestate, stack_name):
