@@ -117,12 +117,15 @@ class fullrestart(Resource):
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
         forgestate,instancelist = get_nodes_in_stack(forgestate, stack_name)
         shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
-        start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
-        #status = check_node_status(forgestate, stack_name, "10.125.59.32")
-        if len(instancelist) > 1:
-            last_action_log(forgestate, stack_name, "INFO", f'Spinning up other nodes in stack')
-            start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
+        for instance in instancelist:
+            startup = start_node_app(forgestate, stack_name, [instance])
         return(forgestate[stack_name]['last_action_log'])
+        # start_app_1 = start_node_app(forgestate, stack_name, [instancelist[0]])
+        # #status = check_node_status(forgestate, stack_name, "10.125.59.32")
+        # if len(instancelist) > 1:
+        #     last_action_log(forgestate, stack_name, "INFO", f'Spinning up other nodes in stack')
+        #     start_app_remaining = start_node_app(forgestate, stack_name, instancelist[1:])
+        # return(forgestate[stack_name]['last_action_log'])
 
 
 class rollingrestart(Resource):
@@ -357,9 +360,9 @@ def shutdown_node_app(forgestate, stack_name, instancelist):
             result, status_details, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
             time.sleep(5)
         if result == 'Failed':
-            last_action_log(forgestate, stack_name, "ERROR", f'Startup result for {cmd_instance}: {result}: {status_details}')
+            last_action_log(forgestate, stack_name, "ERROR", f'Shutdown result for {cmd_instance}: {result}: {status_details}')
         else:
-            last_action_log(forgestate, stack_name, "INFO", f'Startup result for {cmd_instance}: {result}')
+            last_action_log(forgestate, stack_name, "INFO", f'Shutdown result for {cmd_instance}: {result}')
     return(forgestate)
 
 
@@ -371,8 +374,7 @@ def start_node_app(forgestate, stack_name, instancelist):
         node_ip = list(instancedict.values())[0]
         last_action_log(forgestate, stack_name, "INFO", f'Starting up {instance}')
         cmd = "/etc/init.d/confluence start"
-        cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
-    for cmd_id in cmd_id_list:
+        cmd_id = ssm_send_command(forgestate, stack_name, instance, cmd)
         result = ""
         while result != 'Success' and result != 'Failed':
             result, status_details, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
