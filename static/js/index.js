@@ -11,7 +11,11 @@ $(document).ready(function() {
             $("#stackName").text(stackName);
             $("#pleaseSelectStackMsg").hide();
             $("#stackInformation").show();
-            $("#upgradeVersionSelector").attr("aria-disabled", false);
+            if (document.getElementById("upgradeVersionSelector")) {
+                $("#upgradeVersionSelector").attr("aria-disabled", false);
+            } else {
+                $("#action-button").attr("aria-disabled", false);
+            }
             updateStats(stackName);
         }, false);
     }
@@ -21,12 +25,12 @@ $(document).ready(function() {
         versions[i].addEventListener("click", function (data) {
             version = data.target.text;
             $("#upgradeVersionSelector").text(version);
-            $("#upgrade-button").attr("aria-disabled", false);
+            $("#action-button").attr("aria-disabled", false);
         }, false);
     }
 
-    var upgradeButton = document.getElementById("upgrade-button");
-    upgradeButton.addEventListener("click", function (data) {
+    var actionButton = document.getElementById("action-button");
+    actionButton.addEventListener("click", function (data) {
         $("#log").setAttribute("src", "status/" + stackName);
         $("#log").css("background", "rgba(0,20,70,.08)");
     })

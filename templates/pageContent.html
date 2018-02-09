@@ -30,7 +30,7 @@
         {% block button %}
         {#  Button to perform page action  #}
         <div class="aui-panel">
-            <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
+            <button id="action-button" class="aui-button aui-button-primary" aria-disabled="true" onclick="location.href={% block endpoint%}{% endblock endpoint %}">
                 {% block buttonText %}Ok{% endblock buttonText %}
             </button>
         </div>
