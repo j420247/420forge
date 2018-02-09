@@ -19,11 +19,13 @@
     <body>
             <nav class="aui-header aui-dropdown2-trigger-group" role="navigation" data-aui-responsive="true">
                 <div class="aui-header-inner aui-header-primary">
+                    <!-- Header -->
                     <h1 id="logo" class="aui-header-logo aui-header-logo-textonly">
                         <a href="/">
                             <span class="aui-header-logo-device">ACFORGE</span>
                         </a>
                     </h1>
+                    <!-- Horizontal nav bar-->
                     <ul class="aui-nav">
                         {% block hnavitems %}
                         <li>
@@ -46,6 +48,7 @@
 
             <div class="aui-page-panel">
                 <div class="aui-page-panel-inner">
+                    <!-- Sidebar -->
                     <div class="aui-page-panel-nav">
                         <nav class="aui-navgroup aui-navgroup-vertical">
                             <div class="aui-navgroup-inner">
@@ -81,6 +84,7 @@
                             </div>
                         </nav>
                     </div>
+                    <!-- Page contents-->
                     <section class="aui-page-panel-content">
                         <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
                         {% block content %}
