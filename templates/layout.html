@@ -30,13 +30,13 @@
                         {% block hnavitems %}
                         <li>
                             <a {%if session['env'] == "stg" %}class="env-selected"{%endif%}
-                               href="setenv/stg" id="staging-link">
+                               href="../setenv/stg" id="staging-link">
                                 Staging
                             </a>
                         </li>
                         <li>
                             <a {%if session['env'] == "prod" %}class="env-selected"{%endif%}
-                               href="setenv/prod"  id="production-link">
+                               href="../setenv/prod"  id="production-link">
                                 Production
                                 <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span>
                             </a>
@@ -58,25 +58,25 @@
                                 <ul class="aui-nav">
                                     {% block vnavitems %}
                                     <li {% if session['action'] == 'upgrade' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="setaction/upgrade" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
+                                        <a href="../setaction/upgrade" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
                                     </li>
                                     <li {% if session['action'] == 'fullrestart' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="setaction/fullrestart" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
+                                        <a href="../setaction/fullrestart" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
                                     </li>
                                     <li {% if session['action'] == 'rollingrestart' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="setaction/rollingrestart" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
+                                        <a href="../setaction/rollingrestart" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
                                     </li>
                                     {% if session['env'] == "prod" %}
                                         <li {% if session['action'] == 'backup' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="setaction/backup" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
+                                            <a href="../setaction/backup" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
                                         </li>
                                     {% endif %}
                                     {% if session['env'] == "stg" %}
                                         <li {% if session['action'] == 'clone' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="setaction/clone" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
+                                            <a href="../setaction/clone" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
                                         </li>
                                         <li {% if session['action'] == 'destroy' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="setaction/destroy" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
+                                            <a href="../setaction/destroy" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
                                         </li>
                                     {% endif %}
                                     {% endblock %}

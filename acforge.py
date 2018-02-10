@@ -586,7 +586,7 @@ def env(env):
 
 
 # Ex. action could equal upgrade, rollingrestart, etc.
-@app.route('/setaction/<string:action>')
+@app.route('/setaction/<action>')
 def action(action):
     session['action'] = action
     envstacks=sorted(get_cfn_stacks_for_environment())
@@ -594,13 +594,13 @@ def action(action):
 
 
 #@app.route('/getparms/upgrade')
-@app.route('/getparms/<string:action>')
+@app.route('/getparms/<action>')
 def getparms(action):
     return sorted(get_cfn_stacks_for_environment())
 
 
 # @app.route('/go/stg/upgradeProgress')
-@app.route('/go/<environment>/<string:action>Progress')
+@app.route('/go/<environment>/<action>Progress')
 def progress(environment, action):
     print("in progress")
     print('env =', forgestate[stack_name]['environment'])
