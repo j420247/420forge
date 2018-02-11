@@ -11,6 +11,7 @@ $(document).ready(function() {
             $("#stackName").text(stackName);
             $("#pleaseSelectStackMsg").hide();
             $("#stackInformation").show();
+
             $("#upgradeVersionSelector").removeAttr("disabled");
             $("#versionCheckButton").removeAttr("disabled");
             updateStats(stackName);
@@ -52,8 +53,8 @@ $(document).ready(function() {
     //     $("#upgrade-button").attr("aria-disabled", false);
     // }, false);
 
-    var upgradeButton = document.getElementById("upgrade-button");
-    upgradeButton.addEventListener("click", function (data) {
+    var actionButton = document.getElementById("action-button");
+    actionButton.addEventListener("click", function (data) {
         $("#log").setAttribute("src", "status/" + stackName);
         $("#log").css("background", "rgba(0,20,70,.08)");
     });
@@ -62,6 +63,9 @@ $(document).ready(function() {
 function updateStats(stackName) {
     var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
+
+    removeElementsByClass("aui-lozenge");
+
     var stackState = new XMLHttpRequest();
     stackState.open("GET", baseUrl  + "/stackState/" + env + "/" + stackName, true);
     stackState.setRequestHeader("Content-Type", "text/xml");
@@ -107,8 +111,6 @@ function getStatusLozenge(text) {
 }
 
 
-
-
 // Create the XHR object.
 function createCORSRequest(method, url) {
     var xhr = new XMLHttpRequest();
@@ -141,10 +143,17 @@ function makeCorsRequest(url, callback) {
     }
 
     // Response handlers.
-    xhr.onload = function() {
+    xhr.onload = function () {
         var text = xhr.responseText;
         var title = getTitle(text);
     };
 
     xhr.send();
+}
+
+function removeElementsByClass(className){
+    var elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
 }

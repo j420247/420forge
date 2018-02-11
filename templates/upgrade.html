@@ -1,6 +1,6 @@
-{% extends "layout.html" %}
+{% extends "pageContent.html" %}
 
-{% block content %}
+{% block extraInput %}
     {#  Upgrade options  #}
     <div class="aui-group aui-group-split">
         <div class="aui-item">
@@ -73,5 +73,8 @@
             </iframe>
         {% endblock  %}
     </div>
+</div>
+{% endblock extraInput %}
 
-{% endblock %}
+{% block buttonText %}Upgrade{% endblock buttonText %}
+{% block endpoint%}http://www.google.com{% endblock endpoint %}
