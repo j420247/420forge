@@ -218,7 +218,7 @@ def get_stack_current_state(forgestate, stack_name):
     forgestate[stack_name]['appnodemin'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMin'][0]
     forgestate[stack_name]['tomcatcontextpath'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'TomcatContextPath'][0]
     # force lburl to always be http as we offoad SSL at the VTM before traffic hits ELB/ALB
-    forgestate[stack_name]['lburl'] = getLburl(stack_details, stack_name)
+    forgestate[stack_name]['lburl'] = getLburl(forgestate, stack_details, stack_name)
 
     # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
     # versions in different parms relative to products - we should probably abstract the product
@@ -255,7 +255,7 @@ def getRegion(env):
         return 'us-east-1'
 
 
-def getLburl(stack_details, stack_name):
+def getLburl(forgestate, stack_details, stack_name):
     rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                 p['OutputKey'] == 'LoadBalancerURL'][0] + forgestate[stack_name][
                    'tomcatcontextpath']
