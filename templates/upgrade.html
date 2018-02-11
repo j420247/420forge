@@ -1,77 +1,19 @@
-{% extends "pageContent.html" %}
+{% extends "page-content.html" %}
 
 {% block extraInput %}
-    {#  Upgrade options  #}
-    <div class="aui-group aui-group-split">
-        <div class="aui-item">
-            {#  Stack selector  #}
-            <div class="aui-panel">
-                <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
-                   class="aui-button aui-style-default aui-dropdown2-trigger">
-                    Select Stack
-                </a>
-
-                <!-- Dropdown -->
-                <div id="stackSelection" class="aui-style-default aui-dropdown2">
-                    <ul class="aui-list-truncate">
-                        {% for stack in stacks %}
-                            <li><a class="selectStackOption">{{ stack }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </div>
+{#  Upgrade version selector  #}
+<div class="aui-panel">
+    <form class="aui top-label">
+        <fieldset class="top-label">
+            <div class="field-group top-label">
+                <label for="toplabelfieldexample">Upgrade Version</label>
+                <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
             </div>
-
-            {#  Upgrade version selector  #}
-            <div class="aui-panel">
-                <form class="aui top-label">
-                    <fieldset class="top-label">
-                        <div class="field-group top-label">
-                            <label for="toplabelfieldexample">Upgrade Version</label>
-                            <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
-                        </div>
-                    </fieldset>
-                </form>
-                <button id="versionCheckButton" class="aui-button" disabled>Check</button>
-                <div id="versionExists">
-                    {#    Filled in by JS    #}
-                </div>
-            </div>
-
-            {#  Button to run upgrade  #}
-            <div class="aui-panel">
-                <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
-                    Upgrade
-                </button>
-            </div>
-        </div>
-
-
-        {#    Current Status Panel    #}
-        <div class="aui-item">
-            <section class="aui-page-notification aui-page-size-medium aui-page-panel aui-page-panel-content">
-                <h3 id="stackName"></h3>
-                <div id="pleaseSelectStackMsg" class="aui-page-notification-description">
-                    <p>Please select a stack to see it's current information</p>
-                </div>
-
-                <div id="stackInformation">
-                    <p id="stackState">Stack State: </p>
-                    <p id="serviceStatus">Service Status: </p>
-                    <p>Current Version: </p>
-                    <p>Nodes: </p>
-                </div>
-            </section>
-        </div>
-    </div>
-
-
-    <div class="aui-group">
-        {#    Current Status Panel    #}
-        {% block  upgradeProgress %}
-            <iframe id="log" src="/status/eac-stg" width="1000" height="400">
-                Cannot display status because browser does not support iframes.
-            </iframe>
-        {% endblock  %}
+        </fieldset>
+    </form>
+    <button id="versionCheckButton" class="aui-button" disabled>Check</button>
+    <div id="versionExists">
+        {#    Filled in by JS    #}
     </div>
 </div>
 {% endblock extraInput %}

@@ -30,7 +30,7 @@
         {% block button %}
         {#  Button to perform page action  #}
         <div class="aui-panel">
-            <button id="action-button" class="aui-button aui-button-primary" aria-disabled="true" onclick="location.href={% block endpoint%}{% endblock endpoint %}">
+            <button id="action-button" class="aui-button aui-button-primary" aria-disabled="true">
                 {% block buttonText %}Ok{% endblock buttonText %}
             </button>
         </div>
@@ -61,7 +61,7 @@
 {% block progress %}
 <div class="aui-group">
     {#    Progress Panel    #}
-    <iframe id="log" src="upgradeReadyToStart" width="1000" height="400">
+    <iframe id="log" src="action-ready-to-start" width="1000" height="400">
         Cannot display status because browser does not support iframes.
     </iframe>
 </div>

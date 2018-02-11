@@ -4,6 +4,9 @@ $(document).ready(function() {
     var stacks = document.getElementsByClassName("selectStackOption");
     var stackName = "none";
     var version = "none";
+    var env = $("meta[name=env]").attr("value");
+    var action = $("meta[name=action]").attr("value");
+
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
             stackName = data.target.text;
@@ -12,32 +15,38 @@ $(document).ready(function() {
             $("#pleaseSelectStackMsg").hide();
             $("#stackInformation").show();
 
-            $("#upgradeVersionSelector").removeAttr("disabled");
-            $("#versionCheckButton").removeAttr("disabled");
+            if (action == "upgrade") {
+                $("#upgradeVersionSelector").removeAttr("disabled");
+                $("#versionCheckButton").removeAttr("disabled");
+            } else {
+                $("#action-button").attr("aria-disabled", false);
+            }
             updateStats(stackName);
         }, false);
     }
 
-    document.getElementById("versionCheckButton").addEventListener("click", function (data) {
-        version = $("#upgradeVersionSelector").val();
-        var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
-        $.ajax({
-            url: url,
-            headers: {  'Access-Control-Allow-Origin': url },
-            type: 'HEAD',
-            complete: function(xhr) {
-                switch (xhr.status) {
-                    case 200:
-                        $("#versionExists").html(getStatusLozenge("Valid"));
-                        break;
-                    default:
-                        $("#upgrade-button").attr("aria-disabled", false);
-                        $("#versionExists").html(getStatusLozenge("Valid"));
-                        $("#upgradeVersionSelector").text(version);
+    if (action == "upgrade") {
+        document.getElementById("versionCheckButton").addEventListener("click", function (data) {
+            version = $("#upgradeVersionSelector").val();
+            var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
+            $.ajax({
+                url: url,
+                headers: {'Access-Control-Allow-Origin': url},
+                type: 'HEAD',
+                complete: function (xhr) {
+                    switch (xhr.status) {
+                        case 200:
+                            $("#versionExists").html(getStatusLozenge("Valid"));
+                            break;
+                        default:
+                            $("#action-button").attr("aria-disabled", false);
+                            $("#versionExists").html(getStatusLozenge("Valid"));
+                            $("#upgradeVersionSelector").text(version);
+                    }
                 }
-            }
+            });
         });
-    });
+    }
 
     //     makeCorsRequest('https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin',
     //         function(xhr) {
@@ -55,10 +64,28 @@ $(document).ready(function() {
 
     var actionButton = document.getElementById("action-button");
     actionButton.addEventListener("click", function (data) {
-        $("#log").setAttribute("src", "status/" + stackName);
+        // $("#log").setAttribute("src", "status/" + stackName);
         $("#log").css("background", "rgba(0,20,70,.08)");
+        performAction(action, env, stackName)
     });
 });
+
+function performAction(action, env, stackName) {
+    var baseUrl = window.location .protocol + "//" + window.location.host;
+    var env = $("meta[name=env]").attr("value");
+    var action = $("meta[name=action]").attr("value");
+
+    var actionRequest = new XMLHttpRequest();
+    // actionRequest.open("GET", baseUrl  + "/" + action + "/" + env + "/" + stackName, true); //TODO re-enable
+    actionRequest.open("GET", baseUrl  + "/status/" + stackName, true);
+    actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.onreadystatechange = function () {
+        if (actionRequest.readyState === 4 && actionRequest.status === 200) {
+            $("#log").contents().find('body').html(actionRequest.responseText);
+        }
+    };
+    actionRequest.send();
+}
 
 function updateStats(stackName) {
     var baseUrl = window.location .protocol + "//" + window.location.host;
@@ -66,27 +93,27 @@ function updateStats(stackName) {
 
     removeElementsByClass("aui-lozenge");
 
-    var stackState = new XMLHttpRequest();
-    stackState.open("GET", baseUrl  + "/stackState/" + env + "/" + stackName, true);
-    stackState.setRequestHeader("Content-Type", "text/xml");
+    var stackStateRequest = new XMLHttpRequest();
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + env + "/" + stackName, true);
+    stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     $("#stackState").html("Stack State: ");
-    stackState.onreadystatechange = function () {
-        if (stackState.readyState === 4 && stackState.status === 200) {
-            $("#stackState").html("Stack State: " + getStatusLozenge(stackState.responseText));
+    stackStateRequest.onreadystatechange = function () {
+        if (stackStateRequest.readyState === 4 && stackStateRequest.status === 200) {
+            $("#stackState").html("Stack State: " + getStatusLozenge(stackStateRequest.responseText));
         }
     };
-    stackState.send();
+    stackStateRequest.send();
 
-    var serviceStatus = new XMLHttpRequest();
-    serviceStatus.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stackName, true);
-    serviceStatus.setRequestHeader("Content-Type", "text/xml");
+    var serviceStatusRequest = new XMLHttpRequest();
+    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stackName, true);
+    serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     $("#serviceStatus").html("Service Status: ");
-    serviceStatus.onreadystatechange = function () {
-        if (serviceStatus.readyState === 4 && serviceStatus.status === 200) {
-            $("#serviceStatus").html("Service Status: " + getStatusLozenge(serviceStatus.responseText));
+    serviceStatusRequest.onreadystatechange = function () {
+        if (serviceStatusRequest.readyState === 4 && serviceStatusRequest.status === 200) {
+            $("#serviceStatus").html("Service Status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
-    serviceStatus.send();
+    serviceStatusRequest.send();
 }
 
 function getStatusLozenge(text) {
