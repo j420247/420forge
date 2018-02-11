@@ -23,25 +23,24 @@
 
             {#  Upgrade version selector  #}
             <div class="aui-panel">
-                <a id="upgradeVersionSelector" href="#versionSelection" aria-owns="versionSelection"
-                   aria-haspopup="true" class="aui-button aui-style-default aui-dropdown2-trigger"
-                   aria-disabled="true">
-                    Select Version
-                </a>
-                <div id="versionSelection" class="aui-style-default aui-dropdown2">
-                    <ul class="aui-list-truncate">
-                        {% for version in versions %}
-                            <li><a class="selectVersionOption">{{ version }}</a></li>
-                        {% endfor %}
-                        <li><a class="selectVersionOption">bogus version for testing 6.9.0-m37</a></li>
-                    </ul>
+                <form class="aui top-label">
+                    <fieldset class="top-label">
+                        <div class="field-group top-label">
+                            <label for="toplabelfieldexample">Upgrade Version</label>
+                            <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
+                        </div>
+                    </fieldset>
+                </form>
+                <button id="versionCheckButton" class="aui-button" disabled>Check</button>
+                <div id="versionExists">
+                    {#    Filled in by JS    #}
                 </div>
             </div>
 
             {#  Button to run upgrade  #}
             <div class="aui-panel">
                 <button id="upgrade-button" class="aui-button aui-button-primary" aria-disabled="true">
-                    Upgrade (not hooked up anywhere yet)
+                    Upgrade
                 </button>
             </div>
         </div>
@@ -69,7 +68,7 @@
     <div class="aui-group">
         {#    Current Status Panel    #}
         {% block  upgradeProgress %}
-            <iframe id="log" src="upgradeReadyToStart" width="1000" height="400">
+            <iframe id="log" src="/status/eac-stg" width="1000" height="400">
                 Cannot display status because browser does not support iframes.
             </iframe>
         {% endblock  %}
