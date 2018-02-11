@@ -39,6 +39,9 @@ $(document).ready(function() {
 function updateStats(stackName) {
     var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
+
+    removeElementsByClass("aui-lozenge");
+
     var stackState = new XMLHttpRequest();
     stackState.open("GET", baseUrl  + "/stackState/" + env + "/" + stackName, true);
     stackState.setRequestHeader("Content-Type", "text/xml");
@@ -77,4 +80,11 @@ function getStatusLozenge(text) {
     }
 
     return "<span class=\"aui-lozenge aui-lozenge-" + cssClass + "\">" + text + "</span>"
+}
+
+function removeElementsByClass(className){
+    var elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
 }
