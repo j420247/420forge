@@ -66,25 +66,35 @@ $(document).ready(function() {
     actionButton.addEventListener("click", function (data) {
         // $("#log").setAttribute("src", "status/" + stackName);
         $("#log").css("background", "rgba(0,20,70,.08)");
-        performAction(action, env, stackName)
+        performAction(action, env, stackName, version)
     });
 });
 
-function performAction(action, env, stackName) {
+function performAction(action, env, stackName, version) {
     var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
     var action = $("meta[name=action]").attr("value");
+    var url = baseUrl  + "/" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
-    // actionRequest.open("GET", baseUrl  + "/" + action + "/" + env + "/" + stackName, true); //TODO re-enable
-    actionRequest.open("GET", baseUrl  + "/status/" + stackName, true);
+    if (action == "upgrade") {
+        url += "/" + version;
+    }
+
+    actionRequest.open("GET", url, true);
     actionRequest.setRequestHeader("Content-Type", "text/xml");
-    actionRequest.onreadystatechange = function () {
-        if (actionRequest.readyState === 4 && actionRequest.status === 200) {
-            $("#log").contents().find('body').html(actionRequest.responseText);
-        }
-    };
     actionRequest.send();
+
+    var statusRequest = new XMLHttpRequest();
+    statusRequest.open("GET", baseUrl  + "/status/" + stackName, true);
+    statusRequest.setRequestHeader("Content-Type", "text/xml");
+    statusRequest.onreadystatechange = function () {
+        $("#log").contents().find('body').html(statusRequest.responseText);
+    };
+    // wait a few seconds to get more initial logging
+    setTimeout(function() {
+        statusRequest.send();
+    }, 2000);
 }
 
 function updateStats(stackName) {
