@@ -524,11 +524,12 @@ def check_service_status(forgestate, stack_name):
                         'lburl'] + "/status")
     try:
         service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
+        last_action_log(forgestate, stack_name, INFO,
+                        f' ==> servie status is: {service_status.text}')
+        return service_status.text
     except requests.exceptions.ReadTimeout as e:
         last_action_log(forgestate, stack_name, INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
-    last_action_log(forgestate, stack_name, INFO,
-                    f' ==> servie status is: {service_status.text}')
-    return service_status.text
+    return "Timed Out"
 
 
 def validate_service_responding(forgestate, stack_name):
