@@ -11,9 +11,13 @@
             </div>
         </fieldset>
     </form>
-    <button id="versionCheckButton" class="aui-button" disabled>Check</button>
-    <div id="versionExists">
+    <div class="aui-group">
+    <div class="aui-item">
+        <button id="versionCheckButton" class="aui-button" disabled>Check</button>
+    </div>
+    <div class="aui-item" id="versionExists">
         {#    Filled in by JS    #}
+    </div>
     </div>
 </div>
 {% endblock extraInput %}

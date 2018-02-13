@@ -25,42 +25,27 @@ $(document).ready(function() {
         }, false);
     }
 
-    if (action == "upgrade") {
+    if (action === "upgrade") {
         document.getElementById("versionCheckButton").addEventListener("click", function (data) {
             version = $("#upgradeVersionSelector").val();
             var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
             $.ajax({
                 url: url,
-                headers: {'Access-Control-Allow-Origin': url},
                 type: 'HEAD',
                 complete: function (xhr) {
                     switch (xhr.status) {
                         case 200:
                             $("#versionExists").html(getStatusLozenge("Valid"));
-                            break;
-                        default:
                             $("#action-button").attr("aria-disabled", false);
-                            $("#versionExists").html(getStatusLozenge("Valid"));
-                            $("#upgradeVersionSelector").text(version);
+                            break;
+                        case 403:
+                        default:
+                            $("#versionExists").html(getStatusLozenge("Invalid"));
                     }
-                }
+                },
             });
         });
     }
-
-    //     makeCorsRequest('https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin',
-    //         function(xhr) {
-    //             switch (xhr.statusText) {
-    //                 case "success":
-    //                     break;
-    //                 case "error":
-    //                 default:
-    //                     $("#versionExists").html(getStatusLozenge(stackState.responseText))
-    //             }
-    //         });
-    //     $("#upgradeVersionSelector").text(version);
-    //     $("#upgrade-button").attr("aria-disabled", false);
-    // }, false);
 
     var actionButton = document.getElementById("action-button");
     actionButton.addEventListener("click", function (data) {
@@ -77,7 +62,7 @@ function performAction(action, env, stackName, version) {
     var url = baseUrl  + "/" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
-    if (action == "upgrade") {
+    if (action === "upgrade") {
         url += "/" + version;
     }
 
@@ -140,52 +125,12 @@ function getStatusLozenge(text) {
         case "UPDATE_IN_PROGRESS":
             cssClass = "moved";
             break;
+        case "Invalid":
         default:
             cssClass = "error";
     }
 
     return "<span class=\"aui-lozenge aui-lozenge-" + cssClass + "\">" + text + "</span>"
-}
-
-
-// Create the XHR object.
-function createCORSRequest(method, url) {
-    var xhr = new XMLHttpRequest();
-    if ("withCredentials" in xhr) {
-        // XHR for Chrome/Firefox/Opera/Safari.
-        xhr.open(method, url, true);
-    } else if (typeof XDomainRequest != "undefined") {
-        // XDomainRequest for IE.
-        xhr = new XDomainRequest();
-        xhr.open(method, url);
-    } else {
-        // CORS not supported.
-        xhr = null;
-    }
-    return xhr;
-}
-
-// Helper method to parse the title tag from the response.
-function getTitle(text) {
-    return text.match('<title>(.*)?</title>')[1];
-}
-
-// Make the actual CORS request.
-function makeCorsRequest(url, callback) {
-
-    var xhr = createCORSRequest('HEAD', url);
-    if (!xhr) {
-        alert('CORS not supported');
-        return;
-    }
-
-    // Response handlers.
-    xhr.onload = function () {
-        var text = xhr.responseText;
-        var title = getTitle(text);
-    };
-
-    xhr.send();
 }
 
 function removeElementsByClass(className){
