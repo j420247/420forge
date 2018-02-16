@@ -47,15 +47,46 @@ $(document).ready(function() {
         });
     }
 
+    var refreshButton = document.getElementById("refresh-status");
+    refreshButton.addEventListener("click", function (data) {
+        refreshButton.classList.remove("aui-iconfont-refresh");
+        refreshButton.classList.add("aui-icon-wait");
+        getStatus(stackName, null)
+        refreshButton.classList.remove("aui-icon-wait");
+        refreshButton.classList.add("aui-iconfont-refresh");
+    });
+
     var actionButton = document.getElementById("action-button");
     actionButton.addEventListener("click", function (data) {
-        // $("#log").setAttribute("src", "status/" + stackName);
-        $("#log").css("background", "rgba(0,20,70,.08)");
         performAction(action, env, stackName, version)
     });
 });
 
+function getStatus(stackName, timeout) {
+    $("#log").css("background", "rgba(0,20,70,.08)");
+
+    var baseUrl = window.location .protocol + "//" + window.location.host;
+    var statusRequest = new XMLHttpRequest();
+    statusRequest.open("GET", baseUrl + "/status/" + stackName, true);
+    statusRequest.setRequestHeader("Content-Type", "text/xml");
+    statusRequest.onreadystatechange = function () {
+        $("#log").css("background", "rgba(0,0,0,0)");
+        $("#log").contents().find('body').html(statusRequest.responseText);
+    };
+
+    if (timeout) {
+        // wait a few seconds to get more initial logging
+        setTimeout(function () {
+            statusRequest.send();
+        }, timeout);
+    } else {
+        statusRequest.send();
+    }
+}
+
 function performAction(action, env, stackName, version) {
+    $("#log").css("background", "rgba(0,20,70,.08)");
+
     var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
     var action = $("meta[name=action]").attr("value");
@@ -69,17 +100,7 @@ function performAction(action, env, stackName, version) {
     actionRequest.open("GET", url, true);
     actionRequest.setRequestHeader("Content-Type", "text/xml");
     actionRequest.send();
-
-    var statusRequest = new XMLHttpRequest();
-    statusRequest.open("GET", baseUrl  + "/status/" + stackName, true);
-    statusRequest.setRequestHeader("Content-Type", "text/xml");
-    statusRequest.onreadystatechange = function () {
-        $("#log").contents().find('body').html(statusRequest.responseText);
-    };
-    // wait a few seconds to get more initial logging
-    setTimeout(function() {
-        statusRequest.send();
-    }, 2000);
+    getStatus(stackName, 2000);
 }
 
 function updateStats(stackName) {
