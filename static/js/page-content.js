@@ -85,22 +85,24 @@ function getStatus(stackName, timeout) {
 }
 
 function performAction(action, env, stackName, version) {
-    $("#log").css("background", "rgba(0,20,70,.08)");
+    if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
+        $("#log").css("background", "rgba(0,20,70,.08)");
 
-    var baseUrl = window.location .protocol + "//" + window.location.host;
-    var env = $("meta[name=env]").attr("value");
-    var action = $("meta[name=action]").attr("value");
-    var url = baseUrl  + "/" + action + "/" + env + "/" + stackName;
+        var baseUrl = window.location.protocol + "//" + window.location.host;
+        var env = $("meta[name=env]").attr("value");
+        var action = $("meta[name=action]").attr("value");
+        var url = baseUrl + "/" + action + "/" + env + "/" + stackName;
 
-    var actionRequest = new XMLHttpRequest();
-    if (action === "upgrade") {
-        url += "/" + version;
+        var actionRequest = new XMLHttpRequest();
+        if (action === "upgrade") {
+            url += "/" + version;
+        }
+
+        actionRequest.open("GET", url, true);
+        actionRequest.setRequestHeader("Content-Type", "text/xml");
+        actionRequest.send();
+        getStatus(stackName, 2000);
     }
-
-    actionRequest.open("GET", url, true);
-    actionRequest.setRequestHeader("Content-Type", "text/xml");
-    actionRequest.send();
-    getStatus(stackName, 2000);
 }
 
 function updateStats(stackName) {
