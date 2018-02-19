@@ -9,7 +9,7 @@ import boto3
 import botocore
 import requests
 from flask import Flask, request, session, redirect, url_for, \
-    render_template
+    render_template, flash
 from flask_restful import Api, Resource
 
 # global configuration
@@ -131,6 +131,7 @@ class rollingrestart(Resource):
         forgestate = defaultdict(dict)
         forgestate_clear(forgestate, stack_name)
         last_action_log(forgestate, stack_name, INFO, "Beginning rolling restart")
+
         if env == 'prod':
             forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
         else:
@@ -141,7 +142,6 @@ class rollingrestart(Resource):
             startup = start_node_app(forgestate, stack_name, [instance])
         last_action_log(forgestate, stack_name, INFO, "Final state")
         return(forgestate[stack_name]['last_action_log'])
-
 
 class status(Resource):
     def get(self, stack_name):
@@ -178,9 +178,9 @@ class stackState(Resource):
         return check_stack_state(forgestate, stack_name)
 
 
-class upgradeReadyToStart(Resource):
+class actionReadyToStart(Resource):
     def get(self):
-        return upgradeReadyToStartRenderTemplate()
+        return actionReadyToStartRenderTemplate()
 
 
 api.add_resource(hello, '/hello')
@@ -193,7 +193,7 @@ api.add_resource(rollingrestart, '/rollingrestart/<string:env>/<string:stack_nam
 api.add_resource(status, '/status/<string:stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<string:env>/<string:stack_name>')
 api.add_resource(stackState, '/stackState/<string:env>/<string:stack_name>')
-api.add_resource(upgradeReadyToStart, '/upgradeReadyToStart')
+api.add_resource(actionReadyToStart, '/actionReadyToStart')
 
 ##
 #### stack action functions
@@ -525,7 +525,7 @@ def check_service_status(forgestate, stack_name):
     try:
         service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
         last_action_log(forgestate, stack_name, INFO,
-                        f' ==> servie status is: {service_status.text}')
+                        f' ==> service status is: {service_status.text}')
         return service_status.text
     except requests.exceptions.ReadTimeout as e:
         last_action_log(forgestate, stack_name, INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
@@ -563,6 +563,10 @@ def index():
     # if 'forgetype' in forgestate[stack_name] and 'environment' in forgestate[stack_name]:
     #     gtg_flag = True
     #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
+
+    # use stg if no env selected
+    session['region'] = getRegion('stg')
+    session['env'] = 'stg'
     session['action'] = 'none'
     return render_template('index.html')
 
@@ -572,10 +576,16 @@ def upgradeSetParams():
     return render_template('upgrade.html', stacks=getparms('upgrade'))
 
 
-@app.route('/upgradeReadyToStart')
-def upgradeReadyToStartRenderTemplate():
-    return render_template('upgradeReadyToStart.html')
+@app.route('/actionreadytostart')
+def actionReadyToStartRenderTemplate():
+    return render_template('actionreadytostart.html')
 
+
+@app.route('/actionprogress/<action>/<stack_name>')
+def actionprogress(action, stack_name):
+    session['stack_name'] = stack_name
+    flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
+    return render_template("actionprogress.html")
 
 
 # Either stg or prod
@@ -583,6 +593,7 @@ def upgradeReadyToStartRenderTemplate():
 def env(env):
     session['region'] = getRegion(env)
     session['env'] = env
+    flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
 
@@ -619,7 +630,7 @@ def show_stacks():
 
 
 # @app.route('/stg/upgrade')
-@app.route('/<string:env>/<string:action>', methods=['POST'])
+@app.route('/<env>/<action>', methods=['POST'])
 def envact(env, action):
     print('after stack selection')
     for key in request.form:

@@ -10,22 +10,12 @@ $(document).ready(function() {
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
             stackName = data.target.text;
-            $("#stackSelector").text(stackName);
-            $("#stackName").text(stackName);
-            $("#pleaseSelectStackMsg").hide();
-            $("#stackInformation").show();
-
-            if (action == "upgrade") {
-                $("#upgradeVersionSelector").removeAttr("disabled");
-                $("#versionCheckButton").removeAttr("disabled");
-            } else {
-                $("#action-button").attr("aria-disabled", false);
-            }
-            updateStats(stackName);
+            selectStack(stackName, action);
         }, false);
     }
 
-    if (action === "upgrade") {
+    // currently only works for Confluence
+    if (action === "upgrade" && stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
         document.getElementById("versionCheckButton").addEventListener("click", function (data) {
             version = $("#upgradeVersionSelector").val();
             var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
@@ -47,6 +37,34 @@ $(document).ready(function() {
         });
     }
 
+    addRefreshListener(stackName);
+
+    var actionButton = document.getElementById("action-button");
+    actionButton.addEventListener("click", function (data) {
+        performAction(action, env, stackName, version)
+    });
+});
+
+function selectStack(stackName, action) {
+    $("#stackSelector").text(stackName);
+    $("#stackName").text(stackName);
+    $("#pleaseSelectStackMsg").hide();
+    $("#stackInformation").show();
+
+    if (action == "upgrade") {
+        $("#upgradeVersionSelector").removeAttr("disabled");
+    }
+    // currently only works for Confluence
+    if (stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
+        $("#versionCheckButton").removeAttr("disabled");
+    } else {
+        $("#versionCheckButton").hide();
+        $("#action-button").attr("aria-disabled", false);
+    }
+    updateStats(stackName);
+}
+
+function addRefreshListener(stackName) {
     var refreshButton = document.getElementById("refresh-status");
     refreshButton.addEventListener("click", function (data) {
         refreshButton.classList.remove("aui-iconfont-refresh");
@@ -55,14 +73,9 @@ $(document).ready(function() {
         refreshButton.classList.remove("aui-icon-wait");
         refreshButton.classList.add("aui-iconfont-refresh");
     });
+}
 
-    var actionButton = document.getElementById("action-button");
-    actionButton.addEventListener("click", function (data) {
-        performAction(action, env, stackName, version)
-    });
-});
-
-function getStatus(stackName, timeout) {
+function getStatus(stackName) {
     $("#log").css("background", "rgba(0,20,70,.08)");
 
     var baseUrl = window.location .protocol + "//" + window.location.host;
@@ -70,24 +83,20 @@ function getStatus(stackName, timeout) {
     statusRequest.open("GET", baseUrl + "/status/" + stackName, true);
     statusRequest.setRequestHeader("Content-Type", "text/xml");
     statusRequest.onreadystatechange = function () {
-        $("#log").css("background", "rgba(0,0,0,0)");
-        $("#log").contents().find('body').html(statusRequest.responseText);
+        if (statusRequest.readyState === XMLHttpRequest.DONE && statusRequest.status === 200) {
+            $("#log").css("background", "rgba(0,0,0,0)");
+            $("#log").contents().find('body').html(statusRequest.responseText
+                .substr(1, statusRequest.responseText.length - 3)
+                .split('",').join('<br />')
+                .split('"').join('')
+                .trim());
+        }
     };
-
-    if (timeout) {
-        // wait a few seconds to get more initial logging
-        setTimeout(function () {
-            statusRequest.send();
-        }, timeout);
-    } else {
-        statusRequest.send();
-    }
+    statusRequest.send();
 }
 
 function performAction(action, env, stackName, version) {
     if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
-        $("#log").css("background", "rgba(0,20,70,.08)");
-
         var baseUrl = window.location.protocol + "//" + window.location.host;
         var env = $("meta[name=env]").attr("value");
         var action = $("meta[name=action]").attr("value");
@@ -101,7 +110,9 @@ function performAction(action, env, stackName, version) {
         actionRequest.open("GET", url, true);
         actionRequest.setRequestHeader("Content-Type", "text/xml");
         actionRequest.send();
-        getStatus(stackName, 2000);
+
+        // Redirect to action progress screen
+        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
     }
 }
 
@@ -116,7 +127,7 @@ function updateStats(stackName) {
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     $("#stackState").html("Stack State: ");
     stackStateRequest.onreadystatechange = function () {
-        if (stackStateRequest.readyState === 4 && stackStateRequest.status === 200) {
+        if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
             $("#stackState").html("Stack State: " + getStatusLozenge(stackStateRequest.responseText));
         }
     };
@@ -127,7 +138,7 @@ function updateStats(stackName) {
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     $("#serviceStatus").html("Service Status: ");
     serviceStatusRequest.onreadystatechange = function () {
-        if (serviceStatusRequest.readyState === 4 && serviceStatusRequest.status === 200) {
+        if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
             $("#serviceStatus").html("Service Status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
