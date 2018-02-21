@@ -41,6 +41,8 @@ $(document).ready(function() {
 
     var actionButton = document.getElementById("action-button");
     actionButton.addEventListener("click", function (data) {
+        if (action === "upgrade" && version === 'none')
+            version = $("#upgradeVersionSelector").val();
         performAction(action, env, stackName, version)
     });
 });

@@ -499,8 +499,7 @@ def wait_stackupdate_complete(forgestate, stack_name):
     stack_state = check_stack_state(forgestate, stack_name)
     while stack_state == "UPDATE_IN_PROGRESS":
         last_action_log(forgestate, stack_name, INFO,
-                        "====> stack_state is: " + stack_state + " waiting .... " + str(
-                            datetime.now()))
+                        "====> stack_state is: " + stack_state)
         time.sleep(30)
         stack_state = check_stack_state(forgestate, stack_name)
     return
