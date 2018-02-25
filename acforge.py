@@ -523,8 +523,9 @@ def check_service_status(forgestate, stack_name):
                         'lburl'] + "/status")
     try:
         service_status = requests.get(forgestate[stack_name]['lburl'] + '/status', timeout=5)
+        status = service_status.text if service_status.text else "...?"
         last_action_log(forgestate, stack_name, INFO,
-                        f' ==> service status is: {service_status.text}')
+                        f' ==> service status is: {status}')
         return service_status.text
     except requests.exceptions.ReadTimeout as e:
         last_action_log(forgestate, stack_name, INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
@@ -598,7 +599,7 @@ def env(env):
 
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
-def action(action):
+def setaction(action):
     session['action'] = action
     envstacks=sorted(get_cfn_stacks_for_environment())
     return render_template(action + ".html", stacks=envstacks)
