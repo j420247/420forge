@@ -187,7 +187,7 @@ api.add_resource(hello, '/hello')
 api.add_resource(test, '/test/<string:env>/<string:stack_name>/<string:new_version>')
 api.add_resource(clear, '/clear/<string:stack_name>')
 api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
-api.add_resource(clone, '/clone/<app_type>/<string:stack_name>/<string:rdssnap>/<string:ebssnap>')
+api.add_resource(clone, '/clone/<app_type>/<stack_name>/<rdssnap>/<ebssnap>')
 api.add_resource(fullrestart, '/fullrestart/<string:env>/<string:stack_name>')
 api.add_resource(rollingrestart, '/rollingrestart/<string:env>/<string:stack_name>')
 api.add_resource(status, '/status/<string:stack_name>')
@@ -209,7 +209,7 @@ def get_stack_current_state(forgestate, stack_name):
     except botocore.exceptions.ClientError as e:
         print(e.args[0])
         return
-    # lets store the parms (list of dicts) if they havnt been already stored
+    # let's store the parms (list of dicts) if they haven't been already stored
     if forgestate[stack_name].get('stack_parms'):
         print("stack parms already stored")
     else:
@@ -565,8 +565,9 @@ def index():
     #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
 
     # use stg if no env selected
-    session['region'] = getRegion('stg')
-    session['env'] = 'stg'
+    if 'region' not in session:
+        session['region'] = getRegion('stg')
+        session['env'] = 'stg'
     session['action'] = 'none'
     return render_template('index.html')
 
