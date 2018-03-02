@@ -101,16 +101,13 @@ class clone(Resource):
         forgestate[stack_name]['environment'] = 'stg'
         forgestate[stack_name]['region'] = getRegion('stg')
 
-        if app_type.lower == 'jira':
-            set_clone_params_jira(forgestate, ebssnap, rdssnap, stack_name)
-        if app_type.lower == 'confluence':
-            set_clone_params_confluence(forgestate, ebssnap, rdssnap, stack_name)
+        destroy_stack(forgestate, stack_name)
+        create_stack(forgestate, app_type, 'stg', stack_name, ebssnap, rdssnap)
 
-        create(forgestate, stack_name)
         return forgestate[stack_name]['last_action_log']
 
 
-def set_clone_params_jira(forgestate, rdssnap, ebssnap, stack_name):
+def set_clone_params_jira(forgestate, stack_name, ebssnap, rdssnap):
     parameters = [
         {'ParameterKey': 'BusinessUnit', 'ParameterValue': 'Workplace-Technology'},
         {'ParameterKey': 'TomcatEnableLookups', 'ParameterValue': 'false'},
@@ -167,7 +164,7 @@ def set_clone_params_jira(forgestate, rdssnap, ebssnap, stack_name):
     forgestate[stack_name]['stack_parms'] = parameters
 
 
-def set_clone_params_confluence(forgestate, rdssnap, ebssnap, stack_name):
+def set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap):
 
     parameters=[
         ('AssociatePublicIpAddress', 'false'),
@@ -271,41 +268,14 @@ class rollingrestart(Resource):
 
 class destroy(Resource):
     def get(self, env, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate_clear(forgestate, stack_name)
-
-        if env == 'prod':
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-
         destroy_stack(forgestate, stack_name)
-
-        last_action_log(forgestate, stack_name, INFO, "Final state")
         return(forgestate[stack_name]['last_action_log'])
 
+
 class create(Resource):
-    def get(self, env, stack_name, rdssnap, ebssnap):
-        forgestate = defaultdict(dict)
-        forgestate_clear(forgestate, stack_name)
+    def get(self, app_type, env, stack_name, ebssnap, rdssnap):
+        create_stack(forgestate, app_type, env, stack_name, ebssnap, rdssnap)
 
-        cfn = boto3.client('cloudformation', region_name='us-east-1')
-        try:
-            stack_details = cfn.describe_stacks(StackName='eacj-stg')
-        except botocore.exceptions.ClientError as e:
-            print(e.args[0])
-
-        if env == 'prod':
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-
-        forgestate[stack_name]['stack_parms'] = defaultdict(dict)
-
-        set_clone_params_jira(forgestate, rdssnap, ebssnap, stack_name)
-        create_stack(forgestate, stack_name)
-
-        last_action_log(forgestate, stack_name, INFO, "Final state")
         return(forgestate[stack_name]['last_action_log'])
 
 
@@ -353,10 +323,10 @@ api.add_resource(hello, '/hello')
 api.add_resource(test, '/test/<env>/<stack_name>/<new_version>')
 api.add_resource(clear, '/clear/<stack_name>')
 api.add_resource(upgrade, '/upgrade/<env>/<stack_name>/<new_version>')
-api.add_resource(clone, '/clone/<app_type>/<stack_name>/<rdssnap>/<ebssnap>')
+api.add_resource(clone, '/clone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
 api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
-api.add_resource(create, '/create/<env>/<stack_name>/<rdssnap>/<ebssnap>')
+api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(destroy, '/destroy/<env>/<stack_name>')
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
@@ -502,25 +472,54 @@ def spinup_remaining_nodes(forgestate, stack_name):
 
 
 def destroy_stack(forgestate, stack_name):
+    forgestate = defaultdict(dict)
+    forgestate_clear(forgestate, stack_name)
+
+    if env == 'prod':
+        forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+    else:
+        forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
+
     last_action_log(forgestate, stack_name, INFO, f'Destroying stack {stack_name}')
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-    stack_state = cfn.describe_stacks(StackName=stack_name)
+
+    try:
+        stack_state = cfn.describe_stacks(StackName=stack_name)
+    except botocore.exceptions.ClientError as e:
+        if "does not exist" in e.response['Error']['Message'] :
+            last_action_log(forgestate, stack_name, INFO, f'Stack {stack_name} does not exist')
+            return
 
     stack_id = stack_state['Stacks'][0]['StackId']
     delete_stack = cfn.delete_stack(
         StackName=stack_name,
     )
-    wait_stackdestroy_complete(forgestate, stack_name, stack_id) # id must be used to check deletion
+    wait_stackdestroy_complete(forgestate, stack_name, stack_id=None) # id must be used to check deletion
     last_action_log(forgestate, stack_name, INFO, f'Destroyed stack: {delete_stack}')
+    last_action_log(forgestate, stack_name, INFO, "Final state")
     return forgestate
 
 
-def create_stack(forgestate, stack_name):
+def create_stack(forgestate, app_type, env, stack_name, ebssnap, rdssnap):
+    forgestate = defaultdict(dict)
+    forgestate_clear(forgestate, stack_name)
+
+    if env == 'prod':
+        forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+    else:
+        forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
+
+    forgestate[stack_name]['stack_parms'] = defaultdict(dict)
+    if app_type == 'jira':
+        set_clone_params_jira(forgestate, stack_name, ebssnap, rdssnap)
+    if app_type == 'confluence':
+        set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap)
+
     last_action_log(forgestate, stack_name, INFO, f'Creating stack: {stack_name}')
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
     stack_parms = forgestate[stack_name]['stack_parms']
-    last_action_log(forgestate, stack_name, INFO, f'Spinup params: {stack_parms}')
-    create_stack = cfn.create_stack(
+    last_action_log(forgestate, stack_name, INFO, f'Creation params: {stack_parms}')
+    created_stack = cfn.create_stack(
         StackName=stack_name,
         Parameters=stack_parms,
         # TemplateBody='',
@@ -529,7 +528,9 @@ def create_stack(forgestate, stack_name):
     )
     wait_stackcreate_complete(forgestate, stack_name)
 
-    last_action_log(forgestate, stack_name, INFO, f'Create has begun: {create_stack}')
+    last_action_log(forgestate, stack_name, INFO, f'Create has begun: {created_stack}')
+    last_action_log(forgestate, stack_name, INFO, "Final state")
+
     return forgestate
 
 
@@ -687,10 +688,16 @@ def update_parm(parmlist, parmkey, parmvalue):
     return parmlist
 
 
-def check_stack_state(forgestate, stack_name, stack_id):
+def check_stack_state(forgestate, stack_name, stack_id=None):
     last_action_log(forgestate, stack_name, INFO, " ==> checking stack state")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-    stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else stack_name)
+    try:
+        stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else stack_name)
+    except botocore.exceptions.ClientError as e:
+        if "does not exist" in e.response['Error']['Message'] :
+            last_action_log(forgestate, stack_name, INFO, f'Stack {stack_name} does not exist')
+            return
+
     return stack_state['Stacks'][0]['StackStatus']
 
 
@@ -709,7 +716,7 @@ def wait_stackcreate_complete(forgestate, stack_name):
     return
 
 
-def wait_stack_action_complete(forgestate, stack_name, in_progress_state, stack_id):
+def wait_stack_action_complete(forgestate, stack_name, in_progress_state, stack_id=None):
     last_action_log(forgestate, stack_name, INFO, "Waiting for stack action to complete")
     stack_state = check_stack_state(forgestate, stack_name)
     while stack_state == in_progress_state:
