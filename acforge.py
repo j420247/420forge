@@ -97,17 +97,142 @@ class upgrade(Resource):
 
 
 class clone(Resource):
-    def get(self, stack_name, rdssnap, ebssnap):
+    def get(self, app_type, stack_name, rdssnap, ebssnap):
         forgestate[stack_name]['environment'] = 'stg'
         forgestate[stack_name]['region'] = getRegion('stg')
 
-        forgestate[stack_name]['stack_parms'] = update_parm(forgestate[stack_name]['stack_parms'],
-                                                            'DBSnapshotName', rdssnap)
-        forgestate[stack_name]['stack_parms'] = update_parm(forgestate[stack_name]['stack_parms'],
-                                                            'EBSSnapshotId', ebssnap)
-        spinup_to_one_appnode(forgestate, stack_name)
+        if app_type.lower == 'jira':
+            set_clone_params_jira(forgestate, ebssnap, rdssnap, stack_name)
+        if app_type.lower == 'confluence':
+            set_clone_params_confluence(forgestate, ebssnap, rdssnap, stack_name)
+
+        create(forgestate, stack_name)
         return forgestate[stack_name]['last_action_log']
 
+
+def set_clone_params_jira(forgestate, rdssnap, ebssnap, stack_name):
+    parameters = [
+        {'ParameterKey': 'BusinessUnit', 'ParameterValue': 'Workplace-Technology'},
+        {'ParameterKey': 'TomcatEnableLookups', 'ParameterValue': 'false'},
+        {'ParameterKey': 'DBIops', 'ParameterValue': '1000'},
+        {'ParameterKey': 'ExternalSubnets', 'ParameterValue': 'subnet-df0c3597,subnet-f1fb87ab'},
+        {'ParameterKey': 'JiraProduct', 'ParameterValue': 'All'},
+        {'ParameterKey': 'TomcatMinSpareThreads', 'ParameterValue': '10'},
+        {'ParameterKey': 'DBMaxWaitMillis', 'ParameterValue': '10000'},
+        {'ParameterKey': 'InternalSubnets', 'ParameterValue': 'subnet-df0c3597,subnet-f1fb87ab'},
+        {'ParameterKey': 'ClusterNodeSize', 'ParameterValue': '50'},
+        {'ParameterKey': 'DBTestOnBorrow', 'ParameterValue': 'false'},
+        {'ParameterKey': 'DBMultiAZ', 'ParameterValue': 'true'},
+        {'ParameterKey': 'JiraVersion', 'ParameterValue': '7.7.0'},
+        {'ParameterKey': 'JvmHeapOverride', 'ParameterValue': ''},
+        {'ParameterKey': 'DBRemoveAbandoned', 'ParameterValue': 'true'},
+        {'ParameterKey': 'DBInstanceClass', 'ParameterValue': 'db.t2.medium'},
+        {'ParameterKey': 'DBMasterUserPassword', 'ParameterValue': 'password1234'},
+        {'ParameterKey': 'TomcatProxyPort', 'ParameterValue': '443'},
+        {'ParameterKey': 'ClusterNodeInstanceType', 'ParameterValue': 't2.medium'},
+        {'ParameterKey': 'DBMinIdle', 'ParameterValue': '10'},
+        {'ParameterKey': 'DBPassword', 'ParameterValue': 'G49uTtAEBmtU'},
+        {'ParameterKey': 'TomcatScheme', 'ParameterValue': 'https'},
+        {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1'},
+        {'ParameterKey': 'SSLCertificateName', 'ParameterValue': ''},
+        {'ParameterKey': 'DBStorage', 'ParameterValue': '200'},
+        {'ParameterKey': 'TomcatMaxThreads', 'ParameterValue': '200'},
+        {'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '1'},
+        {'ParameterKey': 'DBMaxIdle', 'ParameterValue': '20'},
+        {'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap},
+        {'ParameterKey': 'TomcatAcceptCount', 'ParameterValue': '10'},
+        {'ParameterKey': 'DBStorageType', 'ParameterValue': 'General Purpose (SSD)'},
+        {'ParameterKey': 'VPC', 'ParameterValue': 'vpc-320c1355'},
+        {'ParameterKey': 'CidrBlock', 'ParameterValue': '0.0.0.0/0'},
+        {'ParameterKey': 'TomcatSecure', 'ParameterValue': 'true'},
+        {'ParameterKey': 'DBMinEvictableIdleTimeMillis', 'ParameterValue': '180000'},
+        {'ParameterKey': 'StartCollectd', 'ParameterValue': 'true'},
+        {'ParameterKey': 'TomcatRedirectPort', 'ParameterValue': '8443'},
+        {'ParameterKey': 'JiraDownloadUrl', 'ParameterValue': ''},
+        {'ParameterKey': 'DBTestWhileIdle', 'ParameterValue': 'true'},
+        {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
+        {'ParameterKey': 'CatalinaOpts', 'ParameterValue': '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true'},
+        {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'hr-jira.stg.internal.atlassian.com'},
+        {'ParameterKey': 'TomcatContextPath', 'ParameterValue': '/jira'},
+        {'ParameterKey': 'DBRemoveAbandonedTimeout', 'ParameterValue': '60'},
+        {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
+        {'ParameterKey': 'DBPoolMinSize', 'ParameterValue': '20'},
+        {'ParameterKey': 'DBTimeBetweenEvictionRunsMillis', 'ParameterValue': '60000'},
+        {'ParameterKey': 'KeyName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
+        {'ParameterKey': 'DBPoolMaxSize', 'ParameterValue': '20'},
+        {'ParameterKey': 'TomcatProtocol', 'ParameterValue': 'HTTP/1.1'},
+        {'ParameterKey': 'TomcatConnectionTimeout', 'ParameterValue': '20000'},
+        {'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap}]
+
+    forgestate[stack_name]['stack_parms'] = parameters
+
+
+def set_clone_params_confluence(forgestate, rdssnap, ebssnap, stack_name):
+
+    parameters=[
+        ('AssociatePublicIpAddress', 'false'),
+        ('AutologinCookieAge', '604800'),
+        ('BastionAMIOS', 'Amazon-Linux-HVM'),
+        ('BastionBanner', 'https://s3.amazonaws.com/quickstart-reference/linux/bastion/latest/scripts/banner_message.txt'),
+        ('BastionInstanceType', 't2.micro'),
+        ('CatalinaOpts', '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true'),
+        ('CidrBlock', '0.0.0.0/0'),
+        ('ClusterNodeInstanceType', 'c5.xlarge'),
+        ('ClusterNodeMax', '1'),
+        ('ClusterNodeMin', '1'),
+        ('ClusterNodeSize', '200'),
+        ('ConfluenceDownloadUrl', ''),
+        ('ConfluenceVersion', '6.8.0-m44'),
+        ('CustomDnsName', 'extranet.stg.internal.atlassian.com'),
+        ('DBAcquireIncrement', '3'),
+        ('DBIdleTestPeriod', '0'),
+        ('DBInstanceClass', 'db.t2.medium'),
+        ('DBIops', '1000'),
+        ('DBMasterUserPassword', 'password1234'),
+        ('DBMaxStatements', '0'),
+        ('DBMultiAZ', 'false'),
+        ('DBPassword', 'password1234'),
+        ('DBPoolMaxSize', '60'),
+        ('DBPoolMinSize', '10'),
+        ('DBPreferredTestQuery', ''),
+        ('DBSnapshotId', ''),
+        ('DBSnapshotName', rdssnap),
+        ('DBStorage', '200'),
+        ('DBStorageType', 'General Purpose (SSD'),
+        ('DBTimeout', '0'),
+        ('DBValidate', 'false'),
+        ('EBSSnapshotId', ebssnap),
+        ('EnableBanner', 'false'),
+        ('EnableTCPForwarding', 'false'),
+        ('EnableX11Forwarding', 'false'),
+        ('ExternalSubnets', 'subnet-df0c3597,subnet-f1fb87ab'),
+        ('HostedZone', 'wpt.atlassian.com.'),
+        ('InternalSubnets', 'subnet-df0c3597,subnet-f1fb87ab'),
+        ('JvmHeapOverride', ''),
+        ('KeyName', 'WPE-GenericKeyPair-20161102'),
+        ('NumBastionHosts', '1'),
+        ('SSLCertificateName', ''),
+        ('StartCollectd', 'true'),
+        ('SubDomainName', 'false'),
+        ('SynchronyClusterNodeMax', '1'),
+        ('SynchronyClusterNodeMin', '1'),
+        ('SynchronyNodeInstanceType', 't2.medium'),
+        ('TomcatAcceptCount', '10'),
+        ('TomcatConnectionTimeout', '20000'),
+        ('TomcatContextPath', ''),
+        ('TomcatDefaultConnectorPort', '8080'),
+        ('TomcatEnableLookups', 'false'),
+        ('TomcatMaxThreads', '48'),
+        ('TomcatMinSpareThreads', '10'),
+        ('TomcatProtocol', 'HTTP/1.1'),
+        ('TomcatProxyPort', '443'),
+        ('TomcatRedirectPort', '8443'),
+        ('TomcatScheme', 'https'),
+        ('TomcatSecure', 'true'),
+        ('VPC', 'vpc-320c1355'),
+     ],
+
+    forgestate[stack_name]['stack_parms'] = parameters
 
 class fullrestart(Resource):
     def get(self, env, stack_name):
@@ -142,6 +267,47 @@ class rollingrestart(Resource):
             startup = start_node_app(forgestate, stack_name, [instance])
         last_action_log(forgestate, stack_name, INFO, "Final state")
         return(forgestate[stack_name]['last_action_log'])
+
+
+class destroy(Resource):
+    def get(self, env, stack_name):
+        forgestate = defaultdict(dict)
+        forgestate_clear(forgestate, stack_name)
+
+        if env == 'prod':
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+        else:
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
+
+        destroy_stack(forgestate, stack_name)
+
+        last_action_log(forgestate, stack_name, INFO, "Final state")
+        return(forgestate[stack_name]['last_action_log'])
+
+class create(Resource):
+    def get(self, env, stack_name, rdssnap, ebssnap):
+        forgestate = defaultdict(dict)
+        forgestate_clear(forgestate, stack_name)
+
+        cfn = boto3.client('cloudformation', region_name='us-east-1')
+        try:
+            stack_details = cfn.describe_stacks(StackName='eacj-stg')
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+
+        if env == 'prod':
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
+        else:
+            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
+
+        forgestate[stack_name]['stack_parms'] = defaultdict(dict)
+
+        set_clone_params_jira(forgestate, rdssnap, ebssnap, stack_name)
+        create_stack(forgestate, stack_name)
+
+        last_action_log(forgestate, stack_name, INFO, "Final state")
+        return(forgestate[stack_name]['last_action_log'])
+
 
 class status(Resource):
     def get(self, stack_name):
@@ -184,15 +350,17 @@ class actionReadyToStart(Resource):
 
 
 api.add_resource(hello, '/hello')
-api.add_resource(test, '/test/<string:env>/<string:stack_name>/<string:new_version>')
-api.add_resource(clear, '/clear/<string:stack_name>')
-api.add_resource(upgrade, '/upgrade/<string:env>/<string:stack_name>/<string:new_version>')
+api.add_resource(test, '/test/<env>/<stack_name>/<new_version>')
+api.add_resource(clear, '/clear/<stack_name>')
+api.add_resource(upgrade, '/upgrade/<env>/<stack_name>/<new_version>')
 api.add_resource(clone, '/clone/<app_type>/<stack_name>/<rdssnap>/<ebssnap>')
-api.add_resource(fullrestart, '/fullrestart/<string:env>/<string:stack_name>')
-api.add_resource(rollingrestart, '/rollingrestart/<string:env>/<string:stack_name>')
-api.add_resource(status, '/status/<string:stack_name>')
-api.add_resource(serviceStatus, '/serviceStatus/<string:env>/<string:stack_name>')
-api.add_resource(stackState, '/stackState/<string:env>/<string:stack_name>')
+api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
+api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
+api.add_resource(create, '/create/<env>/<stack_name>/<rdssnap>/<ebssnap>')
+api.add_resource(destroy, '/destroy/<env>/<stack_name>')
+api.add_resource(status, '/status/<stack_name>')
+api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
+api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 
 ##
@@ -330,6 +498,38 @@ def spinup_remaining_nodes(forgestate, stack_name):
     )
     wait_stackupdate_complete(forgestate, stack_name)
     last_action_log(forgestate, stack_name, INFO, "Stack restored to full node count")
+    return forgestate
+
+
+def destroy_stack(forgestate, stack_name):
+    last_action_log(forgestate, stack_name, INFO, f'Destroying stack {stack_name}')
+    cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
+    stack_state = cfn.describe_stacks(StackName=stack_name)
+
+    stack_id = stack_state['Stacks'][0]['StackId']
+    delete_stack = cfn.delete_stack(
+        StackName=stack_name,
+    )
+    wait_stackdestroy_complete(forgestate, stack_name, stack_id) # id must be used to check deletion
+    last_action_log(forgestate, stack_name, INFO, f'Destroyed stack: {delete_stack}')
+    return forgestate
+
+
+def create_stack(forgestate, stack_name):
+    last_action_log(forgestate, stack_name, INFO, f'Creating stack: {stack_name}')
+    cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
+    stack_parms = forgestate[stack_name]['stack_parms']
+    last_action_log(forgestate, stack_name, INFO, f'Spinup params: {stack_parms}')
+    create_stack = cfn.create_stack(
+        StackName=stack_name,
+        Parameters=stack_parms,
+        # TemplateBody='',
+        TemplateURL='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml',
+        Capabilities=['CAPABILITY_IAM'],
+    )
+    wait_stackcreate_complete(forgestate, stack_name)
+
+    last_action_log(forgestate, stack_name, INFO, f'Create has begun: {create_stack}')
     return forgestate
 
 
@@ -487,23 +687,37 @@ def update_parm(parmlist, parmkey, parmvalue):
     return parmlist
 
 
-def check_stack_state(forgestate, stack_name):
+def check_stack_state(forgestate, stack_name, stack_id):
     last_action_log(forgestate, stack_name, INFO, " ==> checking stack state")
     cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-    stack_state = cfn.describe_stacks(StackName=stack_name)
+    stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else stack_name)
     return stack_state['Stacks'][0]['StackStatus']
 
 
 def wait_stackupdate_complete(forgestate, stack_name):
-    last_action_log(forgestate, stack_name, INFO, "Waiting for stack update to complete")
+    wait_stack_action_complete(forgestate, stack_name, "UPDATE_IN_PROGRESS")
+    return
+
+
+def wait_stackdestroy_complete(forgestate, stack_name, stack_id):
+    wait_stack_action_complete(forgestate, stack_name, "DELETE_IN_PROGRESS", stack_id)
+    return
+
+
+def wait_stackcreate_complete(forgestate, stack_name):
+    wait_stack_action_complete(forgestate, stack_name, "CREATE_IN_PROGRESS")
+    return
+
+
+def wait_stack_action_complete(forgestate, stack_name, in_progress_state, stack_id):
+    last_action_log(forgestate, stack_name, INFO, "Waiting for stack action to complete")
     stack_state = check_stack_state(forgestate, stack_name)
-    while stack_state == "UPDATE_IN_PROGRESS":
+    while stack_state == in_progress_state:
         last_action_log(forgestate, stack_name, INFO,
                         "====> stack_state is: " + stack_state)
         time.sleep(30)
-        stack_state = check_stack_state(forgestate, stack_name)
+        stack_state = check_stack_state(forgestate, stack_id if stack_id else stack_name)
     return
-
 
 def check_node_status(forgestate, stack_name, node_ip):
     last_action_log(forgestate, stack_name, INFO,
