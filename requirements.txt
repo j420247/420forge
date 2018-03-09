@@ -3,3 +3,4 @@ flask
 flask_restful
 boto3
 requests
+ruamel.yaml

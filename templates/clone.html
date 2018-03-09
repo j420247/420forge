@@ -1,5 +1,15 @@
 {% extends "page-content.html" %}
 
-{% block content %}
-    <h2> The place Clones happen </h2>
-{% endblock %}
+{% block extraInput %}
+<form class="aui long-label">
+    <field-set>
+        {% for param in templateParams['Parameters'] %}
+        <div class="field-group">
+            <label for="{{ param }}lbl">{{ param }}</label>
+            <input class="text" type="text" name="{{ param }}lbl" value="{{ templateParams['Parameters'][param]['Default'] }}">
+        </div>
+        {% endfor %}
+    </field-set>
+{% endblock extraInput %}
+
+{% block buttonText %}Clone{% endblock buttonText %}
