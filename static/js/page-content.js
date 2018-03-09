@@ -22,6 +22,7 @@ $(document).ready(function() {
             $.ajax({
                 url: url,
                 type: 'HEAD',
+                headers: {'Access-Control-Allow-Origin': url},
                 complete: function (xhr) {
                     switch (xhr.status) {
                         case 200:
@@ -55,10 +56,11 @@ function selectStack(stackName, action) {
 
     if (action == "upgrade") {
         $("#upgradeVersionSelector").removeAttr("disabled");
-    }
-    // currently only works for Confluence
-    if (stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
-        $("#versionCheckButton").removeAttr("disabled");
+        $("#action-button").attr("aria-disabled", false);
+
+        // currently only works for Confluence
+        if (stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1)
+            $("#versionCheckButton").removeAttr("disabled");
     } else {
         $("#versionCheckButton").hide();
         $("#action-button").attr("aria-disabled", false);
