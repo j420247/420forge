@@ -723,7 +723,7 @@ def wait_stack_action_complete(forgestate, stack_name, in_progress_state, stack_
     while stack_state == in_progress_state:
         last_action_log(forgestate, stack_name, INFO,
                         "====> stack_state is: " + stack_state)
-        time.sleep(30)
+        time.sleep(60)
         stack_state = check_stack_state(forgestate, stack_id if stack_id else stack_name)
     return
 
