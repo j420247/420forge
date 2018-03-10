@@ -105,6 +105,8 @@ class clone(Resource):
         destroy_stack(forgestate, stack_name)
         create_stack(forgestate, app_type, 'stg', stack_name, ebssnap, rdssnap)
 
+        last_action_log(forgestate, stack_name, INFO, "Clone complete")
+
         return forgestate[stack_name]['last_action_log']
 
 
@@ -148,9 +150,9 @@ def set_clone_params_jira(forgestate, stack_name, ebssnap, rdssnap):
         {'ParameterKey': 'TomcatRedirectPort', 'ParameterValue': '8443'},
         {'ParameterKey': 'JiraDownloadUrl', 'ParameterValue': ''},
         {'ParameterKey': 'DBTestWhileIdle', 'ParameterValue': 'true'},
-        {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
+        {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'}, #TODO change me when manually spinning up
         {'ParameterKey': 'CatalinaOpts', 'ParameterValue': '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true'},
-        {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'hr-jira.stg.internal.atlassian.com'},
+        {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'hr-jira.stg.internal.atlassian.com'}, #TODO change me when manually spinning up
         {'ParameterKey': 'TomcatContextPath', 'ParameterValue': '/jira'},
         {'ParameterKey': 'DBRemoveAbandonedTimeout', 'ParameterValue': '60'},
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
@@ -181,7 +183,7 @@ def set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap):
         {'ParameterKey': 'ClusterNodeSize', 'ParameterValue': '200'},
         {'ParameterKey': 'ConfluenceDownloadUrl', 'ParameterValue': ''},
         {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.8.0-m44'},
-        {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'extranet.stg.internal.atlassian.com'},
+        {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'extranet.stg.internal.atlassian.com'}, #TODO change me when manually spinning up
         {'ParameterKey': 'DBAcquireIncrement', 'ParameterValue': '3'},
         {'ParameterKey': 'DBIdleTestPeriod', 'ParameterValue': '0'},
         {'ParameterKey': 'DBInstanceClass', 'ParameterValue': 'db.t2.medium'},
@@ -202,7 +204,7 @@ def set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap):
         {'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap},
         {'ParameterKey': 'EnableBanner', 'ParameterValue': 'false'},
         {'ParameterKey': 'ExternalSubnets', 'ParameterValue': 'subnet-df0c3597,subnet-f1fb87ab'},
-        {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
+        {'ParameterKey': 'HostedZone', 'ParameterValue': 'eac-stg.wpt.atlassian.com.'}, #TODO change me when manually spinning up
         {'ParameterKey': 'InternalSubnets', 'ParameterValue': 'subnet-df0c3597,subnet-f1fb87ab'},
         {'ParameterKey': 'JvmHeapOverride', 'ParameterValue': ''},
         {'ParameterKey': 'KeyName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
