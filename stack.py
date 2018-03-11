@@ -2,6 +2,7 @@ from collections import defaultdict
 from forgestate import Forgestate
 import boto3
 import botocore
+import time
 import requests
 from pprint import pprint
 from datetime import datetime
@@ -21,7 +22,7 @@ class Stack:
         self.state.logaction('INFO', f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
 
-## Stack - helper methods
+    ## Stack - micro methods
 
     def print_action_log(self):
         self.state.read()
@@ -42,6 +43,21 @@ class Stack:
         rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                     p['OutputKey'] == 'LoadBalancerURL'][0] + self.state.forgestate['tomcatcontextpath']
         return rawlburl.replace("https", "http")
+
+    def update_parm(self, parmlist, parmkey, parmvalue):
+        for dict in parmlist:
+            for k, v in dict.items():
+                if v == parmkey:
+                    dict['ParameterValue'] = parmvalue
+                if v == 'DBMasterUserPassword' or v == 'DBPassword':
+                    try:
+                        del dict['ParameterValue']
+                    except:
+                        pass
+                    dict['UsePreviousValue'] = True
+        return parmlist
+
+    ## Stack - helper methods
 
     def get_current_state(self):
         self.state.logaction('INFO', f'Getting pre-upgrade stack state for {self.stack_name}')
@@ -95,6 +111,118 @@ class Stack:
         #self.state.write()
         return
 
+    def spindown_to_zero_appnodes(self):
+        self.state.logaction('INFO', f'Spinning {self.stack_name} stack down to 0 nodes')
+        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        spindown_parms = self.state.forgestate['stack_parms']
+        spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMax', '0')
+        spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMin', '0')
+        if 'preupgrade_confluence_version' in self.state.forgestate:
+            spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
+            spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
+        self.state.logaction('INFO', f'Spindown params: {spindown_parms}')
+        update_stack = cfn.update_stack(
+            StackName=self.stack_name,
+            Parameters=spindown_parms,
+            UsePreviousTemplate=True,
+            Capabilities=['CAPABILITY_IAM'],
+        )
+        self.state.logaction('INFO', str(update_stack))
+        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        return
+
+    def wait_stack_action_complete(self, in_progress_state, stack_id=None):
+        self.state.logaction('INFO', "Waiting for stack action to complete")
+        stack_state = self.check_stack_state()
+        while stack_state == in_progress_state:
+            self.state.logaction('INFO', "====> stack_state is: " + stack_state)
+            time.sleep(60)
+            stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
+        return
+
+    def spinup_to_one_appnode(self):
+        self.state.logaction('INFO', "Spinning stack up to one appnode")
+        # for connie 1 app node and 1 synchrony
+        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        spinup_parms = self.state.forgestate['stack_parms']
+        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', '1')
+        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', '1')
+        if 'preupgrade_jira_version' in self.state.forgestate:
+            spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+        if 'preupgrade_confluence_version' in self.state.forgestate:
+            spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
+            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
+        self.state.logaction('INFO', f'Spinup params: {spinup_parms}')
+        update_stack = cfn.update_stack(
+            StackName=self.stack_name,
+            Parameters=spinup_parms,
+            UsePreviousTemplate=True,
+            Capabilities=['CAPABILITY_IAM'],
+        )
+        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        self.validate_service_responding()
+        self.state.logaction('INFO', f'Update stack: {update_stack}')
+        return
+
+    def validate_service_responding(self):
+        self.state.logaction('INFO', "Waiting for service to reply RUNNING on /status")
+        service_state = self.check_service_status()
+        while service_state != '{"state":"RUNNING"}':
+            self.state.logaction('INFO',
+                f'====> health check reports: {service_state} waiting for RUNNING " {str(datetime.now())}')
+            time.sleep(60)
+            service_state = self.check_service_status()
+        self.state.logaction('INFO', f' {self.stack_name} /status now reporting RUNNING')
+        return
+
+    def check_service_status(self):
+        self.state.logaction('INFO',
+                        f' ==> checking service status at {self.state.forgestate["lburl"]} /status')
+        try:
+            service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
+            status = service_status.text if service_status.text else "...?"
+            self.state.logaction('INFO',
+                            f' ==> service status is: {status}')
+            return service_status.text
+        except requests.exceptions.ReadTimeout as e:
+            self.state.logaction('INFO', f'Node status check timed out: {e.errno}, {e.strerror}')
+        return "Timed Out"
+
+    def check_stack_state(self, stack_id=None):
+        self.state.logaction('INFO', " ==> checking stack state")
+        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        try:
+            stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
+        except botocore.exceptions.ClientError as e:
+            if "does not exist" in e.response['Error']['Message']:
+                self.state.logaction('INFO', f'Stack {self.stack_name} does not exist')
+                return
+        return stack_state['Stacks'][0]['StackStatus']
+
+    def spinup_remaining_nodes(self):
+        self.state.logaction('INFO', "Spinning up any remaining nodes in stack")
+        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        spinup_parms = self.state.forgestate['stack_parms']
+        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
+        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
+        if 'preupgrade_jira_version' in self.state.forgestate:
+            spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+        if 'preupgrade_confluence_version' in self.state.forgestate:
+            spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
+            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
+        self.state.logaction('INFO', f'Spinup params: {spinup_parms}')
+        update_stack = cfn.update_stack(
+            StackName=self.stack_name,
+            Parameters=spinup_parms,
+            UsePreviousTemplate=True,
+            Capabilities=['CAPABILITY_IAM'],
+        )
+        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        self.state.logaction('INFO', "Stack restored to full node count")
+        return
+
 ## Stack - Major Actions
 
     def upgrade(self, env, new_version):
@@ -109,20 +237,20 @@ class Stack:
         # get pre-upgrade state information
         self.get_current_state()
         # # spin stack down to 0 nodes
-        spindown_to_zero_appnodes()
-        # # change template if required
-        # # spin stack up to 1 node on new release version
-        # spinup_to_one_appnode()
-        # # spinup remaining appnodes in stack if needed
-        # if forgestate[stack_name]['appnodemin'] != "1":
-        #     spinup_remaining_nodes()
-        # elif 'syncnodemin' in forgestate[stack_name].keys() and forgestate[stack_name][
-        #     'syncnodemin'] != "1":
-        #     spinup_remaining_nodes()
-        # # wait for remaining nodes to respond ???
-        # # enable traffic at VTM
-        # last_action_log(forgestate, stack_name, INFO,
-        #                 "Completed upgrade for " + stack_name + " at " + env + " to version " + new_version)
-        # last_action_log(forgestate, stack_name, INFO, "Final state")
+        self.spindown_to_zero_appnodes()
+        # change template if required
+        # spin stack up to 1 node on new release version
+        self.spinup_to_one_appnode()
+        # spinup remaining appnodes in stack if needed
+        if self.state.forgestate['appnodemin'] != "1":
+            self.spinup_remaining_nodes()
+        elif 'syncnodemin' in self.state.forgestate.keys() and self.state.forgestate[
+            'syncnodemin'] != "1":
+            self.spinup_remaining_nodes()
+        # wait for remaining nodes to respond ??? ## maybe a LB check for active node count
+        # enable traffic at VTM
+        self.state.logaction('INFO', f'Completed upgrade for {self.stack_name} at {env} to version {new_version}')
+        self.state.logaction('INFO', "Final state")
+        self.state.archive()
         # return forgestate[stack_name]['last_action_log']
         return
