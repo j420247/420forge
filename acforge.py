@@ -566,8 +566,11 @@ def get_nodes_in_stack(forgestate, stack_name):
 
 def shutdown_node_app(forgestate, stack_name, instancelist):
     cmd_id_list = []
-    for instance in [list(d.keys())[0] for d in instancelist]:
-        last_action_log(forgestate, stack_name, INFO, f'Shutting down {instance}')
+    for i in range(0, len(instancelist)) :
+        for key in instancelist[i] :
+            instance = key
+            node_ip = instancelist[i][instance]
+        last_action_log(forgestate, stack_name, INFO, f'Shutting down {instance} ({node_ip})')
         cmd = "/etc/init.d/confluence stop"
         cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
     for cmd_id in cmd_id_list:
@@ -588,7 +591,7 @@ def start_node_app(forgestate, stack_name, instancelist):
     for instancedict in instancelist:
         instance = list(instancedict.keys())[0]
         node_ip = list(instancedict.values())[0]
-        last_action_log(forgestate, stack_name, INFO, f'Starting up {instance}')
+        last_action_log(forgestate, stack_name, INFO, f'Starting up {instance} ({node_ip})')
         cmd = "/etc/init.d/confluence start"
         cmd_id = ssm_send_command(forgestate, stack_name, instance, cmd)
         result = ""
@@ -654,7 +657,7 @@ def forgestate_read(stack_name):
         pass
     except Exception as e:
         print('type is:', e.__class__.__name__)
-        print(e.strerror)
+        print(e.strerror if e.strerror else "")
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         message = template.format(type(e).__name__, e.args)
         return ('failed')

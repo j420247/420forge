@@ -80,6 +80,8 @@ function addRefreshListener(stackName) {
 }
 
 function getStatus(stackName) {
+    if (stackName === 'actionreadytostart') return;
+
     $("#log").css("background", "rgba(0,20,70,.08)");
 
     var baseUrl = window.location .protocol + "//" + window.location.host;
@@ -121,6 +123,8 @@ function performAction(action, env, stackName, version) {
 }
 
 function updateStats(stackName) {
+    if (stackName === 'actionreadytostart') return;
+
     var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
 

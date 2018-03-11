@@ -16,8 +16,15 @@ $(document).ready(function() {
         }, false);
     }
 
-    if (window.location.href.indexOf("actionprogress") !== -1) $("#stackSelector").hide();
     $("#action-button").hide();
+
+    if (action !== 'viewlog') {
+        var stack_name = $("meta[name=stack_name]").attr("value");
+        $("#stackSelector").hide();
+        selectStack(stack_name);
+        getStatus(stack_name);
+        refreshStatus(stack_name, true);
+    }
 });
 
 // Refresh the status every 5s while the action is still underway
