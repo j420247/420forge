@@ -27,7 +27,7 @@ class Forgestate:
                 self.forgestate = json.load(infile)
                 return self.forgestate
         except FileNotFoundError:
-            self.forgestate = {'last_action_log': []}
+            self.forgestate = {'action_log': []}
             pass
         except Exception as e:
             print('type is:', e.__class__.__name__)
