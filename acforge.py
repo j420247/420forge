@@ -319,6 +319,11 @@ class actionReadyToStart(Resource):
         return actionReadyToStartRenderTemplate()
 
 
+class viewLog(Resource):
+    def get(self):
+        return viewLogRenderTemplate()
+
+
 api.add_resource(hello, '/hello')
 api.add_resource(test, '/test/<env>/<stack_name>/<new_version>')
 api.add_resource(clear, '/clear/<stack_name>')
@@ -332,6 +337,7 @@ api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
+api.add_resource(viewLog, '/viewlog')
 
 ##
 #### stack action functions
@@ -818,6 +824,11 @@ def actionprogress(action, stack_name):
     session['stack_name'] = stack_name
     flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
     return render_template("actionprogress.html")
+
+
+@app.route('/viewlog')
+def viewLogRenderTemplate():
+    return render_template('viewlog.html')
 
 
 # Either stg or prod

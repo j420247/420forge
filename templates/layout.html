@@ -83,6 +83,9 @@
                                             <a href="{{ url_for('setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
                                         </li>
                                     {% endif %}
+                                        <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
+                                            <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
+                                        </li>
                                     {% endblock %}
                                 </ul>
                             </div>
