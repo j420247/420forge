@@ -23,6 +23,7 @@ class Stack:
         self.state.update('environment', env)
         self.state.update('region', self.region)
 
+
 ## Stack - micro function methods
 
     def print_action_log(self):
@@ -57,6 +58,7 @@ class Stack:
                         pass
                     dict['UsePreviousValue'] = True
         return parmlist
+
 
 ## Stack - helper methods
 
@@ -227,6 +229,7 @@ class Stack:
         self.state.logaction('INFO', "Stack restored to full node count")
         return
 
+
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
@@ -254,6 +257,7 @@ class Stack:
         self.state.archive()
         # return forgestate[stack_name]['last_action_log']
         return
+
 
     def destroy(self):
         self.state.logaction('INFO', f'Destroying stack {self.stack_name} in {self.env}')
@@ -294,7 +298,7 @@ class Stack:
         stack_id = created_stack['Stacks'][0]['StackId']
         self.state.logaction('INFO', f'Create has begun: {created_stack}')
         self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
-        self.state.logaction('INFO', f'Stack {self.stack_name} created, waiting on service responding')
+        self.state.logaction('INFO', f'Stack {self.stack_name} cloned, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction('INFO', "Final state")
         self.state.archive()
@@ -303,9 +307,8 @@ class Stack:
 
     def create(self, like_stack, like_env, changeparms=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
-        self.get_current_state(self, like_stack, like_env)
         self.get_current_state(like_stack, like_env)
-        self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack}')
+        self.state.logaction('INFO', f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction('INFO', f'Creation params: {stack_parms}')
         cfn = boto3.client('cloudformation', region_name=self.region)
