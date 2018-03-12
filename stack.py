@@ -60,14 +60,21 @@ class Stack:
 
 ## Stack - helper methods
 
-    def get_current_state(self):
+    def get_current_state(self, like_stack=None, like_env=None):
         self.state.logaction('INFO', f'Getting pre-upgrade stack state for {self.stack_name}')
-        cfn = boto3.client('cloudformation', region_name=self.region)
+        # use the "like" stack and parms in preference to self
+        query_stack = like_stack if like_stack else self.stack_name
+        query_env = like_env if like_env else self.env
+        query_region = self.setRegion(query_env)
+        cfn = boto3.client('cloudformation', region_name=query_region)
         try:
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            stack_details = cfn.describe_stacks(StackName=query_stack)
+            template = cfn.get_template(StackName=query_stack)
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
+        # store the template
+        self.state.update('TemplateBody', template['TemplateBody'])
         # let's store the parms (list of dicts) if they haven't been already stored
         if "stack_parms" in self.state.forgestate:
             print("stack parms already stored")
@@ -266,3 +273,53 @@ class Stack:
         self.state.archive()
         return
 
+
+    def clone(self, like_stack, like_env, ebssnap, rdssnap, changeparms=None):
+        self.get_current_state(like_stack, like_env)
+        self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack}')
+        stack_parms = self.state.forgestate['stack_parms']
+        self.state.logaction('INFO', f'Creation params: {stack_parms}')
+        if 'JiraVersion' in self.state.forgestate:
+            templateurl='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml'
+        if 'ConfluenceVersion' in self.state.forgestate:
+            templateurl='https://s3.amazonaws.com/wpe-public-software/ConfluenceSTGorDR.template.yaml'
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        created_stack = cfn.create_stack(
+            StackName=self.stack_name,
+            Parameters=stack_parms,
+            # TemplateBody='',
+            TemplateURL=templateurl,
+            Capabilities=['CAPABILITY_IAM'],
+        )
+        stack_id = created_stack['Stacks'][0]['StackId']
+        self.state.logaction('INFO', f'Create has begun: {created_stack}')
+        self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
+        self.state.logaction('INFO', f'Stack {self.stack_name} created, waiting on service responding')
+        self.validate_service_responding()
+        self.state.logaction('INFO', "Final state")
+        self.state.archive()
+        return
+
+
+    def create(self, like_stack, like_env, changeparms=None):
+        # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
+        self.get_current_state(self, like_stack, like_env)
+        self.get_current_state(like_stack, like_env)
+        self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack}')
+        stack_parms = self.state.forgestate['stack_parms']
+        self.state.logaction('INFO', f'Creation params: {stack_parms}')
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        created_stack = cfn.create_stack(
+            StackName=self.stack_name,
+            Parameters=stack_parms,
+            TemplateBody=self.state.forgestate['TemplateBody'],
+            Capabilities=['CAPABILITY_IAM'],
+        )
+        stack_id = created_stack['Stacks'][0]['StackId']
+        self.state.logaction('INFO', f'Create has begun: {created_stack}')
+        self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
+        self.state.logaction('INFO', f'Stack {self.stack_name} created, waiting on service responding')
+        self.validate_service_responding()
+        self.state.logaction('INFO', "Final state")
+        self.state.archive()
+        return
