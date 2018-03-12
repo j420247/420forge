@@ -14,10 +14,14 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name):
+    def __init__(self, stack_name, env):
         self.state = Forgestate(stack_name)
         self.state.logaction('INFO', f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
+        self.env = env
+        self.region = self.setRegion(env)
+        self.state.update('environment', env)
+        self.state.update('region', self.region)
 
 ## Stack - micro function methods
 
@@ -58,7 +62,7 @@ class Stack:
 
     def get_current_state(self):
         self.state.logaction('INFO', f'Getting pre-upgrade stack state for {self.stack_name}')
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
@@ -106,7 +110,7 @@ class Stack:
 
     def spindown_to_zero_appnodes(self):
         self.state.logaction('INFO', f'Spinning {self.stack_name} stack down to 0 nodes')
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.state.forgestate['stack_parms']
         spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMax', '0')
         spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMin', '0')
@@ -136,7 +140,7 @@ class Stack:
     def spinup_to_one_appnode(self):
         self.state.logaction('INFO', "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.state.forgestate['stack_parms']
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', '1')
@@ -184,7 +188,7 @@ class Stack:
 
     def check_stack_state(self, stack_id=None):
         self.state.logaction('INFO', " ==> checking stack state")
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except botocore.exceptions.ClientError as e:
@@ -195,7 +199,7 @@ class Stack:
 
     def spinup_remaining_nodes(self):
         self.state.logaction('INFO', "Spinning up any remaining nodes in stack")
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.state.forgestate['stack_parms']
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
@@ -218,12 +222,10 @@ class Stack:
 
 ## Stack - Major Action Methods
 
-    def upgrade(self, env, new_version):
+    def upgrade(self, new_version):
         self.state.logaction('INFO', f'Beginning upgrade for {self.stack_name}')
         self.state.update('action', 'upgrade')
-        self.state.update('environment', env)
         self.state.update('new_version', new_version)
-        self.state.update('region', self.setRegion(env))
         # TODO block traffic at vtm
         # get pre-upgrade state information
         self.get_current_state()
@@ -240,18 +242,16 @@ class Stack:
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
-        self.state.logaction('INFO', f'Completed upgrade for {self.stack_name} at {env} to version {new_version}')
+        self.state.logaction('INFO', f'Completed upgrade for {self.stack_name} at {self.env} to version {new_version}')
         self.state.logaction('INFO', "Final state")
         self.state.archive()
         # return forgestate[stack_name]['last_action_log']
         return
 
-    def destroy(self, env):
-        self.state.logaction('INFO', f'Destroying stack {self.stack_name} in {env}')
+    def destroy(self):
+        self.state.logaction('INFO', f'Destroying stack {self.stack_name} in {self.env}')
         self.state.update('action', 'destroy')
-        self.state.update('environment', env)
-        self.state.update('region', self.setRegion(env))
-        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
@@ -265,3 +265,4 @@ class Stack:
         self.state.logaction('INFO', "Final state")
         self.state.archive()
         return
+
