@@ -1,12 +1,9 @@
-from collections import defaultdict
 from forgestate import Forgestate
 import boto3
 import botocore
 import time
 import requests
-from pprint import pprint
 from datetime import datetime
-import json
 from pprint import pprint
 
 class Stack:
