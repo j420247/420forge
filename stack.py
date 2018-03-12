@@ -282,10 +282,11 @@ class Stack:
         self.get_current_state(like_stack, like_env)
         self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
+        stack_parms.append({'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap})
+        stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
         self.state.logaction('INFO', f'Creation params: {stack_parms}')
-        if 'JiraVersion' in self.state.forgestate:
-            templateurl='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml'
-        if 'ConfluenceVersion' in self.state.forgestate:
+        templateurl='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml'
+        if 'preupgrade_confluence_version' in self.state.forgestate:
             templateurl='https://s3.amazonaws.com/wpe-public-software/ConfluenceSTGorDR.template.yaml'
         cfn = boto3.client('cloudformation', region_name=self.region)
         created_stack = cfn.create_stack(
@@ -307,6 +308,7 @@ class Stack:
 
     def create(self, like_stack, like_env, changeparms=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
+        # probably need to force mail disable catalina opts for safety
         self.get_current_state(like_stack, like_env)
         self.state.logaction('INFO', f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
