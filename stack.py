@@ -22,7 +22,7 @@ class Stack:
         self.state.logaction('INFO', f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
 
-    ## Stack - micro methods
+## Stack - micro function methods
 
     def print_action_log(self):
         self.state.read()
@@ -57,12 +57,10 @@ class Stack:
                     dict['UsePreviousValue'] = True
         return parmlist
 
-    ## Stack - helper methods
+## Stack - helper methods
 
     def get_current_state(self):
         self.state.logaction('INFO', f'Getting pre-upgrade stack state for {self.stack_name}')
-
-        # store outcome in forgestate[stack_name]
         cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -83,7 +81,6 @@ class Stack:
          p['ParameterKey'] == 'TomcatContextPath'][0] )
         # force lburl to always be http as we offoad SSL at the VTM before traffic hits ELB/ALB
         self.state.update('lburl', self.getLburl(stack_details))
-
         # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
         # versions in different parms relative to products - we should probably abstract the product
         # connie
@@ -108,7 +105,6 @@ class Stack:
         except:
             self.state.logaction('INFO', f'{self.stack_name} is NOT jira')
         self.state.logaction('INFO', f'finished getting stack_state for {self.stack_name}')
-        #self.state.write()
         return
 
     def spindown_to_zero_appnodes(self):
@@ -223,22 +219,20 @@ class Stack:
         self.state.logaction('INFO', "Stack restored to full node count")
         return
 
-## Stack - Major Actions
+## Stack - Major Action Methods
 
     def upgrade(self, env, new_version):
         self.state.logaction('INFO', f'Beginning upgrade for {self.stack_name}')
-
         self.state.update('action', 'upgrade')
         self.state.update('environment', env)
         self.state.update('new_version', new_version)
         self.state.update('region', self.setRegion(env))
-
-        # block traffic at vtm
+        # TODO block traffic at vtm
         # get pre-upgrade state information
         self.get_current_state()
         # # spin stack down to 0 nodes
         self.spindown_to_zero_appnodes()
-        # change template if required
+        # TODO change template if required
         # spin stack up to 1 node on new release version
         self.spinup_to_one_appnode()
         # spinup remaining appnodes in stack if needed
@@ -247,10 +241,30 @@ class Stack:
         elif 'syncnodemin' in self.state.forgestate.keys() and self.state.forgestate[
             'syncnodemin'] != "1":
             self.spinup_remaining_nodes()
-        # wait for remaining nodes to respond ??? ## maybe a LB check for active node count
-        # enable traffic at VTM
+        # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
+        # TODO enable traffic at VTM
         self.state.logaction('INFO', f'Completed upgrade for {self.stack_name} at {env} to version {new_version}')
         self.state.logaction('INFO', "Final state")
         self.state.archive()
         # return forgestate[stack_name]['last_action_log']
+        return
+
+    def destroy(self, env):
+        self.state.logaction('INFO', f'Destroying stack {self.stack_name} in {env}')
+        self.state.update('action', 'destroy')
+        self.state.update('environment', env)
+        self.state.update('region', self.setRegion(env))
+        cfn = boto3.client('cloudformation', region_name=self.state.forgestate['region'])
+        try:
+            stack_state = cfn.describe_stacks(StackName=self.stack_name)
+        except botocore.exceptions.ClientError as e:
+            if "does not exist" in e.response['Error']['Message']:
+                self.state.logaction('INFO', f'Stack {stack_name} does not exist')
+                return
+        stack_id = stack_state['Stacks'][0]['StackId']
+        delete_stack = cfn.delete_stack(StackName=self.stack_name)
+        self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id)
+        self.state.logaction('INFO', f'Destroy complete for stack {self.stack_name}: {delete_stack}')
+        self.state.logaction('INFO', "Final state")
+        self.state.archive()
         return
