@@ -46,17 +46,22 @@ class Stack:
                     p['OutputKey'] == 'LoadBalancerURL'][0] + self.state.forgestate['tomcatcontextpath']
         return rawlburl.replace("https", "http")
 
-    def update_parm(self, parmlist, parmkey, parmvalue):
+    def update_parmlist(self, parmlist, parmkey, parmvalue):
+        key_found=False
         for dict in parmlist:
             for k, v in dict.items():
                 if v == parmkey:
                     dict['ParameterValue'] = parmvalue
-                if v == 'DBMasterUserPassword' or v == 'DBPassword':
+                    key_found=True
+                if self.state.forgestate['action'] == 'upgrade' and (v == 'DBMasterUserPassword' or v == 'DBPassword'):
                     try:
                         del dict['ParameterValue']
                     except:
                         pass
                     dict['UsePreviousValue'] = True
+
+        if not key_found:
+            parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
         return parmlist
 
 
@@ -278,12 +283,19 @@ class Stack:
         return
 
 
-    def clone(self, like_stack, like_env, ebssnap, rdssnap, changeparms=None):
+    def clone(self, like_stack, like_env, ebssnap, rdssnap, dbpass, userpass, changeparms=None):
         self.get_current_state(like_stack, like_env)
-        self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack}')
+        self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack} using ebssnap:{ebssnap} rdssnap:{rdssnap}')
         stack_parms = self.state.forgestate['stack_parms']
-        stack_parms.append({'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap})
-        stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
+        # stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', 'UsePreviousValue')
+        stack_parms = self.update_parmlist(stack_parms, 'EBSSnapshotId', ebssnap)
+        stack_parms = self.update_parmlist(stack_parms, 'DBSnapshotName', rdssnap)
+        stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', dbpass)
+        stack_parms = self.update_parmlist(stack_parms, 'DBPassword', userpass)
+        # stack_parms.append({'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap})
+        # stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
+        # stack_parms.append({'ParameterKey': 'DBMasterUserPassword', 'ParameterValue': rdssnap})
+        # stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
         self.state.logaction('INFO', f'Creation params: {stack_parms}')
         templateurl='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml'
         if 'preupgrade_confluence_version' in self.state.forgestate:
@@ -296,7 +308,7 @@ class Stack:
             TemplateURL=templateurl,
             Capabilities=['CAPABILITY_IAM'],
         )
-        stack_id = created_stack['Stacks'][0]['StackId']
+        stack_id = created_stack['StackId']
         self.state.logaction('INFO', f'Create has begun: {created_stack}')
         self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
         self.state.logaction('INFO', f'Stack {self.stack_name} cloned, waiting on service responding')
