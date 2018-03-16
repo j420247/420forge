@@ -79,11 +79,14 @@
                                         <li {% if session['action'] == 'clone' %} class="aui-nav-selected" {% endif %} >
                                             <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone from Prod</a>
                                         </li>
-                                        <li {% if session['action'] == 'destroy' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="{{ url_for('setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
-                                        </li>
                                     {% endif %}
-                                        <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
+                                    <li {% if session['action'] == 'create' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='create') }}" aria-owns="aui-menu-create" id="create-link">Create</a>
+                                    </li>
+                                    <li {% if session['action'] == 'destroy' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
+                                    </li>
+                                    <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
                                             <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
                                         </li>
                                     {% endblock %}
