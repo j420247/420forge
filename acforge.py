@@ -324,9 +324,6 @@ class stackParams(Resource):
             print(e.args[0])
             return
 
-        for p in stack_details['Stacks'][0]['Parameters']:
-            p['ParameterKey'] == 'TomcatContextPath'
-
         return stack_details['Stacks'][0]['Parameters']
 
 
@@ -338,6 +335,43 @@ class actionReadyToStart(Resource):
 class viewLog(Resource):
     def get(self):
         return viewLogRenderTemplate()
+
+
+class getEbsSnapshots(Resource):
+    def get(self, stack_name):
+        ec2 = boto3.client('ec2', region_name=getRegion('stg'))
+        try:
+            snapshots = ec2.describe_snapshots(Filters=[
+                {
+                    'Name': 'description',
+                    'Values': [
+                        f'dr-{stack_name}-snap-*',
+                    ]
+                },
+            ],)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        snapshotIds = []
+        for snap in snapshots['Snapshots']:
+            snapshotIds.append(snap['Description'])
+        return snapshotIds
+
+
+class getRdsSnapshots(Resource):
+    def get(self, stack_name):
+        rds = boto3.client('rds', region_name=getRegion('stg'))
+        try:
+            snapshots = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        snapshotIds = []
+        for snap in snapshots['DBSnapshots']:
+            snapshotIds.append(snap['DBSnapshotIdentifier'])
+        return snapshotIds
 
 
 api.add_resource(hello, '/hello')
@@ -355,6 +389,9 @@ api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(viewLog, '/viewlog')
+api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
+api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+
 
 ##
 #### stack action functions

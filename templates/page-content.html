@@ -6,13 +6,13 @@
     {% block input %}
     <div class="aui-item">
         {% block stackSelector %}
-        {% block stackSelectorDescription %}
-        {% endblock stackSelectorDescription %}
         {#  Stack selector  #}
         <div class="aui-panel">
             <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
                class="aui-button aui-style-default aui-dropdown2-trigger">
+                {% block stackSelectorDescription %}
                 Select Stack
+                {% endblock stackSelectorDescription %}
             </a>
 
             <!-- Dropdown -->
