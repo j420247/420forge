@@ -112,14 +112,14 @@ class Stack:
                  p['ParameterKey'] == 'SynchronyClusterNodeMin'][0])
         except:
             self.state.logaction('INFO', f'{self.stack_name} is NOT confluence')
-        # jira
-        try:
-            self.state.update('preupgrade_jira_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'JiraVersion'][0])
-        except:
-            self.state.logaction('INFO', f'{self.stack_name} is NOT jira')
-        self.state.logaction('INFO', f'finished getting stack_state for {self.stack_name}')
+            # jira
+            try:
+                self.state.update('preupgrade_jira_version',
+                    [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                     p['ParameterKey'] == 'JiraVersion'][0])
+            except:
+                self.state.logaction('INFO', f'{self.stack_name} is NOT jira')
+        self.state.logaction('INFO', f'Finished getting stack_state for {self.stack_name}')
         return
 
     def spindown_to_zero_appnodes(self):
