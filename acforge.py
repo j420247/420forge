@@ -314,6 +314,22 @@ class stackState(Resource):
         return check_stack_state(forgestate, stack_name)
 
 
+class stackParams(Resource):
+    def get(self, env, stack_name):
+        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+        try:
+            stack_details = cfn.describe_stacks(StackName=stack_name)
+            template = cfn.get_template(StackName=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        for p in stack_details['Stacks'][0]['Parameters']:
+            p['ParameterKey'] == 'TomcatContextPath'
+
+        return stack_details['Stacks'][0]['Parameters']
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -336,6 +352,7 @@ api.add_resource(destroy, '/destroy/<env>/<stack_name>')
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
+api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(viewLog, '/viewlog')
 
