@@ -34,13 +34,13 @@
                         {% block hnavitems %}
                         <li>
                             <a {%if session['env'] == "stg" %}class="env-selected"{%endif%}
-                               href="setenv/stg" id="staging-link">
+                               href="{{ url_for('setenv', env='stg') }}" id="staging-link">
                                 Staging
                             </a>
                         </li>
                         <li>
                             <a {%if session['env'] == "prod" %}class="env-selected"{%endif%}
-                               href="setenv/prod"  id="production-link">
+                               href="{{ url_for('setenv', env='prod') }}"  id="production-link">
                                 Production
                                 <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span>
                             </a>
