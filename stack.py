@@ -283,8 +283,13 @@ class Stack:
         return
 
 
-    def clone(self, like_stack, like_env, ebssnap, rdssnap, dbpass, userpass, changeparms=None):
-        self.get_current_state(like_stack, like_env)
+    def clone(self, ebssnap, rdssnap, dbpass, userpass, like_stack=None, like_env=None, changeparms=None):
+        self.state.update('action', 'clone')
+        # get current state of the model stack or a valid last create of same stack name
+        if like_stack:
+            self.get_current_state(like_stack, like_env)
+        else:
+            self.get_last_state()
         self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack} using ebssnap:{ebssnap} rdssnap:{rdssnap}')
         stack_parms = self.state.forgestate['stack_parms']
         # stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', 'UsePreviousValue')
@@ -311,6 +316,8 @@ class Stack:
         stack_id = created_stack['StackId']
         self.state.logaction('INFO', f'Create has begun: {created_stack}')
         self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
+        # now stack is built, lets get its own full current state
+        self.get_current_state(self.stack_name, self.env)
         self.state.logaction('INFO', f'Stack {self.stack_name} cloned, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction('INFO', "Final state")
@@ -318,9 +325,10 @@ class Stack:
         return
 
 
-    def create(self, like_stack, like_env, changeparms=None):
+    def create(self, like_stack=None, like_env=None, changeparms=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
         # probably need to force mail disable catalina opts for safety
+        self.state.update('action', 'create')
         self.get_current_state(like_stack, like_env)
         self.state.logaction('INFO', f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
