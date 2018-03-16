@@ -182,7 +182,7 @@ def set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap):
         {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1'},
         {'ParameterKey': 'ClusterNodeSize', 'ParameterValue': '200'},
         {'ParameterKey': 'ConfluenceDownloadUrl', 'ParameterValue': ''},
-        {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.8.0-m44'},
+        {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.8.0-m57'},
         {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'extranet.stg.internal.atlassian.com'}, #TODO change me when manually spinning up
         {'ParameterKey': 'DBAcquireIncrement', 'ParameterValue': '3'},
         {'ParameterKey': 'DBIdleTestPeriod', 'ParameterValue': '0'},
@@ -785,8 +785,8 @@ def validate_service_responding(forgestate, stack_name):
     return
 
 
-def get_cfn_stacks_for_environment():
-    cfn = boto3.client('cloudformation', region_name=session['region'])
+def get_cfn_stacks_for_environment(region=None):
+    cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
         StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE']
@@ -836,7 +836,7 @@ def viewLogRenderTemplate():
 
 # Either stg or prod
 @app.route('/setenv/<env>')
-def env(env):
+def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
     flash(f'Environment selected: {env}', 'success')
@@ -847,9 +847,9 @@ def env(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    envstacks=sorted(get_cfn_stacks_for_environment())
-
     if action == "clone":
+        envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
+
         def general_constructor(loader, tag_suffix, node):
             return node.value
 
@@ -864,6 +864,7 @@ def setaction(action):
             print(param + " " + default)
         return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)
     else:
+        envstacks=sorted(get_cfn_stacks_for_environment())
         return render_template(action + ".html", stacks=envstacks)
 
 
