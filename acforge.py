@@ -847,7 +847,7 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    if action == "clone":
+    if action == "clone" or "create":
         envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
 
         def general_constructor(loader, tag_suffix, node):
@@ -856,12 +856,6 @@ def setaction(action):
         file = open("cfn-templates/ConfluenceSTGorDR.template.yaml", "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         templateParams = yaml.safe_load(file)
-
-        for param in templateParams['Parameters']:
-            default = ''
-            if 'Default' in templateParams['Parameters'][param]:
-                default = str(templateParams['Parameters'][param]['Default'])
-            print(param + " " + default)
         return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)
     else:
         envstacks=sorted(get_cfn_stacks_for_environment())
