@@ -1,15 +1,61 @@
 {% extends "page-content.html" %}
+{% block head %}
+    <script src="/static/js/clone.js"></script>
+{% endblock head %}
+
+{% block stackSelectorDescription %}
+Select stack to clone
+{% endblock stackSelectorDescription %}
+
+{% block stackStatusPanel %}
+{% endblock stackStatusPanel %}
 
 {% block extraInput %}
-<form class="aui long-label">
+
+<!-- Snapshot selectors -->
+{#  EBS snapshot selector  #}
+<div class="aui-panel">
+    <a id="ebsSnapshotSelector" href="#ebsSnapshotSelection" aria-owns="ebsSnapshotSelection" aria-haspopup="true"
+       class="aui-button aui-style-default aui-dropdown2-trigger">
+        Select EBS snapshot
+    </a>
+
+    <!-- Dropdown -->
+    <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
+        <ul class="aui-list-truncate" id="ebsSnapshots">
+        </ul>
+    </div>
+</div>
+
+{#  RDS snapshot selector  #}
+<div class="aui-panel">
+    <a id="rdsSnapshotSelector" href="#rdsSnapshotSelection" aria-owns="rdsSnapshotSelection" aria-haspopup="true"
+       class="aui-button aui-style-default aui-dropdown2-trigger">
+        Select RDS snapshot
+    </a>
+
+    <!-- Dropdown -->
+    <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
+        <ul class="aui-list-truncate" id="rdsSnapshots">
+        </ul>
+    </div>
+</div>
+
+<!-- Parameters -->
+<form class="aui long-label" id="paramsForm">
     <field-set>
+        <div class="field-group">
+            <label for="stackNameVal">StackName</label>
+            <input class="text" type="text" name="stacknameVal">
+        </div>
         {% for param in templateParams['Parameters'] %}
         <div class="field-group">
-            <label for="{{ param }}lbl">{{ param }}</label>
-            <input class="text" type="text" name="{{ param }}lbl" value="{{ templateParams['Parameters'][param]['Default'] }}">
+            <label for="{{ param }}Val">{{ param }}</label>
+            <input class="text" type="text" name="{{ param }}Val">
         </div>
         {% endfor %}
     </field-set>
+</form>
 {% endblock extraInput %}
 
 {% block buttonText %}Clone{% endblock buttonText %}

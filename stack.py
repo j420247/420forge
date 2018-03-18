@@ -3,6 +3,8 @@ import boto3
 import botocore
 import time
 import requests
+import json
+import ruamel.yaml as yaml
 from datetime import datetime
 from pprint import pprint
 
@@ -46,6 +48,22 @@ class Stack:
                     p['OutputKey'] == 'LoadBalancerURL'][0] + self.state.forgestate['tomcatcontextpath']
         return rawlburl.replace("https", "http")
 
+    def writeparms(self, parms):
+        with open(self.stack_name + '.parms.json', 'w') as outfile:
+            json.dump(parms, outfile)
+        outfile.close()
+        return (self)
+
+    def readparms(self):
+        try:
+            with open(self.stack_name + '.parms.json', 'r') as infile:
+                parms = json.load(infile)
+                return parms
+        except FileNotFoundError:
+            self.state.logaction('ERROR', f'can not load parms, {self.stack_name}.parms.json does not exist')
+            return
+        return
+
     def update_parmlist(self, parmlist, parmkey, parmvalue):
         key_found=False
         for dict in parmlist:
@@ -64,6 +82,9 @@ class Stack:
             parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
         return parmlist
 
+    def upload_template(self, file, s3_name):
+        s3 = boto3.resource('s3',region_name=self.region)
+        s3.meta.client.upload_file(file, 'wpe-public-software', f'forge-templates/{s3_name}')
 
 ## Stack - helper methods
 
@@ -283,34 +304,42 @@ class Stack:
         return
 
 
-    def clone(self, ebssnap, rdssnap, dbpass, userpass, like_stack=None, like_env=None, changeparms=None):
+    def clone(self, ebssnap, rdssnap, dbpass, userpass, app_type, like_stack=None, like_env=None, changeparms=None):
         self.state.update('action', 'clone')
         # get current state of the model stack or a valid last create of same stack name
         if like_stack:
             self.get_current_state(like_stack, like_env)
+            stack_parms = self.state.forgestate['stack_parms']
         else:
-            self.get_last_state()
+            stack_parms = self.readparms()
         self.state.logaction('INFO', f'Cloning stack: {self.stack_name}, from source stack {like_stack} using ebssnap:{ebssnap} rdssnap:{rdssnap}')
-        stack_parms = self.state.forgestate['stack_parms']
         # stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', 'UsePreviousValue')
         stack_parms = self.update_parmlist(stack_parms, 'EBSSnapshotId', ebssnap)
         stack_parms = self.update_parmlist(stack_parms, 'DBSnapshotName', rdssnap)
         stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', dbpass)
         stack_parms = self.update_parmlist(stack_parms, 'DBPassword', userpass)
-        # stack_parms.append({'ParameterKey': 'EBSSnapshotId', 'ParameterValue': ebssnap})
-        # stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
-        # stack_parms.append({'ParameterKey': 'DBMasterUserPassword', 'ParameterValue': rdssnap})
-        # stack_parms.append({'ParameterKey': 'DBSnapshotName', 'ParameterValue': rdssnap})
+        self.writeparms(stack_parms)
         self.state.logaction('INFO', f'Creation params: {stack_parms}')
-        templateurl='https://s3.amazonaws.com/wpe-public-software/JiraSTGorDR.template.yaml'
-        if 'preupgrade_confluence_version' in self.state.forgestate:
-            templateurl='https://s3.amazonaws.com/wpe-public-software/ConfluenceSTGorDR.template.yaml'
+        templatefile=f'wpe-aws/{app_type}/{app_type.title()}STGorDR.template.yaml'
+        s3_name=f'{app_type}.clone_template.yaml'
+        self.upload_template(templatefile, s3_name)
+        #yaml = YAML(typ='safe')
+        #yaml.default_flow_style = False
+        #with open(templatefile, 'r') as infile:
+        #    template_obj = yaml.load(infile)
+        #templatebody = json.load(template_obj)
+        #with open(templatefile, 'r') as infile:
+        #    templatebody = json.load(infile)
+        #with open(templatefile, 'r') as infile:
+        #    templatebody = infile.read()
+        #templatebody = json.load(open(templatefile))
         cfn = boto3.client('cloudformation', region_name=self.region)
+        #valid_template = cfn.validate_template(TemplateBody=templatebody)
         created_stack = cfn.create_stack(
             StackName=self.stack_name,
             Parameters=stack_parms,
-            # TemplateBody='',
-            TemplateURL=templateurl,
+            #TemplateBody=valid_template,
+            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{s3_name}',
             Capabilities=['CAPABILITY_IAM'],
         )
         stack_id = created_stack['StackId']
@@ -325,19 +354,27 @@ class Stack:
         return
 
 
-    def create(self, like_stack=None, like_env=None, changeparms=None):
+    def create(self, app_type, like_stack=None, like_env=None, changeparms=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
         # probably need to force mail disable catalina opts for safety
         self.state.update('action', 'create')
-        self.get_current_state(like_stack, like_env)
+        if like_stack:
+            self.get_current_state(like_stack, like_env)
+            stack_parms = self.state.forgestate['stack_parms']
+        else:
+            stack_parms = self.readparms()
         self.state.logaction('INFO', f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction('INFO', f'Creation params: {stack_parms}')
+        templatefile=f'wpe-aws/{app_type}/{app_type.title()}DataCenter.template.yaml'
+        s3_name=f'{app_type}.template.yaml'
+        self.upload_template(templatefile, s3_name)
         cfn = boto3.client('cloudformation', region_name=self.region)
         created_stack = cfn.create_stack(
             StackName=self.stack_name,
             Parameters=stack_parms,
-            TemplateBody=self.state.forgestate['TemplateBody'],
+            #TemplateBody=self.state.forgestate['TemplateBody'],
+            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{s3_name}',
             Capabilities=['CAPABILITY_IAM'],
         )
         stack_id = created_stack['Stacks'][0]['StackId']

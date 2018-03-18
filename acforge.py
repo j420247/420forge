@@ -182,7 +182,7 @@ def set_clone_params_confluence(forgestate, stack_name, ebssnap, rdssnap):
         {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1'},
         {'ParameterKey': 'ClusterNodeSize', 'ParameterValue': '200'},
         {'ParameterKey': 'ConfluenceDownloadUrl', 'ParameterValue': ''},
-        {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.8.0-m44'},
+        {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.8.0-m57'},
         {'ParameterKey': 'CustomDnsName', 'ParameterValue': 'extranet.stg.internal.atlassian.com'}, #TODO change me when manually spinning up
         {'ParameterKey': 'DBAcquireIncrement', 'ParameterValue': '3'},
         {'ParameterKey': 'DBIdleTestPeriod', 'ParameterValue': '0'},
@@ -314,6 +314,19 @@ class stackState(Resource):
         return check_stack_state(forgestate, stack_name)
 
 
+class stackParams(Resource):
+    def get(self, env, stack_name):
+        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+        try:
+            stack_details = cfn.describe_stacks(StackName=stack_name)
+            template = cfn.get_template(StackName=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        return stack_details['Stacks'][0]['Parameters']
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -322,6 +335,43 @@ class actionReadyToStart(Resource):
 class viewLog(Resource):
     def get(self):
         return viewLogRenderTemplate()
+
+
+class getEbsSnapshots(Resource):
+    def get(self, stack_name):
+        ec2 = boto3.client('ec2', region_name=getRegion('stg'))
+        try:
+            snapshots = ec2.describe_snapshots(Filters=[
+                {
+                    'Name': 'description',
+                    'Values': [
+                        f'dr-{stack_name}-snap-*',
+                    ]
+                },
+            ],)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        snapshotIds = []
+        for snap in snapshots['Snapshots']:
+            snapshotIds.append(snap['Description'])
+        return snapshotIds
+
+
+class getRdsSnapshots(Resource):
+    def get(self, stack_name):
+        rds = boto3.client('rds', region_name=getRegion('stg'))
+        try:
+            snapshots = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        snapshotIds = []
+        for snap in snapshots['DBSnapshots']:
+            snapshotIds.append(snap['DBSnapshotIdentifier'])
+        return snapshotIds
 
 
 api.add_resource(hello, '/hello')
@@ -336,8 +386,12 @@ api.add_resource(destroy, '/destroy/<env>/<stack_name>')
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
+api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(viewLog, '/viewlog')
+api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
+api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+
 
 ##
 #### stack action functions
@@ -785,8 +839,8 @@ def validate_service_responding(forgestate, stack_name):
     return
 
 
-def get_cfn_stacks_for_environment():
-    cfn = boto3.client('cloudformation', region_name=session['region'])
+def get_cfn_stacks_for_environment(region=None):
+    cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
         StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE']
@@ -836,7 +890,7 @@ def viewLogRenderTemplate():
 
 # Either stg or prod
 @app.route('/setenv/<env>')
-def env(env):
+def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
     flash(f'Environment selected: {env}', 'success')
@@ -847,23 +901,18 @@ def env(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    envstacks=sorted(get_cfn_stacks_for_environment())
+    if action == "clone" or "create":
+        envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
 
-    if action == "clone":
         def general_constructor(loader, tag_suffix, node):
             return node.value
 
         file = open("cfn-templates/ConfluenceSTGorDR.template.yaml", "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         templateParams = yaml.safe_load(file)
-
-        for param in templateParams['Parameters']:
-            default = ''
-            if 'Default' in templateParams['Parameters'][param]:
-                default = str(templateParams['Parameters'][param]['Default'])
-            print(param + " " + default)
         return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)
     else:
+        envstacks=sorted(get_cfn_stacks_for_environment())
         return render_template(action + ".html", stacks=envstacks)
 
 
