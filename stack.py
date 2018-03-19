@@ -482,10 +482,10 @@ class Stack:
         self.state.logaction('INFO', f'Beginning Full Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction('INFO', f'{self.stack_name} nodes are {self.instancelist}')
+        self.state.logaction('INFO', f'shutting down application on all instances of {self.stack_name}')
         shutdown = self.shutdown_app(self.instancelist)
-        self.state.logaction('INFO', f'application shut down on all instances of {self.stack_name}')
         for instance in self.instancelist:
-            startup = self.startup_app([instance])
             self.state.logaction('INFO', f'starting application on {instance} for {self.stack_name}')
+            startup = self.startup_app([instance])
         self.state.logaction('INFO', "Final state")
         return
