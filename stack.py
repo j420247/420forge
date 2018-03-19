@@ -79,14 +79,36 @@ class Stack:
                     except:
                         pass
                     dict['UsePreviousValue'] = True
-
         if not key_found:
             parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
         return parmlist
 
     def upload_template(self, file, s3_name):
-        s3 = boto3.resource('s3',region_name=self.region)
+        s3 = boto3.resource('s3', region_name=self.region)
         s3.meta.client.upload_file(file, 'wpe-public-software', f'forge-templates/{s3_name}')
+
+    def ssm_send_command(self, instance, cmd):
+        ssm = boto3.client('ssm', region_name=self.region)
+        ssm_command = ssm.send_command(
+            InstanceIds=[instance],
+            DocumentName='AWS-RunShellScript',
+            Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
+            OutputS3BucketName='wpe-logs',
+            OutputS3KeyPrefix='run-command-logs'
+        )
+        self.state.logaction('INFO', f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
+        if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return (ssm_command['Command']['CommandId'])
+        sys.exit()
+
+    def ssm_cmd_check(self, cmd_id):
+        ssm = boto3.client('ssm', region_name=self.region)
+        list_command = ssm.list_commands(CommandId=cmd_id)
+        cmd_status = list_command[u'Commands'][0][u'Status']
+        instance = list_command[u'Commands'][0][u'InstanceIds'][0]
+        self.state.logaction('INFO', f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
+        return (cmd_status, instance)
+
 
 ## Stack - helper methods
 
@@ -234,6 +256,15 @@ class Stack:
                 return
         return stack_state['Stacks'][0]['StackStatus']
 
+    def check_node_status(self, node_ip):
+        self.state.logaction('INFO', f' ==> checking node status at {node_ip}/status')
+        try:
+            node_status = requests.get(f'http://{node_ip}:8080/status', timeout=5)
+            self.state.logaction('INFO', f' ==> node status is: {node_status.text}')
+            return node_status.text
+        except requests.exceptions.ReadTimeout as e:
+            return "Timed Out"
+
     def spinup_remaining_nodes(self):
         self.state.logaction('INFO', "Spinning up any remaining nodes in stack")
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -257,6 +288,61 @@ class Stack:
         self.state.logaction('INFO', "Stack restored to full node count")
         return
 
+    def get_stacknodes(self):
+        ec2 = boto3.resource('ec2', region_name=self.region)
+        filters = [
+            {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
+            {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
+        ]
+        self.instancelist = []
+        for i in ec2.instances.filter(Filters=filters):
+            instancedict = {i.instance_id: i.private_ip_address}
+            self.instancelist.append(instancedict)
+        return
+
+    def shutdown_app(self, instancelist):
+        cmd_id_list = []
+        for i in range(0, len(instancelist)):
+            for key in instancelist[i]:
+                instance = key
+                node_ip = instancelist[i][instance]
+            self.state.logaction('INFO', f'Shutting down {instance} ({node_ip})')
+            cmd = "/etc/init.d/confluence stop"
+            cmd_id_list.append(self.ssm_send_command(instance, cmd))
+        for cmd_id in cmd_id_list:
+            result = ""
+            while result != 'Success' and result != 'Failed':
+                result, cmd_instance = self.ssm_cmd_check(cmd_id)
+                time.sleep(5)
+            if result == 'Failed':
+                self.state.logaction('ERROR', f'Shutdown result for {cmd_instance}: {result}')
+            else:
+                self.state.logaction('INFO', f'Shutdown result for {cmd_instance}: {result}')
+        return
+
+    def startup_app(self, instancelist):
+        cmd_id_list = []
+        # for instance in [d.keys() for d in instancelist]:
+        for instancedict in instancelist:
+            instance = list(instancedict.keys())[0]
+            node_ip = list(instancedict.values())[0]
+            self.state.logaction('INFO', f'Starting up {instance} ({node_ip})')
+            cmd = "/etc/init.d/confluence start"
+            cmd_id = self.ssm_send_command(instance, cmd)
+            result = ""
+            while result != 'Success' and result != 'Failed':
+                result, cmd_instance = self.ssm_cmd_check(cmd_id)
+                time.sleep(5)
+            if result == 'Failed':
+                self.state.logaction('ERROR', f'Startup result for {cmd_instance}: {result}')
+            else:
+                result = ""
+                while result != '{"state":"RUNNING"}':
+                    result = self.check_node_status(node_ip)
+                    self.state.logaction('INFO', f'Startup result for {cmd_instance}: {result}')
+                    time.sleep(30)
+        return
 
 ## Stack - Major Action Methods
 
@@ -376,4 +462,30 @@ class Stack:
         self.validate_service_responding()
         self.state.logaction('INFO', "Final state")
         self.state.archive()
+        return
+
+
+    def rolling_restart(self):
+        self.state.logaction('INFO', f'Beginning Rolling Restart for {self.stack_name}')
+        self.get_stacknodes()
+        self.state.logaction('INFO', f'{self.stack_name} nodes are {self.instancelist}')
+        for instance in self.instancelist:
+            self.state.logaction('INFO', f'shutting down application on instance {instance} for {self.stack_name}')
+            shutdown = self.shutdown_app([instance])
+            self.state.logaction('INFO', f'starting application on instance {instance} for {self.stack_name}')
+            startup = self.startup_app([instance])
+        self.state.logaction('INFO', "Final state")
+        return
+
+
+    def full_restart(self):
+        self.state.logaction('INFO', f'Beginning Full Restart for {self.stack_name}')
+        self.get_stacknodes()
+        self.state.logaction('INFO', f'{self.stack_name} nodes are {self.instancelist}')
+        shutdown = self.shutdown_app(self.instancelist)
+        self.state.logaction('INFO', f'application shut down on all instances of {self.stack_name}')
+        for instance in self.instancelist:
+            startup = self.startup_app([instance])
+            self.state.logaction('INFO', f'starting application on {instance} for {self.stack_name}')
+        self.state.logaction('INFO', "Final state")
         return

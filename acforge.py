@@ -35,34 +35,6 @@ class hello(Resource):
     def get(self):
         return {'hello': 'world'}
 
-class test(Resource):
-    def get(self, env, stack_name, new_version):
-        # use this endpoint to test new functionality without impacting existing endpoints
-        forgestate = defaultdict(dict)
-        forgestate = forgestate_update(forgestate, stack_name, 'action', 'test')
-        forgestate = forgestate_update(forgestate, stack_name, 'environment', env)
-        forgestate = forgestate_update(forgestate, stack_name, 'stack_name', stack_name)
-        forgestate = forgestate_update(forgestate, stack_name, 'new_version', new_version)
-        if env == 'prod':
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate = get_stack_current_state(forgestate, stack_name)
-        forgestate[stack_name]['appnodemax'] = '4'
-        forgestate[stack_name]['appnodemin'] = '4'
-        forgestate[stack_name]['syncnodemin'] = '2'
-        forgestate[stack_name]['syncnodemax'] = '2'
-        spinup_remaining_nodes(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, "Final state")
-        return forgestate[stack_name]['last_action_log']
-
-
-class clear(Resource):
-    def get(self, stack_name):
-        forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, INFO, "Log cleared")
-        return "forgestate[stack_name] cleared"
-
 
 class upgrade(Resource):
     def get(self, env, stack_name, new_version):
@@ -84,37 +56,16 @@ class clone(Resource):
 
 class fullrestart(Resource):
     def get(self, env, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, INFO, "Beginning full restart")
-        if env == 'prod':
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate,instancelist = get_nodes_in_stack(forgestate, stack_name)
-        shutdown_all_apps = shutdown_node_app(forgestate, stack_name, instancelist)
-        for instance in instancelist:
-            startup = start_node_app(forgestate, stack_name, [instance])
-        last_action_log(forgestate, stack_name, INFO, "Final state")
-        return(forgestate[stack_name]['last_action_log'])
+        mystack = Stack(stack_name, env)
+        outcome = mystack.full_restart()
+        return
 
 
 class rollingrestart(Resource):
     def get(self, env, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate_clear(forgestate, stack_name)
-        last_action_log(forgestate, stack_name, INFO, "Beginning rolling restart")
-
-        if env == 'prod':
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate,instancelist = get_nodes_in_stack(forgestate, stack_name)
-        for instance in instancelist:
-            shutdown = shutdown_node_app(forgestate, stack_name, [instance])
-            startup = start_node_app(forgestate, stack_name, [instance])
-        last_action_log(forgestate, stack_name, INFO, "Final state")
-        return(forgestate[stack_name]['last_action_log'])
+        mystack = Stack(stack_name, env)
+        outcome = mystack.rolling_restart()
+        return
 
 
 class destroy(Resource):
@@ -140,9 +91,9 @@ class create(Resource):
 
 class status(Resource):
     def get(self, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate[stack_name] = forgestate_read(stack_name)
-        return forgestate[stack_name]['last_action_log']
+        mystack = Stack(stack_name, env)
+        outcome = mystack.print_action_log()
+        return outcome
 
 
 class stackParams(Resource):
@@ -224,94 +175,13 @@ api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
 
 
-def get_nodes_in_stack(forgestate, stack_name):
-    ec2 = boto3.resource('ec2', region_name=forgestate[stack_name]['region'])
-    filters = [
-        {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [stack_name]},
-        {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
-        {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
-    ]
-    instancelist = []
-    for i in ec2.instances.filter(Filters=filters):
-        instancedict = { i.instance_id: i.private_ip_address }
-        instancelist.append(instancedict)
-    return(forgestate, instancelist)
-
-
-def shutdown_node_app(forgestate, stack_name, instancelist):
-    cmd_id_list = []
-    for i in range(0, len(instancelist)) :
-        for key in instancelist[i] :
-            instance = key
-            node_ip = instancelist[i][instance]
-        last_action_log(forgestate, stack_name, INFO, f'Shutting down {instance} ({node_ip})')
-        cmd = "/etc/init.d/confluence stop"
-        cmd_id_list.append(ssm_send_command(forgestate, stack_name, instance, cmd))
-    for cmd_id in cmd_id_list:
-        result = ""
-        while result != 'Success' and result != 'Failed':
-            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
-            time.sleep(5)
-        if result == 'Failed':
-            last_action_log(forgestate, stack_name, ERROR, f'Shutdown result for {cmd_instance}: {result}')
-        else:
-            last_action_log(forgestate, stack_name, INFO, f'Shutdown result for {cmd_instance}: {result}')
-    return(forgestate)
-
-
-def start_node_app(forgestate, stack_name, instancelist):
-    cmd_id_list = []
-    #for instance in [d.keys() for d in instancelist]:
-    for instancedict in instancelist:
-        instance = list(instancedict.keys())[0]
-        node_ip = list(instancedict.values())[0]
-        last_action_log(forgestate, stack_name, INFO, f'Starting up {instance} ({node_ip})')
-        cmd = "/etc/init.d/confluence start"
-        cmd_id = ssm_send_command(forgestate, stack_name, instance, cmd)
-        result = ""
-        while result != 'Success' and result != 'Failed':
-            result, cmd_instance = ssm_cmd_check(forgestate, stack_name, cmd_id)
-            time.sleep(5)
-        if result == 'Failed':
-            last_action_log(forgestate, stack_name, ERROR, f'Startup result for {cmd_instance}: {result}')
-        else:
-            result = ""
-            while result != '{"state":"RUNNING"}':
-                result = check_node_status(forgestate, stack_name, node_ip)
-                last_action_log(forgestate, stack_name, INFO, f'Startup result for {cmd_instance}: {result}')
-                time.sleep(30)
-    return(forgestate)
-
-
 def app_active_in_lb(forgestate, node):
     return(forgestate)
 
 ##
 #### Common functions
 ##
-def ssm_send_command(forgestate, stack_name, instance, cmd):
-    ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
-    ssm_command = ssm.send_command(
-        InstanceIds=[instance],
-        DocumentName='AWS-RunShellScript',
-        Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
-        OutputS3BucketName='wpe-logs',
-        OutputS3KeyPrefix='run-command-logs'
-    )
-    print("for command: ", cmd, " command_Id is: ", ssm_command['Command']['CommandId'])
-    if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
-        return (ssm_command['Command']['CommandId'])
 
-
-def ssm_cmd_check(forgestate, stack_name, cmd_id):
-    ssm = boto3.client('ssm', region_name=forgestate[stack_name]['region'])
-    list_command = ssm.list_commands(CommandId=cmd_id)
-    cmd_status = list_command[u'Commands'][0][u'Status']
-    instance = list_command[u'Commands'][0][u'InstanceIds'][0]
-    # result = ssm.get_command_invocation(CommandId=cmd_id, InstanceId=instance)
-    # if status == 'Success':
-    #     pprint.pprint(result[u'StandardOutputContent'])
-    return (cmd_status, instance)
 
 
 def get_cfn_stacks_for_environment(region=None):
