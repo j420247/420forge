@@ -4,6 +4,7 @@ import botocore
 import time
 import requests
 import json
+import sys
 import ruamel.yaml as yaml
 from datetime import datetime
 from pprint import pprint
@@ -61,6 +62,7 @@ class Stack:
                 return parms
         except FileNotFoundError:
             self.state.logaction('ERROR', f'can not load parms, {self.stack_name}.parms.json does not exist')
+            sys.exit()
             return
         return
 
@@ -323,16 +325,6 @@ class Stack:
         templatefile=f'wpe-aws/{app_type}/{app_type.title()}STGorDR.template.yaml'
         s3_name=f'{app_type}.clone_template.yaml'
         self.upload_template(templatefile, s3_name)
-        #yaml = YAML(typ='safe')
-        #yaml.default_flow_style = False
-        #with open(templatefile, 'r') as infile:
-        #    template_obj = yaml.load(infile)
-        #templatebody = json.load(template_obj)
-        #with open(templatefile, 'r') as infile:
-        #    templatebody = json.load(infile)
-        #with open(templatefile, 'r') as infile:
-        #    templatebody = infile.read()
-        #templatebody = json.load(open(templatefile))
         cfn = boto3.client('cloudformation', region_name=self.region)
         #valid_template = cfn.validate_template(TemplateBody=templatebody)
         created_stack = cfn.create_stack(
