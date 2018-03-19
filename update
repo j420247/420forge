@@ -1,4 +1,5 @@
 #!//usr/bin/env bash
+rm -rf wpe-aws
 git fetch
 git pull
 git submodule init
