@@ -17,11 +17,13 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, env):
+    def __init__(self, stack_name, env, app_type):
         self.state = Forgestate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.env = env
+        self.app_type = app_type
+        self.state.logaction(log.INFO, f'{stack_name} is a {app_type}')
         self.region = self.setRegion(env)
         self.state.update('environment', env)
         self.state.update('region', self.region)
@@ -144,7 +146,7 @@ class Stack:
         # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
         # versions in different parms relative to products - we should probably abstract the product
         # connie
-        try:
+        if self.app_type == 'confluence':
             self.state.update('preupgrade_confluence_version',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'ConfluenceVersion'][0])
@@ -155,15 +157,11 @@ class Stack:
             self.state.update('syncnodemin',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'SynchronyClusterNodeMin'][0])
-        except:
-            self.state.logaction(log.INFO, f'{self.stack_name} is NOT confluence')
         # jira
-        try:
+        elif self.app_type == 'jira':
             self.state.update('preupgrade_jira_version',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'JiraVersion'][0])
-        except:
-            self.state.logaction(log.INFO, f'{self.stack_name} is NOT jira')
         self.state.logaction(log.INFO, f'finished getting stack_state for {self.stack_name}')
         return
 
@@ -173,7 +171,7 @@ class Stack:
         spindown_parms = self.state.forgestate['stack_parms']
         spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMax', '0')
         spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMin', '0')
-        if 'preupgrade_confluence_version' in self.state.forgestate:
+        if self.app_type == 'confluence':
             spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
         self.state.logaction(log.INFO, f'Spindown params: {spindown_parms}')
@@ -203,9 +201,9 @@ class Stack:
         spinup_parms = self.state.forgestate['stack_parms']
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', '1')
-        if 'preupgrade_jira_version' in self.state.forgestate:
+        if self.app_type == 'jira':
             spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
-        if 'preupgrade_confluence_version' in self.state.forgestate:
+        elif self.app_type == 'confluence':
             spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
             spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
@@ -262,8 +260,14 @@ class Stack:
             node_status = requests.get(f'http://{node_ip}:8080/status', timeout=5)
             self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
             return node_status.text
-        except requests.exceptions.ReadTimeout as e:
-            return "Timed Out"
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
+            self.state.logaction(log.INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
+        except Exception as e:
+            print('type is:', e.__class__.__name__)
+            print(e.strerror)
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(e).__name__, e.args)
+        return "Timed Out"
 
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, "Spinning up any remaining nodes in stack")
@@ -271,9 +275,9 @@ class Stack:
         spinup_parms = self.state.forgestate['stack_parms']
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
         spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
-        if 'preupgrade_jira_version' in self.state.forgestate:
+        if self.app_type == 'jira':
             spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
-        if 'preupgrade_confluence_version' in self.state.forgestate:
+        if self.app_type == 'confluence':
             spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
             spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
             spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
@@ -308,13 +312,13 @@ class Stack:
                 instance = key
                 node_ip = instancelist[i][instance]
             self.state.logaction(log.INFO, f'Shutting down {instance} ({node_ip})')
-            cmd = "/etc/init.d/confluence stop"
+            cmd = f'/etc/init.d/{self.app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = ""
             while result != 'Success' and result != 'Failed':
                 result, cmd_instance = self.ssm_cmd_check(cmd_id)
-                time.sleep(5)
+                time.sleep(10)
             if result == 'Failed':
                 self.state.logaction(log.ERROR, f'Shutdown result for {cmd_instance}: {result}')
             else:
@@ -328,12 +332,12 @@ class Stack:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
             self.state.logaction(log.INFO, f'Starting up {instance} ({node_ip})')
-            cmd = "/etc/init.d/confluence start"
+            cmd = f'/etc/init.d/{self.app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = ""
             while result != 'Success' and result != 'Failed':
                 result, cmd_instance = self.ssm_cmd_check(cmd_id)
-                time.sleep(5)
+                time.sleep(10)
             if result == 'Failed':
                 self.state.logaction('ERROR', f'Startup result for {cmd_instance}: {result}')
             else:
@@ -392,7 +396,7 @@ class Stack:
         return
 
 
-    def clone(self, ebssnap, rdssnap, dbpass, userpass, app_type, like_stack=None, like_env=None, changeparms=None):
+    def clone(self, ebssnap, rdssnap, dbpass, userpass, like_stack=None, like_env=None, changeparms=None):
         self.state.update('action', 'clone')
         # get current state of the model stack or a valid last create of same stack name
         if like_stack:
@@ -408,8 +412,8 @@ class Stack:
         stack_parms = self.update_parmlist(stack_parms, 'DBPassword', userpass)
         self.writeparms(stack_parms)
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        templatefile=f'wpe-aws/{app_type}/{app_type.title()}STGorDR.template.yaml'
-        s3_name=f'{app_type}.clone_template.yaml'
+        templatefile=f'wpe-aws/{self.app_type}/{self.app_type.title()}STGorDR.template.yaml'
+        s3_name=f'{self.app_type}.clone_template.yaml'
         self.upload_template(templatefile, s3_name)
         cfn = boto3.client('cloudformation', region_name=self.region)
         #valid_template = cfn.validate_template(TemplateBody=templatebody)
@@ -432,7 +436,7 @@ class Stack:
         return
 
 
-    def create(self, app_type, like_stack=None, like_env=None, changeparms=None):
+    def create(self, like_stack=None, like_env=None, changeparms=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
         # probably need to force mail disable catalina opts for safety
         self.state.update('action', 'create')
@@ -444,8 +448,8 @@ class Stack:
         self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        templatefile=f'wpe-aws/{app_type}/{app_type.title()}DataCenter.template.yaml'
-        s3_name=f'{app_type}.template.yaml'
+        templatefile=f'wpe-aws/{self.app_type}/{self.app_type.title()}DataCenter.template.yaml'
+        s3_name=f'{self.app_type}.template.yaml'
         self.upload_template(templatefile, s3_name)
         cfn = boto3.client('cloudformation', region_name=self.region)
         created_stack = cfn.create_stack(
