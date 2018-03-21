@@ -1,13 +1,17 @@
 from stack import Stack
 from pprint import pprint
-stack_name="bamj"
 stack_env="stg"
-app_type='jira'
+app_type='confluence'
+stack_name='extlab'
 mystack = Stack(stack_name, stack_env, app_type)
 
 #status = mystack.print_action_log()
-# mystack.debug_forgestate()
-outcome = mystack.rolling_restart()
+outcome = mystack.get_current_state()
+outcome = mystack.debug_forgestate()
+#outcome = mystack.rolling_restart()
+#outcome = mystack.full_restart()
+#outcome = mystack.destroy()
+#outcome = mystack.upgrade('7.8.0')
 # try:
 #     outcome = mystack.destroy()
 # except:

@@ -312,7 +312,7 @@ def setaction(action):
         def general_constructor(loader, tag_suffix, node):
             return node.value
 
-        file = open("cfn-templates/ConfluenceSTGorDR.template.yaml", "r")
+        file = open("wpe-aws/confluence/ConfluenceSTGorDR.template.yaml", "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         templateParams = yaml.safe_load(file)
         return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)

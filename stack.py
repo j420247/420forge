@@ -129,6 +129,8 @@ class Stack:
             return
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
+        # lets write out the most recent parms to a file
+        self.writeparms(stack_details['Stacks'][0]['Parameters'])
         # let's store the parms (list of dicts) if they haven't been already stored
         if "stack_parms" in self.state.forgestate:
             print("stack parms already stored")
@@ -169,11 +171,11 @@ class Stack:
         self.state.logaction(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.state.forgestate['stack_parms']
-        spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMax', '0')
-        spindown_parms = self.update_parm(spindown_parms, 'ClusterNodeMin', '0')
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
         if self.app_type == 'confluence':
-            spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMax', '0')
-            spindown_parms = self.update_parm(spindown_parms, 'SynchronyClusterNodeMin', '0')
+            spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
+            spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         self.state.logaction(log.INFO, f'Spindown params: {spindown_parms}')
         update_stack = cfn.update_stack(
             StackName=self.stack_name,
@@ -199,21 +201,25 @@ class Stack:
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.state.forgestate['stack_parms']
-        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', '1')
-        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', '1')
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
         if self.app_type == 'jira':
-            spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
         elif self.app_type == 'confluence':
-            spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
-            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', '1')
-            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', '1')
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
-        update_stack = cfn.update_stack(
-            StackName=self.stack_name,
-            Parameters=spinup_parms,
-            UsePreviousTemplate=True,
-            Capabilities=['CAPABILITY_IAM'],
-        )
+        try:
+            update_stack = cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=spinup_parms,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'],
+            )
+        except botocore.exceptions.ClientError as e:
+            self.state.logaction(log.INFO, f'stack spinup failed {e.args[0]}')
+            sys.exit()
         self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
         self.validate_service_responding()
         self.state.logaction(log.INFO, f'Update stack: {update_stack}')
@@ -264,23 +270,20 @@ class Stack:
             self.state.logaction(log.INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
         except Exception as e:
             print('type is:', e.__class__.__name__)
-            print(e.strerror)
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(e).__name__, e.args)
         return "Timed Out"
 
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, "Spinning up any remaining nodes in stack")
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.state.forgestate['stack_parms']
-        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
-        spinup_parms = self.update_parm(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
         if self.app_type == 'jira':
-            spinup_parms = self.update_parm(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
         if self.app_type == 'confluence':
-            spinup_parms = self.update_parm(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
-            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
-            spinup_parms = self.update_parm(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
         update_stack = cfn.update_stack(
             StackName=self.stack_name,
