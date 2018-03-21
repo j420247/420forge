@@ -12,35 +12,6 @@ Select stack to clone
 
 {% block extraInput %}
 
-<!-- Snapshot selectors -->
-{#  EBS snapshot selector  #}
-<div class="aui-panel">
-    <a id="ebsSnapshotSelector" href="#ebsSnapshotSelection" aria-owns="ebsSnapshotSelection" aria-haspopup="true"
-       class="aui-button aui-style-default aui-dropdown2-trigger">
-        Select EBS snapshot
-    </a>
-
-    <!-- Dropdown -->
-    <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
-        <ul class="aui-list-truncate" id="ebsSnapshots">
-        </ul>
-    </div>
-</div>
-
-{#  RDS snapshot selector  #}
-<div class="aui-panel">
-    <a id="rdsSnapshotSelector" href="#rdsSnapshotSelection" aria-owns="rdsSnapshotSelection" aria-haspopup="true"
-       class="aui-button aui-style-default aui-dropdown2-trigger">
-        Select RDS snapshot
-    </a>
-
-    <!-- Dropdown -->
-    <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
-        <ul class="aui-list-truncate" id="rdsSnapshots">
-        </ul>
-    </div>
-</div>
-
 <!-- Parameters -->
 <form class="aui long-label" id="paramsForm">
     <field-set>
@@ -48,12 +19,46 @@ Select stack to clone
             <label for="stackNameVal">StackName</label>
             <input class="text" type="text" name="stacknameVal">
         </div>
-        {% for param in templateParams['Parameters'] %}
+
+        <!-- Snapshot selectors -->
+        {#  EBS snapshot selector  #}
         <div class="field-group">
-            <label for="{{ param }}Val">{{ param }}</label>
-            <input class="text" type="text" name="{{ param }}Val">
+            <label for="ebsSnapshotSelector">EBS Snapshot</label>
+            <a id="ebsSnapshotSelector" href="#ebsSnapshotSelection" aria-owns="ebsSnapshotSelection" aria-haspopup="true"
+               class="aui-button aui-style-default aui-dropdown2-trigger">
+                Select EBS snapshot
+            </a>
+
+            <!-- Dropdown -->
+            <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
+                <ul class="aui-list-truncate" id="ebsSnapshots">
+                </ul>
+            </div>
         </div>
-        {% endfor %}
+        {#  RDS snapshot selector  #}
+        <div class="field-group">
+            <label for="rdsSnapshotSelector">RDS Snapshot</label>
+            <a id="rdsSnapshotSelector" href="#rdsSnapshotSelection" aria-owns="rdsSnapshotSelection" aria-haspopup="true"
+               class="aui-button aui-style-default aui-dropdown2-trigger">
+                Select RDS snapshot
+            </a>
+
+            <!-- Dropdown -->
+            <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
+                <ul class="aui-list-truncate" id="rdsSnapshots">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Parameters -->
+        <div id="paramsList">
+            {% for param in templateParams['Parameters'] %}
+            <div class="field-group">
+                <label for="{{ param }}Val">{{ param }}</label>
+                <input class="text" type="text" name="{{ param }}Val">
+            </div>
+            {% endfor %}
+        </div>
     </field-set>
 </form>
 {% endblock extraInput %}
