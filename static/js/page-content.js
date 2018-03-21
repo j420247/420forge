@@ -1,3 +1,4 @@
+var baseUrl = window.location .protocol + "//" + window.location.host;
 
 $(document).ready(function() {
     $("#stackInformation").hide();
@@ -41,12 +42,14 @@ $(document).ready(function() {
     addRefreshListener(stackName);
 
     var actionButton = document.getElementById("action-button");
-    actionButton.addEventListener("click", function (data) {
-        if (action === "upgrade" && version === 'none')
-            version = $("#upgradeVersionSelector").val();
-        performAction(action, env, stackName, version)
-    });
+    actionButton.addEventListener("click", defaultActionBtnEvent);
 });
+
+var defaultActionBtnEvent = function (data) {
+    if (action === "upgrade" && version === 'none')
+        version = $("#upgradeVersionSelector").val();
+    performAction(action, env, stackName, version)
+};
 
 function selectStack(stackName, action) {
     $("#stackSelector").text(stackName);
@@ -84,7 +87,6 @@ function getStatus(stackName) {
 
     $("#log").css("background", "rgba(0,20,70,.08)");
 
-    var baseUrl = window.location .protocol + "//" + window.location.host;
     var statusRequest = new XMLHttpRequest();
     statusRequest.open("GET", baseUrl + "/status/" + stackName, true);
     statusRequest.setRequestHeader("Content-Type", "text/xml");
@@ -103,7 +105,6 @@ function getStatus(stackName) {
 
 function performAction(action, env, stackName, version) {
     if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
-        var baseUrl = window.location.protocol + "//" + window.location.host;
         var env = $("meta[name=env]").attr("value");
         var action = $("meta[name=action]").attr("value");
         var url = baseUrl + "/" + action + "/" + env + "/" + stackName;
@@ -125,7 +126,6 @@ function performAction(action, env, stackName, version) {
 function updateStats(stackName) {
     if (stackName === 'actionreadytostart') return;
 
-    var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = $("meta[name=env]").attr("value");
 
     removeElementsByClass("aui-lozenge");
