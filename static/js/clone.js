@@ -10,13 +10,17 @@ $(document).ready(function() {
             selectStack(stackName);
         }, false);
     }
+
+    var actionButton = document.getElementById("action-button");
+    actionButton.removeEventListener("click", defaultActionBtnEvent);
+    actionButton.addEventListener("click", function (data) {
+        sendParamsAsJson();
+    });
 });
 
 function selectStack(stackName) {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
-
-    var baseUrl = window.location .protocol + "//" + window.location.host;
     var env = 'prod';
 
     getEbsSnapshots(baseUrl, stackName);
@@ -55,12 +59,14 @@ function selectStack(stackName) {
         }
     };
     stackParamsRequest.send();
+
+    $("#action-button").attr("aria-disabled", false);
 }
 
 function createInputParameter(param, fieldset) {
     var div = document.createElement("DIV");
     div.className = "field-group";
-    div.id = "fieldGroup";
+    div.name = "parameter";
 
     var label = document.createElement("LABEL");
     label.htmlFor = param.ParameterKey + "Val";
@@ -148,4 +154,37 @@ function getRdsSnapshots(baseUrl, stackName) {
         }
     };
     rdsSnapshotRequest.send();
+}
+
+function sendParamsAsJson() {
+    // collect the form data while iterating over the inputs
+    var jsonParams = {};
+    var params = document.getElementsByClassName("field-group");
+
+    for(var i = 0; i < params.length; i++) {
+        var param = params.item(i).getElementsByTagName("LABEL")[0].innerHTML;
+        var value;
+
+        if (param == "EBS Snapshot") {
+            value = document.getElementById("ebsSnapshotSelector").innerText;
+        } else if (param == "RDS Snapshot") {
+            value = document.getElementById("rdsSnapshotSelector").innerText;
+        } else {
+            value = params.item(i).getElementsByTagName("INPUT")[0].value;
+        }
+        jsonParams[param] = value;
+    }
+    console.log(jsonParams);
+
+    // construct an HTTP request
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", baseUrl + "/clone/", true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
+    // send the collected data as JSON (not yet though)
+    // xhr.send(JSON.stringify(data));
+
+    xhr.onloadend = function () {
+        // done
+    };
 }
