@@ -260,7 +260,7 @@ def get_cfn_stacks_for_environment(region=None):
     #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
 
-# This checks for SAML auth and sets a sesxion timeout.
+# This checks for SAML auth and sets a session timeout.
 @app.before_request
 def check_loggedin():
     session.permanent = True

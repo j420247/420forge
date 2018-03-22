@@ -7,7 +7,7 @@ For MacOS you will need to install the developer tools (xcode) and then install 
 To start the app locally for developemnt do the following in a python3 enviroment: 
 * run awstoken
 * source .env/bin/activate
-* pip install -r requiremens.txt
+* pip install -r requirements.txt
 * python acforge.py
 * browse to http://127.0.01:8000 (port 8000 is required for the Centrify My_SAML_app)
 
