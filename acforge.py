@@ -1,15 +1,12 @@
 # imports
 from collections import defaultdict
-from datetime import datetime, timedelta
 from pprint import pprint
 from stack import Stack
 import boto3
 import botocore
-import requests
 from flask import Flask, request, session, redirect, url_for, \
     render_template, flash
 from flask_restful import Api, Resource
-import flask_saml
 from ruamel import yaml
 import log
 
@@ -23,9 +20,6 @@ forgestate = defaultdict(dict)
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
-flask_saml.FlaskSAML(app)
 
 ##
 #### REST Endpoint classes
@@ -260,14 +254,6 @@ def get_cfn_stacks_for_environment(region=None):
     #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
 
-# This checks for SAML auth and sets a session timeout.
-@app.before_request
-def check_loggedin():
-    session.permanent = True
-    app.permanent_session_lifetime = timedelta(minutes=60)
-    if not request.path.startswith("/saml") and not session.get('saml'):
-        login_url = url_for('login', next=request.url)
-        return redirect(login_url)
 
 @app.route('/')
 def index():
@@ -372,4 +358,4 @@ def envact(env, action, stack_name):
 
 
 if __name__ == '__main__':
-    app.run(threaded=True, debug=True, host='0.0.0.0', port=8000)
+    app.run(threaded=True, debug=True, host='0.0.0.0')

@@ -48,24 +48,6 @@
                         {% endblock %}
                     </ul>
                 </div>
-                <div class="aui-header-secondary">
-                    <ul class="aui-nav">
-                 
-                            <li class="user-dropdown">
-                                <a href="#user-nav1" aria-owns="user-nav1" aria-haspopup="true" class="aui-dropdown2-trigger aui-dropdown2-trigger">
-                                    <span class="aui-avatar aui-avatar-small"><img src="https://rps-bucket-prod-east.s3.amazonaws.com/directory-services/directory-avatar/256x256/{{ session['saml']['attributes']['User.Email'][0].split("@")[0] }}.png" /></span>
-                                </a>
-                                <!-- Dropdown -->
-                                <div id="user-nav1" class="aui-dropdown2 aui-style-default aui-dropdown2-in-header" data-dropdown2-alignment="right">
-                                    <ul class="aui-list-truncate"> 
-                                        <li><a href="{{ url_for('logout') }}">Logout</a></li>
-                                    </ul>
-                                </div>
-
-                            </li>
-                        </ul>
-                    </ul>
-                </div>
             </nav>
 
             <div class="aui-page-panel">
