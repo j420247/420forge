@@ -158,31 +158,37 @@ function getRdsSnapshots(baseUrl, stackName) {
 
 function sendParamsAsJson() {
     // collect the form data while iterating over the inputs
-    var jsonParams = {};
+    var paramsArray = [];
     var params = document.getElementsByClassName("field-group");
 
     for(var i = 0; i < params.length; i++) {
+        var jsonParam = {};
         var param = params.item(i).getElementsByTagName("LABEL")[0].innerHTML;
         var value;
 
-        if (param == "EBS Snapshot") {
+        if (param == "EBSSnapshotId") {
             value = document.getElementById("ebsSnapshotSelector").innerText;
-        } else if (param == "RDS Snapshot") {
+        } else if (param == "DBSnapshotName") {
             value = document.getElementById("rdsSnapshotSelector").innerText;
         } else {
             value = params.item(i).getElementsByTagName("INPUT")[0].value;
         }
-        jsonParams[param] = value;
-    }
-    console.log(jsonParams);
 
+        if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
+            param != 'BastionAMIOS' && param != 'BastionBanner' && param != 'EnableX11Forwarding' && param != 'BastionInstanceType') {
+
+            jsonParam["ParameterKey"] = param;
+            jsonParam["ParameterValue"] = value;
+            paramsArray.push(jsonParam);
+        }
+    }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/clone/", true);
+    xhr.open("POST", baseUrl + "/clone", true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
-    // send the collected data as JSON (not yet though)
-    // xhr.send(JSON.stringify(data));
+    // send the collected data as JSON
+    xhr.send(JSON.stringify(paramsArray));
 
     xhr.onloadend = function () {
         // done

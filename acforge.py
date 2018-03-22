@@ -113,9 +113,9 @@ class create(Resource):
 
 
 class status(Resource):
-    def get(self, env, stack_name):
-        #TODO remove env
-        mystack = Stack(stack_name, env)
+    def get(self, env, stack_name, app_type):
+        #TODO remove env and app_type
+        mystack = Stack(stack_name, env, app_type)
         outcome = mystack.print_action_log()
         return outcome
 
@@ -217,7 +217,7 @@ api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
 api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
 api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(destroy, '/destroy/<env>/<stack_name>')
-api.add_resource(status, '/status/<env>/<stack_name>')
+api.add_resource(status, '/status/<env>/<stack_name>/<app_type>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
@@ -355,6 +355,27 @@ def envact(env, action, stack_name):
         forgestate[stack_name]['selected_stack'] = key.split("_")[1]
     pprint(forgestate[stack_name])
     return render_template(action + 'Options.html')
+
+
+@app.route('/clone', methods = ['POST'])
+def cloneJson():
+    print(request.is_json)
+    content = request.get_json()
+    print(content)
+
+    app_type = "";
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+
+    mystack = Stack(stack_name, 'stg', app_type)
+    outcome = mystack.clone(content)
+    return outcome
 
 
 if __name__ == '__main__':
