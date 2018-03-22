@@ -1,3 +1,3 @@
 [submodule "wpe-aws"]
 	path = wpe-aws
-	url = https://stash.atlassian.com/scm/wpt/wpe-aws.git
+	url = ssh://git@stash.atlassian.com:7997/wpt/wpe-aws.git

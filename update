@@ -2,5 +2,6 @@
 rm -rf wpe-aws
 git fetch
 git pull
+git submodule deinit --all
 git submodule init
 git submodule update
