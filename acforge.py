@@ -189,7 +189,7 @@ class getEbsSnapshots(Resource):
 
         snapshotIds = []
         for snap in snapshots['Snapshots']:
-            snapshotIds.append(snap['Description'])
+            snapshotIds.append(snap['SnapshotId'])
         return snapshotIds
 
 
@@ -372,6 +372,13 @@ def cloneJson():
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
+        # Hackity hack, I know, it's just for now
+        elif param['ParameterKey'] == 'ExternalSubnets':
+            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'InternalSubnets':
+            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'VPC':
+            param['ParameterValue'] = 'vpc-320c1355'
 
     mystack = Stack(stack_name, 'stg', app_type)
     outcome = mystack.clone(content)
