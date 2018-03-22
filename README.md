@@ -10,6 +10,7 @@ To start the app locally for developemnt do the following in a python3 enviromen
 * pip install -r requirements.txt
 * python acforge.py
 * browse to http://127.0.01:8000 (port 8000 is required for the Centrify My_SAML_app)
+** NB: Centrify will not work on 0.0.0.0 or 'localhost', it must be 127.0.0.1
 
 To make the upgrade version check work, you need your browser to allow
 ajax requests to external websites.
