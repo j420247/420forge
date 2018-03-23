@@ -195,7 +195,8 @@ class getEbsSnapshots(Resource):
 
         snapshotIds = []
         for snap in snapshots['Snapshots']:
-            snapshotIds.append(snap['SnapshotId'])
+            snapshotIds.append(str(snap['StartTime']).split(' ').__getitem__(0) + ": " + snap['SnapshotId'])
+        snapshotIds.sort(reverse=True)
         return snapshotIds
 
 
@@ -210,7 +211,8 @@ class getRdsSnapshots(Resource):
 
         snapshotIds = []
         for snap in snapshots['DBSnapshots']:
-            snapshotIds.append(snap['DBSnapshotIdentifier'])
+            snapshotIds.append(str(snap['SnapshotCreateTime']).split(' ').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
+        snapshotIds.sort(reverse=True)
         return snapshotIds
 
 
@@ -386,6 +388,10 @@ def cloneJson():
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+        elif param['ParameterKey'] == 'DBSnapshotName':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         # Hackity hack, I know, it's just for now
         elif param['ParameterKey'] == 'ExternalSubnets':
             param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
