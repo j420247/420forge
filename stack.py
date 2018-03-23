@@ -64,9 +64,8 @@ class Stack:
                 return parms
         except FileNotFoundError:
             self.state.logaction(log.ERROR, f'can not load parms, {self.stack_name}.parms.json does not exist')
-            sys.exit()
+            sys.exit() # do we really want to stop Forge at this point? If so, remove the 'return' because it's unreachable.
             return
-        return
 
     def update_parmlist(self, parmlist, parmkey, parmvalue):
         key_found=False
@@ -388,7 +387,7 @@ class Stack:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
-                self.state.logaction(log.INFO, f'Stack {stack_name} does not exist')
+                self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
                 return
         stack_id = stack_state['Stacks'][0]['StackId']
         delete_stack = cfn.delete_stack(StackName=self.stack_name)
@@ -399,72 +398,46 @@ class Stack:
         return
 
 
-    def clone(self, ebssnap, rdssnap, dbpass, userpass, like_stack=None, like_env=None, changeparms=None):
+    def clone(self, stack_parms):
         self.state.update('action', 'clone')
-        # get current state of the model stack or a valid last create of same stack name
-        if like_stack:
-            self.get_current_state(like_stack, like_env)
-            stack_parms = self.state.forgestate['stack_parms']
-        else:
-            stack_parms = self.readparms()
-        self.state.logaction(log.INFO, f'Cloning stack: {self.stack_name}, from source stack {like_stack} using ebssnap:{ebssnap} rdssnap:{rdssnap}')
-        # stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', 'UsePreviousValue')
-        stack_parms = self.update_parmlist(stack_parms, 'EBSSnapshotId', ebssnap)
-        stack_parms = self.update_parmlist(stack_parms, 'DBSnapshotName', rdssnap)
-        stack_parms = self.update_parmlist(stack_parms, 'DBMasterUserPassword', dbpass)
-        stack_parms = self.update_parmlist(stack_parms, 'DBPassword', userpass)
         self.writeparms(stack_parms)
-        self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        templatefile=f'wpe-aws/{self.app_type}/{self.app_type.title()}STGorDR.template.yaml'
-        s3_name=f'{self.app_type}.clone_template.yaml'
-        self.upload_template(templatefile, s3_name)
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        #valid_template = cfn.validate_template(TemplateBody=templatebody)
-        created_stack = cfn.create_stack(
-            StackName=self.stack_name,
-            Parameters=stack_parms,
-            #TemplateBody=valid_template,
-            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{s3_name}',
-            Capabilities=['CAPABILITY_IAM'],
-        )
-        stack_id = created_stack['StackId']
-        self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
-        self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
-        # now stack is built, lets get its own full current state
-        self.get_current_state(self.stack_name, self.env)
-        self.state.logaction(log.INFO, f'Stack {self.stack_name} cloned, waiting on service responding')
-        self.validate_service_responding()
-        self.state.logaction(log.INFO, "Final state")
-        self.state.archive()
+        self.destroy()
+        self.create(parms=stack_parms, stg=True)
         return
 
 
-    def create(self, like_stack=None, like_env=None, changeparms=None):
+    def create(self, like_stack=None, like_env=None, parms=None, stg=False):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
-        # probably need to force mail disable catalina opts for safety
+        # probably need to force mail disable catalina opts for safety (note from Denise: this is done in the JS in the front end so it can be modified)
         self.state.update('action', 'create')
         if like_stack:
             self.get_current_state(like_stack, like_env)
             stack_parms = self.state.forgestate['stack_parms']
+            self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
+        elif parms:
+            parms.remove(parms[0])
+            stack_parms = parms
+            self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         else:
             stack_parms = self.readparms()
-        self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
-        stack_parms = self.state.forgestate['stack_parms']
+            self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
+        # stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        templatefile=f'wpe-aws/{self.app_type}/{self.app_type.title()}DataCenter.template.yaml'
-        s3_name=f'{self.app_type}.template.yaml'
-        self.upload_template(templatefile, s3_name)
+        if stg:
+            template_filename = f'{self.app_type.title()}STGorDR.template.yaml'
+        else:
+            template_filename =f'{self.app_type.title()}DataCenter.template.yaml'
+        template=f'wpe-aws/{self.app_type}/{template_filename}'
+        self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         created_stack = cfn.create_stack(
             StackName=self.stack_name,
             Parameters=stack_parms,
-            #TemplateBody=self.state.forgestate['TemplateBody'],
-            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{s3_name}',
+            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
             Capabilities=['CAPABILITY_IAM'],
         )
-        stack_id = created_stack['Stacks'][0]['StackId']
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
-        self.wait_stack_action_complete("CREATE_IN_PROGRESS", stack_id)
+        self.wait_stack_action_complete("CREATE_IN_PROGRESS")
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction(log.INFO, "Final state")
