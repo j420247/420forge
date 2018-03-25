@@ -430,12 +430,18 @@ class Stack:
         template=f'wpe-aws/{self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
-        created_stack = cfn.create_stack(
-            StackName=self.stack_name,
-            Parameters=stack_parms,
-            TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
-            Capabilities=['CAPABILITY_IAM'],
-        )
+        try:
+            created_stack = cfn.create_stack(
+                StackName=self.stack_name,
+                Parameters=stack_parms,
+                TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
+                Capabilities=['CAPABILITY_IAM'],
+            )
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+        self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
         self.wait_stack_action_complete("CREATE_IN_PROGRESS")
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
