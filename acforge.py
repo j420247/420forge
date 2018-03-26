@@ -267,8 +267,8 @@ def get_cfn_stacks_for_environment(region=None):
 def check_loggedin():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=60)
-    if request.base_url.startswith('http://127.0.0.1'):
-        print("Bypassing SAML auth because the app is being accessed locally (127.0.0.1). To test SAML, access Forge using a different hostname.")
+    if request.base_url.startswith('http://0.0.0.0'):
+        print("Bypassing SAML auth because the app is being accessed locally (0.0.0.0). To test SAML, access Forge using 127.0.0.1")
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
