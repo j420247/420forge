@@ -50,7 +50,7 @@ function selectStack(stackName) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
 
-            document.getElementById("CatalinaOptsVal").value += "-Datlassian.mail.senddisabled=true " +
+            document.getElementById("CatalinaOptsVal").value += " -Datlassian.mail.senddisabled=true " +
                 "-Datlassian.mail.fetchdisabled=true " +
                 "-Datlassian.mail.popdisabled=true";
             if (product == "Confluence") {
@@ -94,10 +94,6 @@ function getEbsSnapshots(baseUrl, stackName) {
             }
 
             var ebsSnaps = JSON.parse(ebsSnapshotRequest.responseText);
-            ebsSnaps.sort(function (a, b) {
-                return -a.localeCompare(b)
-            });
-
             for (var snap in ebsSnaps) {
                 var li = document.createElement("LI");
                 var anchor = document.createElement("A");
@@ -131,10 +127,6 @@ function getRdsSnapshots(baseUrl, stackName) {
             }
 
             var rdsSnaps = JSON.parse(rdsSnapshotRequest.responseText);
-            rdsSnaps.sort(function (a, b) {
-                return -a.localeCompare(b)
-            });
-
             for (var snap in rdsSnaps) {
                 var li = document.createElement("LI");
                 var anchor = document.createElement("A");
