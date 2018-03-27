@@ -15,17 +15,14 @@ class Forgestate:
         self.forgestate = defaultdict(dict)
         self.stack_name = stack_name
 
-    def write(self):
+    def write_log(self):
         with open(self.stack_name + '.json', 'w') as outfile:
             json.dump(self.forgestate, outfile)
         outfile.close()
         return (self)
 
-    def read(self, altstack=None):
-        if altstack:
-            stack_name=altstack
-        else:
-            stack_name=self.stack_name
+    def load_state(self):
+        stack_name=self.stack_name
         try:
             with open(stack_name + '.json', 'r') as infile:
                 self.forgestate = json.load(infile)
@@ -43,14 +40,14 @@ class Forgestate:
 
     def update(self, update_key, update_value):
         if not "stack_name" in self.forgestate:
-            self.read()
+            self.load_state()
         self.forgestate[update_key] = update_value
-        self.write()
+        self.write_log()
         return (self)
 
     def clear(self):
         self.forgestate = defaultdict(dict)
-        self.write()
+        self.write_log()
         return (self)
 
     def print(self):
