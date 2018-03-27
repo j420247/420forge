@@ -21,9 +21,13 @@ class Forgestate:
         outfile.close()
         return (self)
 
-    def read(self):
+    def read(self, altstack=None):
+        if altstack:
+            stack_name=altstack
+        else:
+            stack_name=self.stack_name
         try:
-            with open(self.stack_name + '.json', 'r') as infile:
+            with open(stack_name + '.json', 'r') as infile:
                 self.forgestate = json.load(infile)
                 return self.forgestate
         except FileNotFoundError:
@@ -35,8 +39,6 @@ class Forgestate:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(e).__name__, e.args)
             return ('failed')
-        # except FileNotFoundError:
-        #     pass
         return (self)
 
     def update(self, update_key, update_value):

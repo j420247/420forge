@@ -31,40 +31,6 @@ flask_saml.FlaskSAML(app)
 #### REST Endpoint classes
 ##
 
-class hello(Resource):
-    def get(self):
-        return {'hello': 'world'}
-
-
-class test(Resource):
-    def get(self, env, stack_name, new_version):
-        # use this endpoint to test new functionality without impacting existing endpoints
-        forgestate = defaultdict(dict)
-        forgestate = self.state.forgestate_update(forgestate, stack_name, 'action', 'test')
-        forgestate = self.state.forgestate_update(forgestate, stack_name, 'environment', env)
-        forgestate = self.state.forgestate_update(forgestate, stack_name, 'stack_name', stack_name)
-        forgestate = self.state.forgestate_update(forgestate, stack_name, 'new_version', new_version)
-        if env == 'prod':
-            forgestate = self.state.forgestate_update(forgestate, stack_name, 'region', 'us-west-2')
-        else:
-            forgestate = self.state.forgestate_update(forgestate, stack_name, 'region', 'us-east-1')
-        forgestate = self.state.get_stack_current_state(forgestate, stack_name)
-        forgestate[stack_name]['appnodemax'] = '4'
-        forgestate[stack_name]['appnodemin'] = '4'
-        forgestate[stack_name]['syncnodemin'] = '2'
-        forgestate[stack_name]['syncnodemax'] = '2'
-        self.state.spinup_remaining_nodes(forgestate, stack_name)
-        self.state.last_action_log(forgestate, stack_name, "Final state")
-        return forgestate[stack_name]['last_action_log']
-
-
-class clear(Resource):
-    def get(self, stack_name):
-        self.state.forgestate_clear(forgestate, stack_name)
-        self.state.last_action_log(forgestate, stack_name, log.INFO, "Log cleared")
-        return "forgestate[stack_name] cleared"
-
-
 class upgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
@@ -119,10 +85,10 @@ class create(Resource):
 
 
 class status(Resource):
-    def get(self, env, stack_name, app_type):
+    def get(self, env, stack_name):
         #TODO remove env and app_type
-        mystack = Stack(stack_name, env, app_type)
-        outcome = mystack.print_action_log()
+        mystack = Stack('status', env, 'status')
+        outcome = mystack.get_action_log(stack_name)
         return outcome
 
 
@@ -216,16 +182,13 @@ class getRdsSnapshots(Resource):
         return snapshotIds
 
 
-api.add_resource(hello, '/hello')
-api.add_resource(test, '/test/<env>/<stack_name>/<new_version>')
-api.add_resource(clear, '/clear/<stack_name>')
 api.add_resource(upgrade, '/upgrade/<env>/<stack_name>/<new_version>')
 api.add_resource(clone, '/clone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
 api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
 api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(destroy, '/destroy/<env>/<stack_name>')
-api.add_resource(status, '/status/<env>/<stack_name>/<app_type>')
+api.add_resource(status, '/status/<env>/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
