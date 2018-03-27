@@ -31,8 +31,8 @@ class Stack:
 
 ## Stack - micro function methods
 
-    def print_action_log(self):
-        self.state.read()
+    def get_action_log(self, stack_name=None):
+        self.state.read(stack_name)
         return self.state.forgestate['action_log']
 
     def debug_forgestate(self):
