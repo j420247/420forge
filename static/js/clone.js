@@ -1,6 +1,7 @@
 $(document).unbind('ready');
 
 $(document).ready(function() {
+    $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     var stackName = "none";
 
@@ -21,6 +22,7 @@ $(document).ready(function() {
 function selectStack(stackName) {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
+    $("#paramsForm").show();
 
     getEbsSnapshots(baseUrl, stackName);
     getRdsSnapshots(baseUrl, stackName);

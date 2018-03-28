@@ -8,7 +8,7 @@
         {% block stackSelector %}
         {#  Stack selector  #}
         <div class="aui-panel">
-            <a id="stackSelector" href="#{{ session['env']}}stackSelection" aria-owns="stackSelection" aria-haspopup="true"
+            <a id="stackSelector" href="#{{ session['env']}}StackSelection" aria-owns="{{ session['env']}}StackSelection" aria-haspopup="true"
                class="aui-button aui-style-default aui-dropdown2-trigger">
                 {% block stackSelectorDescription %}
                 Select Stack
@@ -70,12 +70,5 @@
 </div>
 
 {% block progress %}
-<div class="aui-group">
-    {#    Progress Panel    #}
-    <div><span id="refresh-status" class="aui-icon aui-icon-small aui-iconfont-refresh">Refresh</span></div>
-    <iframe id="log" src="actionreadytostart" width="1000" height="400">
-        Cannot display status because browser does not support iframes.
-    </iframe>
-</div>
 {% endblock progress %}
 {% endblock content%}
