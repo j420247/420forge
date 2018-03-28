@@ -21,13 +21,12 @@ $(document).ready(function() {
 function selectStack(stackName) {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
-    var env = 'prod';
 
     getEbsSnapshots(baseUrl, stackName);
     getRdsSnapshots(baseUrl, stackName);
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackName, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/prod/" + stackName, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
@@ -182,7 +181,6 @@ function sendParamsAsJson() {
     // send the collected data as JSON
     xhr.send(JSON.stringify(paramsArray));
 
-    xhr.onloadend = function () {
-        // done
-    };
+    // Redirect to action progress screen
+    window.location = baseUrl + "/actionprogress/clone/" + document.getElementById("stacknameVal").value;
 }

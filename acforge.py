@@ -20,6 +20,9 @@ SECRET_KEY = 'key_to_the_forge'
 # using dict of dicts called forgestate to track state of all actions
 forgestate = defaultdict(dict)
 
+# list to hold stacks that have already been initialised
+stacks = []
+
 # create and initialize app
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -35,6 +38,7 @@ flask_saml.FlaskSAML(app)
 class upgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.destroy()
         return
 
@@ -42,6 +46,7 @@ class upgrade(Resource):
 class clone(Resource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -53,6 +58,7 @@ class clone(Resource):
 class fullrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.full_restart()
         return
 
@@ -60,6 +66,7 @@ class fullrestart(Resource):
 class rollingrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.rolling_restart()
         return
 
@@ -67,6 +74,7 @@ class rollingrestart(Resource):
 class destroy(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -77,6 +85,7 @@ class destroy(Resource):
 class create(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -114,10 +123,9 @@ class serviceStatus(Resource):
 
 class stackState(Resource):
     def get(self, env, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate[stack_name] = self.state.forgestate_read(stack_name) #TODO does this work? I think no?
-        forgestate[stack_name]['region'] = getRegion(env)
-        return self.state.check_stack_state(forgestate, stack_name)
+        for stack in stacks:
+            if stack.stack_name == stack_name:
+                return stack.check_stack_state()
 
 
 class stackParams(Resource):
@@ -125,7 +133,6 @@ class stackParams(Resource):
         cfn = boto3.client('cloudformation', region_name=getRegion(env))
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
-            template = cfn.get_template(StackName=stack_name)
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
@@ -296,7 +303,7 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    if action == "clone" or "create":
+    if action == "clone" or action == "create":
         envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
 
         def general_constructor(loader, tag_suffix, node):
@@ -375,6 +382,7 @@ def cloneJson():
             param['ParameterValue'] = 'vpc-320c1355'
 
     mystack = Stack(stack_name, 'stg', app_type)
+    stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome
 
