@@ -12,6 +12,7 @@ from flask_restful import Api, Resource
 import flask_saml
 from ruamel import yaml
 import log
+import argparse
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -26,6 +27,12 @@ api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
 app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
+
+parser = argparse.ArgumentParser(description='Forge')
+parser.add_argument('--nosaml',
+                        action='store_true',
+                        help='Start with --nosaml to bypass SAML for local dev')
+args = parser.parse_args()
 
 ##
 #### REST Endpoint classes
@@ -230,8 +237,9 @@ def get_cfn_stacks_for_environment(region=None):
 def check_loggedin():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=60)
-    if request.base_url.startswith('http://0.0.0.0'):
-        print("Bypassing SAML auth because the app is being accessed locally (0.0.0.0). To test SAML, access Forge using 127.0.0.1")
+    if args.nosaml:
+        print("Bypassing SAML auth because --nosaml has been set - the app can be accessed on 127.0.0.1")
+        print(args.nosaml)
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
