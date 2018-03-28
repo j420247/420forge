@@ -5,7 +5,6 @@ from pprint import pprint
 from stack import Stack
 import boto3
 import botocore
-import requests
 from flask import Flask, request, session, redirect, url_for, \
     render_template, flash
 from flask_restful import Api, Resource
@@ -13,6 +12,8 @@ import flask_saml
 from ruamel import yaml
 import log
 import argparse
+import json
+from pathlib import Path
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -92,11 +93,9 @@ class create(Resource):
 
 
 class status(Resource):
-    def get(self, env, stack_name):
-        #TODO remove env and app_type
-        mystack = Stack('status', env, 'status')
-        outcome = mystack.get_action_log(stack_name)
-        return outcome
+    def get(self, stack_name):
+        log_json = get_current_log(stack_name)
+        return log_json if log_json else f'No current status for {stack_name}'
 
 
 class serviceStatus(Resource):
@@ -123,7 +122,7 @@ class serviceStatus(Resource):
 class stackState(Resource):
     def get(self, env, stack_name):
         forgestate = defaultdict(dict)
-        forgestate[stack_name] = self.state.forgestate_read(stack_name)
+        forgestate[stack_name] = self.state.forgestate_read(stack_name) #TODO does this work? I think no?
         forgestate[stack_name]['region'] = getRegion(env)
         return self.state.check_stack_state(forgestate, stack_name)
 
@@ -195,7 +194,7 @@ api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
 api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
 api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(destroy, '/destroy/<env>/<stack_name>')
-api.add_resource(status, '/status/<env>/<stack_name>')
+api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
@@ -232,6 +231,14 @@ def get_cfn_stacks_for_environment(region=None):
     #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
 
+
+def get_current_log(stack_name):
+    statefile = Path(stack_name + '.json')
+    if statefile.is_file():
+        with open(statefile, 'r') as stack_state:
+            return json.load(stack_state)['action_log']
+
+
 # This checks for SAML auth and sets a session timeout.
 @app.before_request
 def check_loggedin():
@@ -244,6 +251,7 @@ def check_loggedin():
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
+
 
 @app.route('/')
 def index():

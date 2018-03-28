@@ -30,13 +30,8 @@ class Stack:
 
 
 ## Stack - micro function methods
-
-    def get_action_log(self, stack_name=None):
-        self.state.read(stack_name)
-        return self.state.forgestate['action_log']
-
     def debug_forgestate(self):
-        self.state.read()
+        self.state.load_state()
         pprint(self.state.forgestate)
         return
 
@@ -401,12 +396,19 @@ class Stack:
     def clone(self, stack_parms):
         self.state.update('action', 'clone')
         self.writeparms(stack_parms)
+        # TODO popup confirming if you want to destroy existing
         self.destroy()
-        self.create(parms=stack_parms, stg=True)
+        self.create(parms=stack_parms, clone=True)
         return
 
+    #  TODO create like
+    # def create_like(self, like_stack, changeparms):
+    #     # grab stack parms from like stack
+    #     # changedParms = param list with changed parms
+    #     create(parms=changedParms)
 
-    def create(self, like_stack=None, like_env=None, parms=None, stg=False):
+
+    def create(self, like_stack=None, like_env=None, parms=None, clone=False):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
         # probably need to force mail disable catalina opts for safety (note from Denise: this is done in the JS in the front end so it can be modified)
         self.state.update('action', 'create')
@@ -423,7 +425,7 @@ class Stack:
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         # stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        if stg:
+        if clone:
             template_filename = f'{self.app_type.title()}STGorDR.template.yaml'
         else:
             template_filename =f'{self.app_type.title()}DataCenter.template.yaml'
@@ -431,6 +433,7 @@ class Stack:
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
+            # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
