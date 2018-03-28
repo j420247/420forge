@@ -22,9 +22,8 @@ class Forgestate:
         return (self)
 
     def load_state(self):
-        stack_name=self.stack_name
         try:
-            with open(stack_name + '.json', 'r') as infile:
+            with open(self.stack_name + '.json', 'r') as infile:
                 self.forgestate = json.load(infile)
                 return self.forgestate
         except FileNotFoundError:
