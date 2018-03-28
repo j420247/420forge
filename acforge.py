@@ -144,11 +144,6 @@ class actionReadyToStart(Resource):
         return actionReadyToStartRenderTemplate()
 
 
-class viewLog(Resource):
-    def get(self):
-        return viewLogRenderTemplate()
-
-
 class getEbsSnapshots(Resource):
     def get(self, stack_name):
         ec2 = boto3.client('ec2', region_name=getRegion('stg'))
@@ -187,9 +182,35 @@ class getRdsSnapshots(Resource):
         snapshotIds.sort(reverse=True)
         return snapshotIds
 
-class clone(Resource):
-    def get(self):
-        return render_template('clone.html')
+
+# Action UI pages
+@app.route('/upgrade', methods = ['GET'])
+def upgrade():
+        return render_template('upgrade.html')
+
+@app.route('/clone', methods = ['GET'])
+def clone():
+    return render_template("clone.html")
+
+@app.route('/fullrestart', methods = ['GET'])
+def fullrestart():
+    return render_template('fullrestart.html')
+
+@app.route('/rollingrestart', methods = ['GET'])
+def rollingrestart():
+    return render_template('rollingrestart.html')
+
+@app.route('/create', methods = ['GET'])
+def create():
+    return render_template('create.html')
+
+@app.route('/destroy', methods = ['GET'])
+def destroy():
+    return render_template('destroy.html')
+
+@app.route('/viewlog', methods = ['GET'])
+def viewlog():
+    return render_template('viewlog.html')
 
 
 # Actions
@@ -199,7 +220,6 @@ api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
 api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
-api.add_resource(viewLog, '/viewlog')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
@@ -211,9 +231,6 @@ api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
-
-# UI pages
-api.add_resource(clone, '/clone')
 
 
 def app_active_in_lb(forgestate, node):
@@ -272,10 +289,12 @@ def index():
     #     gtg_flag = True
     #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
 
-    # use stg if no env selected
+    # use stg if no env selected (eg first load)
     if 'region' not in session:
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
+        session['prodstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('prod')))
+        session['stgstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['action'] = 'none'
     return render_template('index.html')
 
@@ -295,11 +314,6 @@ def actionprogress(action, stack_name):
     session['stack_name'] = stack_name
     flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
     return render_template('actionprogress.html')
-
-
-@app.route('/viewlog')
-def viewLogRenderTemplate():
-    return render_template('viewlog.html')
 
 
 # Either stg or prod
