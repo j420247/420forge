@@ -51,14 +51,7 @@ Select stack to clone
         </div>
 
         <!-- Parameters -->
-        <div id="paramsList">
-            {% for param in templateParams['Parameters'] %}
-            <div class="field-group">
-                <label for="{{ param }}Val">{{ param }}</label>
-                <input class="text" type="text" name="{{ param }}Val">
-            </div>
-            {% endfor %}
-        </div>
+        <div id="paramsList"></div>
     </field-set>
 </form>
 {% endblock extraInput %}

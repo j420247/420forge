@@ -35,7 +35,7 @@ flask_saml.FlaskSAML(app)
 #### REST Endpoint classes
 ##
 
-class upgrade(Resource):
+class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -43,7 +43,7 @@ class upgrade(Resource):
         return
 
 
-class clone(Resource):
+class doclone(Resource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -55,7 +55,7 @@ class clone(Resource):
         return
 
 
-class fullrestart(Resource):
+class dofullrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -63,7 +63,7 @@ class fullrestart(Resource):
         return
 
 
-class rollingrestart(Resource):
+class dorollingrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -71,7 +71,7 @@ class rollingrestart(Resource):
         return
 
 
-class destroy(Resource):
+class dodestroy(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -82,7 +82,7 @@ class destroy(Resource):
         return
 
 
-class create(Resource):
+class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -187,21 +187,33 @@ class getRdsSnapshots(Resource):
         snapshotIds.sort(reverse=True)
         return snapshotIds
 
+class clone(Resource):
+    def get(self):
+        return render_template('clone.html')
 
-api.add_resource(upgrade, '/upgrade/<env>/<stack_name>/<new_version>')
-api.add_resource(clone, '/clone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
-api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
-api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(destroy, '/destroy/<env>/<stack_name>')
+
+# Actions
+api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
+api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
+api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
+api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
+api.add_resource(viewLog, '/viewlog')
+
+# Stack info
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
+
+# Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(viewLog, '/viewlog')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+
+# UI pages
+api.add_resource(clone, '/clone')
 
 
 def app_active_in_lb(forgestate, node):
@@ -282,7 +294,7 @@ def actionReadyToStartRenderTemplate():
 def actionprogress(action, stack_name):
     session['stack_name'] = stack_name
     flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
-    return render_template("actionprogress.html")
+    return render_template('actionprogress.html')
 
 
 @app.route('/viewlog')
@@ -295,6 +307,8 @@ def viewLogRenderTemplate():
 def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
+    session['prodstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('prod')))
+    session['stgstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
@@ -303,19 +317,7 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    if action == "clone" or action == "create":
-        envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
-
-        def general_constructor(loader, tag_suffix, node):
-            return node.value
-
-        file = open("wpe-aws/confluence/ConfluenceSTGorDR.template.yaml", "r")
-        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
-        templateParams = yaml.safe_load(file)
-        return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)
-    else:
-        envstacks=sorted(get_cfn_stacks_for_environment())
-        return render_template(action + ".html", stacks=envstacks)
+    return redirect(url_for(action))
 
 
 #@app.route('/getparms/upgrade')

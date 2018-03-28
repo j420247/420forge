@@ -8,7 +8,7 @@
         {% block stackSelector %}
         {#  Stack selector  #}
         <div class="aui-panel">
-            <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
+            <a id="stackSelector" href="#{{ session['env']}}stackSelection" aria-owns="stackSelection" aria-haspopup="true"
                class="aui-button aui-style-default aui-dropdown2-trigger">
                 {% block stackSelectorDescription %}
                 Select Stack
@@ -16,9 +16,18 @@
             </a>
 
             <!-- Dropdown -->
-            <div id="stackSelection" class="aui-style-default aui-dropdown2">
+            <!-- prod stacks -->
+            <div id="prodStackSelection" class="aui-style-default aui-dropdown2">
                 <ul class="aui-list-truncate">
-                    {% for stack in stacks %}
+                    {% for stack in session['prodstacks'] %}
+                    <li><a class="selectStackOption">{{ stack }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <!-- stg stacks -->
+            <div id="stgStackSelection" class="aui-style-default aui-dropdown2">
+                <ul class="aui-list-truncate">
+                    {% for stack in session['stgstacks'] %}
                     <li><a class="selectStackOption">{{ stack }}</a></li>
                     {% endfor %}
                 </ul>
