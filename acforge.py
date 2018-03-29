@@ -143,7 +143,44 @@ class stackParams(Resource):
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
-        return stack_details['Stacks'][0]['Parameters']
+        stack_params = stack_details['Stacks'][0]['Parameters']
+
+        def general_constructor(loader, tag_suffix, node):
+            return node.value
+
+        #  Determine app type
+        for param in stack_params:
+            if param['ParameterKey'] == 'ConfluenceVersion':
+                app_type = 'Confluence'
+                break
+            elif param['ParameterKey'] == 'JiraVersion':
+                app_type = 'Jira'
+                break
+
+        template_type = "STGorDR"
+        if env == 'stg':
+            template_type = "DataCenter"
+
+        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
+        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+        template_params = yaml.safe_load(template_file)
+
+        # Remove old stack params that are no longer on the template
+        # To do this we need to build a new list
+        compared_params = []
+        for stack_param in stack_params:
+            if stack_param['ParameterKey'] in template_params['Parameters']:
+                compared_params.append(stack_param)
+            else:
+                print("Parameter not found: " + stack_param['ParameterKey'])
+
+        # Add new params from the template to the stack params
+        for param in template_params['Parameters']:
+            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+                if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
+                    compared_params.append({'ParameterKey': param,
+                                            'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
+        return compared_params
 
 
 class actionReadyToStart(Resource):
@@ -215,6 +252,10 @@ def create():
 def destroy():
     return render_template('destroy.html')
 
+@app.route('/update', methods = ['GET'])
+def update():
+    return render_template('update.html')
+
 @app.route('/viewlog', methods = ['GET'])
 def viewlog():
     return render_template('viewlog.html')
@@ -242,6 +283,7 @@ api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
 
 def app_active_in_lb(forgestate, node):
     return(forgestate)
+
 
 ##
 #### Common functions
@@ -272,7 +314,9 @@ def get_current_log(stack_name):
     statefile = Path(stack_name + '.json')
     if statefile.is_file():
         with open(statefile, 'r') as stack_state:
-            return json.load(stack_state)['action_log']
+            json_state = json.load(stack_state)
+            if 'action_log' in json_state:
+                return json_state['action_log']
 
 
 # This checks for SAML auth and sets a session timeout.
@@ -376,12 +420,46 @@ def envact(env, action, stack_name):
     return render_template(action + 'Options.html')
 
 
+@app.route('/update', methods = ['POST'])
+def updateJson():
+    content = request.get_json()
+    app_type = "";
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            template_type = 'STGorDR' # not working, see below
+        # Hackity hack, I know, it's just for now
+        elif param['ParameterKey'] == 'ExternalSubnets':
+            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'InternalSubnets':
+            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'VPC':
+            param['ParameterValue'] = 'vpc-320c1355'
+        elif param['ParameterKey'] == 'DBMasterUserPassword' or param['ParameterKey'] == 'DBPassword':
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    newcontent = [stack_param for stack_param in content if stack_param['ParameterKey'] != 'StackName']
+
+    # this is a hack for now because the snapshot params are not in the stack_parms.
+    # Need to think of a better way to check template based on params.
+    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    stacks.append(mystack)
+    outcome = mystack.update(newcontent, template_type)
+    return outcome
+
+
 @app.route('/clone', methods = ['POST'])
 def cloneJson():
-    print(request.is_json)
     content = request.get_json()
-    print(content)
-
     app_type = "";
 
     for param in content:

@@ -1,14 +1,15 @@
 $(document).unbind('ready');
+var action = $("meta[name=action]").attr("value");
 
 $(document).ready(function() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var stackName = "none";
+    var stackToRetrieve = "none";
 
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            stackName = data.target.text;
-            selectStack(stackName);
+            stackToRetrieve = data.target.text;
+            selectStack(stackToRetrieve);
         }, false);
     }
 
@@ -19,15 +20,17 @@ $(document).ready(function() {
     });
 });
 
-function selectStack(stackName) {
-    $("#stackSelector").text(stackName);
-    $("#stackName").text(stackName);
+function selectStack(stackToRetrieve) {
+    $("#stackSelector").text(stackToRetrieve);
+    $("#stackName").text(stackToRetrieve);
 
-    getEbsSnapshots(baseUrl, stackName);
-    getRdsSnapshots(baseUrl, stackName);
+    if (action == 'clone') {
+        getEbsSnapshots(baseUrl, stackToRetrieve);
+        getRdsSnapshots(baseUrl, stackToRetrieve);
+    }
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackName, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackToRetrieve, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
@@ -83,9 +86,9 @@ function createInputParameter(param, fieldset) {
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(baseUrl, stackName) {
+function getEbsSnapshots(baseUrl, stackToRetrieve) {
     var ebsSnapshotRequest = new XMLHttpRequest();
-    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + stackName, true);
+    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + stackToRetrieve, true);
     ebsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     ebsSnapshotRequest.onreadystatechange = function () {
         if (ebsSnapshotRequest.readyState === XMLHttpRequest.DONE && ebsSnapshotRequest.status === 200) {
@@ -116,9 +119,9 @@ function getEbsSnapshots(baseUrl, stackName) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(baseUrl, stackName) {
+function getRdsSnapshots(baseUrl, stackToRetrieve) {
     var rdsSnapshotRequest = new XMLHttpRequest();
-    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + stackName, true);
+    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + stackToRetrieve, true);
     rdsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     rdsSnapshotRequest.onreadystatechange = function () {
         if (rdsSnapshotRequest.readyState === XMLHttpRequest.DONE && rdsSnapshotRequest.status === 200) {
@@ -150,9 +153,20 @@ function getRdsSnapshots(baseUrl, stackName) {
 }
 
 function sendParamsAsJson() {
-    // collect the form data while iterating over the inputs
     var paramsArray = [];
+    var stackNameParam = {};
+    var stackNameForAction = "";
     var params = document.getElementsByClassName("field-group");
+
+    if (action == 'update') {
+        // Add stack name and env to params
+        stackNameParam["ParameterKey"] = "StackName";
+        stackNameParam["ParameterValue"] = $("#stackSelector").text();
+        stackNameForAction = $("#stackSelector").text();
+        paramsArray.push(stackNameParam);
+    } else {
+        stackNameForAction = document.getElementById("stacknameVal").value
+    }
 
     for(var i = 0; i < params.length; i++) {
         var jsonParam = {};
@@ -169,7 +183,6 @@ function sendParamsAsJson() {
 
         if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
             param != 'BastionAMIOS' && param != 'BastionBanner' && param != 'EnableX11Forwarding' && param != 'BastionInstanceType') {
-
             jsonParam["ParameterKey"] = param;
             jsonParam["ParameterValue"] = value;
             paramsArray.push(jsonParam);
@@ -177,12 +190,12 @@ function sendParamsAsJson() {
     }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/clone", true);
+    xhr.open("POST", baseUrl + "/" + action, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // send the collected data as JSON
     xhr.send(JSON.stringify(paramsArray));
 
     // Redirect to action progress screen
-    window.location = baseUrl + "/actionprogress/clone/" + document.getElementById("stacknameVal").value;
+    window.location = baseUrl + "/actionprogress/" + action + "/" + stackNameForAction;
 }
