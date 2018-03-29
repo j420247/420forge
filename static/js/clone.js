@@ -22,13 +22,12 @@ $(document).ready(function() {
 function selectStack(stackName) {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
-    $("#paramsForm").show();
 
     getEbsSnapshots(baseUrl, stackName);
     getRdsSnapshots(baseUrl, stackName);
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/prod/" + stackName, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackName, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
@@ -57,6 +56,7 @@ function selectStack(stackName) {
             if (product == "Confluence") {
                 document.getElementById("CatalinaOptsVal").value += " -Dconfluence.disable.mailpolling=true";
             }
+            $("#paramsForm").show();
         }
     };
     stackParamsRequest.send();

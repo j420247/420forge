@@ -293,8 +293,7 @@ def index():
     if 'region' not in session:
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
-        session['prodstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('prod')))
-        session['stgstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+        session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['action'] = 'none'
     return render_template('index.html')
 
@@ -321,8 +320,7 @@ def actionprogress(action, stack_name):
 def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
-    session['prodstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('prod')))
-    session['stgstacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 

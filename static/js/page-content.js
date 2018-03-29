@@ -1,11 +1,11 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
+var env = $("meta[name=env]").attr("value");
 
 $(document).ready(function() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     var stackName = "none";
     var version = "none";
-    var env = $("meta[name=env]").attr("value");
     var action = $("meta[name=action]").attr("value");
 
     for (var i = 0; i < stacks.length; i ++) {
@@ -105,7 +105,6 @@ function getStatus(stackName) {
 
 function performAction(action, env, stackName, version) {
     if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
-        var env = $("meta[name=env]").attr("value");
         var action = $("meta[name=action]").attr("value");
         var url = baseUrl + "/" + action + "/" + env + "/" + stackName;
 
@@ -125,8 +124,6 @@ function performAction(action, env, stackName, version) {
 
 function updateStats(stackName) {
     if (stackName === 'actionreadytostart') return;
-
-    var env = $("meta[name=env]").attr("value");
 
     removeElementsByClass("aui-lozenge");
 
