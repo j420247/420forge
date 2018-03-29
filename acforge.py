@@ -21,6 +21,9 @@ SECRET_KEY = 'key_to_the_forge'
 # using dict of dicts called forgestate to track state of all actions
 forgestate = defaultdict(dict)
 
+# list to hold stacks that have already been initialised
+stacks = []
+
 # create and initialize app
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -39,16 +42,18 @@ args = parser.parse_args()
 #### REST Endpoint classes
 ##
 
-class upgrade(Resource):
+class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.destroy()
         return
 
 
-class clone(Resource):
+class doclone(Resource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -57,23 +62,26 @@ class clone(Resource):
         return
 
 
-class fullrestart(Resource):
+class dofullrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.full_restart()
         return
 
 
-class rollingrestart(Resource):
+class dorollingrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         outcome = mystack.rolling_restart()
         return
 
 
-class destroy(Resource):
+class dodestroy(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -81,9 +89,10 @@ class destroy(Resource):
         return
 
 
-class create(Resource):
+class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
+        stacks.append(mystack)
         try:
             outcome = mystack.destroy()
         except:
@@ -121,10 +130,9 @@ class serviceStatus(Resource):
 
 class stackState(Resource):
     def get(self, env, stack_name):
-        forgestate = defaultdict(dict)
-        forgestate[stack_name] = self.state.forgestate_read(stack_name) #TODO does this work? I think no?
-        forgestate[stack_name]['region'] = getRegion(env)
-        return self.state.check_stack_state(forgestate, stack_name)
+        for stack in stacks:
+            if stack.stack_name == stack_name:
+                return stack.check_stack_state()
 
 
 class stackParams(Resource):
@@ -132,7 +140,6 @@ class stackParams(Resource):
         cfn = boto3.client('cloudformation', region_name=getRegion(env))
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
-            template = cfn.get_template(StackName=stack_name)
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
@@ -142,11 +149,6 @@ class stackParams(Resource):
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
-
-
-class viewLog(Resource):
-    def get(self):
-        return viewLogRenderTemplate()
 
 
 class getEbsSnapshots(Resource):
@@ -188,18 +190,52 @@ class getRdsSnapshots(Resource):
         return snapshotIds
 
 
-api.add_resource(upgrade, '/upgrade/<env>/<stack_name>/<new_version>')
-api.add_resource(clone, '/clone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(fullrestart, '/fullrestart/<env>/<stack_name>')
-api.add_resource(rollingrestart, '/rollingrestart/<env>/<stack_name>')
-api.add_resource(create, '/create/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(destroy, '/destroy/<env>/<stack_name>')
+# Action UI pages
+@app.route('/upgrade', methods = ['GET'])
+def upgrade():
+        return render_template('upgrade.html')
+
+@app.route('/clone', methods = ['GET'])
+def clone():
+    return render_template("clone.html")
+
+@app.route('/fullrestart', methods = ['GET'])
+def fullrestart():
+    return render_template('fullrestart.html')
+
+@app.route('/rollingrestart', methods = ['GET'])
+def rollingrestart():
+    return render_template('rollingrestart.html')
+
+@app.route('/create', methods = ['GET'])
+def create():
+    return render_template('create.html')
+
+@app.route('/destroy', methods = ['GET'])
+def destroy():
+    return render_template('destroy.html')
+
+@app.route('/viewlog', methods = ['GET'])
+def viewlog():
+    return render_template('viewlog.html')
+
+
+# Actions
+api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
+api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
+api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
+api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
+
+# Stack info
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
+
+# Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(viewLog, '/viewlog')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
 
@@ -261,10 +297,11 @@ def index():
     #     gtg_flag = True
     #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
 
-    # use stg if no env selected
+    # use stg if no env selected (eg first load)
     if 'region' not in session:
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
+        session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['action'] = 'none'
     return render_template('index.html')
 
@@ -283,12 +320,7 @@ def actionReadyToStartRenderTemplate():
 def actionprogress(action, stack_name):
     session['stack_name'] = stack_name
     flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
-    return render_template("actionprogress.html")
-
-
-@app.route('/viewlog')
-def viewLogRenderTemplate():
-    return render_template('viewlog.html')
+    return render_template('actionprogress.html')
 
 
 # Either stg or prod
@@ -296,6 +328,7 @@ def viewLogRenderTemplate():
 def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
+    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
@@ -304,19 +337,7 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
-    if action == "clone" or "create":
-        envstacks=sorted(get_cfn_stacks_for_environment(getRegion('prod')))
-
-        def general_constructor(loader, tag_suffix, node):
-            return node.value
-
-        file = open("wpe-aws/confluence/ConfluenceSTGorDR.template.yaml", "r")
-        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
-        templateParams = yaml.safe_load(file)
-        return render_template(action + ".html", stacks=envstacks, templateParams=templateParams)
-    else:
-        envstacks=sorted(get_cfn_stacks_for_environment())
-        return render_template(action + ".html", stacks=envstacks)
+    return redirect(url_for(action))
 
 
 #@app.route('/getparms/upgrade')
@@ -383,6 +404,7 @@ def cloneJson():
             param['ParameterValue'] = 'vpc-320c1355'
 
     mystack = Stack(stack_name, 'stg', app_type)
+    stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome
 

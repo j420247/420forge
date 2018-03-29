@@ -18,7 +18,7 @@
             <!-- Dropdown -->
             <div id="stackSelection" class="aui-style-default aui-dropdown2">
                 <ul class="aui-list-truncate">
-                    {% for stack in stacks %}
+                    {% for stack in session['stacks'] %}
                     <li><a class="selectStackOption">{{ stack }}</a></li>
                     {% endfor %}
                 </ul>
@@ -61,12 +61,5 @@
 </div>
 
 {% block progress %}
-<div class="aui-group">
-    {#    Progress Panel    #}
-    <div><span id="refresh-status" class="aui-icon aui-icon-small aui-iconfont-refresh">Refresh</span></div>
-    <iframe id="log" src="actionreadytostart" width="1000" height="400">
-        Cannot display status because browser does not support iframes.
-    </iframe>
-</div>
 {% endblock progress %}
 {% endblock content%}

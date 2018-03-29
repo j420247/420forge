@@ -2,3 +2,13 @@
 {% block head %}
     <script src="/static/js/actionprogress.js"></script>
 {% endblock head %}
+
+{% block progress %}
+<div class="aui-group">
+    {#    Progress Panel    #}
+    <div><span id="refresh-status" class="aui-icon aui-icon-small aui-iconfont-refresh">Refresh</span></div>
+    <iframe id="log" src="actionreadytostart" width="1000" height="400">
+        Cannot display status because browser does not support iframes.
+    </iframe>
+</div>
+{% endblock progress %}

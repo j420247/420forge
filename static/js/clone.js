@@ -1,6 +1,7 @@
 $(document).unbind('ready');
 
 $(document).ready(function() {
+    $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     var stackName = "none";
 
@@ -21,7 +22,6 @@ $(document).ready(function() {
 function selectStack(stackName) {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
-    var env = 'prod';
 
     getEbsSnapshots(baseUrl, stackName);
     getRdsSnapshots(baseUrl, stackName);
@@ -56,6 +56,7 @@ function selectStack(stackName) {
             if (product == "Confluence") {
                 document.getElementById("CatalinaOptsVal").value += " -Dconfluence.disable.mailpolling=true";
             }
+            $("#paramsForm").show();
         }
     };
     stackParamsRequest.send();
@@ -182,7 +183,6 @@ function sendParamsAsJson() {
     // send the collected data as JSON
     xhr.send(JSON.stringify(paramsArray));
 
-    xhr.onloadend = function () {
-        // done
-    };
+    // Redirect to action progress screen
+    window.location = baseUrl + "/actionprogress/clone/" + document.getElementById("stacknameVal").value;
 }
