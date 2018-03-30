@@ -80,12 +80,13 @@ function createInputParameter(param, fieldset) {
     if (param.AllowedValues) {
         var dropdownAnchor = document.createElement("A");
         dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
-        dropdownAnchor.setAttribute("aria-owns", param.ParameterKey + "Val");
+        dropdownAnchor.setAttribute("aria-owns", param.ParameterKey + "Dropdown");
         dropdownAnchor.setAttribute("aria-haspopup", "true");
-        dropdownAnchor.setAttribute("href", "#" + param.ParameterKey + "Val");
+        dropdownAnchor.setAttribute("href", "#" + param.ParameterKey + "Dropdown");
+        dropdownAnchor.id = param.ParameterKey + "Val";
 
         var dropdownDiv = document.createElement("DIV");
-        dropdownDiv.id = param.ParameterKey + "Val";
+        dropdownDiv.id = param.ParameterKey + "Dropdown";
         dropdownDiv.className = "aui-style-default aui-dropdown2";
 
         var ul = document.createElement("UL");
@@ -215,7 +216,12 @@ function sendParamsAsJson() {
         } else if (param == "DBSnapshotName") {
             value = document.getElementById("rdsSnapshotSelector").innerText;
         } else {
-            value = params.item(i).getElementsByTagName("INPUT")[0].value;
+            var element = document.getElementById(param + "Val");
+            if (element.tagName.toLowerCase() === "a") {
+                value = element.text;
+            } else if (element.tagName.toLowerCase() === "input") {
+                value = element.value;
+            }
         }
 
         if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
