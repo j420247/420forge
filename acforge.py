@@ -181,7 +181,10 @@ class templateParamsForStack(Resource):
                     compared_params.append({'ParameterKey': param,
                                             'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
                 if 'AllowedValues' in template_params['Parameters'][param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = template_params['Parameters'][param]['AllowedValues']
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = \
+                        template_params['Parameters'][param]['AllowedValues']
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = \
+                        template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
         return compared_params
 
 

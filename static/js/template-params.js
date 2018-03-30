@@ -94,19 +94,21 @@ function createInputParameter(param, fieldset) {
         for (var allowedValue in param['AllowedValues']) {
             var li = document.createElement("LI");
             var liAnchor = document.createElement("A");
-            console.log(param['AllowedValues'][allowedValue])
             liAnchor.setAttribute("href", "#");
             var text = document.createTextNode(param['AllowedValues'][allowedValue]);
             liAnchor.appendChild(text);
             liAnchor.addEventListener("click", function (data) {
                 dropdownAnchor.text = data.target.text;
             }, false);
-
             li.appendChild(liAnchor);
             ul.appendChild(li);
         }
         if (param.ParameterValue)
             dropdownAnchor.text = param.ParameterValue;
+        else if (param['Default'])
+            dropdownAnchor.text = param['Default'];
+        else
+            dropdownAnchor.text = 'Select';
 
         div.appendChild(dropdownAnchor);
         dropdownDiv.appendChild(ul);
@@ -118,7 +120,6 @@ function createInputParameter(param, fieldset) {
         input.value = param.ParameterValue;
         div.appendChild(input);
     }
-
     fieldset.appendChild(div);
 }
 
