@@ -135,7 +135,7 @@ class stackState(Resource):
                 return stack.check_stack_state()
 
 
-class stackParams(Resource):
+class templateParamsForStack(Resource):
     def get(self, env, stack_name):
         cfn = boto3.client('cloudformation', region_name=getRegion(env))
         try:
@@ -180,6 +180,8 @@ class stackParams(Resource):
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
                     compared_params.append({'ParameterKey': param,
                                             'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
+                if 'AllowedValues' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = template_params['Parameters'][param]['AllowedValues']
         return compared_params
 
 
@@ -273,7 +275,7 @@ api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
-api.add_resource(stackParams, '/stackParams/<env>/<stack_name>')
+api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
