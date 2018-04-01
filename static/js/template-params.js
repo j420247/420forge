@@ -45,7 +45,7 @@ function selectStack(stackToRetrieve) {
 
             for (var param in origParams) {
                 createInputParameter(origParams[param], fieldset);
-                if (origParams[param].ParameterKey == "ConfluenceVersion") {
+                if (origParams[param].ParameterKey === "ConfluenceVersion") {
                     product = "Confluence";
                 }
             }
@@ -53,11 +53,17 @@ function selectStack(stackToRetrieve) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
 
-            document.getElementById("CatalinaOptsVal").value += " -Datlassian.mail.senddisabled=true " +
+            var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
                 "-Datlassian.mail.fetchdisabled=true " +
                 "-Datlassian.mail.popdisabled=true";
+            var confluenceMailDisableParams = " -Dconfluence.disable.mailpolling=true";
+            if (document.getElementById("CatalinaOptsVal").value.indexOf(commonMailDisableParams) === -1) {
+                document.getElementById("CatalinaOptsVal").value += " " + commonMailDisableParams;
+            }
             if (product == "Confluence") {
-                document.getElementById("CatalinaOptsVal").value += " -Dconfluence.disable.mailpolling=true";
+                if (document.getElementById("CatalinaOptsVal").value.indexOf(confluenceMailDisableParams) === -1) {
+                    document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
+                }
             }
             $("#paramsForm").show();
         }
@@ -181,12 +187,9 @@ function sendParamsAsJson() {
             value = newParams.item(i).getElementsByTagName("INPUT")[0].value;
         }
 
-        if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
-            param != 'BastionAMIOS' && param != 'BastionBanner' && param != 'EnableX11Forwarding' && param != 'BastionInstanceType') {
-            jsonParam["ParameterKey"] = param;
-            jsonParam["ParameterValue"] = value;
-            newParamsArray.push(jsonParam);
-        }
+        jsonParam["ParameterKey"] = param;
+        jsonParam["ParameterValue"] = value;
+        newParamsArray.push(jsonParam);
     }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
