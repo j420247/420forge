@@ -437,18 +437,25 @@ def updateJson():
             app_type = 'jira'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             template_type = 'STGorDR' # not working, see below
-        if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    stacks.append(mystack)
+    mystack.writeparms(new_params)
+
+    for param in new_params:
+        if param['ParameterKey'] != 'StackName' \
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
             del param['ParameterValue']
             param['UsePreviousValue'] = True
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
 
     # this is a hack for now because the snapshot params are not in the stack_parms.
     # Need to think of a better way to check template based on params.
     template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
 
-    mystack = Stack(stack_name, session['env'], app_type)
-    stacks.append(mystack)
     outcome = mystack.update(params_for_update, template_type)
     return outcome
 
