@@ -1,6 +1,6 @@
 # imports
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pprint import pprint
 from stack import Stack
 import boto3
@@ -434,14 +434,10 @@ def updateJson():
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
             continue
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             template_type = 'STGorDR' # not working, see below
 
-    mystack = Stack(stack_name, session['env'], app_type)
+    mystack = Stack(stack_name, session['env'])
     stacks.append(mystack)
     mystack.writeparms(new_params)
 
@@ -466,7 +462,7 @@ def updateJson():
 @app.route('/clone', methods = ['POST'])
 def cloneJson():
     content = request.get_json()
-    app_type = "";
+    app_type = ''
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
