@@ -1,23 +1,13 @@
-{% extends "page-content.html" %}
+{% extends "template-params.html" %}
 
 {% block stackStatusPanel %}
 {% endblock stackStatusPanel %}
 
-{% block extraInput %}
-<form class="aui long-label">
-    <field-set>
-        <div class="field-group">
-            <label for="stackNamelbl">StackName</label>
-            <input class="text" type="text" name="stacknamelbl">
-        </div>
-        {% for param in templateParams['Parameters'] %}
-        <div class="field-group">
-            <label for="{{ param }}lbl">{{ param }}</label>
-            <input class="text" type="text" name="{{ param }}lbl" value="{{ templateParams['Parameters'][param]['Default'] }}">
-        </div>
-        {% endfor %}
-    </field-set>
-</form>
-{% endblock extraInput %}
+{% block extraParams %}
+<div class="field-group">
+    <label for="StackNameVal">StackName</label>
+    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
+</div>
+{% endblock extraParams %}
 
 {% block buttonText %}Create{% endblock buttonText %}
