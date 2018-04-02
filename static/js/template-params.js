@@ -35,17 +35,17 @@ function selectStack(stackToRetrieve) {
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
-            params = JSON.parse(stackParamsRequest.responseText);
-            params.sort(function(a, b) {
+            origParams = JSON.parse(stackParamsRequest.responseText);
+            origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 
             $("#paramsList").html("");
             var fieldset = document.createElement("FIELDSET");
             fieldset.id = "fieldSet";
 
-            for (var param in params) {
-                createInputParameter(params[param], fieldset);
-                if (params[param].ParameterKey == "ConfluenceVersion") {
+            for (var param in origParams) {
+                createInputParameter(origParams[param], fieldset);
+                if (origParams[param].ParameterKey === "ConfluenceVersion") {
                     product = "Confluence";
                 }
             }
@@ -53,11 +53,17 @@ function selectStack(stackToRetrieve) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
 
-            document.getElementById("CatalinaOptsVal").value += " -Datlassian.mail.senddisabled=true " +
+            var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
                 "-Datlassian.mail.fetchdisabled=true " +
                 "-Datlassian.mail.popdisabled=true";
+            var confluenceMailDisableParams = " -Dconfluence.disable.mailpolling=true";
+            if (document.getElementById("CatalinaOptsVal").value.indexOf(commonMailDisableParams) === -1) {
+                document.getElementById("CatalinaOptsVal").value += " " + commonMailDisableParams;
+            }
             if (product == "Confluence") {
-                document.getElementById("CatalinaOptsVal").value += " -Dconfluence.disable.mailpolling=true";
+                if (document.getElementById("CatalinaOptsVal").value.indexOf(confluenceMailDisableParams) === -1) {
+                    document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
+                }
             }
             $("#paramsForm").show();
         }
@@ -191,24 +197,24 @@ function getRdsSnapshots(baseUrl, stackToRetrieve) {
 }
 
 function sendParamsAsJson() {
-    var paramsArray = [];
+    var newParamsArray = [];
     var stackNameParam = {};
     var stackNameForAction = "";
-    var params = document.getElementsByClassName("field-group");
+    var newParams = document.getElementsByClassName("field-group");
 
     if (action == 'update') {
         // Add stack name and env to params
         stackNameParam["ParameterKey"] = "StackName";
         stackNameParam["ParameterValue"] = $("#stackSelector").text();
         stackNameForAction = $("#stackSelector").text();
-        paramsArray.push(stackNameParam);
+        newParamsArray.push(stackNameParam);
     } else {
         stackNameForAction = document.getElementById("stacknameVal").value
     }
 
-    for(var i = 0; i < params.length; i++) {
+    for(var i = 0; i < newParams.length; i++) {
         var jsonParam = {};
-        var param = params.item(i).getElementsByTagName("LABEL")[0].innerHTML;
+        var param = newParams.item(i).getElementsByTagName("LABEL")[0].innerHTML;
         var value;
 
         if (param == "EBSSnapshotId") {
@@ -224,12 +230,9 @@ function sendParamsAsJson() {
             }
         }
 
-        if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
-            param != 'BastionAMIOS' && param != 'BastionBanner' && param != 'EnableX11Forwarding' && param != 'BastionInstanceType') {
-            jsonParam["ParameterKey"] = param;
-            jsonParam["ParameterValue"] = value;
-            paramsArray.push(jsonParam);
-        }
+        jsonParam["ParameterKey"] = param;
+        jsonParam["ParameterValue"] = value;
+        newParamsArray.push(jsonParam);
     }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
@@ -237,7 +240,10 @@ function sendParamsAsJson() {
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // send the collected data as JSON
-    xhr.send(JSON.stringify(paramsArray));
+    var jsonArray = [];
+    jsonArray.push(newParamsArray);
+    jsonArray.push(origParams);
+    xhr.send(JSON.stringify(jsonArray));
 
     // Redirect to action progress screen
     window.location = baseUrl + "/actionprogress/" + action + "/" + stackNameForAction;

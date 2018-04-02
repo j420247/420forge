@@ -428,37 +428,40 @@ def envact(env, action, stack_name):
 @app.route('/update', methods = ['POST'])
 def updateJson():
     content = request.get_json()
-    app_type = "";
+    new_params = content[0]
+    orig_params = content[1]
+    app_type = ''
 
-    for param in content:
+    for param in new_params:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
+            continue
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             template_type = 'STGorDR' # not working, see below
-        # Hackity hack, I know, it's just for now
-        elif param['ParameterKey'] == 'ExternalSubnets':
-            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'InternalSubnets':
-            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'VPC':
-            param['ParameterValue'] = 'vpc-320c1355'
-        elif param['ParameterKey'] == 'DBMasterUserPassword' or param['ParameterKey'] == 'DBPassword':
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    stacks.append(mystack)
+    mystack.writeparms(new_params)
+
+    for param in new_params:
+        if param['ParameterKey'] != 'StackName' \
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
             del param['ParameterValue']
             param['UsePreviousValue'] = True
 
-    newcontent = [stack_param for stack_param in content if stack_param['ParameterKey'] != 'StackName']
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
 
     # this is a hack for now because the snapshot params are not in the stack_parms.
     # Need to think of a better way to check template based on params.
     template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
 
-    mystack = Stack(stack_name, session['env'], app_type)
-    stacks.append(mystack)
-    outcome = mystack.update(newcontent, template_type)
+    outcome = mystack.update(params_for_update, template_type)
     return outcome
 
 

@@ -410,7 +410,7 @@ class Stack:
 
     def update(self, stack_parms, template_type):
         self.state.update('action', 'update')
-        self.writeparms(stack_parms)
+        self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = f'{self.app_type.title()}{template_type}.template.yaml'
         template= f'wpe-aws/{self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
@@ -425,12 +425,15 @@ class Stack:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
+            self.state.logaction(log.ERROR, f'An error occurred: {e.args[0]}')
             return
         self.state.update('lburl', self.getLburl(stack_details))
-        self.state.logaction(log.INFO, f'Stack update has begun: {updated_stack}')
+        self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
         self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
-        self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated, waiting on service responding')
-        self.validate_service_responding()
+        if len([param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax']) > 0 \
+                and [param for param in stack_parms if 'ParameterValue' in param and param['ParameterKey'] == 'ClusterNodeMax'][0]['ParameterValue'] != 0:
+            self.state.logaction(log.INFO, 'Waiting for stack to respond')
+            self.validate_service_responding()
         self.state.logaction(log.INFO, "Final state")
         self.state.archive()
         return
