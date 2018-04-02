@@ -53,16 +53,19 @@ function selectStack(stackToRetrieve) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
 
-            var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
-                "-Datlassian.mail.fetchdisabled=true " +
-                "-Datlassian.mail.popdisabled=true";
-            var confluenceMailDisableParams = " -Dconfluence.disable.mailpolling=true";
-            if (document.getElementById("CatalinaOptsVal").value.indexOf(commonMailDisableParams) === -1) {
-                document.getElementById("CatalinaOptsVal").value += " " + commonMailDisableParams;
-            }
-            if (product == "Confluence") {
-                if (document.getElementById("CatalinaOptsVal").value.indexOf(confluenceMailDisableParams) === -1) {
-                    document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
+            // Disable mail by default on clones
+            if (action === 'clone') {
+                var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
+                    "-Datlassian.mail.fetchdisabled=true " +
+                    "-Datlassian.mail.popdisabled=true";
+                var confluenceMailDisableParams = " -Dconfluence.disable.mailpolling=true";
+                if (document.getElementById("CatalinaOptsVal").value.indexOf(commonMailDisableParams) === -1) {
+                    document.getElementById("CatalinaOptsVal").value += " " + commonMailDisableParams;
+                }
+                if (product == "Confluence") {
+                    if (document.getElementById("CatalinaOptsVal").value.indexOf(confluenceMailDisableParams) === -1) {
+                        document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
+                    }
                 }
             }
             $("#paramsForm").show();
