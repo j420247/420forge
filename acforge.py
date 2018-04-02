@@ -156,7 +156,7 @@ class stackParams(Resource):
                 app_type = 'Jira'
                 break
 
-        template_type = "STGorDR"
+        template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
         if env == 'stg':
             template_type = "DataCenter"
 
