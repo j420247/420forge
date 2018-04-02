@@ -1,3 +1,4 @@
 [submodule "wpe-aws"]
 	path = wpe-aws
 	url = ssh://git@stash.atlassian.com:7997/wpt/wpe-aws.git
+    ignore = all

@@ -1,6 +1,6 @@
 # imports
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pprint import pprint
 from stack import Stack
 import boto3
@@ -132,6 +132,17 @@ class stackState(Resource):
         for stack in stacks:
             if stack.stack_name == stack_name:
                 return stack.check_stack_state()
+        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+        try:
+            stack_state = cfn.describe_stacks(StackName=stack_name)
+        except Exception as e:
+            if "does not exist" in e.response['Error']['Message']:
+                print(f'Stack {self.stack_name} does not exist')
+                return f'Stack {self.stack_name} does not exist'
+            print(e.args[0])
+            return f'Error checking stack state: {e.args[0]}'
+        return stack_state['Stacks'][0]['StackStatus']
+
 
 
 class templateParamsForStack(Resource):
@@ -321,6 +332,7 @@ def get_current_log(stack_name):
             json_state = json.load(stack_state)
             if 'action_log' in json_state:
                 return json_state['action_log']
+    return False
 
 
 # This checks for SAML auth and sets a session timeout.
@@ -423,7 +435,7 @@ def envact(env, action, stack_name):
     return render_template(action + 'Options.html')
 
 
-@app.route('/update', methods = ['POST'])
+@app.route('/doupdate', methods = ['POST'])
 def updateJson():
     content = request.get_json()
     new_params = content[0]
@@ -434,14 +446,10 @@ def updateJson():
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
             continue
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             template_type = 'STGorDR' # not working, see below
 
-    mystack = Stack(stack_name, session['env'], app_type)
+    mystack = Stack(stack_name, session['env'])
     stacks.append(mystack)
     mystack.writeparms(new_params)
 
@@ -463,10 +471,10 @@ def updateJson():
     return outcome
 
 
-@app.route('/clone', methods = ['POST'])
+@app.route('/doclone', methods = ['POST'])
 def cloneJson():
-    content = request.get_json()
-    app_type = "";
+    content = request.get_json()[0]
+    app_type = ''
 
     for param in content:
         if param['ParameterKey'] == 'StackName':

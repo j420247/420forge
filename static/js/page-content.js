@@ -1,12 +1,13 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var env = $("meta[name=env]").attr("value");
+var action = $("meta[name=action]").attr("value");
+var stackName = "none";
+var version = "none";
 
 $(document).ready(function() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var stackName = "none";
     var version = "none";
-    var action = $("meta[name=action]").attr("value");
 
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
@@ -39,16 +40,18 @@ $(document).ready(function() {
         });
     }
 
-    addRefreshListener(stackName);
-
     var actionButton = document.getElementById("action-button");
-    actionButton.addEventListener("click", defaultActionBtnEvent);
+    if (actionButton)
+        actionButton.addEventListener("click", defaultActionBtnEvent);
 });
 
 var defaultActionBtnEvent = function (data) {
-    if (action === "upgrade" && version === 'none')
+    if (action === "upgrade" && version === 'none') {
         version = $("#upgradeVersionSelector").val();
-    performAction(action, env, stackName, version)
+        performAction(action, env, stackName, version)
+    } else {
+        performAction(action, env, stackName, version)
+    }
 };
 
 function selectStack(stackName, action) {
@@ -57,7 +60,7 @@ function selectStack(stackName, action) {
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
-    if (action == "upgrade") {
+    if (action === "upgrade") {
         $("#upgradeVersionSelector").removeAttr("disabled");
         $("#action-button").attr("aria-disabled", false);
 
@@ -69,17 +72,6 @@ function selectStack(stackName, action) {
         $("#action-button").attr("aria-disabled", false);
     }
     updateStats(stackName);
-}
-
-function addRefreshListener(stackName) {
-    var refreshButton = document.getElementById("refresh-status");
-    refreshButton.addEventListener("click", function (data) {
-        refreshButton.classList.remove("aui-iconfont-refresh");
-        refreshButton.classList.add("aui-icon-wait");
-        getStatus(stackName, null)
-        refreshButton.classList.remove("aui-icon-wait");
-        refreshButton.classList.add("aui-iconfont-refresh");
-    });
 }
 
 function getStatus(stackName) {
@@ -105,8 +97,7 @@ function getStatus(stackName) {
 
 function performAction(action, env, stackName, version) {
     if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
-        var action = $("meta[name=action]").attr("value");
-        var url = baseUrl + "/" + action + "/" + env + "/" + stackName;
+        var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
         var actionRequest = new XMLHttpRequest();
         if (action === "upgrade") {
@@ -153,7 +144,7 @@ function updateStats(stackName) {
 function getStatusLozenge(text) {
     var cssClass = "";
     text = text.trim();
-    text = text.replace(/"/g, "")
+    text = text.replace(/"/g, "");
     switch (text) {
         case "CREATE_COMPLETE":
         case "UPDATE_COMPLETE":

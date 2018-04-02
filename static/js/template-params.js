@@ -212,7 +212,7 @@ function sendParamsAsJson() {
         stackNameForAction = $("#stackSelector").text();
         newParamsArray.push(stackNameParam);
     } else {
-        stackNameForAction = document.getElementById("stacknameVal").value
+        stackNameForAction = document.getElementById("StackNameVal").value
     }
 
     for(var i = 0; i < newParams.length; i++) {
@@ -239,7 +239,7 @@ function sendParamsAsJson() {
     }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/" + action, true);
+    xhr.open("POST", baseUrl + "/do" + action, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // send the collected data as JSON
