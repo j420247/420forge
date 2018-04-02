@@ -11,7 +11,10 @@ $(document).ready(function() {
             stackName = data.target.text;
             selectStack(stackName, action);
             clearTimeout(refreshTimer);
-            getStatus(stackName);
+            setTimeout(function () {
+                getStatus(stackName);
+                updateStats(stackName);
+            }, 5000);
             refreshStatus(stackName, true);
         }, false);
     }
@@ -32,11 +35,12 @@ function refreshStatus(stack_name, cont) {
     if (cont) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
-            if ($("#log").contents().text().search("Final state") != -1) {
+            updateStats(stack_name);
+            if ($("#log").contents().text().search("Final state") !== -1) {
                 refreshStatus(false);
             } else {
                 refreshStatus(stack_name, true);
             }
-        }, 5000)
+        }, 30000)
     }
 }
