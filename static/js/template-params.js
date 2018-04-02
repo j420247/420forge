@@ -209,7 +209,7 @@ function sendParamsAsJson() {
         stackNameForAction = $("#stackSelector").text();
         newParamsArray.push(stackNameParam);
     } else {
-        stackNameForAction = document.getElementById("stacknameVal").value
+        stackNameForAction = document.getElementById("StackNameVal").value
     }
 
     for(var i = 0; i < newParams.length; i++) {

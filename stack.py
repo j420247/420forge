@@ -17,14 +17,26 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, env, app_type):
+    def __init__(self, stack_name, env, app_type=None):
         self.state = Forgestate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.env = env
-        self.app_type = app_type
-        self.state.logaction(log.INFO, f'{stack_name} is a {app_type}')
         self.region = self.setRegion(env)
+        if app_type:
+            self.app_type = app_type
+        else:
+            try:
+                cfn = boto3.client('cloudformation', region_name=self.region)
+                stack_details = cfn.describe_stacks(StackName=self.stack_name)
+                if len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'JiraVersion']) == 1:
+                    self.app_type = "jira"
+                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
+                    self.app_type = "confluence"
+            except Exception as e:
+                print(e.args[0])
+                self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
+        self.state.logaction(log.INFO, f'{stack_name} is a {app_type}')
         self.state.update('environment', env)
         self.state.update('region', self.region)
 
