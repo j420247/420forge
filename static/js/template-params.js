@@ -86,12 +86,50 @@ function createInputParameter(param, fieldset) {
     label.innerHTML = param.ParameterKey;
     div.appendChild(label);
 
-    var input = document.createElement("INPUT");
-    input.className = "text";
-    input.id = param.ParameterKey + "Val";
-    input.value = param.ParameterValue;
-    div.appendChild(input);
+    if (param.AllowedValues) {
+        var dropdownAnchor = document.createElement("A");
+        dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
+        dropdownAnchor.setAttribute("aria-owns", param.ParameterKey + "Dropdown");
+        dropdownAnchor.setAttribute("aria-haspopup", "true");
+        dropdownAnchor.setAttribute("href", "#" + param.ParameterKey + "Dropdown");
+        dropdownAnchor.id = param.ParameterKey + "Val";
 
+        var dropdownDiv = document.createElement("DIV");
+        dropdownDiv.id = param.ParameterKey + "Dropdown";
+        dropdownDiv.className = "aui-style-default aui-dropdown2";
+
+        var ul = document.createElement("UL");
+        ul.className = "aui-list-truncate";
+
+        for (var allowedValue in param['AllowedValues']) {
+            var li = document.createElement("LI");
+            var liAnchor = document.createElement("A");
+            liAnchor.setAttribute("href", "#");
+            var text = document.createTextNode(param['AllowedValues'][allowedValue]);
+            liAnchor.appendChild(text);
+            liAnchor.addEventListener("click", function (data) {
+                dropdownAnchor.text = data.target.text;
+            }, false);
+            li.appendChild(liAnchor);
+            ul.appendChild(li);
+        }
+        if (param.ParameterValue)
+            dropdownAnchor.text = param.ParameterValue;
+        else if (param['Default'])
+            dropdownAnchor.text = param['Default'];
+        else
+            dropdownAnchor.text = 'Select';
+
+        div.appendChild(dropdownAnchor);
+        dropdownDiv.appendChild(ul);
+        div.appendChild(dropdownDiv);
+    } else {
+        var input = document.createElement("INPUT");
+        input.className = "text";
+        input.id = param.ParameterKey + "Val";
+        input.value = param.ParameterValue;
+        div.appendChild(input);
+    }
     fieldset.appendChild(div);
 }
 
@@ -187,7 +225,12 @@ function sendParamsAsJson() {
         } else if (param == "DBSnapshotName") {
             value = document.getElementById("rdsSnapshotSelector").innerText;
         } else {
-            value = newParams.item(i).getElementsByTagName("INPUT")[0].value;
+            var element = document.getElementById(param + "Val");
+            if (element.tagName.toLowerCase() === "a") {
+                value = element.text;
+            } else if (element.tagName.toLowerCase() === "input") {
+                value = element.value;
+            }
         }
 
         jsonParam["ParameterKey"] = param;
