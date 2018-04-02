@@ -1,13 +1,41 @@
 {% extends "template-params.html" %}
 
+{% block stackSelector %}
+{% endblock stackSelector %}
+
 {% block stackStatusPanel %}
 {% endblock stackStatusPanel %}
 
-{% block extraParams %}
-<div class="field-group">
-    <label for="StackNameVal">StackName</label>
-    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
-</div>
-{% endblock extraParams %}
+{% block extraInput %}
+    {% block productSelector %}
+    <div class="aui-panel">
+        <a id="productSelector" href="#productSelection" aria-owns="productSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            {% block productSelectorDescription %}
+            Select Product
+            {% endblock productSelectorDescription %}
+        </a>
+
+        <!-- Dropdown -->
+        <div id="productSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate">
+                {% for product in session['products'] %}
+                <li><a class="selectProductOption">{{ product }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endblock productSelector %}
+{% endblock extraInput %}
+
+{% block Parameters %}
+{{ super() }}
+    {% block extraParams %}
+    <div class="field-group">
+        <label for="StackNameVal">StackName</label>
+        <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
+    </div>
+    {% endblock extraParams %}
+{% endblock Parameters %}
 
 {% block buttonText %}Create{% endblock buttonText %}

@@ -16,6 +16,7 @@ from pathlib import Path
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
+PRODUCTS = ["Jira", "Confluence"]
 
 # using dict of dicts called forgestate to track state of all actions
 forgestate = defaultdict(dict)
@@ -316,7 +317,7 @@ def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
-        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE']
+        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE'] #TODO review if we want to include stacks being updated/created/destroyed etc
     )
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
@@ -361,6 +362,7 @@ def index():
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+    session['products'] = PRODUCTS
     session['action'] = 'none'
     return render_template('index.html')
 
