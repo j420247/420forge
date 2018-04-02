@@ -10,7 +10,6 @@ from flask import Flask, request, session, redirect, url_for, \
 from flask_restful import Api, Resource
 import flask_saml
 from ruamel import yaml
-import log
 import argparse
 import json
 from pathlib import Path
@@ -143,7 +142,44 @@ class stackParams(Resource):
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
-        return stack_details['Stacks'][0]['Parameters']
+        stack_params = stack_details['Stacks'][0]['Parameters']
+
+        def general_constructor(loader, tag_suffix, node):
+            return node.value
+
+        #  Determine app type
+        for param in stack_params:
+            if param['ParameterKey'] == 'ConfluenceVersion':
+                app_type = 'Confluence'
+                break
+            elif param['ParameterKey'] == 'JiraVersion':
+                app_type = 'Jira'
+                break
+
+        template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
+        if env == 'stg':
+            template_type = "DataCenter"
+
+        template_file = open(f'wpe-aws/{ app_type.lower() }/{ app_type}{ template_type }.template.yaml', "r")
+        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+        template_params = yaml.safe_load(template_file)
+
+        # Remove old stack params that are no longer on the template
+        # To do this we need to build a new list
+        compared_params = []
+        for stack_param in stack_params:
+            if stack_param['ParameterKey'] in template_params['Parameters']:
+                compared_params.append(stack_param)
+            else:
+                print("Parameter not found: " + stack_param['ParameterKey'])
+
+        # Add new params from the template to the stack params
+        for param in template_params['Parameters']:
+            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+                if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
+                    compared_params.append({'ParameterKey': param,
+                                            'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
+        return compared_params
 
 
 class actionReadyToStart(Resource):
@@ -282,7 +318,6 @@ def check_loggedin():
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
         print("Bypassing SAML auth because --nosaml has been set - the app can be accessed on 127.0.0.1")
-        print(args.nosaml)
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
