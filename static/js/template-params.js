@@ -13,10 +13,15 @@ $(document).ready(function() {
         }, false);
     }
 
+    AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
+        sendParamsAsJson();
+        event.preventDefault();
+    });
+
     var actionButton = document.getElementById("action-button");
     actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
-        sendParamsAsJson();
+        $("#paramsForm").submit();
     });
 });
 
@@ -104,7 +109,6 @@ function createInputParameter(param, fieldset) {
         for (var allowedValue in param['AllowedValues']) {
             var li = document.createElement("LI");
             var liAnchor = document.createElement("A");
-            liAnchor.setAttribute("href", "#");
             var text = document.createTextNode(param['AllowedValues'][allowedValue]);
             liAnchor.appendChild(text);
             liAnchor.addEventListener("click", function (data) {
@@ -128,6 +132,11 @@ function createInputParameter(param, fieldset) {
         input.className = "text";
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
+        if (action === 'clone' && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+            input.setAttribute("data-aui-validation-field","");
+            input.value = "";
+            input.required = true;
+        }
         div.appendChild(input);
     }
     fieldset.appendChild(div);
