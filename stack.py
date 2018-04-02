@@ -43,7 +43,7 @@ class Stack:
 
     def getLburl(self, stack_details):
         rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + self.state.forgestate['tomcatcontextpath']
+                    p['OutputKey'] == 'LoadBalancerURL'][0] + self.getparamvalue('tomcatcontextpath')
         return rawlburl.replace("https", "http")
 
     def writeparms(self, parms):
@@ -61,6 +61,13 @@ class Stack:
             self.state.logaction(log.ERROR, f'can not load parms, {self.stack_name}.parms.json does not exist')
             sys.exit() # do we really want to stop Forge at this point? If so, remove the 'return' because it's unreachable.
             return
+
+    def getparamvalue(self, param_to_get):
+        params = self.readparms()
+        for param in params:
+            if param['ParameterKey'].lower() == param_to_get.lower():
+                return param['ParameterValue']
+        return ''
 
     def update_parmlist(self, parmlist, parmkey, parmvalue):
         key_found=False
@@ -400,6 +407,37 @@ class Stack:
         self.destroy()
         self.create(parms=stack_parms, clone=True)
         return
+
+    def update(self, stack_parms, template_type):
+        self.state.update('action', 'update')
+        self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
+        template_filename = f'{self.app_type.title()}{template_type}.template.yaml'
+        template= f'wpe-aws/{self.app_type}/{template_filename}'
+        self.upload_template(template, template_filename)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            updated_stack = cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_parms,
+                TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
+                Capabilities=['CAPABILITY_IAM'],
+            )
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+        except Exception as e:
+            print(e.args[0])
+            self.state.logaction(log.ERROR, f'An error occurred: {e.args[0]}')
+            return
+        self.state.update('lburl', self.getLburl(stack_details))
+        self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
+        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        if len([param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax']) > 0 \
+                and [param for param in stack_parms if 'ParameterValue' in param and param['ParameterKey'] == 'ClusterNodeMax'][0]['ParameterValue'] != 0:
+            self.state.logaction(log.INFO, 'Waiting for stack to respond')
+            self.validate_service_responding()
+        self.state.logaction(log.INFO, "Final state")
+        self.state.archive()
+        return
+
 
     #  TODO create like
     # def create_like(self, like_stack, changeparms):

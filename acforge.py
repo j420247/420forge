@@ -160,7 +160,7 @@ class stackParams(Resource):
         if env == 'stg':
             template_type = "DataCenter"
 
-        template_file = open(f'wpe-aws/{ app_type.lower() }/{ app_type}{ template_type }.template.yaml', "r")
+        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -251,6 +251,10 @@ def create():
 def destroy():
     return render_template('destroy.html')
 
+@app.route('/update', methods = ['GET'])
+def update():
+    return render_template('update.html')
+
 @app.route('/viewlog', methods = ['GET'])
 def viewlog():
     return render_template('viewlog.html')
@@ -278,6 +282,7 @@ api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
 
 def app_active_in_lb(forgestate, node):
     return(forgestate)
+
 
 ##
 #### Common functions
@@ -308,7 +313,9 @@ def get_current_log(stack_name):
     statefile = Path(stack_name + '.json')
     if statefile.is_file():
         with open(statefile, 'r') as stack_state:
-            return json.load(stack_state)['action_log']
+            json_state = json.load(stack_state)
+            if 'action_log' in json_state:
+                return json_state['action_log']
 
 
 # This checks for SAML auth and sets a session timeout.
@@ -411,12 +418,49 @@ def envact(env, action, stack_name):
     return render_template(action + 'Options.html')
 
 
+@app.route('/update', methods = ['POST'])
+def updateJson():
+    content = request.get_json()
+    new_params = content[0]
+    orig_params = content[1]
+    app_type = ''
+
+    for param in new_params:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            template_type = 'STGorDR' # not working, see below
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    stacks.append(mystack)
+    mystack.writeparms(new_params)
+
+    for param in new_params:
+        if param['ParameterKey'] != 'StackName' \
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+
+    # this is a hack for now because the snapshot params are not in the stack_parms.
+    # Need to think of a better way to check template based on params.
+    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
+
+    outcome = mystack.update(params_for_update, template_type)
+    return outcome
+
+
 @app.route('/clone', methods = ['POST'])
 def cloneJson():
-    print(request.is_json)
     content = request.get_json()
-    print(content)
-
     app_type = "";
 
     for param in content:

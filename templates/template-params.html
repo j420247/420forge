@@ -1,0 +1,19 @@
+{% extends "page-content.html" %}
+{% block head %}
+    <script src="/static/js/template-params.js"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<!-- Parameters -->
+<form class="aui long-label" id="paramsForm">
+    <field-set>
+        {% block extraParams %}
+        {% endblock extraParams %}
+
+        {% block paramsList %}
+        <!-- Parameters -->
+        <div id="paramsList"></div>
+        {% endblock paramsList %}
+    </field-set>
+</form>
+{% endblock extraInput %}

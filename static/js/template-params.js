@@ -1,14 +1,15 @@
 $(document).unbind('ready');
+var action = $("meta[name=action]").attr("value");
 
 $(document).ready(function() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var stackName = "none";
+    var stackToRetrieve = "none";
 
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            stackName = data.target.text;
-            selectStack(stackName);
+            stackToRetrieve = data.target.text;
+            selectStack(stackToRetrieve);
         }, false);
     }
 
@@ -19,30 +20,32 @@ $(document).ready(function() {
     });
 });
 
-function selectStack(stackName) {
-    $("#stackSelector").text(stackName);
-    $("#stackName").text(stackName);
+function selectStack(stackToRetrieve) {
+    $("#stackSelector").text(stackToRetrieve);
+    $("#stackName").text(stackToRetrieve);
 
-    getEbsSnapshots(baseUrl, stackName);
-    getRdsSnapshots(baseUrl, stackName);
+    if (action == 'clone') {
+        getEbsSnapshots(baseUrl, stackToRetrieve);
+        getRdsSnapshots(baseUrl, stackToRetrieve);
+    }
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackName, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackToRetrieve, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
-            params = JSON.parse(stackParamsRequest.responseText);
-            params.sort(function(a, b) {
+            origParams = JSON.parse(stackParamsRequest.responseText);
+            origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 
             $("#paramsList").html("");
             var fieldset = document.createElement("FIELDSET");
             fieldset.id = "fieldSet";
 
-            for (var param in params) {
-                createInputParameter(params[param], fieldset);
-                if (params[param].ParameterKey == "ConfluenceVersion") {
+            for (var param in origParams) {
+                createInputParameter(origParams[param], fieldset);
+                if (origParams[param].ParameterKey === "ConfluenceVersion") {
                     product = "Confluence";
                 }
             }
@@ -50,11 +53,20 @@ function selectStack(stackName) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
 
-            document.getElementById("CatalinaOptsVal").value += " -Datlassian.mail.senddisabled=true " +
-                "-Datlassian.mail.fetchdisabled=true " +
-                "-Datlassian.mail.popdisabled=true";
-            if (product == "Confluence") {
-                document.getElementById("CatalinaOptsVal").value += " -Dconfluence.disable.mailpolling=true";
+            // Disable mail by default on clones
+            if (action === 'clone') {
+                var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
+                    "-Datlassian.mail.fetchdisabled=true " +
+                    "-Datlassian.mail.popdisabled=true";
+                var confluenceMailDisableParams = " -Dconfluence.disable.mailpolling=true";
+                if (document.getElementById("CatalinaOptsVal").value.indexOf(commonMailDisableParams) === -1) {
+                    document.getElementById("CatalinaOptsVal").value += " " + commonMailDisableParams;
+                }
+                if (product == "Confluence") {
+                    if (document.getElementById("CatalinaOptsVal").value.indexOf(confluenceMailDisableParams) === -1) {
+                        document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
+                    }
+                }
             }
             $("#paramsForm").show();
         }
@@ -83,9 +95,9 @@ function createInputParameter(param, fieldset) {
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(baseUrl, stackName) {
+function getEbsSnapshots(baseUrl, stackToRetrieve) {
     var ebsSnapshotRequest = new XMLHttpRequest();
-    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + stackName, true);
+    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + stackToRetrieve, true);
     ebsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     ebsSnapshotRequest.onreadystatechange = function () {
         if (ebsSnapshotRequest.readyState === XMLHttpRequest.DONE && ebsSnapshotRequest.status === 200) {
@@ -116,9 +128,9 @@ function getEbsSnapshots(baseUrl, stackName) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(baseUrl, stackName) {
+function getRdsSnapshots(baseUrl, stackToRetrieve) {
     var rdsSnapshotRequest = new XMLHttpRequest();
-    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + stackName, true);
+    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + stackToRetrieve, true);
     rdsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     rdsSnapshotRequest.onreadystatechange = function () {
         if (rdsSnapshotRequest.readyState === XMLHttpRequest.DONE && rdsSnapshotRequest.status === 200) {
@@ -150,13 +162,24 @@ function getRdsSnapshots(baseUrl, stackName) {
 }
 
 function sendParamsAsJson() {
-    // collect the form data while iterating over the inputs
-    var paramsArray = [];
-    var params = document.getElementsByClassName("field-group");
+    var newParamsArray = [];
+    var stackNameParam = {};
+    var stackNameForAction = "";
+    var newParams = document.getElementsByClassName("field-group");
 
-    for(var i = 0; i < params.length; i++) {
+    if (action == 'update') {
+        // Add stack name and env to params
+        stackNameParam["ParameterKey"] = "StackName";
+        stackNameParam["ParameterValue"] = $("#stackSelector").text();
+        stackNameForAction = $("#stackSelector").text();
+        newParamsArray.push(stackNameParam);
+    } else {
+        stackNameForAction = document.getElementById("stacknameVal").value
+    }
+
+    for(var i = 0; i < newParams.length; i++) {
         var jsonParam = {};
-        var param = params.item(i).getElementsByTagName("LABEL")[0].innerHTML;
+        var param = newParams.item(i).getElementsByTagName("LABEL")[0].innerHTML;
         var value;
 
         if (param == "EBSSnapshotId") {
@@ -164,25 +187,24 @@ function sendParamsAsJson() {
         } else if (param == "DBSnapshotName") {
             value = document.getElementById("rdsSnapshotSelector").innerText;
         } else {
-            value = params.item(i).getElementsByTagName("INPUT")[0].value;
+            value = newParams.item(i).getElementsByTagName("INPUT")[0].value;
         }
 
-        if (param != 'EnableBanner' && param != 'EnableTCPForwarding' && param != 'NumBastionHosts' &&
-            param != 'BastionAMIOS' && param != 'BastionBanner' && param != 'EnableX11Forwarding' && param != 'BastionInstanceType') {
-
-            jsonParam["ParameterKey"] = param;
-            jsonParam["ParameterValue"] = value;
-            paramsArray.push(jsonParam);
-        }
+        jsonParam["ParameterKey"] = param;
+        jsonParam["ParameterValue"] = value;
+        newParamsArray.push(jsonParam);
     }
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/clone", true);
+    xhr.open("POST", baseUrl + "/" + action, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // send the collected data as JSON
-    xhr.send(JSON.stringify(paramsArray));
+    var jsonArray = [];
+    jsonArray.push(newParamsArray);
+    jsonArray.push(origParams);
+    xhr.send(JSON.stringify(jsonArray));
 
     // Redirect to action progress screen
-    window.location = baseUrl + "/actionprogress/clone/" + document.getElementById("stacknameVal").value;
+    window.location = baseUrl + "/actionprogress/" + action + "/" + stackNameForAction;
 }
