@@ -10,7 +10,6 @@ from flask import Flask, request, session, redirect, url_for, \
 from flask_restful import Api, Resource
 import flask_saml
 from ruamel import yaml
-import log
 import argparse
 import json
 from pathlib import Path
@@ -326,7 +325,6 @@ def check_loggedin():
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
         print("Bypassing SAML auth because --nosaml has been set - the app can be accessed on 127.0.0.1")
-        print(args.nosaml)
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
