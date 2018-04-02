@@ -106,7 +106,6 @@ function createInputParameter(param, fieldset) {
         for (var allowedValue in param['AllowedValues']) {
             var li = document.createElement("LI");
             var liAnchor = document.createElement("A");
-            liAnchor.setAttribute("href", "#");
             var text = document.createTextNode(param['AllowedValues'][allowedValue]);
             liAnchor.appendChild(text);
             liAnchor.addEventListener("click", function (data) {
