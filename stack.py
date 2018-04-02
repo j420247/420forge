@@ -267,10 +267,13 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
-        except botocore.exceptions.ClientError as e:
+        except Exception as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
                 return
+            print(e.args[0])
+            self.state.logaction(log.ERROR, f'Error checking stack state: {e.args[0]}')
+            return
         return stack_state['Stacks'][0]['StackStatus']
 
     def check_node_status(self, node_ip):
