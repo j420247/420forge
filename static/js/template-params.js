@@ -71,11 +71,10 @@ function selectStack(stackToRetrieve) {
                 }
             }
             $("#paramsForm").show();
+            $("#action-button").attr("aria-disabled", false);
         }
     };
     stackParamsRequest.send();
-
-    $("#action-button").attr("aria-disabled", false);
 }
 
 function createInputParameter(param, fieldset) {
