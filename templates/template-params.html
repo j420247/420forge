@@ -7,9 +7,11 @@
 {% endblock extraInput %}
 
 {% block Parameters %}
+{% block ParametersTop %}
 <!-- Parameters -->
 <form class="aui long-label" id="paramsForm">
     <field-set>
+{% endblock ParametersTop %}
         {% block extraParams %}
         {% endblock extraParams %}
 
@@ -17,6 +19,8 @@
         <!-- Parameters -->
         <div id="paramsList"></div>
         {% endblock paramsList %}
+        {% block ParametersBottom %}
     </field-set>
 </form>
+{% endblock ParametersBottom %}
 {% endblock Parameters %}

@@ -1,4 +1,8 @@
 {% extends "template-params.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="/static/js/create.js"></script>
+{% endblock head %}
 
 {% block stackSelector %}
 {% endblock stackSelector %}
@@ -11,9 +15,7 @@
     <div class="aui-panel">
         <a id="productSelector" href="#productSelection" aria-owns="productSelection" aria-haspopup="true"
            class="aui-button aui-style-default aui-dropdown2-trigger">
-            {% block productSelectorDescription %}
             Select Product
-            {% endblock productSelectorDescription %}
         </a>
 
         <!-- Dropdown -->
@@ -26,16 +28,30 @@
         </div>
     </div>
     {% endblock productSelector %}
+    {% block templateSelector %}
+    <div class="aui-panel">
+        <a id="templateSelector" href="#templateSelection" aria-owns="templateSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            Select Template
+        </a>
+
+        <!-- Dropdown -->
+        <div id="templateSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate">
+                {% for template in session['templates'] %}
+                <li><a class="selectTemplateOption">{{ template }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endblock templateSelector %}
 {% endblock extraInput %}
 
-{% block Parameters %}
-{{ super() }}
-    {% block extraParams %}
-    <div class="field-group">
-        <label for="StackNameVal">StackName</label>
-        <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
-    </div>
-    {% endblock extraParams %}
-{% endblock Parameters %}
+{% block extraParams %}
+<div class="field-group">
+    <label for="StackNameVal">StackName</label>
+    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
+</div>
+{% endblock extraParams %}
 
 {% block buttonText %}Create{% endblock buttonText %}

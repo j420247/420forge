@@ -16,7 +16,7 @@ from pathlib import Path
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
-PRODUCTS = ["Jira", "Confluence"]
+PRODUCTS = ["Jira", "Confluence", "Lab"]
 
 # using dict of dicts called forgestate to track state of all actions
 forgestate = defaultdict(dict)
@@ -143,7 +143,6 @@ class stackState(Resource):
             print(e.args[0])
             return f'Error checking stack state: {e.args[0]}'
         return stack_state['Stacks'][0]['StackStatus']
-
 
 
 class templateParamsForStack(Resource):
@@ -316,14 +315,21 @@ def getRegion(env):
 def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
-    stack_list = cfn.list_stacks(
-        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE'] #TODO review if we want to include stacks being updated/created/destroyed etc
-    )
+    stack_list = cfn.list_stacks()
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
     #TODO fix or remove
     #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
+
+
+def get_templates():
+    templates = []
+    conf_templates = Path("wpe-aws/confluence")
+    jira_templates = Path("wpe-aws/jira")
+    templates.extend([file.name for file in list(conf_templates.glob('**/*.yaml'))])
+    templates.extend([file.name for file in list(jira_templates.glob('**/*.yaml'))])
+    return templates
 
 
 def get_current_log(stack_name):
@@ -363,6 +369,7 @@ def index():
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['products'] = PRODUCTS
+    session['templates'] = get_templates()
     session['action'] = 'none'
     return render_template('index.html')
 
