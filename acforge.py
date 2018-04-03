@@ -138,11 +138,32 @@ class stackState(Resource):
             stack_state = cfn.describe_stacks(StackName=stack_name)
         except Exception as e:
             if "does not exist" in e.response['Error']['Message']:
-                print(f'Stack {self.stack_name} does not exist')
-                return f'Stack {self.stack_name} does not exist'
+                print(f'Stack {stack_name} does not exist')
+                return f'Stack {stack_name} does not exist'
             print(e.args[0])
             return f'Error checking stack state: {e.args[0]}'
         return stack_state['Stacks'][0]['StackStatus']
+
+class templateParams(Resource):
+    def get(self, template_name):
+        for product in PRODUCTS:
+            if product.lower() in template_name.lower():
+                app_type = product.lower()
+                break
+        template_file = open(f'wpe-aws/{app_type}/{template_name}', "r")
+        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+        template_params = yaml.safe_load(template_file)['Parameters']
+
+        params_to_send = []
+        for param in template_params:
+            params_to_send.append({'ParameterKey': param,
+                                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else ''})
+            if 'AllowedValues' in template_params[param]:
+                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['AllowedValues'] = \
+                    template_params[param]['AllowedValues']
+                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['Default'] = \
+                    template_params[param]['Default'] if 'Default' in template_params[param] else ''
+        return params_to_send
 
 
 class templateParamsForStack(Resource):
@@ -154,9 +175,6 @@ class templateParamsForStack(Resource):
             print(e.args[0])
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
-
-        def general_constructor(loader, tag_suffix, node):
-            return node.value
 
         #  Determine app type
         for param in stack_params:
@@ -289,6 +307,7 @@ api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
+api.add_resource(templateParams, '/templateParams/<template_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
@@ -353,6 +372,10 @@ def check_loggedin():
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
+
+
+def general_constructor(loader, tag_suffix, node):
+    return node.value
 
 
 @app.route('/')
@@ -477,6 +500,31 @@ def updateJson():
     template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
 
     outcome = mystack.update(params_for_update, template_type)
+    return outcome
+
+
+@app.route('/docreate', methods = ['POST'])
+def createJson():
+    content = request.get_json()[0]
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'TemplateName':
+            template_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+
+    mystack = Stack(stack_name, session['env'])
+    stacks.append(mystack)
+    mystack.writeparms(content)
+
+    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
+    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
     return outcome
 
 

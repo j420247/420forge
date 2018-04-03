@@ -461,7 +461,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, like_stack=None, like_env=None, parms=None, clone=False):
+    def create(self, like_stack=None, like_env=None, parms=None, clone=False, template_filename=None, app_type=None):
         # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
         # probably need to force mail disable catalina opts for safety (note from Denise: this is done in the JS in the front end so it can be modified)
         self.state.update('action', 'create')
@@ -476,13 +476,10 @@ class Stack:
         else:
             stack_parms = self.readparms()
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
-        # stack_parms = self.state.forgestate['stack_parms']
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        if clone:
+        if not template_filename:
             template_filename = f'{self.app_type.title()}STGorDR.template.yaml'
-        else:
-            template_filename =f'{self.app_type.title()}DataCenter.template.yaml'
-        template=f'wpe-aws/{self.app_type}/{template_filename}'
+        template=f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:

@@ -207,17 +207,25 @@ function getRdsSnapshots(baseUrl, stackToRetrieve) {
 function sendParamsAsJson() {
     var newParamsArray = [];
     var stackNameParam = {};
+    var templateNameParam = {};
     var stackNameForAction = "";
     var newParams = document.getElementsByClassName("field-group");
 
-    if (action == 'update') {
-        // Add stack name and env to params
+    if (action === 'update') {
+        // Add stack name to params
         stackNameParam["ParameterKey"] = "StackName";
         stackNameParam["ParameterValue"] = $("#stackSelector").text();
         stackNameForAction = $("#stackSelector").text();
         newParamsArray.push(stackNameParam);
     } else {
         stackNameForAction = document.getElementById("StackNameVal").value
+    }
+
+    if (action === 'create') {
+        // Add template name to params
+        templateNameParam["ParameterKey"] = "TemplateName";
+        templateNameParam["ParameterValue"] = $("#templateSelector").text();
+        newParamsArray.push(templateNameParam);
     }
 
     for(var i = 0; i < newParams.length; i++) {

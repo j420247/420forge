@@ -6,13 +6,12 @@ $(document).ready(function() {
             $("#productSelector").text(product);
 
             var templates = document.getElementsByClassName("selectTemplateOption");
-            for(var i = 0; i < templates.length + 1; i++) {
-                debugger;
+            for(var i = 0; i < templates.length; i++) {
                 if (templates[i].text.toLowerCase().indexOf(product.toLowerCase()) > -1) {
                     templates[i].removeAttribute("style");
                     templates[i].addEventListener("click", function (data) {
                         var selectedTemplate = data.target.text;
-                        $("#templateSelector").text = selectedTemplate;
+                        $("#templateSelector").text(selectedTemplate);
                         getTemplate(selectedTemplate);
                     }, false);
                 }
@@ -26,7 +25,7 @@ $(document).ready(function() {
 
 function getTemplate(template) {
     var templateParamsRequest = new XMLHttpRequest();
-    templateParamsRequest.open("GET", baseUrl + "/templateParams/" + templateName, true);
+    templateParamsRequest.open("GET", baseUrl + "/templateParams/" + template, true);
     templateParamsRequest.setRequestHeader("Content-Type", "text/xml");
     templateParamsRequest.onreadystatechange = function () {
         if (templateParamsRequest.readyState === XMLHttpRequest.DONE && templateParamsRequest.status === 200) {
