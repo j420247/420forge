@@ -137,7 +137,7 @@ class stackState(Resource):
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
         except Exception as e:
-            if "does not exist" in e.response['Error']['Message']:
+            if e.response and "does not exist" in e.response['Error']['Message']:
                 print(f'Stack {stack_name} does not exist')
                 return f'Stack {stack_name} does not exist'
             print(e.args[0])
