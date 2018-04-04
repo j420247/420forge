@@ -46,7 +46,7 @@ class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.destroy()
+        outcome = mystack.upgrade(new_version)
         return
 
 
