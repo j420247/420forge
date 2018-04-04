@@ -334,7 +334,10 @@ def getRegion(env):
 def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
-    stack_list = cfn.list_stacks()
+    stack_list = cfn.list_stacks(
+        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE',
+                           'CREATE_IN_PROGRESS', 'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
+                           'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE'])
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
     #TODO fix or remove
