@@ -96,10 +96,10 @@
                                     <li {% if session['action'] == 'update' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack</a>
                                     </li>
-                                    {% if session['env'] == "prod" %}
                                     <li {% if session['action'] == 'clone' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
                                     </li>
+                                    {% if session['env'] == "prod" %}
                                     <li {% if session['action'] == 'backup' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
                                     </li>
