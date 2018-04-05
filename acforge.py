@@ -96,13 +96,9 @@ class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        try:
-            outcome = mystack.destroy()
-        except:
-            pass
         outcome = mystack.create(pg_pass, app_pass, app_type)
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
-        return
+        return outcome
 
 
 class status(Resource):
