@@ -13,6 +13,7 @@ from ruamel import yaml
 import argparse
 import json
 from pathlib import Path
+import log
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -84,8 +85,10 @@ class dodestroy(Resource):
         stacks.append(mystack)
         try:
             outcome = mystack.destroy()
-        except:
-            pass
+            session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, e.args[0])
         return
 
 
@@ -93,12 +96,9 @@ class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        try:
-            outcome = mystack.destroy()
-        except:
-            pass
         outcome = mystack.create(pg_pass, app_pass, app_type)
-        return
+        session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        return outcome
 
 
 class status(Resource):
@@ -528,6 +528,7 @@ def createJson():
 
     params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
     outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
+    session['stacks'] = sorted(get_cfn_stacks_for_environment())
     return outcome
 
 
