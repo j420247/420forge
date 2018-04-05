@@ -96,21 +96,19 @@ function getStatus(stackName) {
 }
 
 function performAction(action, env, stackName, version) {
-    if (window.confirm('Are you sure? These buttons are connected now so your action will fire.')) {
-        var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
+    var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
-        var actionRequest = new XMLHttpRequest();
-        if (action === "upgrade") {
-            url += "/" + version;
-        }
-
-        actionRequest.open("GET", url, true);
-        actionRequest.setRequestHeader("Content-Type", "text/xml");
-        actionRequest.send();
-
-        // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+    var actionRequest = new XMLHttpRequest();
+    if (action === "upgrade") {
+        url += "/" + version;
     }
+
+    actionRequest.open("GET", url, true);
+    actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.send();
+
+    // Redirect to action progress screen
+    window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
 }
 
 function updateStats(stackName) {
