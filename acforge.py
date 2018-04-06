@@ -159,10 +159,8 @@ class templateParams(Resource):
             params_to_send.append({'ParameterKey': param,
                                     'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else ''})
             if 'AllowedValues' in template_params[param]:
-                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['AllowedValues'] = \
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
-                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['Default'] = \
-                    template_params[param]['Default'] if 'Default' in template_params[param] else ''
         return params_to_send
 
 
