@@ -13,6 +13,7 @@ from ruamel import yaml
 import argparse
 import json
 from pathlib import Path
+from os import path
 import log
 
 # global configuration
@@ -159,10 +160,8 @@ class templateParams(Resource):
             params_to_send.append({'ParameterKey': param,
                                     'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else ''})
             if 'AllowedValues' in template_params[param]:
-                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['AllowedValues'] = \
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
-                next(compared_param for compared_param in params_to_send if compared_param['ParameterKey'] == param)['Default'] = \
-                    template_params[param]['Default'] if 'Default' in template_params[param] else ''
         return params_to_send
 
 
@@ -356,9 +355,12 @@ def get_templates():
 
 def get_current_log(stack_name):
     statefile = Path(stack_name + '.json')
-    if statefile.is_file():
+    if statefile.is_file() and path.getsize(statefile) > 0:
         with open(statefile, 'r') as stack_state:
-            json_state = json.load(stack_state)
+            try:
+                json_state = json.load(stack_state)
+            except Exception as e:
+                print(e.args[0])
             if 'action_log' in json_state:
                 return json_state['action_log']
     return False

@@ -11,10 +11,8 @@ $(document).ready(function() {
             stackName = data.target.text;
             selectStack(stackName, action);
             clearTimeout(refreshTimer);
-            setTimeout(function () {
-                getStatus(stackName);
-                updateStats(stackName);
-            }, 5000);
+            getStatus(stackName);
+            updateStats(stackName);
             refreshStatus(stackName, true);
         }, false);
     }
