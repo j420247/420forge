@@ -111,7 +111,7 @@ function performAction(action, env, stackName, version) {
     setTimeout(function () {
         // Redirect to action progress screen
         window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
-    }, 2000);
+    }, 1000);
 }
 
 function updateStats(stackName) {

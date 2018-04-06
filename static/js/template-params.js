@@ -277,5 +277,5 @@ function sendParamsAsJson() {
     setTimeout(function () {
         // Redirect to action progress screen
         window.location = baseUrl + "/actionprogress/" + action + "/" + stackNameForAction;
-    }, 2000);
+    }, 1000);
 }
