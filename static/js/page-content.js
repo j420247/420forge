@@ -107,8 +107,11 @@ function performAction(action, env, stackName, version) {
     actionRequest.setRequestHeader("Content-Type", "text/xml");
     actionRequest.send();
 
-    // Redirect to action progress screen
-    window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+    // Wait a mo for action to begin  in backend
+    setTimeout(function () {
+        // Redirect to action progress screen
+        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+    }, 2000);
 }
 
 function updateStats(stackName) {
