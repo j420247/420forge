@@ -13,6 +13,7 @@ from ruamel import yaml
 import argparse
 import json
 from pathlib import Path
+from os import path
 import log
 
 # global configuration
@@ -354,9 +355,12 @@ def get_templates():
 
 def get_current_log(stack_name):
     statefile = Path(stack_name + '.json')
-    if statefile.is_file():
+    if statefile.is_file() and path.getsize(statefile) > 0:
         with open(statefile, 'r') as stack_state:
-            json_state = json.load(stack_state)
+            try:
+                json_state = json.load(stack_state)
+            except Exception as e:
+                print(e.args[0])
             if 'action_log' in json_state:
                 return json_state['action_log']
     return False
