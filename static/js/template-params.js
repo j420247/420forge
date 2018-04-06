@@ -112,6 +112,17 @@ function createInputParameter(param, fieldset) {
             liAnchor.appendChild(text);
             liAnchor.addEventListener("click", function (data) {
                 dropdownAnchor.text = data.target.text;
+                if (dropdownAnchor.id === "TomcatSchemeVal") {
+                    debugger;
+                    if (data.target.text === "https") {
+                        document.getElementById("TomcatProxyPortVal").value = "443";
+                        document.getElementById("TomcatSecureVal").value = "true";
+                    }
+                    else if (data.target.text === "http") {
+                        document.getElementById("TomcatProxyPortVal").value = "80";
+                        document.getElementById("TomcatSecureVal").value = "false";
+                    }
+                }
             }, false);
             li.appendChild(liAnchor);
             ul.appendChild(li);
