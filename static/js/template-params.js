@@ -116,7 +116,7 @@ function createInputParameter(param, fieldset) {
             li.appendChild(liAnchor);
             ul.appendChild(li);
         }
-        if (typeof param.ParameterValue !== "undefined")
+        if (param.ParameterValue.length !== 0)
             dropdownAnchor.text = param.ParameterValue;
         else
             dropdownAnchor.text = 'Select';
