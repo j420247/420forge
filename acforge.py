@@ -15,6 +15,8 @@ import json
 from pathlib import Path
 from os import path
 import log
+from flask_sqlalchemy import SQLAlchemy
+from flask_sessionstore import Session
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -47,6 +49,13 @@ else:
    print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
+# Create a SQLalchemy db for session and permission storge.
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+db = SQLAlchemy(app)
+session_store = Session(app)
+session_store.app.session_interface.db.create_all()
 
 ##
 #### REST Endpoint classes

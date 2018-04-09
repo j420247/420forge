@@ -4,3 +4,4 @@ atl-cfn-forge.iml
 general.json
 *.json
 __pycache__*
+*.db
