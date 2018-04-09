@@ -274,7 +274,9 @@ class Stack:
             print(e.args[0])
             self.state.logaction(log.ERROR, f'Error checking stack state: {e.args[0]}')
             return
-        return stack_state['Stacks'][0]['StackStatus']
+        state = stack_state['Stacks'][0]['StackStatus']
+        self.state.logaction(log.INFO, f'Stack state is: {state}')
+        return state
 
     def check_node_status(self, node_ip):
         self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}/status')
