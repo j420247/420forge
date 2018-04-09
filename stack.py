@@ -198,12 +198,16 @@ class Stack:
         )
         self.state.logaction(log.INFO, str(update_stack))
         self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        self.state.logaction(log.INFO, "Successfully spun down to 0 nodes")
         return
 
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
         self.state.logaction(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
         while stack_state == in_progress_state:
+            if stack_state == "ROLLBACK_COMPLETE":
+                self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
+                return False
             self.state.logaction(log.INFO, "====> stack_state is: " + stack_state)
             time.sleep(60)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
@@ -231,9 +235,10 @@ class Stack:
                 Capabilities=['CAPABILITY_IAM'],
             )
         except botocore.exceptions.ClientError as e:
-            self.state.logaction(log.INFO, f'stack spinup failed {e.args[0]}')
+            self.state.logaction(log.INFO, f'Stack spinup failed: {e.args[0]}')
             sys.exit()
         self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        self.state.logaction(log.INFO, "Spun up to 1 node, waiting for service to respond")
         self.validate_service_responding()
         self.state.logaction(log.INFO, f'Update stack: {update_stack}')
         return
@@ -257,7 +262,7 @@ class Stack:
             status = service_status.text if service_status.text else "...?"
             self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
-            return service_status.text
+            return status
         except requests.exceptions.ReadTimeout as e:
             self.state.logaction(log.INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
         return "Timed Out"
