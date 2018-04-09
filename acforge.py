@@ -20,6 +20,15 @@ import log
 SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Lab"]
 
+parser = argparse.ArgumentParser(description='Forge')
+parser.add_argument('--nosaml',
+                        action='store_true',
+                        help='Start with --nosaml to bypass SAML for local testing')
+parser.add_argument('--prod',
+                        action='store_true',
+                        help='Start with --prod for SAML production auth. Default (no args) is dev auth')
+args = parser.parse_args()
+
 # using dict of dicts called forgestate to track state of all actions
 forgestate = defaultdict(dict)
 
@@ -31,14 +40,13 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
+if args.prod:
+   print("SAML auth set to production - the app can be accessed on https://forge.wpt.atlassian.com")
+   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
+else: 
+   print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
+   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
-
-parser = argparse.ArgumentParser(description='Forge')
-parser.add_argument('--nosaml',
-                        action='store_true',
-                        help='Start with --nosaml to bypass SAML for local dev')
-args = parser.parse_args()
 
 ##
 #### REST Endpoint classes
