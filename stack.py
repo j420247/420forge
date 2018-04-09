@@ -423,6 +423,7 @@ class Stack:
 
 
     def clone(self, stack_parms):
+        self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('action', 'clone')
         self.writeparms(stack_parms)
         # TODO popup confirming if you want to destroy existing
