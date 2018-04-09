@@ -23,24 +23,24 @@ $(document).ready(function() {
         $("#stackSelector").hide();
         selectStack(stackName);
         getStatus(stackName);
-        refreshStatus(stackName, true);
+        refreshStatus(true);
     }
 });
 
 // Refresh the status every 30s while the action is still underway
-function refreshStatus(stack_name, cont) {
+function refreshStatus(cont) {
     if (cont) {
         refreshTimer = setTimeout(function () {
-            getStatus(stack_name);
-            updateStats(stack_name);
+            getStatus(stackName);
+            updateStats(stackName);
             // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
             var expectedFinalState = 1;
             if (action === 'clone' && countOccurences($("#log").contents().text(), "DELETE_IN_PROGRESS") >= 1)
                 expectedFinalState = 2;
-            if (countOccurences($("#log").contents().text(), "Final state") === expectedFinalState) {
+            if (countOccurences($("#log").contents().text(), "Final state") >= expectedFinalState) {
                 refreshStatus(false);
             } else {
-                refreshStatus(stack_name, true);
+                refreshStatus(true);
             }
         }, 30000)
     }
