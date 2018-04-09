@@ -15,7 +15,7 @@ $(document).ready(function() {
                 clearTimeout(refreshTimer);
                 getStatus(stack_name);
                 updateStats(stack_name);
-                refreshStatus(stack_name, true);
+                refreshStatus(stack_name, true, 1000);
             }, false);
         }
     // or if we got here from an action, refresh info now
@@ -23,25 +23,32 @@ $(document).ready(function() {
         $("#stackSelector").hide();
         selectStack(stackName);
         getStatus(stackName);
-        refreshStatus(stackName, true);
+        refreshStatus(stackName, true, 1000);
     }
 });
 
-// Refresh the status every 30s while the action is still underway
-function refreshStatus(stack_name, cont) {
+// Refresh the status while the action is still underway
+function refreshStatus(stack_name, cont, refresh_interval) {
     if (cont) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
             updateStats(stack_name);
+
+            // Set refresh interval sensibly
+            if (countOccurences($("#log").contents().text(), "No current status for" === 1))
+                refresh_interval = 1000;
+            else
+                refresh_interval = 30000;
+
             // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
             var expectedFinalState = 1;
             if (countOccurences($("#log").contents().text(), "Initiating clone") === 1 && countOccurences($("#log").contents().text(), "DELETE_IN_PROGRESS") >= 1)
                 expectedFinalState = 2;
             if (countOccurences($("#log").contents().text(), "Final state") >= expectedFinalState) {
-                refreshStatus(stack_name, false);
+                refreshStatus(stack_name, false, refresh_interval);
             } else {
-                refreshStatus(stack_name, true);
+                refreshStatus(stack_name, true, refresh_interval);
             }
-        }, 30000)
+        }, refresh_interval)
     }
 }
