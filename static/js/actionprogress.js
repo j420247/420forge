@@ -35,9 +35,9 @@ function refreshStatus(stack_name, cont) {
             updateStats(stack_name);
             // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
             var expectedFinalState = 1;
-            if (action === 'clone' && $("#log").contents().text().count("DELETE_IN_PROGRESS") >= 1)
+            if (action === 'clone' && countOccurences($("#log").contents().text(), "DELETE_IN_PROGRESS") >= 1)
                 expectedFinalState = 2;
-            if ($("#log").contents().text().count("Final state") === 1) {
+            if (countOccurences($("#log").contents().text(), "Final state") === expectedFinalState) {
                 refreshStatus(false);
             } else {
                 refreshStatus(stack_name, true);
