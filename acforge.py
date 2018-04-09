@@ -433,6 +433,8 @@ def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
     session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
@@ -441,6 +443,8 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
     return redirect(url_for(action))
 
 
