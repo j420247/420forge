@@ -367,10 +367,10 @@ def get_current_log(stack_name):
         with open(statefile, 'r') as stack_state:
             try:
                 json_state = json.load(stack_state)
+                if 'action_log' in json_state:
+                    return json_state['action_log']
             except Exception as e:
                 print(e.args[0])
-            if 'action_log' in json_state:
-                return json_state['action_log']
     return False
 
 
