@@ -54,7 +54,7 @@ var defaultActionBtnEvent = function (data) {
     }
 };
 
-function selectStack(stackName, action) {
+function selectStack() {
     $("#stackSelector").text(stackName);
     $("#stackName").text(stackName);
     $("#pleaseSelectStackMsg").hide();
@@ -74,7 +74,7 @@ function selectStack(stackName, action) {
     updateStats(stackName);
 }
 
-function getStatus(stackName) {
+function getStatus() {
     if (stackName === 'actionreadytostart') return;
 
     $("#log").css("background", "rgba(0,20,70,.08)");
@@ -95,7 +95,7 @@ function getStatus(stackName) {
     statusRequest.send();
 }
 
-function performAction(action, env, stackName, version) {
+function performAction() {
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
@@ -114,7 +114,7 @@ function performAction(action, env, stackName, version) {
     }, 1000);
 }
 
-function updateStats(stackName) {
+function updateStats() {
     if (stackName === 'actionreadytostart') return;
 
     removeElementsByClass("aui-lozenge");
