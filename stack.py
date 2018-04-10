@@ -190,12 +190,19 @@ class Stack:
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         self.state.logaction(log.INFO, f'Spindown params: {spindown_parms}')
-        update_stack = cfn.update_stack(
-            StackName=self.stack_name,
-            Parameters=spindown_parms,
-            UsePreviousTemplate=True,
-            Capabilities=['CAPABILITY_IAM'],
-        )
+        try:
+            update_stack = cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=spindown_parms,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'],
+            )
+        except Exception as e:
+            if 'No updates are to be performed' in e.args[0]:
+                self.state.logaction(log.INFO, 'Stack is already at 0 nodes')
+            print(e.args[0])
+            self.state.logaction(log.ERROR, f'An error occurred spinning down to 0 nodes: {e.args[0]}')
+            return
         self.state.logaction(log.INFO, str(update_stack))
         self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
         self.state.logaction(log.INFO, "Successfully spun down to 0 nodes")
