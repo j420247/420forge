@@ -345,8 +345,6 @@ class Stack:
         return
 
     def startup_app(self, instancelist):
-        cmd_id_list = []
-        # for instance in [d.keys() for d in instancelist]:
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
@@ -365,6 +363,24 @@ class Stack:
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_instance}: {result}')
                     time.sleep(30)
+        return
+
+    def run_command(self, instancelist, cmd):
+        cmd_id_dict = {}
+        for instancedict in instancelist:
+            instance = list(instancedict.keys())[0]
+            node_ip = list(instancedict.values())[0]
+            self.state.logaction(log.INFO, f'Running command {cmd} on ({node_ip})')
+            cmd_id_dict[self.ssm_send_command(instance, cmd)] = node_ip
+        for cmd_id in cmd_id_dict:
+            result = ""
+            while result != 'Success' and result != 'Failed':
+                result, cmd_instance = self.ssm_cmd_check(cmd_id)
+                time.sleep(10)
+            if result == 'Failed':
+                self.state.logaction(log.ERROR, f'Command result for {cmd_instance}: {result}')
+            else:
+                self.state.logaction(log.INFO, f'Command result for {cmd_instance}: {result}')
         return
 
 ## Stack - Major Action Methods
@@ -526,5 +542,23 @@ class Stack:
         for instance in self.instancelist:
             self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
+        self.state.logaction(log.INFO, "Final state")
+        return
+
+
+    def thread_dump(self):
+        self.state.logaction(log.INFO, f'Beginning thread dumps on {self.stack_name}')
+        self.get_stacknodes()
+        self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
+        self.state.logaction(log.INFO, "Final state")
+        return
+
+
+    def heap_dump(self):
+        self.state.logaction(log.INFO, f'Beginning heap dumps on {self.stack_name}')
+        self.get_stacknodes()
+        self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        self.run_command(self.instancelist, '/usr/local/bin/j2ee_heap_dump_live')
         self.state.logaction(log.INFO, "Final state")
         return

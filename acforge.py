@@ -97,7 +97,31 @@ class dodestroy(Resource):
             session['stacks'] = sorted(get_cfn_stacks_for_environment())
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred destroying stack: {e.args[0]}')
+        return
+
+
+class dothreaddumps(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.thread_dump()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred taking thread dumps: {e.args[0]}')
+        return
+
+
+class doheapdumps(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.heap_dump()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred taking heap dumps: {e.args[0]}')
         return
 
 
@@ -300,6 +324,10 @@ def update():
 def viewlog():
     return render_template('viewlog.html')
 
+@app.route('/diagnostics', methods = ['GET'])
+def diagnostics():
+    return render_template('diagnostics.html')
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
@@ -308,6 +336,8 @@ api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
 api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
+api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
+api.add_resource(doheapdumps, '/doheapdumps/<env>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
