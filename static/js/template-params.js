@@ -1,37 +1,35 @@
 $(document).unbind('ready');
-var action = $("meta[name=action]").attr("value");
 
 $(document).ready(function() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var stackToRetrieve = "none";
-
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            stackToRetrieve = data.target.text;
-            selectStack(stackToRetrieve);
+            selectTemplateForStack(data.target.text);
         }, false);
     }
-
-    AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
-        sendParamsAsJson();
-        event.preventDefault();
-    });
 
     var actionButton = document.getElementById("action-button");
     actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#paramsForm").submit();
     });
+
+    AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
+        sendParamsAsJson();
+        event.preventDefault();
+    });
 });
 
-function selectStack(stackToRetrieve) {
+function selectTemplateForStack(stackToRetrieve) {
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
         getEbsSnapshots(baseUrl, stackToRetrieve);
         getRdsSnapshots(baseUrl, stackToRetrieve);
+    } else{
+        $('meta[name=stack_name]').attr('value', stackToRetrieve);
     }
 
     var stackParamsRequest = new XMLHttpRequest();

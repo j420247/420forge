@@ -19,6 +19,9 @@ import log
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Lab"]
+VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
+                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
+                        'DELETE_FAILED']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -372,9 +375,7 @@ def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
-        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE',
-                           'CREATE_IN_PROGRESS', 'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
-                           'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE'])
+        StackStatusFilter=VALID_STACK_STATUSES)
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
     #TODO fix or remove
@@ -397,10 +398,10 @@ def get_current_log(stack_name):
         with open(statefile, 'r') as stack_state:
             try:
                 json_state = json.load(stack_state)
+                if 'action_log' in json_state:
+                    return json_state['action_log']
             except Exception as e:
                 print(e.args[0])
-            if 'action_log' in json_state:
-                return json_state['action_log']
     return False
 
 
@@ -463,6 +464,8 @@ def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
     session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
@@ -471,6 +474,8 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
     return redirect(url_for(action))
 
 
