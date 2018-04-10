@@ -19,6 +19,9 @@ import log
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Lab"]
+VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
+                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
+                        'DELETE_FAILED']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -342,9 +345,7 @@ def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
-        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE',
-                           'CREATE_IN_PROGRESS', 'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
-                           'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE'])
+        StackStatusFilter=VALID_STACK_STATUSES)
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
     #TODO fix or remove
