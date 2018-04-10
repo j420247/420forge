@@ -46,7 +46,7 @@ $(document).ready(function() {
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
-        var version = $("#upgradeVersionSelector").val();
+        version = $("#upgradeVersionSelector").val();
         $('meta[name=version]').attr('value', version);
     }
     performAction()
@@ -103,6 +103,7 @@ function getStatus(stack_name) {
 }
 
 function performAction() {
+    stackName = $("meta[name=stack_name]").attr("value");
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();

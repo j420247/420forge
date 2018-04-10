@@ -35,7 +35,7 @@ function refreshStatus(stack_name, cont, refresh_interval) {
             updateStats(stack_name);
 
             // Set refresh interval sensibly
-            if (countOccurences($("#log").contents().text(), "No current status for" === 1))
+            if (countOccurences($("#log").contents().text(), "No current status for") === 1)
                 refresh_interval = 1000;
             else
                 refresh_interval = 30000;
