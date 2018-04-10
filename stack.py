@@ -200,25 +200,31 @@ class Stack:
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
                 self.state.logaction(log.INFO, 'Stack is already at 0 nodes')
-            print(e.args[0])
-            self.state.logaction(log.ERROR, f'An error occurred spinning down to 0 nodes: {e.args[0]}')
-            return
+                return True
+            else:
+                print(e.args[0])
+                self.state.logaction(log.ERROR, f'An error occurred spinning down to 0 nodes: {e.args[0]}')
+                return False
         self.state.logaction(log.INFO, str(update_stack))
-        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
-        self.state.logaction(log.INFO, "Successfully spun down to 0 nodes")
-        return
+        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            self.state.logaction(log.INFO, "Successfully spun down to 0 nodes")
+            return True
+        return False
 
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
         self.state.logaction(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
         while stack_state == in_progress_state:
-            if stack_state == "ROLLBACK_COMPLETE":
+            if stack_state == 'ROLLBACK_COMPLETE':
                 self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
+                return False
+            elif 'FAILED' in stack_state:
+                self.state.logaction(log.ERROR,f'Stack action failed: {stack_state}')
                 return False
             self.state.logaction(log.INFO, "====> stack_state is: " + stack_state)
             time.sleep(60)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
-        return
+        return True
 
     def spinup_to_one_appnode(self):
         self.state.logaction(log.INFO, "Spinning stack up to one appnode")
@@ -243,12 +249,13 @@ class Stack:
             )
         except botocore.exceptions.ClientError as e:
             self.state.logaction(log.INFO, f'Stack spinup failed: {e.args[0]}')
-            sys.exit()
-        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+            return False
+        if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            return False
         self.state.logaction(log.INFO, "Spun up to 1 node, waiting for service to respond")
         self.validate_service_responding()
-        self.state.logaction(log.INFO, f'Update stack: {update_stack}')
-        return
+        self.state.logaction(log.INFO, f'Updated stack: {update_stack}')
+        return True
 
     def validate_service_responding(self):
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
@@ -303,7 +310,7 @@ class Stack:
         return "Timed Out"
 
     def spinup_remaining_nodes(self):
-        self.state.logaction(log.INFO, "Spinning up any remaining nodes in stack")
+        self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.state.forgestate['stack_parms']
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
@@ -315,15 +322,20 @@ class Stack:
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
-        update_stack = cfn.update_stack(
-            StackName=self.stack_name,
-            Parameters=spinup_parms,
-            UsePreviousTemplate=True,
-            Capabilities=['CAPABILITY_IAM'],
-        )
-        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
-        self.state.logaction(log.INFO, "Stack restored to full node count")
-        return
+        try:
+            update_stack = cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=spinup_parms,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'],
+            )
+        except Exception as e:
+            print(e.args[0])
+            self.state.logaction(log.ERROR, f'Error occurred spinning up remaining nodes: {e.args[0]}')
+            return False
+        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            self.state.logaction(log.INFO, "Stack restored to full node count")
+        return True
 
     def get_stacknodes(self):
         ec2 = boto3.resource('ec2', region_name=self.region)
@@ -391,10 +403,12 @@ class Stack:
         # get pre-upgrade state information
         self.get_current_state()
         # # spin stack down to 0 nodes
-        self.spindown_to_zero_appnodes()
+        if not self.spindown_to_zero_appnodes():
+            return
         # TODO change template if required
         # spin stack up to 1 node on new release version
-        self.spinup_to_one_appnode()
+        if not self.spinup_to_one_appnode():
+            return
         # spinup remaining appnodes in stack if needed
         if self.state.forgestate['appnodemin'] != "1":
             self.spinup_remaining_nodes()
@@ -419,14 +433,14 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
-                return
+                return True
         stack_id = stack_state['Stacks'][0]['StackId']
         delete_stack = cfn.delete_stack(StackName=self.stack_name)
-        self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id)
-        self.state.logaction(log.INFO, f'Destroy complete for stack {self.stack_name}: {delete_stack}')
+        if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
+            self.state.logaction(log.INFO, f'Destroy complete for stack {self.stack_name}: {delete_stack}')
         self.state.logaction(log.INFO, "Final state")
         self.state.archive()
-        return
+        return True
 
 
     def clone(self, stack_parms):
@@ -434,8 +448,9 @@ class Stack:
         self.state.update('action', 'clone')
         self.writeparms(stack_parms)
         # TODO popup confirming if you want to destroy existing
-        self.destroy()
-        self.create(parms=stack_parms, clone=True)
+        if self.destroy():
+            self.create(parms=stack_parms, clone=True)
+        self.state.archive()
         return
 
     def update(self, stack_parms, template_type):
@@ -459,7 +474,8 @@ class Stack:
             return
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
-        self.wait_stack_action_complete("UPDATE_IN_PROGRESS")
+        if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            return
         if len([param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax']) > 0 \
                 and [param for param in stack_parms if 'ParameterValue' in param and param['ParameterKey'] == 'ClusterNodeMax'][0]['ParameterValue'] != 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
@@ -511,7 +527,8 @@ class Stack:
             return
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
-        self.wait_stack_action_complete("CREATE_IN_PROGRESS")
+        if not self.wait_stack_action_complete("CREATE_IN_PROGRESS"):
+            return
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction(log.INFO, "Final state")
@@ -529,6 +546,7 @@ class Stack:
             self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Final state")
+        self.state.archive()
         return
 
 
@@ -542,4 +560,5 @@ class Stack:
             self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Final state")
+        self.state.archive()
         return
