@@ -1,25 +1,24 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var env = $("meta[name=env]").attr("value");
 var action = $("meta[name=action]").attr("value");
-var stackName = "none";
-var version = "none";
+var stackName = $("meta[name=stack_name]").attr("value");
+var version = $("meta[name=version]").attr("value");
 
 $(document).ready(function() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var version = "none";
 
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
-            stackName = data.target.text;
-            selectStack(stackName, action);
+            selectStack(data.target.text);
         }, false);
     }
 
     // currently only works for Confluence
     if (action === "upgrade" && stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
         document.getElementById("versionCheckButton").addEventListener("click", function (data) {
-            version = $("#upgradeVersionSelector").val();
+            var version = $("#upgradeVersionSelector").val();
+            $('meta[name=version]').attr('value', version);
             var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
             $.ajax({
                 url: url,
@@ -45,42 +44,50 @@ $(document).ready(function() {
         actionButton.addEventListener("click", defaultActionBtnEvent);
 });
 
-var defaultActionBtnEvent = function (data) {
-    if (action === "upgrade" && version === 'none') {
+var defaultActionBtnEvent = function() {
+    if (action === 'upgrade') {
         version = $("#upgradeVersionSelector").val();
-        performAction(action, env, stackName, version)
-    } else {
-        performAction(action, env, stackName, version)
+        $('meta[name=version]').attr('value', version);
     }
+    performAction()
 };
 
-function selectStack(stackName, action) {
-    $("#stackSelector").text(stackName);
-    $("#stackName").text(stackName);
+function selectStack(stack_name) {
+    $('meta[name=stack_name]').attr('value', stack_name);
+    $("#stackSelector").text(stack_name);
+    $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
-    if (action === "upgrade") {
-        $("#upgradeVersionSelector").removeAttr("disabled");
-        $("#action-button").attr("aria-disabled", false);
 
-        // currently only works for Confluence
-        if (stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1)
-            $("#versionCheckButton").removeAttr("disabled");
-    } else {
-        $("#versionCheckButton").hide();
-        $("#action-button").attr("aria-disabled", false);
+    switch (action) {
+        case "upgrade":
+            $("#upgradeVersionSelector").removeAttr("disabled");
+            $("#action-button").attr("aria-disabled", false);
+
+            // currently only works for Confluence
+            if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
+                $("#versionCheckButton").removeAttr("disabled");
+            break;
+        case "update":
+        case "clone":
+            $("#versionCheckButton").hide();
+            break;
+        default:
+            $("#versionCheckButton").hide();
+            $("#action-button").attr("aria-disabled", false);
     }
-    updateStats(stackName);
+
+    updateStats(stack_name);
 }
 
-function getStatus(stackName) {
-    if (stackName === 'actionreadytostart') return;
+function getStatus(stack_name) {
+    if (stack_name === 'actionreadytostart') return;
 
     $("#log").css("background", "rgba(0,20,70,.08)");
 
     var statusRequest = new XMLHttpRequest();
-    statusRequest.open("GET", baseUrl + "/status/" + stackName, true);
+    statusRequest.open("GET", baseUrl + "/status/" + stack_name, true);
     statusRequest.setRequestHeader("Content-Type", "text/xml");
     statusRequest.onreadystatechange = function () {
         if (statusRequest.readyState === XMLHttpRequest.DONE && statusRequest.status === 200) {
@@ -95,11 +102,13 @@ function getStatus(stackName) {
     statusRequest.send();
 }
 
-function performAction(action, env, stackName, version) {
+function performAction() {
+    stackName = $("meta[name=stack_name]").attr("value");
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
     if (action === "upgrade") {
+        version = $("meta[name=version]").attr("value");
         url += "/" + version;
     }
 
@@ -114,13 +123,13 @@ function performAction(action, env, stackName, version) {
     }, 1000);
 }
 
-function updateStats(stackName) {
-    if (stackName === 'actionreadytostart') return;
+function updateStats(stack_name) {
+    if (stack_name === 'actionreadytostart') return;
 
     removeElementsByClass("aui-lozenge");
 
     var stackStateRequest = new XMLHttpRequest();
-    stackStateRequest.open("GET", baseUrl  + "/stackState/" + env + "/" + stackName, true);
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + env + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     $("#stackState").html("Stack State: ");
     stackStateRequest.onreadystatechange = function () {
@@ -131,7 +140,7 @@ function updateStats(stackName) {
     stackStateRequest.send();
 
     var serviceStatusRequest = new XMLHttpRequest();
-    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stackName, true);
+    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     $("#serviceStatus").html("Service Status: ");
     serviceStatusRequest.onreadystatechange = function () {
