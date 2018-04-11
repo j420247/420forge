@@ -33,7 +33,10 @@ function refreshStatus(stack_name, cont, refresh_interval) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
 
-            if (action !== 'diagnostics')
+            // Only check stack status in EC2 for stack changing actions
+            if (action !== 'diagnostics' &&
+                action !== 'fullrestart' &&
+                action !== 'rollingrestart')
                 updateStats(stack_name);
 
             // Set refresh interval sensibly
