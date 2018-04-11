@@ -63,7 +63,7 @@ class doupgrade(Resource):
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred upgrading stack: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
         return
 
 
@@ -76,7 +76,7 @@ class doclone(Resource):
             outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred cloning stack: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
         return
 
 
@@ -92,7 +92,7 @@ class dofullrestart(Resource):
             mystack.full_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred doing full restart: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
         return
 
 
@@ -108,7 +108,7 @@ class dorollingrestart(Resource):
             mystack.rolling_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred doing rolling restart: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
         return
 
 
@@ -120,7 +120,7 @@ class dodestroy(Resource):
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred destroying stack: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return
 
@@ -133,7 +133,7 @@ class dothreaddumps(Resource):
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred taking thread dumps: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
         return
 
 
@@ -145,7 +145,7 @@ class doheapdumps(Resource):
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred taking heap dumps: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
         return
 
 
@@ -157,7 +157,7 @@ class docreate(Resource):
             outcome = mystack.create(pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, f'Error occurred creating stack: {e.args[0]}')
+            mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return outcome
 

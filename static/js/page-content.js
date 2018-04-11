@@ -96,6 +96,12 @@ function getStatus(stack_name) {
     statusRequest.onreadystatechange = function () {
         if (statusRequest.readyState === XMLHttpRequest.DONE && statusRequest.status === 200) {
             $("#log").css("background", "rgba(0,0,0,0)");
+
+            // If getting the logs has blipped, don't overwrite legitimate logging
+            if (countOccurences($("#log").contents().text(), "No current status for") !== 1 &&
+                countOccurences(statusRequest.responseText, "No current status for") === 1)
+                return;
+
             $("#log").contents().find('body').html(statusRequest.responseText
                 .substr(1, statusRequest.responseText.length - 3)
                 .split('",').join('<br />')

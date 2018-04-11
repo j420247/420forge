@@ -5,7 +5,6 @@ import time
 import requests
 import json
 import sys
-from datetime import datetime
 from pprint import pprint
 import log
 
@@ -33,10 +32,10 @@ class Stack:
                     self.app_type = "jira"
                 elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
                     self.app_type = "confluence"
+                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
             except Exception as e:
                 print(e.args[0])
                 self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-        self.state.logaction(log.INFO, f'{stack_name} is a {app_type}')
         self.state.update('environment', env)
         self.state.update('region', self.region)
 
@@ -267,10 +266,18 @@ class Stack:
         return
 
     def check_service_status(self):
-        self.state.logaction(log.INFO,
-                        f' ==> checking service status at {self.state.forgestate["lburl"]} /status')
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
+            stack = cfn.describe_stacks(StackName=self.stack_name)
+        except Exception as e:
+            print(e.args[0])
+            return f'Error checking service status: {e.args[0]}'
+
+        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
+        self.state.logaction(log.INFO,
+                        f' ==> checking service status at {self.state.forgestate["lburl"]}{context_path}/status')
+        try:
+            service_status = requests.get(self.state.forgestate['lburl'] + context_path + '/status', timeout=5)
             status = service_status.text if service_status.text else "...?"
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
@@ -278,7 +285,7 @@ class Stack:
                             f' ==> service status is: {status}')
             return status
         except requests.exceptions.ReadTimeout as e:
-            self.state.logaction(log.INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
+            self.state.logaction(log.INFO, f'Node status check timed out')
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
@@ -298,9 +305,18 @@ class Stack:
         return state
 
     def check_node_status(self, node_ip):
-        self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}/status')
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            node_status = requests.get(f'http://{node_ip}:8080/status', timeout=5)
+            stack = cfn.describe_stacks(StackName=self.stack_name)
+        except Exception as e:
+            print(e.args[0])
+            return f'Error checking node status: {e.args[0]}'
+
+        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
+        port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
+        self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
+        try:
+            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5)
             self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
             return node_status.text
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
@@ -308,6 +324,7 @@ class Stack:
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
+
 
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
@@ -356,7 +373,7 @@ class Stack:
             for key in instancelist[i]:
                 instance = key
                 node_ip = instancelist[i][instance]
-            self.state.logaction(log.INFO, f'Shutting down {instance} ({node_ip})')
+            self.state.logaction(log.INFO, f'Shutting down {self.app_type} on {instance} ({node_ip})')
             cmd = f'/etc/init.d/{self.app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
@@ -388,7 +405,7 @@ class Stack:
                 while result != '{"state":"RUNNING"}':
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_instance}: {result}')
-                    time.sleep(30)
+                    time.sleep(60)
         return
 
     def run_command(self, instancelist, cmd):
@@ -558,7 +575,6 @@ class Stack:
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         for instance in self.instancelist:
-            self.state.logaction(log.INFO, f'shutting down application on instance {instance} for {self.stack_name}')
             shutdown = self.shutdown_app([instance])
             self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
@@ -571,7 +587,7 @@ class Stack:
         self.state.logaction(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        self.state.logaction(log.INFO, f'shutting down application on all instances of {self.stack_name}')
+        self.state.logaction(log.INFO, f'Shutting down {self.app_type} on all instances of {self.stack_name}')
         shutdown = self.shutdown_app(self.instancelist)
         for instance in self.instancelist:
             self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
