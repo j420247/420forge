@@ -59,6 +59,7 @@ function selectStack(stack_name) {
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
+    // Enable extra input parameters per action
     switch (action) {
         case "upgrade":
             $("#upgradeVersionSelector").removeAttr("disabled");
@@ -72,6 +73,10 @@ function selectStack(stack_name) {
         case "clone":
             $("#versionCheckButton").hide();
             break;
+        case "rollingrestart":
+        case "fullrestart":
+            $("#takeThreadDumps").removeAttr("disabled");
+            $("#takeHeapDumps").removeAttr("disabled");
         default:
             $("#versionCheckButton").hide();
             $("#action-button").attr("aria-disabled", false);
@@ -106,9 +111,16 @@ function performAction() {
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
-    if (action === "upgrade") {
-        version = $("meta[name=version]").attr("value");
-        url += "/" + version;
+    switch (action) {
+        case "upgrade":
+            version = $("meta[name=version]").attr("value");
+            url += "/" + version;
+            break;
+        case "rollingrestart":
+        case "fullrestart":
+            debugger;
+            url += "/" + document.getElementById("takeThreadDumps").checked
+                + "/" + document.getElementById("takeHeapDumps").checked
     }
 
     actionRequest.open("GET", url, true);
