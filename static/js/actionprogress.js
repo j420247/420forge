@@ -32,7 +32,9 @@ function refreshStatus(stack_name, cont, refresh_interval) {
     if (cont) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
-            updateStats(stack_name);
+
+            if (action !== 'diagnostics')
+                updateStats(stack_name);
 
             // Set refresh interval sensibly
             if (countOccurences($("#log").contents().text(), "No current status for") === 1)

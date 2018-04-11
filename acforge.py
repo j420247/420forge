@@ -59,7 +59,11 @@ class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.upgrade(new_version)
+        try:
+            outcome = mystack.upgrade(new_version)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred upgrading stack: {e.args[0]}')
         return
 
 
@@ -69,9 +73,10 @@ class doclone(Resource):
         stacks.append(mystack)
         try:
             outcome = mystack.destroy()
-        except:
-            pass
-        outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
+            outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred cloning stack: {e.args[0]}')
         return
 
 
@@ -79,7 +84,11 @@ class dofullrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.full_restart()
+        try:
+            outcome = mystack.full_restart()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred doing full restart: {e.args[0]}')
         return
 
 
@@ -87,7 +96,11 @@ class dorollingrestart(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.rolling_restart()
+        try:
+            outcome = mystack.rolling_restart()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred doing rolling restart: {e.args[0]}')
         return
 
 
@@ -97,10 +110,10 @@ class dodestroy(Resource):
         stacks.append(mystack)
         try:
             outcome = mystack.destroy()
-            session['stacks'] = sorted(get_cfn_stacks_for_environment())
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.WARN, f'Error occurred destroying stack: {e.args[0]}')
+        session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return
 
 
@@ -132,7 +145,11 @@ class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.create(pg_pass, app_pass, app_type)
+        try:
+            outcome = mystack.create(pg_pass, app_pass, app_type)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.WARN, f'Error occurred creating stack: {e.args[0]}')
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return outcome
 

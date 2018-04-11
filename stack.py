@@ -261,8 +261,6 @@ class Stack:
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
         service_state = self.check_service_status()
         while service_state != '{"state":"RUNNING"}':
-            self.state.logaction(log.INFO,
-                f'====> health check reports: {service_state} waiting for RUNNING " {str(datetime.now())}')
             time.sleep(60)
             service_state = self.check_service_status()
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
@@ -274,6 +272,8 @@ class Stack:
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
             status = service_status.text if service_status.text else "...?"
+            if '<title>' in status:
+                status = status[status.index('<title>') + 7 : status.index('</title>')]
             self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
@@ -304,7 +304,7 @@ class Stack:
             self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
             return node_status.text
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            self.state.logaction(log.INFO, f'Node status check timed out: {e.errno}, {e.strerror}')
+            self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
@@ -486,7 +486,7 @@ class Stack:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
-            self.state.logaction(log.ERROR, f'An error occurred: {e.args[0]}')
+            self.state.logaction(log.ERROR, f'An error occurred updating stack: {e.args[0]}')
             return
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
@@ -538,8 +538,9 @@ class Stack:
                 Capabilities=['CAPABILITY_IAM'],
             )
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
-        except botocore.exceptions.ClientError as e:
+        except Exception as e:
             print(e.args[0])
+            self.state.logaction(log.WARN, f'Error occurred creating stack: {e.args[0]}')
             return
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
