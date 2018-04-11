@@ -59,7 +59,6 @@ function selectStack(stack_name) {
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
-
     switch (action) {
         case "upgrade":
             $("#upgradeVersionSelector").removeAttr("disabled");

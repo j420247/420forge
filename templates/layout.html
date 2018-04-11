@@ -98,6 +98,9 @@
                                     <li {% if session['action'] == 'update' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack</a>
                                     </li>
+                                    <li {% if session['action'] == 'diagnostics' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
+                                    </li>
                                     {% if session['env'] == "prod" %}
                                     <li {% if session['action'] == 'clone' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
@@ -107,8 +110,8 @@
                                     </li>
                                     {% endif %}
                                     <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
-                                        </li>
+                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
+                                    </li>
                                     {% endblock %}
                                 </ul>
                             </div>
