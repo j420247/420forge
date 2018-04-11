@@ -419,8 +419,6 @@ def get_current_log(stack_name):
                     return json_state['action_log']
             except Exception as e:
                 print(e.args[0])
-                if e.args[0] == 'Expecting value: line 1 column 1 (char 0)':
-                    return ''
     return False
 
 

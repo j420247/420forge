@@ -36,14 +36,16 @@ function refreshStatus(stack_name, cont, refresh_interval) {
             // Only check stack status in EC2 for stack changing actions
             if (action !== 'diagnostics' &&
                 action !== 'fullrestart' &&
-                action !== 'rollingrestart')
+                action !== 'rollingrestart') {
                 updateStats(stack_name);
+                refresh_interval = 10000;
+            }
+            else
+                refresh_interval = 60000;
 
-            // Set refresh interval sensibly
+            // Set refresh interval to more frequent if there is no logging yet
             if (countOccurences($("#log").contents().text(), "No current status for") === 1)
                 refresh_interval = 1000;
-            else
-                refresh_interval = 30000;
 
             // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
             var expectedFinalState = 1;

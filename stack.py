@@ -32,10 +32,10 @@ class Stack:
                     self.app_type = "jira"
                 elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
                     self.app_type = "confluence"
+                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
             except Exception as e:
                 print(e.args[0])
                 self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-        self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
         self.state.update('environment', env)
         self.state.update('region', self.region)
 
