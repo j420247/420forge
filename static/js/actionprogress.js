@@ -45,7 +45,14 @@ function refreshStatus(stack_name, cont, refresh_interval) {
             // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
             var expectedFinalState = 1;
             if (countOccurences($("#log").contents().text(), "Initiating clone") === 1 && countOccurences($("#log").contents().text(), "DELETE_IN_PROGRESS") >= 1)
-                expectedFinalState = 2;
+                expectedFinalState++;
+            // If a restart is being performed and thread/heap dumps were requested, increment expectedFinalState by one each
+            else if ((action === "rollingrestart" || action === "fullrestart")) {
+                if (countOccurences($("#log").contents().text(), "Beginning thread dumps") === 1)
+                    expectedFinalState++;
+                if (countOccurences($("#log").contents().text(), "Beginning heap dumps") === 1)
+                    expectedFinalState++;
+            }
             if (countOccurences($("#log").contents().text(), "Final state") >= expectedFinalState) {
                 refreshStatus(stack_name, false, refresh_interval);
             } else {
