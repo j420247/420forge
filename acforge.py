@@ -151,7 +151,7 @@ class doheapdumps(Resource):
 
 class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, env)
+        mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
         try:
             outcome = mystack.create(pg_pass, app_pass, app_type)
@@ -204,6 +204,7 @@ class stackState(Resource):
             print(e.args[0])
             return f'Error checking stack state: {e.args[0]}'
         return stack_state['Stacks'][0]['StackStatus']
+
 
 class templateParams(Resource):
     def get(self, template_name):
@@ -501,6 +502,7 @@ def setaction(action):
     session['action'] = action
     session['stack_name'] = 'none'
     session['version'] = 'none'
+    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(session['env'])))
     return redirect(url_for(action))
 
 
@@ -592,7 +594,7 @@ def createJson():
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
 
-    mystack = Stack(stack_name, session['env'])
+    mystack = Stack(stack_name, session['env'], app_type)
     stacks.append(mystack)
     mystack.writeparms(content)
 

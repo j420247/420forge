@@ -98,9 +98,12 @@ function getStatus(stack_name) {
             $("#log").css("background", "rgba(0,0,0,0)");
 
             // If getting the logs has blipped, don't overwrite legitimate logging
-            if (countOccurences($("#log").contents().text(), "No current status for") !== 1 &&
-                countOccurences(statusRequest.responseText, "No current status for") === 1)
-                return;
+            if ((countOccurences($("#log").contents().text(), "No current status for") !== 1 &&
+                    countOccurences($("#log").contents().text(), "Waiting for logs") !== 1)
+                    &&
+                (countOccurences(statusRequest.responseText, "No current status for") === 1 ||
+                countOccurences(statusRequest.responseText, "Waiting for logs") === 1))
+            return;
 
             $("#log").contents().find('body').html(statusRequest.responseText
                 .substr(1, statusRequest.responseText.length - 3)

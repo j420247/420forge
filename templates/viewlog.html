@@ -6,7 +6,7 @@
 {% block progress %}
 <div class="aui-group">
     {#    Progress Panel    #}
-    <iframe id="log" src="actionreadytostart" width="1000" height="400">
+    <iframe id="log" src="{{ url_for('actionreadytostart') }}" width="1000" height="400">
         Cannot display status because browser does not support iframes.
     </iframe>
 </div>
