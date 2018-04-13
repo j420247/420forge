@@ -567,8 +567,9 @@ def updateJson():
             param['UsePreviousValue'] = True
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+    if session['env'] == 'stg':
+        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
 
     # this is a hack for now because the snapshot params are not in the stack_parms.
     # Need to think of a better way to check template based on params.
