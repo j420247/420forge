@@ -18,12 +18,13 @@ $(document).ready(function() {
                 refreshStatus(stack_name, true, 1000);
             }, false);
         }
-    // or if we got here from an action, refresh info now
+    // or if we got here from an action, refresh info now,
+    // unless it's create in which case wait 1s for the creation to begin
     } else {
         $("#stackSelector").hide();
         selectStack(stackName);
-        getStatus(stackName);
-        refreshStatus(stackName, true, 1000);
+        if (action !== 'create') getStatus(stackName);
+        refreshStatus(stackName, true, 2000);
     }
 });
 
@@ -38,24 +39,21 @@ function refreshStatus(stack_name, cont, refresh_interval) {
                 action !== 'fullrestart' &&
                 action !== 'rollingrestart') {
                 updateStats(stack_name);
-                refresh_interval = 10000;
+                refresh_interval = 60000;
             }
             else
-                refresh_interval = 60000;
+                refresh_interval = 10000;
 
             // Set refresh interval to more frequent if there is no logging yet
-            if (countOccurences($("#log").contents().text(), "No current status for") === 1)
+            if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
+                countOccurences($("#log").contents().text(), "Waiting for logs") >= 1 )
                 refresh_interval = 1000;
 
-            // If the stack was deleted as part of clone, ignore first 'Final state' and keep refreshing
-            var expectedFinalState = 1;
-            if (countOccurences($("#log").contents().text(), "Initiating clone") === 1 && countOccurences($("#log").contents().text(), "DELETE_IN_PROGRESS") >= 1)
-                expectedFinalState = 2;
-            if (countOccurences($("#log").contents().text(), "Final state") >= expectedFinalState) {
+            // Stop once action is complete
+            if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval);
-            } else {
+            else
                 refreshStatus(stack_name, true, refresh_interval);
-            }
         }, refresh_interval)
     }
 }

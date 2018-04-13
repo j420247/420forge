@@ -214,15 +214,14 @@ class Stack:
         self.state.logaction(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
         while stack_state == in_progress_state:
-            if stack_state == 'ROLLBACK_COMPLETE':
-                self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
-                return False
-            elif 'FAILED' in stack_state:
-                self.state.logaction(log.ERROR,f'Stack action failed: {stack_state}')
-                return False
-            self.state.logaction(log.INFO, "====> stack_state is: " + stack_state)
             time.sleep(60)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
+        if 'ROLLBACK' in stack_state:
+            self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
+            return False
+        elif 'FAILED' in stack_state:
+            self.state.logaction(log.ERROR,f'Stack action failed: {stack_state}')
+            return False
         return True
 
     def spinup_to_one_appnode(self):
@@ -289,7 +288,9 @@ class Stack:
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
-        self.state.logaction(log.INFO, " ==> checking stack state")
+        if 'action' in self.state.forgestate:
+            if self.state.forgestate['action'] != 'viewlog':
+                self.state.logaction(log.INFO, " ==> checking stack state")
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
@@ -301,7 +302,9 @@ class Stack:
             self.state.logaction(log.ERROR, f'Error checking stack state: {e.args[0]}')
             return
         state = stack_state['Stacks'][0]['StackStatus']
-        self.state.logaction(log.INFO, f'Stack state is: {state}')
+        if 'action' in self.state.forgestate:
+            if self.state.forgestate['action'] != 'viewlog':
+                self.state.logaction(log.INFO, f'Stack state is: {state}')
         return state
 
     def check_node_status(self, node_ip):
@@ -450,10 +453,9 @@ class Stack:
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
-        self.state.logaction(log.INFO, f'Completed upgrade for {self.stack_name} at {self.env} to version {new_version}')
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, f'Upgrade successful for {self.stack_name} at {self.env} to version {new_version}')
+        self.state.logaction(log.INFO, "Upgrade complete")
         self.state.archive()
-        # return forgestate[stack_name]['last_action_log']
         return
 
 
@@ -466,12 +468,13 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
+                self.state.logaction(log.INFO, "Destroy complete - failed")
                 return True
         stack_id = stack_state['Stacks'][0]['StackId']
         delete_stack = cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
-            self.state.logaction(log.INFO, f'Destroy complete for stack {self.stack_name}: {delete_stack}')
-        self.state.logaction(log.INFO, "Final state")
+            self.state.logaction(log.INFO, f'Destroy successful for stack {self.stack_name}: {delete_stack}')
+        self.state.logaction(log.INFO, "Destroy complete")
         self.state.archive()
         return True
 
@@ -483,6 +486,7 @@ class Stack:
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
             self.create(parms=stack_parms, clone=True)
+        self.state.logaction(log.INFO, "Clone complete")
         self.state.archive()
         return
 
@@ -504,16 +508,18 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             self.state.logaction(log.ERROR, f'An error occurred updating stack: {e.args[0]}')
+            self.state.logaction(log.INFO, "Update complete - failed")
             return
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
         if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            self.state.logaction(log.INFO, "Update complete - failed")
             return
         if len([param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax']) > 0 \
                 and [param for param in stack_parms if 'ParameterValue' in param and param['ParameterKey'] == 'ClusterNodeMax'][0]['ParameterValue'] != 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Update complete")
         self.state.archive()
         return
 
@@ -526,8 +532,6 @@ class Stack:
 
 
     def create(self, like_stack=None, like_env=None, parms=None, clone=False, template_filename=None, app_type=None):
-        # create uses an existing stack as a cookie cutter for the template and its parms, but is empty of data
-        # probably need to force mail disable catalina opts for safety (note from Denise: this is done in the JS in the front end so it can be modified)
         self.state.update('action', 'create')
         if like_stack:
             self.get_current_state(like_stack, like_env)
@@ -554,18 +558,20 @@ class Stack:
                 TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
                 Capabilities=['CAPABILITY_IAM'],
             )
+            time.sleep(5)
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             self.state.logaction(log.WARN, f'Error occurred creating stack: {e.args[0]}')
+            self.state.logaction(log.INFO, "Create complete - failed")
             return
-        self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
         if not self.wait_stack_action_complete("CREATE_IN_PROGRESS"):
+            self.state.logaction(log.INFO, "Create complete - failed")
             return
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
         self.validate_service_responding()
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Create complete")
         self.state.archive()
         return
 
@@ -578,7 +584,7 @@ class Stack:
             shutdown = self.shutdown_app([instance])
             self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Rolling restart complete")
         self.state.archive()
         return
 
@@ -592,7 +598,7 @@ class Stack:
         for instance in self.instancelist:
             self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Full restart complete")
         self.state.archive()
         return
 
@@ -602,7 +608,8 @@ class Stack:
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Diagnostics complete")
+        self.state.archive()
         return
 
 
@@ -611,5 +618,6 @@ class Stack:
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_heap_dump_live')
-        self.state.logaction(log.INFO, "Final state")
+        self.state.logaction(log.INFO, "Diagnostics complete")
+        self.state.archive()
         return
