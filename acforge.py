@@ -81,11 +81,15 @@ class doclone(Resource):
 
 
 class dofullrestart(Resource):
-    def get(self, env, stack_name):
+    def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            outcome = mystack.full_restart()
+            if threads:
+                mystack.thread_dump()
+            if heaps:
+                mystack.heap_dump()
+            mystack.full_restart()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
@@ -93,11 +97,15 @@ class dofullrestart(Resource):
 
 
 class dorollingrestart(Resource):
-    def get(self, env, stack_name):
+    def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            outcome = mystack.rolling_restart()
+            if threads:
+                mystack.thread_dump()
+            if heaps:
+                mystack.heap_dump()
+            mystack.rolling_restart()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
@@ -353,8 +361,8 @@ def diagnostics():
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
 api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
-api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
+api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>/<threads>/<heaps>')
+api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>/<threads>/<heaps>')
 api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
