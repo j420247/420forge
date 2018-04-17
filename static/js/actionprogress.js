@@ -39,10 +39,7 @@ function refreshStatus(stack_name, cont, refresh_interval) {
                 action !== 'fullrestart' &&
                 action !== 'rollingrestart') {
                 updateStats(stack_name);
-                refresh_interval = 60000;
             }
-            else
-                refresh_interval = 10000;
 
             // Set refresh interval to more frequent if there is no logging yet
             if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
@@ -50,6 +47,7 @@ function refreshStatus(stack_name, cont, refresh_interval) {
                 refresh_interval = 1000;
 
             // Stop once action is complete
+            refresh_interval = 5000;
             if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval);
             else

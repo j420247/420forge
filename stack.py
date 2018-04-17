@@ -285,9 +285,6 @@ class Stack:
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
-        if 'action' in self.state.forgestate:
-            if self.state.forgestate['action'] != 'viewlog':
-                self.state.logaction(log.INFO, " ==> checking stack state")
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
@@ -299,9 +296,6 @@ class Stack:
             self.state.logaction(log.ERROR, f'Error checking stack state: {e.args[0]}')
             return
         state = stack_state['Stacks'][0]['StackStatus']
-        if 'action' in self.state.forgestate:
-            if self.state.forgestate['action'] != 'viewlog':
-                self.state.logaction(log.INFO, f'Stack state is: {state}')
         return state
 
     def check_node_status(self, node_ip):
