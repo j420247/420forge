@@ -48,7 +48,17 @@ function refreshStatus(stack_name, cont, refresh_interval) {
 
             // Stop once action is complete
             refresh_interval = 5000;
-            if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
+            if (action === 'diagnostics') {
+                if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else
+                    refreshStatus(stack_name, false, refresh_interval);
+            }
+            else if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval);
             else
                 refreshStatus(stack_name, true, refresh_interval);

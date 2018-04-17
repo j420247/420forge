@@ -127,7 +127,6 @@ function performAction() {
             break;
         case "rollingrestart":
         case "fullrestart":
-            debugger;
             url += "/" + document.getElementById("takeThreadDumps").checked
                 + "/" + document.getElementById("takeHeapDumps").checked
     }
