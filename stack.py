@@ -141,13 +141,10 @@ class Stack:
             return
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
-        # lets write out the most recent parms to a file
+        # write out the most recent parms to a file
         self.writeparms(stack_details['Stacks'][0]['Parameters'])
-        # let's store the parms (list of dicts) if they haven't been already stored
-        if "stack_parms" in self.state.forgestate:
-            print("stack parms already stored")
-        else:
-            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
+        # store the most recent parms (list of dicts)
+        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
         self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                         p['ParameterKey'] == 'ClusterNodeMax'][0])
         self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
@@ -440,10 +437,12 @@ class Stack:
         self.get_current_state()
         # # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
             return
         # TODO change template if required
         # spin stack up to 1 node on new release version
         if not self.spinup_to_one_appnode():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
             return
         # spinup remaining appnodes in stack if needed
         if self.state.forgestate['appnodemin'] != "1":
