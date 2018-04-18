@@ -39,10 +39,7 @@ function refreshStatus(stack_name, cont, refresh_interval) {
                 action !== 'fullrestart' &&
                 action !== 'rollingrestart') {
                 updateStats(stack_name);
-                refresh_interval = 60000;
             }
-            else
-                refresh_interval = 10000;
 
             // Set refresh interval to more frequent if there is no logging yet
             if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
@@ -50,7 +47,18 @@ function refreshStatus(stack_name, cont, refresh_interval) {
                 refresh_interval = 1000;
 
             // Stop once action is complete
-            if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
+            refresh_interval = 5000;
+            if (action === 'diagnostics') {
+                if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else
+                    refreshStatus(stack_name, false, refresh_interval);
+            }
+            else if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval);
             else
                 refreshStatus(stack_name, true, refresh_interval);

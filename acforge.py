@@ -86,7 +86,7 @@ class dofullrestart(Resource):
         stacks.append(mystack)
         try:
             if threads:
-                mystack.thread_dump()
+                mystack.thread_dump(alsoHeaps=heaps)
             if heaps:
                 mystack.heap_dump()
             mystack.full_restart()
@@ -102,7 +102,7 @@ class dorollingrestart(Resource):
         stacks.append(mystack)
         try:
             if threads:
-                mystack.thread_dump()
+                mystack.thread_dump(alsoHeaps=heaps)
             if heaps:
                 mystack.heap_dump()
             mystack.rolling_restart()

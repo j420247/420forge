@@ -141,13 +141,10 @@ class Stack:
             return
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
-        # lets write out the most recent parms to a file
+        # write out the most recent parms to a file
         self.writeparms(stack_details['Stacks'][0]['Parameters'])
-        # let's store the parms (list of dicts) if they haven't been already stored
-        if "stack_parms" in self.state.forgestate:
-            print("stack parms already stored")
-        else:
-            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
+        # store the most recent parms (list of dicts)
+        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
         self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                         p['ParameterKey'] == 'ClusterNodeMax'][0])
         self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
@@ -288,9 +285,6 @@ class Stack:
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
-        if 'action' in self.state.forgestate:
-            if self.state.forgestate['action'] != 'viewlog':
-                self.state.logaction(log.INFO, " ==> checking stack state")
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
@@ -302,9 +296,6 @@ class Stack:
             self.state.logaction(log.ERROR, f'Error checking stack state: {e.args[0]}')
             return
         state = stack_state['Stacks'][0]['StackStatus']
-        if 'action' in self.state.forgestate:
-            if self.state.forgestate['action'] != 'viewlog':
-                self.state.logaction(log.INFO, f'Stack state is: {state}')
         return state
 
     def check_node_status(self, node_ip):
@@ -440,10 +431,12 @@ class Stack:
         self.get_current_state()
         # # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
             return
         # TODO change template if required
         # spin stack up to 1 node on new release version
         if not self.spinup_to_one_appnode():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
             return
         # spinup remaining appnodes in stack if needed
         if self.state.forgestate['appnodemin'] != "1":
@@ -515,8 +508,8 @@ class Stack:
         if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
             self.state.logaction(log.INFO, "Update complete - failed")
             return
-        if len([param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax']) > 0 \
-                and [param for param in stack_parms if 'ParameterValue' in param and param['ParameterKey'] == 'ClusterNodeMax'][0]['ParameterValue'] != 0:
+        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] and \
+            [param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] > 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.state.logaction(log.INFO, "Update complete")
@@ -577,6 +570,7 @@ class Stack:
 
 
     def rolling_restart(self):
+        self.state.update('action', 'rollingrestart')
         self.state.logaction(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
@@ -590,6 +584,7 @@ class Stack:
 
 
     def full_restart(self):
+        self.state.update('action', 'fullrestart')
         self.state.logaction(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
@@ -603,21 +598,26 @@ class Stack:
         return
 
 
-    def thread_dump(self):
-        self.state.logaction(log.INFO, f'Beginning thread dumps on {self.stack_name}')
+    def thread_dump(self, alsoHeaps=False):
+        self.state.update('action', 'diagnostics')
+        heaps_to_come_log_line = ''
+        if alsoHeaps:
+            heaps_to_come_log_line = ', heap dumps to follow'
+        self.state.logaction(log.INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
-        self.state.logaction(log.INFO, "Diagnostics complete")
+        self.state.logaction(log.INFO, "Thread dumps complete")
         self.state.archive()
         return
 
 
     def heap_dump(self):
+        self.state.update('action', 'diagnostics')
         self.state.logaction(log.INFO, f'Beginning heap dumps on {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_heap_dump_live')
-        self.state.logaction(log.INFO, "Diagnostics complete")
+        self.state.logaction(log.INFO, "Heap dumps complete")
         self.state.archive()
         return
