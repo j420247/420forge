@@ -324,7 +324,7 @@ class getRdsSnapshots(Resource):
 class getTemplates(Resource):
     def get(self, product):
         templates = []
-        template_folder = Path(f'wpe-aws/{product}')
+        template_folder = Path(f'wpe-aws/{product.lower()}')
         templates.extend([file.name for file in list(template_folder.glob('**/*.yaml'))])
         templates.sort()
         return templates
