@@ -18,7 +18,7 @@ import log
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
-PRODUCTS = ["Jira", "Confluence", "Lab"]
+PRODUCTS = ["Jira", "Confluence"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
                         'DELETE_FAILED']
@@ -208,6 +208,7 @@ class stackState(Resource):
 
 class templateParams(Resource):
     def get(self, template_name):
+        app_type = 'confluence' # default for lab
         for product in PRODUCTS:
             if product.lower() in template_name.lower():
                 app_type = product.lower()
@@ -320,6 +321,15 @@ class getRdsSnapshots(Resource):
         return snapshotIds
 
 
+class getTemplates(Resource):
+    def get(self, product):
+        templates = []
+        template_folder = Path(f'wpe-aws/{product}')
+        templates.extend([file.name for file in list(template_folder.glob('**/*.yaml'))])
+        templates.sort()
+        return templates
+
+
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
@@ -379,6 +389,7 @@ api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+api.add_resource(getTemplates, '/getTemplates/<product>')
 
 
 def app_active_in_lb(forgestate, node):
@@ -407,15 +418,6 @@ def get_cfn_stacks_for_environment(region=None):
     #TODO fix or remove
     #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
-
-
-def get_templates():
-    templates = []
-    conf_templates = Path("wpe-aws/confluence")
-    jira_templates = Path("wpe-aws/jira")
-    templates.extend([file.name for file in list(conf_templates.glob('**/*.yaml'))])
-    templates.extend([file.name for file in list(jira_templates.glob('**/*.yaml'))])
-    return templates
 
 
 def get_current_log(stack_name):
@@ -462,7 +464,6 @@ def index():
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['products'] = PRODUCTS
-    session['templates'] = get_templates()
     session['action'] = 'none'
     return render_template('index.html')
 

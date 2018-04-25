@@ -18,7 +18,7 @@
             Select Product
         </a>
 
-        <!-- Dropdown -->
+        <!-- Product dropdown -->
         <div id="productSelection" class="aui-style-default aui-dropdown2">
             <ul class="aui-list-truncate">
                 {% for product in session['products'] %}
@@ -35,13 +35,9 @@
             Select Template
         </a>
 
-        <!-- Dropdown -->
+        <!-- Template dropdown -->
         <div id="templateSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate">
-                {% for template in session['templates'] %}
-                <li><a class="selectTemplateOption">{{ template }}</a></li>
-                {% endfor %}
-            </ul>
+            <ul class="aui-list-truncate" id="templates"></ul>
         </div>
     </div>
     {% endblock templateSelector %}
