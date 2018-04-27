@@ -85,9 +85,9 @@ class dofullrestart(Resource):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            if threads:
+            if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
-            if heaps:
+            if heaps == 'true':
                 mystack.heap_dump()
             mystack.full_restart()
         except Exception as e:
@@ -101,9 +101,9 @@ class dorollingrestart(Resource):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            if threads:
+            if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
-            if heaps:
+            if heaps == 'true':
                 mystack.heap_dump()
             mystack.rolling_restart()
         except Exception as e:
@@ -421,7 +421,7 @@ def get_cfn_stacks_for_environment(region=None):
 
 
 def get_current_log(stack_name):
-    statefile = Path(stack_name + '.json')
+    statefile = Path(f'stacks/{stack_name}/{stack_name}.json')
     if statefile.is_file() and path.getsize(statefile) > 0:
         with open(statefile, 'r') as stack_state:
             try:
