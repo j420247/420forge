@@ -58,18 +58,18 @@ class Stack:
         return rawlburl.replace("https", "http")
 
     def writeparms(self, parms):
-        with open(self.stack_name + '.parms.json', 'w') as outfile:
+        with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'w') as outfile:
             json.dump(parms, outfile)
         outfile.close()
         return (self)
 
     def readparms(self):
         try:
-            with open(self.stack_name + '.parms.json', 'r') as infile:
+            with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'r') as infile:
                 parms = json.load(infile)
                 return parms
         except FileNotFoundError:
-            self.state.logaction(log.ERROR, f'can not load parms, {self.stack_name}.parms.json does not exist')
+            self.state.logaction(log.ERROR, f'can not load parms, stacks/{self.stack_name}/{self.stack_name}.parms.json does not exist')
             sys.exit() # do we really want to stop Forge at this point? If so, remove the 'return' because it's unreachable.
             return
 
