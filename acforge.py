@@ -85,9 +85,9 @@ class dofullrestart(Resource):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            if threads:
+            if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
-            if heaps:
+            if heaps == 'true':
                 mystack.heap_dump()
             mystack.full_restart()
         except Exception as e:
@@ -101,9 +101,9 @@ class dorollingrestart(Resource):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
         try:
-            if threads:
+            if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
-            if heaps:
+            if heaps == 'true':
                 mystack.heap_dump()
             mystack.rolling_restart()
         except Exception as e:
