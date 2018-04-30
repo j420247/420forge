@@ -407,7 +407,7 @@ class Stack:
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
-            self.state.logaction(log.INFO, f'Running command {cmd} on ({node_ip})')
+            self.state.logaction(log.INFO, f'Running command {cmd} on {node_ip}')
             cmd_id_dict[self.ssm_send_command(instance, cmd)] = node_ip
         for cmd_id in cmd_id_dict:
             result = ""
@@ -479,6 +479,7 @@ class Stack:
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
             self.create(parms=stack_parms, clone=True)
+            self.run_post_clone_sql()
         self.state.logaction(log.INFO, "Clone complete")
         self.state.archive()
         return
@@ -620,4 +621,12 @@ class Stack:
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_heap_dump_live')
         self.state.logaction(log.INFO, "Heap dumps complete")
         self.state.archive()
+        return
+
+    def run_post_clone_sql(self):
+        self.get_stacknodes()
+        with open(f'stacks/{self.stack_name}/{self.stack_name}.post-clone.sql', 'r') as outfile:
+            self.run_command([self.instancelist[0]], f'echo "{outfile.read()}" > /usr/local/bin/{self.stack_name}.post-clone.sql')
+            db_conx_string = 'PGPASSWORD=${ATL_JDBC_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+            self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql')
         return

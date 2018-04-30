@@ -636,5 +636,15 @@ def cloneJson():
     return outcome
 
 
+@app.route('/dosql', methods = ['GET'])
+def doSql():
+    mystack = Stack('du-jira-clone-sql', 'stg', 'jira')
+    stacks.append(mystack)
+    outcome = mystack.run_post_clone_sql()
+    return outcome
+
+
+
+
 if __name__ == '__main__':
     app.run(threaded=True, debug=True, host='0.0.0.0', port=8000)
