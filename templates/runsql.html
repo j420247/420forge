@@ -1,0 +1,16 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+    <script src="/static/js/runsql.js"></script>
+{% endblock head %}
+
+{% block buttonText %}Run SQL{% endblock buttonText %}
+
+{% block progress %}
+<div class="aui-group">
+    {#    Progress Panel    #}
+    <iframe id="log" src="" width="1000" height="400">
+        Cannot display status because browser does not support iframes.
+    </iframe>
+</div>
+{% endblock progress %}

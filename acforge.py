@@ -149,6 +149,18 @@ class doheapdumps(Resource):
         return
 
 
+class dorunsql(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.run_post_clone_sql()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+        return outcome
+
+
 class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
@@ -277,6 +289,16 @@ class templateParamsForStack(Resource):
         return compared_params
 
 
+class getSql(Resource):
+    def get(self, stack_name):
+        if Path(f'stacks/{stack_name}/{stack_name}.post-clone.sql').is_file():
+            sql_file = open(f'stacks/{stack_name}/{stack_name}.post-clone.sql', "r")
+            sql_to_run = 'SQL to be run:<br /><br />' + sql_file.read()
+        else:
+            sql_to_run = 'No SQL script exists for this stack'
+        return sql_to_run
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -367,6 +389,10 @@ def viewlog():
 def diagnostics():
     return render_template('diagnostics.html')
 
+@app.route('/runsql', methods = ['GET'])
+def runsql():
+    return render_template('runsql.html')
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
@@ -377,6 +403,7 @@ api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<r
 api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<env>/<stack_name>')
+api.add_resource(dorunsql, '/dorunsql/<env>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
@@ -384,6 +411,7 @@ api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
+api.add_resource(getSql, '/getsql/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
@@ -634,16 +662,6 @@ def cloneJson():
     stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome
-
-
-@app.route('/dosql', methods = ['GET'])
-def doSql():
-    mystack = Stack('du-jira-clone-sql', 'stg', 'jira')
-    stacks.append(mystack)
-    outcome = mystack.run_post_clone_sql()
-    return outcome
-
-
 
 
 if __name__ == '__main__':

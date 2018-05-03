@@ -6,6 +6,7 @@ import requests
 import json
 import sys
 from pprint import pprint
+from pathlib import Path
 import log
 
 class Stack:
@@ -264,12 +265,15 @@ class Stack:
     def check_service_status(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            stack = cfn.describe_stacks(StackName=self.stack_name)
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
 
-        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
+        context_path = [param['ParameterValue'] for param in stack_details['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
+        if len(context_path) > 0:
+            context_path = '/' + context_path
+        self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}{context_path}/status')
         try:
@@ -416,9 +420,10 @@ class Stack:
                 time.sleep(10)
             if result == 'Failed':
                 self.state.logaction(log.ERROR, f'Command result for {cmd_instance}: {result}')
+                return False
             else:
                 self.state.logaction(log.INFO, f'Command result for {cmd_instance}: {result}')
-        return
+        return True
 
 ## Stack - Major Action Methods
 
@@ -478,8 +483,9 @@ class Stack:
         self.writeparms(stack_parms)
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            self.create(parms=stack_parms, clone=True)
-            self.run_post_clone_sql()
+            if self.create(parms=stack_parms, clone=True):
+                if self.run_post_clone_sql():
+                    self.full_restart()
         self.state.logaction(log.INFO, "Clone complete")
         self.state.archive()
         return
@@ -558,16 +564,16 @@ class Stack:
             print(e.args[0])
             self.state.logaction(log.WARN, f'Error occurred creating stack: {e.args[0]}')
             self.state.logaction(log.INFO, "Create complete - failed")
-            return
+            return False
         self.state.logaction(log.INFO, f'Create has begun: {created_stack}')
         if not self.wait_stack_action_complete("CREATE_IN_PROGRESS"):
             self.state.logaction(log.INFO, "Create complete - failed")
-            return
+            return False
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction(log.INFO, "Create complete")
         self.state.archive()
-        return
+        return True
 
 
     def rolling_restart(self):
@@ -624,9 +630,21 @@ class Stack:
         return
 
     def run_post_clone_sql(self):
+        self.state.logaction(log.INFO, f'Running post clone SQL')
         self.get_stacknodes()
-        with open(f'stacks/{self.stack_name}/{self.stack_name}.post-clone.sql', 'r') as outfile:
-            self.run_command([self.instancelist[0]], f'echo "{outfile.read()}" > /usr/local/bin/{self.stack_name}.post-clone.sql')
-            db_conx_string = 'PGPASSWORD=${ATL_JDBC_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
-            self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql')
-        return
+        sqlfile = Path(f'stacks/{self.stack_name}/{self.stack_name}.post-clone.sql')
+        if sqlfile.is_file():
+            with open(sqlfile, 'r') as outfile:
+                if self.run_command([self.instancelist[0]], f'echo "{outfile.read()}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
+                    db_conx_string = 'PGPASSWORD=${ATL_JDBC_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+                    if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
+                        self.state.logaction(log.ERROR, f'Running SQL script failed')
+                        return False
+                else:
+                    self.state.logaction(log.ERROR, f'Dumping SQL file to target machine failed')
+                    return False
+        else:
+            self.state.logaction(log.INFO, f'No post clone SQL file found')
+            return False
+        self.state.logaction(log.INFO, f'Run SQL complete')
+        return True
