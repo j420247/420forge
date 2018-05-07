@@ -1,0 +1,17 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+    <script src="/static/js/diagnostics.js"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<div class="aui-panel">
+    {#  Thread dumps #}
+    <button class="aui-button" id="threadDumpBtn" aria-disabled="true" onclick="threadDumps()"><span class="aui-icon aui-icon-small aui-iconfont-location"></span> Thread dumps</button>
+    {#  Heap dumps #}
+    <button class="aui-button" id="heapDumpBtn"  aria-disabled="true" onclick="heapDumps()"><span class="aui-icon aui-icon-small aui-iconfont-clone-small"></span> Heap dumps</button>
+</div>
+{% endblock extraInput %}
+
+{% block button %}
+{% endblock button %}

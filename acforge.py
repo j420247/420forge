@@ -21,7 +21,10 @@ from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignK
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
-PRODUCTS = ["Jira", "Confluence", "Lab"]
+PRODUCTS = ["Jira", "Confluence"]
+VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
+                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
+                        'DELETE_FAILED']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -58,7 +61,6 @@ db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 
-#print(session_store.app.session_interface.db.metadata.tables.keys())
 ##
 #### REST Endpoint classes
 ##
@@ -95,7 +97,11 @@ class doupgrade(ForgeResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.upgrade(new_version)
+        try:
+            outcome = mystack.upgrade(new_version)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
         return
 
 
@@ -105,25 +111,42 @@ class doclone(ForgeResource):
         stacks.append(mystack)
         try:
             outcome = mystack.destroy()
-        except:
-            pass
-        outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
+            outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
         return
 
 
 class dofullrestart(ForgeResource):
-    def get(self, env, stack_name):
+    def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.full_restart()
+        try:
+            if threads == 'true':
+                mystack.thread_dump(alsoHeaps=heaps)
+            if heaps == 'true':
+                mystack.heap_dump()
+            mystack.full_restart()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
         return
 
 
 class dorollingrestart(ForgeResource):
-    def get(self, env, stack_name):
+    def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        outcome = mystack.rolling_restart()
+        try:
+            if threads == 'true':
+                mystack.thread_dump(alsoHeaps=heaps)
+            if heaps == 'true':
+                mystack.heap_dump()
+            mystack.rolling_restart()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
         return
 
 
@@ -133,18 +156,58 @@ class dodestroy(ForgeResource):
         stacks.append(mystack)
         try:
             outcome = mystack.destroy()
-            session['stacks'] = sorted(get_cfn_stacks_for_environment())
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.WARN, e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
+        session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return
+
+
+class dothreaddumps(ForgeResource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.thread_dump()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
+        return
+
+
+class doheapdumps(ForgeResource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.heap_dump()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
+        return
+
+
+class dorunsql(ForgeResource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        try:
+            outcome = mystack.run_post_clone_sql()
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+        return outcome
 
 
 class docreate(ForgeResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, env)
+        mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
-        outcome = mystack.create(pg_pass, app_pass, app_type)
+        try:
+            outcome = mystack.create(pg_pass, app_pass, app_type)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return outcome
 
@@ -194,6 +257,7 @@ class stackState(Resource):
 
 class templateParams(Resource):
     def get(self, template_name):
+        app_type = 'confluence' # default for lab
         for product in PRODUCTS:
             if product.lower() in template_name.lower():
                 app_type = product.lower()
@@ -262,6 +326,16 @@ class templateParamsForStack(Resource):
         return compared_params
 
 
+class getSql(ForgeResource):
+    def get(self, stack_name):
+        if Path(f'stacks/{stack_name}/{stack_name}.post-clone.sql').is_file():
+            sql_file = open(f'stacks/{stack_name}/{stack_name}.post-clone.sql', "r")
+            sql_to_run = 'SQL to be run:<br /><br />' + sql_file.read()
+        else:
+            sql_to_run = 'No SQL script exists for this stack'
+        return sql_to_run
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -306,6 +380,15 @@ class getRdsSnapshots(Resource):
         return snapshotIds
 
 
+class getTemplates(Resource):
+    def get(self, product):
+        templates = []
+        template_folder = Path(f'wpe-aws/{product.lower()}')
+        templates.extend([file.name for file in list(template_folder.glob('**/*.yaml'))])
+        templates.sort()
+        return templates
+
+
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
@@ -339,14 +422,25 @@ def update():
 def viewlog():
     return render_template('viewlog.html')
 
+@app.route('/diagnostics', methods = ['GET'])
+def diagnostics():
+    return render_template('diagnostics.html')
+
+@app.route('/runsql', methods = ['GET'])
+def runsql():
+    return render_template('runsql.html')
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
 api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>')
-api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>')
+api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>/<threads>/<heaps>')
+api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>/<threads>/<heaps>')
 api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
 api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
+api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
+api.add_resource(doheapdumps, '/doheapdumps/<env>/<stack_name>')
+api.add_resource(dorunsql, '/dorunsql/<env>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
@@ -354,11 +448,13 @@ api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
 api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
+api.add_resource(getSql, '/getsql/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+api.add_resource(getTemplates, '/getTemplates/<product>')
 
 
 def app_active_in_lb(forgestate, node):
@@ -381,9 +477,7 @@ def get_cfn_stacks_for_environment(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
-        StackStatusFilter=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE',
-                           'CREATE_IN_PROGRESS', 'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
-                           'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE'])
+        StackStatusFilter=VALID_STACK_STATUSES)
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
     #TODO fix or remove
@@ -391,25 +485,16 @@ def get_cfn_stacks_for_environment(region=None):
     return stack_name_list
 
 
-def get_templates():
-    templates = []
-    conf_templates = Path("wpe-aws/confluence")
-    jira_templates = Path("wpe-aws/jira")
-    templates.extend([file.name for file in list(conf_templates.glob('**/*.yaml'))])
-    templates.extend([file.name for file in list(jira_templates.glob('**/*.yaml'))])
-    return templates
-
-
 def get_current_log(stack_name):
-    statefile = Path(stack_name + '.json')
+    statefile = Path(f'stacks/{stack_name}/{stack_name}.json')
     if statefile.is_file() and path.getsize(statefile) > 0:
         with open(statefile, 'r') as stack_state:
             try:
                 json_state = json.load(stack_state)
+                if 'action_log' in json_state:
+                    return json_state['action_log']
             except Exception as e:
                 print(e.args[0])
-            if 'action_log' in json_state:
-                return json_state['action_log']
     return False
 
 
@@ -424,8 +509,6 @@ def check_loggedin():
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
-
-
 
 
 def general_constructor(loader, tag_suffix, node):
@@ -450,9 +533,8 @@ def index():
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['products'] = PRODUCTS
-    session['templates'] = get_templates()
+    #session['templates'] = get_templates()
     session['action'] = 'none'
-
     return render_template('index.html')
 
 
@@ -479,6 +561,8 @@ def setenv(env):
     session['region'] = getRegion(env)
     session['env'] = env
     session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
     flash(f'Environment selected: {env}', 'success')
     return redirect(url_for('index'))
 
@@ -487,6 +571,9 @@ def setenv(env):
 @app.route('/setaction/<action>')
 def setaction(action):
     session['action'] = action
+    session['stack_name'] = 'none'
+    session['version'] = 'none'
+    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(session['env'])))
     return redirect(url_for(action))
 
 
@@ -551,8 +638,9 @@ def updateJson():
             param['UsePreviousValue'] = True
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+    if session['env'] == 'stg':
+        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
 
     # this is a hack for now because the snapshot params are not in the stack_parms.
     # Need to think of a better way to check template based on params.
@@ -578,7 +666,7 @@ def createJson():
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
 
-    mystack = Stack(stack_name, session['env'])
+    mystack = Stack(stack_name, session['env'], app_type)
     stacks.append(mystack)
     mystack.writeparms(content)
 

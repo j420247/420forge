@@ -2,6 +2,8 @@ from collections import defaultdict
 from datetime import datetime
 import json
 import pprint
+from pathlib import Path
+import os
 
 class Forgestate:
     """An object containing the forge configuration information and state of actions conducted by Forge:
@@ -16,14 +18,16 @@ class Forgestate:
         self.stack_name = stack_name
 
     def write_state(self):
-        with open(self.stack_name + '.json', 'w') as outfile:
+        if not Path(f'stacks/{self.stack_name}').exists():
+            os.makedirs(f'stacks/{self.stack_name}')
+        with open(f'stacks/{self.stack_name}/{self.stack_name}.json', 'w') as outfile:
             json.dump(self.forgestate, outfile)
         outfile.close()
         return (self)
 
     def load_state(self):
         try:
-            with open(self.stack_name + '.json', 'r') as infile:
+            with open(f'stacks/{self.stack_name}/{self.stack_name}.json', 'r') as infile:
                 self.forgestate = json.load(infile)
                 return self.forgestate
         except FileNotFoundError:
@@ -31,7 +35,7 @@ class Forgestate:
             pass
         except Exception as e:
             print('type is:', e.__class__.__name__)
-            print(e.strerror)
+            print(e.args[0])
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(e).__name__, e.args)
             return ('failed')
@@ -56,7 +60,7 @@ class Forgestate:
     def archive(self):
         # at the end of an action, archive will take the current forgestate and write it out to a datestamped file
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(self.stack_name + '_' + self.forgestate['action'] + '_' + timestamp +'.json', 'w') as outfile:
+        with open(f'stacks/{self.stack_name}/{self.stack_name}_{self.forgestate["action"]}_{timestamp}.json', 'w') as outfile:
             json.dump(self.forgestate, outfile)
         outfile.close()
         return (self)

@@ -5,6 +5,7 @@
         <meta name="env" value={{ session['env'] }}>
         <meta name="action" value={{ session['action'] }}>
         <meta name="stack_name" value={{ session['stack_name'] }}>
+        <meta name="version" value={{ session['version'] }}>
         <title>Atlassian Cloudformation Forge</title>
         <link rel="stylesheet" href="/static/css/index.css">
 
@@ -17,6 +18,7 @@
         <script src="/static/aui/js/aui-experimental.min.js"></script>
         <script src="/static/aui/js/aui-soy.min.js"></script>
         <script src="/static/js/page-content.js"></script>
+        <script src="/static/js/utils.js"></script>
         {% block head %}
         {% endblock head %}
     </head>
@@ -96,8 +98,14 @@
                                     <li {% if session['action'] == 'update' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack</a>
                                     </li>
+                                    <li {% if session['action'] == 'diagnostics' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
+                                    </li>
                                     <li {% if session['action'] == 'clone' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
+                                    </li>
+                                    <li {% if session['action'] == 'runsql' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
                                     </li>
                                     {% if session['env'] == "prod" %}
                                     <li {% if session['action'] == 'backup' %} class="aui-nav-selected" {% endif %} >
@@ -105,8 +113,8 @@
                                     </li>
                                     {% endif %}
                                     <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
-                                            <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
-                                        </li>
+                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
+                                    </li>
                                     {% endblock %}
                                 </ul>
                             </div>

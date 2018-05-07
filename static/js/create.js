@@ -4,24 +4,45 @@ $(document).ready(function() {
         products[i].addEventListener("click", function (data) {
             var product = data.target.text;
             $("#productSelector").text(product);
-
-            var templates = document.getElementsByClassName("selectTemplateOption");
-            for(var i = 0; i < templates.length; i++) {
-                if (templates[i].text.toLowerCase().indexOf(product.toLowerCase()) > -1) {
-                    templates[i].removeAttribute("style");
-                    templates[i].addEventListener("click", function (data) {
-                        var selectedTemplate = data.target.text;
-                        $("#templateSelector").text(selectedTemplate);
-                        getTemplate(selectedTemplate);
-                    }, false);
-                }
-                else {
-                    templates[i].style.display = "none";
-                }
-            }
+            getTemplates(product);
         }, false);
     }
 });
+
+function getTemplates(product) {
+    var getTemplatesRequest = new XMLHttpRequest();
+    getTemplatesRequest.open("GET", baseUrl + "/getTemplates/" + product, true);
+    getTemplatesRequest.setRequestHeader("Content-Type", "text/xml");
+    getTemplatesRequest.onreadystatechange = function () {
+        if (getTemplatesRequest.readyState === XMLHttpRequest.DONE && getTemplatesRequest.status === 200) {
+            var templateDropdown = document.getElementById("templates");
+            while (templateDropdown.firstChild) {
+                templateDropdown.removeChild(templateDropdown.firstChild);
+            }
+
+            var templates = JSON.parse(getTemplatesRequest.responseText);
+            for (var template in templates) {
+                var li = document.createElement("LI");
+                var anchor = document.createElement("A");
+                anchor.className = "selectTemplateOption";
+                var text = document.createTextNode(templates[template]);
+                anchor.appendChild(text);
+                li.appendChild(anchor);
+                templateDropdown.appendChild(li);
+            }
+
+            var templates = document.getElementsByClassName("selectTemplateOption");
+            for(var i = 0; i < templates.length; i++) {
+                templates[i].addEventListener("click", function (data) {
+                    var selectedTemplate = data.target.text;
+                    $("#templateSelector").text(selectedTemplate);
+                    getTemplate(selectedTemplate);
+                }, false);
+            }
+        }
+    };
+    getTemplatesRequest.send();
+}
 
 function getTemplate(template) {
     var templateParamsRequest = new XMLHttpRequest();

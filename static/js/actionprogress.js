@@ -4,41 +4,64 @@ var refreshTimer;
 
 $(document).ready(function() {
     var stacks = document.getElementsByClassName("selectStackOption");
-    var action = $("meta[name=action]").attr("value");
-
-    for (var i = 0; i < stacks.length; i ++) {
-        stacks[i].addEventListener("click", function (data) {
-            stackName = data.target.text;
-            selectStack(stackName, action);
-            clearTimeout(refreshTimer);
-            getStatus(stackName);
-            updateStats(stackName);
-            refreshStatus(stackName, true);
-        }, false);
-    }
-
     $("#action-button").hide();
 
-    if (action !== 'viewlog') {
-        var stack_name = $("meta[name=stack_name]").attr("value");
+    // Set up stack selector if we are in viewlog
+    if (action === 'viewlog') {
+        for (var i = 0; i < stacks.length; i++) {
+            stacks[i].addEventListener("click", function (data) {
+                var stack_name = data.target.text;
+                selectStack(stack_name);
+                clearTimeout(refreshTimer);
+                getStatus(stack_name);
+                updateStats(stack_name);
+                refreshStatus(stack_name, true, 1000);
+            }, false);
+        }
+    // or if we got here from an action, refresh info now,
+    // unless it's create in which case wait 1s for the creation to begin
+    } else {
         $("#stackSelector").hide();
-        selectStack(stack_name);
-        getStatus(stack_name);
-        refreshStatus(stack_name, true);
+        selectStack(stackName);
+        if (action !== 'create') getStatus(stackName);
+        refreshStatus(stackName, true, 2000);
     }
 });
 
-// Refresh the status every 5s while the action is still underway
-function refreshStatus(stack_name, cont) {
+// Refresh the status while the action is still underway
+function refreshStatus(stack_name, cont, refresh_interval) {
     if (cont) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
-            updateStats(stack_name);
-            if ($("#log").contents().text().search("Final state") !== -1) {
-                refreshStatus(false);
-            } else {
-                refreshStatus(stack_name, true);
+
+            // Only check stack status in EC2 for stack changing actions
+            if (action !== 'diagnostics' &&
+                action !== 'fullrestart' &&
+                action !== 'rollingrestart') {
+                updateStats(stack_name);
             }
-        }, 30000)
+
+            // Set refresh interval to more frequent if there is no logging yet
+            if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
+                countOccurences($("#log").contents().text(), "Waiting for logs") >= 1 )
+                refresh_interval = 1000;
+
+            // Stop once action is complete
+            refresh_interval = 5000;
+            if (action === 'diagnostics') {
+                if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
+                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
+                    refreshStatus(stack_name, true, refresh_interval);
+                else
+                    refreshStatus(stack_name, false, refresh_interval);
+            }
+            else if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
+                refreshStatus(stack_name, false, refresh_interval);
+            else
+                refreshStatus(stack_name, true, refresh_interval);
+        }, refresh_interval)
     }
 }

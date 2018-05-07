@@ -1,37 +1,35 @@
 $(document).unbind('ready');
-var action = $("meta[name=action]").attr("value");
 
 $(document).ready(function() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-    var stackToRetrieve = "none";
-
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            stackToRetrieve = data.target.text;
-            selectStack(stackToRetrieve);
+            selectTemplateForStack(data.target.text);
         }, false);
     }
-
-    AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
-        sendParamsAsJson();
-        event.preventDefault();
-    });
 
     var actionButton = document.getElementById("action-button");
     actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#paramsForm").submit();
     });
+
+    AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
+        sendParamsAsJson();
+        event.preventDefault();
+    });
 });
 
-function selectStack(stackToRetrieve) {
+function selectTemplateForStack(stackToRetrieve) {
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
         getEbsSnapshots(baseUrl, stackToRetrieve);
         getRdsSnapshots(baseUrl, stackToRetrieve);
+    } else{
+        $('meta[name=stack_name]').attr('value', stackToRetrieve);
     }
 
     var stackParamsRequest = new XMLHttpRequest();
@@ -113,7 +111,6 @@ function createInputParameter(param, fieldset) {
             liAnchor.addEventListener("click", function (data) {
                 dropdownAnchor.text = data.target.text;
                 if (dropdownAnchor.id === "TomcatSchemeVal") {
-                    debugger;
                     if (data.target.text === "https") {
                         document.getElementById("TomcatProxyPortVal").value = "443";
                         document.getElementById("TomcatSecureVal").value = "true";
@@ -139,7 +136,22 @@ function createInputParameter(param, fieldset) {
         var input = document.createElement("INPUT");
         input.className = "text";
         input.id = param.ParameterKey + "Val";
-        input.value = param.ParameterValue;
+
+        // Set VPC and subnets for env
+        if (param.ParameterKey === "VPC") {
+            if (env === 'stg')
+                input.value = "vpc-320c1355";
+            else
+                input.value = "vpc-dd8dc7ba";
+        } else if (param.ParameterKey === "InternalSubnets" || param.ParameterKey === "ExternalSubnets") {
+            if (env === 'stg')
+                input.value = "subnet-df0c3597,subnet-f1fb87ab";
+            else
+                input.value = "subnet-eb952fa2,subnet-f2bddd95"
+        } else {
+            input.value = param.ParameterValue;
+        }
+
         if (action === 'clone' && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
             input.value = "";
@@ -246,9 +258,15 @@ function sendParamsAsJson() {
         var value;
 
         if (param == "EBSSnapshotId") {
-            value = document.getElementById("ebsSnapshotSelector").innerText;
+            if (action === 'clone')
+                value = document.getElementById("ebsSnapshotSelector").innerText;
+            else
+                value = document.getElementById("EBSSnapshotIdVal").value;
         } else if (param == "DBSnapshotName") {
-            value = document.getElementById("rdsSnapshotSelector").innerText;
+            if (action === 'clone')
+                value = document.getElementById("rdsSnapshotSelector").innerText;
+            else
+                value = document.getElementById("DBSnapshotNameVal").value;
         } else {
             var element = document.getElementById(param + "Val");
             if (element.tagName.toLowerCase() === "a") {
