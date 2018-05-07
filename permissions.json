@@ -6,18 +6,18 @@
      },
      "forge-dl-jira-champ": {
       "env": ["*"],
-      "stack": ["*"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+      "stack": ["eacj","eac-stg"],
+      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
      },
       "forge-dl-confluence-champ": {
       "env": ["*"],
-      "stack": ["*"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+      "stack": ["eac","eac-stg"],
+      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
      },
      "forge-dl-admin": {
-         "env": ["prod"],
+         "env": ["*"],
          "stack": ["*"],
-         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+         "action": ["*"]
      }
  }
 
