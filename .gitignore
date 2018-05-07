@@ -2,8 +2,7 @@
 forge.iml
 atl-cfn-forge.iml
 general.json
-*.json
+stacks
 __pycache__*
 *.db
-.DS_Store   
-!permissions.json
+.DS_Store 
