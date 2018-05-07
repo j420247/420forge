@@ -95,6 +95,13 @@ function getStatus(stackName) {
     statusRequest.send();
 }
 
+function processResponse() {
+    console.log(this);
+    if (this.status != 200) {
+        window.location = baseUrl + "/error403";
+    }
+}
+
 function performAction(action, env, stackName, version) {
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
 
@@ -105,6 +112,7 @@ function performAction(action, env, stackName, version) {
 
     actionRequest.open("GET", url, true);
     actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.addEventListener("load", processResponse);
     actionRequest.send();
 
     // Wait a mo for action to begin  in backend

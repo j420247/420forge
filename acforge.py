@@ -17,6 +17,7 @@ from os import path
 import log
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
+from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -57,11 +58,40 @@ db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 
+#print(session_store.app.session_interface.db.metadata.tables.keys())
 ##
 #### REST Endpoint classes
 ##
+## All actions need to pass trough the sub class (ForgeResource) to control permissions - (doupgrade, doclone, dofullrestat, dorollingrestart, docreate, dodestroy )
 
-class doupgrade(Resource):
+class ForgeResource(Resource):
+    def dispatch_request(self, *args, **kwargs):
+        # check permissions
+        with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
+            json_perms = json.load(json_data)
+
+            def check_group(group):
+                if group in session['saml']['attributes']['memberOf']:
+                    return True
+                return False
+
+            def check_permission(perm):
+                if session['env'] in perm['env'] or "*" in perm['env']:
+                    if request.endpoint in perm['action'] or "*" in perm['action']:
+                        if kwargs['stack_name'] in perm['stack'] or "*" in perm['stack']:
+                            return True
+                return False
+
+            in_groups = [g for g in json_perms.keys() if check_group(g)]
+            for g in in_groups:
+                if check_permission(json_perms[g]):
+                    print("Allowed")
+                    return super().dispatch_request(*args, **kwargs)
+
+            return 'unauthorised', 403
+
+
+class doupgrade(ForgeResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -69,7 +99,7 @@ class doupgrade(Resource):
         return
 
 
-class doclone(Resource):
+class doclone(ForgeResource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -81,7 +111,7 @@ class doclone(Resource):
         return
 
 
-class dofullrestart(Resource):
+class dofullrestart(ForgeResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -89,7 +119,7 @@ class dofullrestart(Resource):
         return
 
 
-class dorollingrestart(Resource):
+class dorollingrestart(ForgeResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -97,7 +127,7 @@ class dorollingrestart(Resource):
         return
 
 
-class dodestroy(Resource):
+class dodestroy(ForgeResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -110,7 +140,7 @@ class dodestroy(Resource):
         return
 
 
-class docreate(Resource):
+class docreate(ForgeResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -119,7 +149,7 @@ class docreate(Resource):
         return outcome
 
 
-class status(Resource):
+class status(ForgeResource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'
@@ -396,8 +426,14 @@ def check_loggedin():
         return redirect(login_url)
 
 
+
+
 def general_constructor(loader, tag_suffix, node):
     return node.value
+
+@app.route("/error403")
+def error403():
+    return render_template('error403.html'), 403
 
 
 @app.route('/')
@@ -416,6 +452,7 @@ def index():
     session['products'] = PRODUCTS
     session['templates'] = get_templates()
     session['action'] = 'none'
+
     return render_template('index.html')
 
 

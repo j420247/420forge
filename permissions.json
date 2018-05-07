@@ -1,0 +1,23 @@
+ {                                
+     "forge-dl-users": {                       
+         "env": ["*"],
+         "stack": ["*"],
+         "action": ["status"]
+     },
+     "forge-dl-jira-champ": {
+      "env": ["*"],
+      "stack": ["*"],
+      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+     },
+      "forge-dl-confluence-champ": {
+      "env": ["*"],
+      "stack": ["*"],
+      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+     },
+     "forge-dl-admin": {
+         "env": ["*"],
+         "stack": ["*"],
+         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
+     }
+ }
+

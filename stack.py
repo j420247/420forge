@@ -40,7 +40,6 @@ class Stack:
         self.state.update('environment', env)
         self.state.update('region', self.region)
 
-
 ## Stack - micro function methods
     def debug_forgestate(self):
         self.state.load_state()
