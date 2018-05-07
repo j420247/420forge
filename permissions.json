@@ -15,7 +15,7 @@
       "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
      },
      "forge-dl-admin": {
-         "env": ["*"],
+         "env": ["prod"],
          "stack": ["*"],
          "action": ["doclone","dofullrestart","dorollingrestart","doupgrade"]
      }

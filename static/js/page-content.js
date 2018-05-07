@@ -140,6 +140,7 @@ function performAction() {
 
     actionRequest.open("GET", url, true);
     actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.addEventListener("load", processResponse);
     actionRequest.send();
 
     // Wait a mo for action to begin  in backend
