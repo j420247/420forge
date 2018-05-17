@@ -1,23 +1,26 @@
- {                                
-     "forge-dl-users": {                       
-         "env": ["*"],
-         "stack": ["*"],
-         "action": ["status"]
-     },
-     "forge-dl-jira-champ": {
-      "env": ["*"],
-      "stack": ["eacj","eac-stg"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
-     },
-      "forge-dl-confluence-champ": {
-      "env": ["*"],
-      "stack": ["eac","eac-stg"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
-     },
-     "forge-dl-admin": {
-         "env": ["*"],
-         "stack": ["*"],
-         "action": ["*"]
-     }
- }
-
+{
+  "forge-dl-users": {
+    "env": ["*"],
+    "stack": ["*"],
+    "action": ["status"]
+  },
+  "forge-dl-jira-champ": {
+    "env": ["eacj", "eacj-stg", "foj-stg"],
+    "stack": ["eacj", "eac-stg"],
+    "action": ["doclone", "dofullrestart", "dorollingrestart", "doupgrade",
+      "dothreaddumps", "doheapdumps"
+    ]
+  },
+  "forge-dl-confluence-champ": {
+    "env": ["*"],
+    "stack": ["eac", "eac-stg"],
+    "action": ["doclone", "dofullrestart", "dorollingrestart", "doupgrade",
+      "dothreaddumps", "doheapdumps"
+    ]
+  },
+  "forge-dl-admin": {
+    "env": ["*"],
+    "stack": ["*"],
+    "action": ["*"]
+  }
+}
