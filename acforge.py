@@ -64,9 +64,10 @@ session_store.app.session_interface.db.create_all()
 ##
 #### REST Endpoint classes
 ##
-## All actions need to pass trough the sub class (ForgeResource) to control permissions - (doupgrade, doclone, dofullrestat, dorollingrestart, docreate, dodestroy )
+## All actions need to pass trough the sub class (RestrictedResource) to control permissions -
+# (doupgrade, doclone, dofullrestat, dorollingrestart, docreate, dodestroy )
 
-class ForgeResource(Resource):
+class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
         # check permissions
         with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
@@ -84,16 +85,19 @@ class ForgeResource(Resource):
                             return True
                 return False
 
-            in_groups = [g for g in json_perms.keys() if check_group(g)]
-            for g in in_groups:
-                if check_permission(json_perms[g]):
-                    print("Allowed")
-                    return super().dispatch_request(*args, **kwargs)
+            for keys in json_perms:
+                 if check_group(json_perms[keys]['group'][0]):
+                     if check_permission(json_perms[keys]):
+                         print("{} is authorised to perform {} on {}".format("User",
+                                request.endpoint,kwargs['stack_name']))
+                         return super().dispatch_request(*args, **kwargs)
 
-            return 'unauthorised', 403
+            print("{} is not authorised to perform {} on {}".format("User",
+                    request.endpoint, kwargs['stack_name']))
+            return 'Forbidden', 403
 
 
-class doupgrade(ForgeResource):
+class doupgrade(RestrictedResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -105,7 +109,7 @@ class doupgrade(ForgeResource):
         return
 
 
-class doclone(ForgeResource):
+class doclone(RestrictedResource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -118,7 +122,7 @@ class doclone(ForgeResource):
         return
 
 
-class dofullrestart(ForgeResource):
+class dofullrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -134,7 +138,7 @@ class dofullrestart(ForgeResource):
         return
 
 
-class dorollingrestart(ForgeResource):
+class dorollingrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -150,7 +154,7 @@ class dorollingrestart(ForgeResource):
         return
 
 
-class dodestroy(ForgeResource):
+class dodestroy(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -163,7 +167,7 @@ class dodestroy(ForgeResource):
         return
 
 
-class dothreaddumps(ForgeResource):
+class dothreaddumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -175,7 +179,7 @@ class dothreaddumps(ForgeResource):
         return
 
 
-class doheapdumps(ForgeResource):
+class doheapdumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -187,7 +191,7 @@ class doheapdumps(ForgeResource):
         return
 
 
-class dorunsql(ForgeResource):
+class dorunsql(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -199,7 +203,7 @@ class dorunsql(ForgeResource):
         return outcome
 
 
-class docreate(ForgeResource):
+class docreate(RestrictedResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
@@ -212,7 +216,7 @@ class docreate(ForgeResource):
         return outcome
 
 
-class status(ForgeResource):
+class status(RestrictedResource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'
@@ -326,7 +330,7 @@ class templateParamsForStack(Resource):
         return compared_params
 
 
-class getSql(ForgeResource):
+class getSql(RestrictedResource):
     def get(self, stack_name):
         if Path(f'stacks/{stack_name}/{stack_name}.post-clone.sql').is_file():
             sql_file = open(f'stacks/{stack_name}/{stack_name}.post-clone.sql', "r")

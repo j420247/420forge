@@ -1,20 +1,31 @@
  {                                
-     "forge-dl-users": {                       
+     "1": {
+         "group": ["forge-dl-users"],
          "env": ["*"],
          "stack": ["*"],
          "action": ["status"]
      },
-     "forge-dl-jira-champ": {
-      "env": ["*"],
-      "stack": ["eacj","eac-stg"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
+     "2": {
+         "group": ["forge-dl-jira-champ"],
+         "env": ["*"],
+         "stack": ["eacj","eac-stg"],
+         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
      },
-      "forge-dl-confluence-champ": {
-      "env": ["*"],
-      "stack": ["eac","eac-stg"],
-      "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
+      "3": {
+         "group": ["forge-dl-confluence-champ"],
+         "env": ["prod"],
+         "stack": ["eac"],
+         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps"]
      },
-     "forge-dl-admin": {
+
+      "4": {
+        "group": ["forge-dl-confluence-champ"],
+        "env": ["stg"],
+        "stack": ["*"],
+        "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy", "docreate"]
+      },
+     "5": {
+         "group": ["forge-dl-admin"],
          "env": ["*"],
          "stack": ["*"],
          "action": ["*"]
