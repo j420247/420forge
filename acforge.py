@@ -539,7 +539,6 @@ def index():
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
     session['products'] = PRODUCTS
-    #session['templates'] = get_templates()
     session['action'] = 'none'
     return render_template('index.html')
 

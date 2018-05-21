@@ -22,7 +22,7 @@
         "group": ["forge-dl-confluence-champ"],
         "env": ["stg"],
         "stack": ["*"],
-        "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy", "docreate"]
+        "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy", "docreate","dorunsql","doupdate"]
       },
      "5": {
          "group": ["forge-dl-admin"],
