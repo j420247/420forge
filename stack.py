@@ -113,7 +113,7 @@ class Stack:
         self.state.logaction(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
         if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
             return (ssm_command['Command']['CommandId'])
-        sys.exit()
+        return False
 
     def ssm_cmd_check(self, cmd_id):
         ssm = boto3.client('ssm', region_name=self.region)
@@ -122,6 +122,15 @@ class Stack:
         instance = list_command[u'Commands'][0][u'InstanceIds'][0]
         self.state.logaction(log.INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
         return (cmd_status, instance)
+
+
+    def ssm_send_and_wait_response(self, instance, cmd):
+        cmd_id = self.ssm_send_command(instance, cmd)
+        if not cmd_id:
+            self.state.logaction(log.ERROR, f'Command {cmd} on instance {instance} failed to send')
+        else:
+            result = self.wait_for_cmd_result(cmd_id)
+        return result
 
 
 ## Stack - helper methods
@@ -374,10 +383,7 @@ class Stack:
             cmd = f'/etc/init.d/{self.app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
-            result = ""
-            while result != 'Success' and result != 'Failed':
-                result, cmd_instance = self.ssm_cmd_check(cmd_id)
-                time.sleep(10)
+            result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
                 self.state.logaction(log.ERROR, f'Shutdown result for {cmd_instance}: {result}')
             else:
@@ -391,10 +397,7 @@ class Stack:
             self.state.logaction(log.INFO, f'Starting up {instance} ({node_ip})')
             cmd = f'/etc/init.d/{self.app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
-            result = ""
-            while result != 'Success' and result != 'Failed':
-                result, cmd_instance = self.ssm_cmd_check(cmd_id)
-                time.sleep(10)
+            result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
                 self.state.logaction('ERROR', f'Startup result for {cmd_instance}: {result}')
             else:
@@ -413,16 +416,20 @@ class Stack:
             self.state.logaction(log.INFO, f'Running command {cmd} on {node_ip}')
             cmd_id_dict[self.ssm_send_command(instance, cmd)] = node_ip
         for cmd_id in cmd_id_dict:
-            result = ""
-            while result != 'Success' and result != 'Failed':
-                result, cmd_instance = self.ssm_cmd_check(cmd_id)
-                time.sleep(10)
+            result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
                 self.state.logaction(log.ERROR, f'Command result for {cmd_instance}: {result}')
                 return False
             else:
                 self.state.logaction(log.INFO, f'Command result for {cmd_instance}: {result}')
         return True
+
+    def wait_for_cmd_result(self, cmd_id):
+        result = ""
+        while result != 'Success' and result != 'Failed':
+            result, cmd_instance = self.ssm_cmd_check(cmd_id)
+            time.sleep(10)
+        return result
 
 ## Stack - Major Action Methods
 
@@ -623,7 +630,10 @@ class Stack:
         self.state.logaction(log.INFO, f'Beginning heap dumps on {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        self.run_command(self.instancelist, '/usr/local/bin/j2ee_heap_dump_live')
+        # Wait for each heap dump to finish before starting the next, to avoid downtime
+        for instance in self.instancelist:
+            self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
+            time.sleep(30) # give node time to recover and rejoin cluster
         self.state.logaction(log.INFO, "Heap dumps complete")
         self.state.archive()
         return

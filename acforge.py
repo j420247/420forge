@@ -18,6 +18,7 @@ import log
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
 from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
+from werkzeug.contrib.fixers import ProxyFix
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -47,9 +48,10 @@ app.config.from_object(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
 if args.prod:
+   app.wsgi_app = ProxyFix(app.wsgi_app)
    print("SAML auth set to production - the app can be accessed on https://forge.wpt.atlassian.com")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
-else: 
+else:
    print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
