@@ -642,6 +642,8 @@ def cloneJson():
     for param in content:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
+        if param['ParameterKey'] == 'Region':
+            region = param['ParameterValue']
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
@@ -650,15 +652,8 @@ def cloneJson():
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        # Hackity hack, I know, it's just for now
-        elif param['ParameterKey'] == 'ExternalSubnets':
-            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'InternalSubnets':
-            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'VPC':
-            param['ParameterValue'] = 'vpc-320c1355'
 
-    mystack = Stack(stack_name, 'stg', app_type)
+    mystack = Stack(stack_name, region, app_type)
     stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome
