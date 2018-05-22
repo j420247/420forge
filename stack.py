@@ -444,12 +444,12 @@ class Stack:
         # # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes():
             self.state.logaction(log.INFO, "Upgrade complete - failed")
-            return
+            return False
         # TODO change template if required
         # spin stack up to 1 node on new release version
         if not self.spinup_to_one_appnode():
             self.state.logaction(log.INFO, "Upgrade complete - failed")
-            return
+            return False
         # spinup remaining appnodes in stack if needed
         if self.state.forgestate['appnodemin'] != "1":
             self.spinup_remaining_nodes()
@@ -461,7 +461,7 @@ class Stack:
         self.state.logaction(log.INFO, f'Upgrade successful for {self.stack_name} at {self.env} to version {new_version}')
         self.state.logaction(log.INFO, "Upgrade complete")
         self.state.archive()
-        return
+        return True
 
 
     def destroy(self):
@@ -473,7 +473,6 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
-                self.state.logaction(log.INFO, "Destroy complete - failed")
                 return True
         stack_id = stack_state['Stacks'][0]['StackId']
         delete_stack = cfn.delete_stack(StackName=self.stack_name)
@@ -495,7 +494,7 @@ class Stack:
                     self.full_restart()
         self.state.logaction(log.INFO, "Clone complete")
         self.state.archive()
-        return
+        return True
 
     def update(self, stack_parms, template_type):
         self.state.update('action', 'update')
@@ -516,19 +515,19 @@ class Stack:
             print(e.args[0])
             self.state.logaction(log.ERROR, f'An error occurred updating stack: {e.args[0]}')
             self.state.logaction(log.INFO, "Update complete - failed")
-            return
+            return False
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO, f'Stack {self.stack_name} is being updated: {updated_stack}')
         if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
             self.state.logaction(log.INFO, "Update complete - failed")
-            return
+            return False
         if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] and \
             [param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] > 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.state.logaction(log.INFO, "Update complete")
         self.state.archive()
-        return
+        return True
 
 
     #  TODO create like
@@ -594,7 +593,7 @@ class Stack:
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Rolling restart complete")
         self.state.archive()
-        return
+        return True
 
 
     def full_restart(self):
@@ -609,7 +608,7 @@ class Stack:
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Full restart complete")
         self.state.archive()
-        return
+        return True
 
 
     def thread_dump(self, alsoHeaps=False):
@@ -623,7 +622,7 @@ class Stack:
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
         self.state.logaction(log.INFO, "Thread dumps complete")
         self.state.archive()
-        return
+        return True
 
 
     def heap_dump(self):
@@ -637,7 +636,7 @@ class Stack:
             time.sleep(30) # give node time to recover and rejoin cluster
         self.state.logaction(log.INFO, "Heap dumps complete")
         self.state.archive()
-        return
+        return True
 
     def run_post_clone_sql(self):
         self.state.logaction(log.INFO, f'Running post clone SQL')
