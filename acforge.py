@@ -59,11 +59,17 @@ class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'upgrade'
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -71,12 +77,18 @@ class doclone(Resource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'clone'
         try:
             outcome = mystack.destroy()
             outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -84,6 +96,10 @@ class dofullrestart(Resource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'full restart'
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -93,6 +109,8 @@ class dofullrestart(Resource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -100,6 +118,10 @@ class dorollingrestart(Resource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'rolling restart'
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -109,6 +131,8 @@ class dorollingrestart(Resource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -116,11 +140,17 @@ class dodestroy(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'destroy'
         try:
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return
 
@@ -129,11 +159,17 @@ class dothreaddumps(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'thread dumps'
         try:
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -141,11 +177,17 @@ class doheapdumps(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'heap dumps'
         try:
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return
 
 
@@ -153,11 +195,17 @@ class dorunsql(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'run sql'
         try:
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         return outcome
 
 
@@ -165,11 +213,17 @@ class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
+        if stackActionInProgress(stack_name):
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+            return
+        session[stack_name]['action_in_progress'] = 'create'
         try:
             outcome = mystack.create(pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
+            session[stack_name]['action_in_progress'] = 'none'
+        session[stack_name]['action_in_progress'] = 'none'
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
         return outcome
 
@@ -351,6 +405,12 @@ class getTemplates(Resource):
         templates.sort()
         return templates
 
+
+def stackActionInProgress(stack_name):
+    if 'action_in_progress' in session[stack_name]:
+        if session[stack_name]['action_in_progress'] != 'none':
+            return session[stack_name]['action_in_progress']
+    return False
 
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
