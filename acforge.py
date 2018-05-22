@@ -66,8 +66,8 @@ session_store.app.session_interface.db.create_all()
 ##
 #### REST Endpoint classes
 ##
-## All actions need to pass trough the sub class (RestrictedResource) to control permissions -
-# (doupgrade, doclone, dofullrestat, dorollingrestart, docreate, dodestroy )
+## All actions need to pass through the sub class (RestrictedResource) to control permissions -
+# (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, getsql, doupdate, status)
 
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
