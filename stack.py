@@ -278,15 +278,11 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
-
-        context_path = [param['ParameterValue'] for param in stack_details['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
-        if len(context_path) > 0:
-            context_path = '/' + context_path
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO,
-                        f' ==> checking service status at {self.state.forgestate["lburl"]}{context_path}/status')
+                        f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
-            service_status = requests.get(self.state.forgestate['lburl'] + context_path + '/status', timeout=5)
+            service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
             status = service_status.text if service_status.text else "...?"
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
