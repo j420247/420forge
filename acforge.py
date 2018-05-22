@@ -538,19 +538,17 @@ def general_constructor(loader, tag_suffix, node):
     return node.value
 
 
-@app.route('/')
-def index():
-    #TODO remove?
-    # saved_data = get_saved_data()
-    # if 'forgetype' in forgestate[stack_name] and 'environment' in forgestate[stack_name]:
-    #     gtg_flag = True
-    #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
-
+def useStgIfNoEnvSelected():
     # use stg if no env selected (eg first load)
     if 'region' not in session:
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+
+
+@app.route('/')
+def index():
+    useStgIfNoEnvSelected()
     session['products'] = PRODUCTS
     session['action'] = 'none'
     return render_template('index.html')
@@ -588,6 +586,7 @@ def setenv(env):
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
 def setaction(action):
+    useStgIfNoEnvSelected()
     session['action'] = action
     session['stack_name'] = 'none'
     session['version'] = 'none'
