@@ -518,8 +518,8 @@ class Stack:
         if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
             self.state.logaction(log.INFO, "Update complete - failed")
             return
-        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] and \
-            [param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] > 0:
+        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and \
+                int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.state.logaction(log.INFO, "Update complete")
