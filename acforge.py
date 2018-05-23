@@ -259,7 +259,7 @@ class templateParamsForStack(Resource):
                 break
 
         template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
-        if env == 'stg':
+        if env == 'prod':
             template_type = "DataCenter"
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
@@ -305,14 +305,17 @@ class actionReadyToStart(Resource):
 
 
 class getEbsSnapshots(Resource):
-    def get(self, stack_name):
-        ec2 = boto3.client('ec2', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        ec2 = boto3.client('ec2', region_name=region)
+        snap_name_format = f'{stack_name}_ebs_snap_*'
+        if region == 'us-east-1':
+            snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
                 {
-                    'Name': 'description',
+                    'Name': 'tag-value',
                     'Values': [
-                        f'dr-{stack_name}-snap-*',
+                        snap_name_format,
                     ]
                 },
             ],)
@@ -328,8 +331,8 @@ class getEbsSnapshots(Resource):
 
 
 class getRdsSnapshots(Resource):
-    def get(self, stack_name):
-        rds = boto3.client('rds', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        rds = boto3.client('rds', region_name=region)
         try:
             snapshots = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
         except botocore.exceptions.ClientError as e:
@@ -415,8 +418,8 @@ api.add_resource(getSql, '/getsql/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
-api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
+api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 
 
@@ -638,12 +641,14 @@ def createJson():
 def cloneJson():
     content = request.get_json()[0]
     app_type = ''
+    env='stg'
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
         if param['ParameterKey'] == 'Region':
-            region = param['ParameterValue']
+            if param['ParameterValue'] == 'us-west-2':
+                env = 'prod'
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
@@ -653,7 +658,9 @@ def cloneJson():
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
 
-    mystack = Stack(stack_name, region, app_type)
+    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+
+    mystack = Stack(stack_name, env, app_type)
     stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome

@@ -4,6 +4,8 @@ $(document).ready(function() {
         regions[i].addEventListener("click", function (data) {
             var region = data.target.text;
             $("#regionSelector").text(region);
+            getEbsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
+            getRdsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
             setSubnets(region);
         }, false);
     }
