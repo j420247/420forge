@@ -44,7 +44,7 @@ app.config.from_object(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
 if args.prod:
-   print("SAML auth set to production - the app can be accessed on https://forge.wpt.atlassian.com")
+   print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
 else: 
    print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
@@ -527,7 +527,6 @@ def check_loggedin():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
-        print("Bypassing SAML auth because --nosaml has been set - the app can be accessed on 127.0.0.1")
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
