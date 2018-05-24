@@ -117,8 +117,10 @@ function getStatus(stack_name) {
 
 function processResponse() {
     console.log(this);
-    if (this.status != 200) {
-        window.location = baseUrl + "/error403";
+    if (this.status == 403) {
+        window.location = baseUrl + "/error/403";
+    }  else if (this.status !== 403 || this.status !==200) {
+        window.location = baseUrl + "/error/x00";
     }
 }
 

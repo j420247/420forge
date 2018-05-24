@@ -520,9 +520,9 @@ def check_loggedin():
 def general_constructor(loader, tag_suffix, node):
     return node.value
 
-@app.route("/error403")
-def error403():
-    return render_template('error403.html'), 403
+@app.route('/error/<error>')
+def error(error):
+    return render_template('error.html', code=error), 403
 
 
 @app.route('/')
