@@ -1,7 +1,7 @@
  {                                
      "1": {
          "group": ["forge-dl-users"],
-         "env": ["*"],
+         "env": ["prod"],
          "stack": ["*"],
          "action": ["status"]
      },
@@ -14,10 +14,8 @@
      "3": {
          "group": ["forge-dl-jira-champ"],
          "env": ["stg"],
-         "stack": ["eacj-stg", "foj-stg", "hrj-stg", "opsj-stg", "finj-stg",
-                   "legj-stg"],
-         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy",
-                    "docreate","dorunsql","getsql","doupdate"]
+         "stack": ["eacj-stg", "foj-stg", "hrj-stg", "opsj-stg", "finj-stg","legj-stg"],
+         "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy","docreate","dorunsql","getsql","doupdate"]
      },
       "4": {
          "group": ["forge-dl-confluence-champ"],
@@ -29,8 +27,7 @@
         "group": ["forge-dl-confluence-champ"],
         "env": ["stg"],
         "stack": ["*"],
-        "action": ["doclone","dofullrestart","dorollingrestart","doupgrade",
-                   "dothreaddumps","doheapdumps","dodestroy", "docreate","dorunsql","doupdate","getsql"]
+        "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","dodestroy", "docreate","dorunsql","getsql","doupdate"]
       },
      "6": {
          "group": ["forge-dl-admin"],

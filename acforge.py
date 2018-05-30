@@ -63,42 +63,30 @@ db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 
+# load permissions file
+with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
+    json_perms = json.load(json_data)
+
+##
+#### All actions need to pass through the sub class (RestrictedResource) to control permissions -
+#### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, getsql, doupdate, status)
+##
+class RestrictedResource(Resource):
+    def dispatch_request(self, *args, **kwargs):
+        # check permissions before returning super
+        for keys in json_perms:
+             if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
+                 if session['env'] in json_perms[keys]['env'] or "*" in json_perms[keys]['env']:
+                     if request.endpoint in json_perms[keys]['action'] or "*" in json_perms[keys]['action']:
+                         if kwargs['stack_name'] in json_perms[keys]['stack'] or "*" in json_perms[keys]['stack']:
+                             print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+                             return super().dispatch_request(*args, **kwargs)
+        print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+        return 'Forbidden', 403
+
 ##
 #### REST Endpoint classes
 ##
-## All actions need to pass through the sub class (RestrictedResource) to control permissions -
-# (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, getsql, doupdate, status)
-
-class RestrictedResource(Resource):
-    def dispatch_request(self, *args, **kwargs):
-        # check permissions
-        with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
-            json_perms = json.load(json_data)
-
-            def check_group(group):
-                if group in session['saml']['attributes']['memberOf']:
-                    return True
-                return False
-
-            def check_permission(perm):
-                if session['env'] in perm['env'] or "*" in perm['env']:
-                    if request.endpoint in perm['action'] or "*" in perm['action']:
-                        if kwargs['stack_name'] in perm['stack'] or "*" in perm['stack']:
-                            return True
-                return False
-
-            for keys in json_perms:
-                 if check_group(json_perms[keys]['group'][0]):
-                     if check_permission(json_perms[keys]):
-                         print("{} is authorised to perform {} on {}".format("User",
-                                request.endpoint,kwargs['stack_name']))
-                         return super().dispatch_request(*args, **kwargs)
-
-            print("{} is not authorised to perform {} on {}".format("User",
-                    request.endpoint, kwargs['stack_name']))
-            return 'Forbidden', 403
-
-
 class doupgrade(RestrictedResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
