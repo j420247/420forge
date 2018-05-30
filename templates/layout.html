@@ -129,7 +129,7 @@
                             {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
                             {% for category, message in messages %}
-                            <div class="aui-message aui-message-{{ category }} fadeout" id="aui-message-bar">
+                            <div class="aui-message aui-message-{{ category }}{% if category != 'error' %} fadeout{% endif %}" id="aui-message-bar">
                                 <ul style="list-style-type: none;">
                                     <li>{{ message }}</li>
                                 </ul>

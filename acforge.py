@@ -59,17 +59,17 @@ class doupgrade(Resource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'upgrade'
+        mystack.store_current_action('upgrade')
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -77,29 +77,65 @@ class doclone(Resource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'clone'
+        mystack.store_current_action('clone')
         try:
             outcome = mystack.destroy()
             outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
+
+
+@app.route('/doclone', methods = ['POST'])
+#TODO see if def post() in class doclone() will work here
+def cloneJson():
+    content = request.get_json()[0]
+    app_type = ''
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+        elif param['ParameterKey'] == 'DBSnapshotName':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+        # Hackity hack, I know, it's just for now
+        elif param['ParameterKey'] == 'ExternalSubnets':
+            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'InternalSubnets':
+            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
+        elif param['ParameterKey'] == 'VPC':
+            param['ParameterValue'] = 'vpc-320c1355'
+
+    mystack = Stack(stack_name, 'stg', app_type)
+    if mystack.get_stack_action_in_progress():
+        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
+        return
+    mystack.store_current_action('clone')
+    stacks.append(mystack)
+    outcome = mystack.clone(content)
+    mystack.clear_current_action()
+    return outcome
 
 
 class dofullrestart(Resource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'full restart'
+        mystack.store_current_action('fullrestart')
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -109,8 +145,8 @@ class dofullrestart(Resource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -118,10 +154,10 @@ class dorollingrestart(Resource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'rolling restart'
+        mystack.store_current_action('rollingrestart')
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -131,8 +167,8 @@ class dorollingrestart(Resource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -140,18 +176,18 @@ class dodestroy(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'destroy'
+        mystack.store_current_action('destroy')
         try:
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        mystack.clear_current_action()
         return
 
 
@@ -159,17 +195,17 @@ class dothreaddumps(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'thread dumps'
+        mystack.store_current_action('diagnostics')
         try:
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -177,17 +213,17 @@ class doheapdumps(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'heap dumps'
+        mystack.store_current_action('diagnostics')
         try:
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -195,17 +231,17 @@ class dorunsql(Resource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'run sql'
+        mystack.store_current_action('runsql')
         try:
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return outcome
 
 
@@ -213,19 +249,92 @@ class docreate(Resource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
-        if stackActionInProgress(stack_name):
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {stackActionInProgress(stack_name)}')
+        if mystack.get_stack_action_in_progress():
+            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
             return
-        session[stack_name]['action_in_progress'] = 'create'
+        mystack.store_current_action('create')
         try:
             outcome = mystack.create(pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
-            session[stack_name]['action_in_progress'] = 'none'
-        session[stack_name]['action_in_progress'] = 'none'
+            mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        mystack.clear_current_action()
         return outcome
+
+
+@app.route('/docreate', methods = ['POST'])
+def createJson():
+    content = request.get_json()[0]
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'TemplateName':
+            template_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    if mystack.get_stack_action_in_progress():
+        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
+        return
+    mystack.store_current_action('create')
+    stacks.append(mystack)
+    mystack.writeparms(content)
+
+    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
+    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
+    session['stacks'] = sorted(get_cfn_stacks_for_environment())
+    mystack.clear_current_action()
+    return outcome
+
+
+@app.route('/doupdate', methods = ['POST'])
+def updateJson():
+    content = request.get_json()
+    new_params = content[0]
+    orig_params = content[1]
+    app_type = ''
+
+    for param in new_params:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            template_type = 'STGorDR' # not working, see below
+
+    mystack = Stack(stack_name, session['env'])
+    if mystack.get_stack_action_in_progress():
+        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
+        return
+    mystack.store_current_action('update')
+    stacks.append(mystack)
+    mystack.writeparms(new_params)
+
+    for param in new_params:
+        if param['ParameterKey'] != 'StackName' \
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+    if session['env'] == 'stg':
+        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+
+    # this is a hack for now because the snapshot params are not in the stack_parms.
+    # Need to think of a better way to check template based on params.
+    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
+
+    outcome = mystack.update(params_for_update, template_type)
+    mystack.clear_current_action()
+    return outcome
 
 
 class status(Resource):
@@ -353,6 +462,16 @@ class getSql(Resource):
         return sql_to_run
 
 
+class getStackActionInProgress(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(env, stack_name)
+        action = mystack.get_stack_action_in_progress()
+        if action:
+            flash(f'{stack_name} is already being operated on: {action}', 'error')
+            return action
+        return False
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -405,12 +524,6 @@ class getTemplates(Resource):
         templates.sort()
         return templates
 
-
-def stackActionInProgress(stack_name):
-    if 'action_in_progress' in session[stack_name]:
-        if session[stack_name]['action_in_progress'] != 'none':
-            return session[stack_name]['action_in_progress']
-    return False
 
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
@@ -472,6 +585,7 @@ api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
+api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
@@ -599,127 +713,10 @@ def getparms(action):
     return sorted(get_cfn_stacks_for_environment())
 
 
-# @app.route('/go/stg/upgradeProgress/<stack_name>')
-#TODO fix or remove, this doesn't seem to be used
-@app.route('/go/<environment>/<action>Progress/<stack_name>')
-def progress(environment, action, stack_name):
-    print("in progress")
-    print('env =', forgestate[stack_name]['environment'])
-    print('action = ', forgestate[stack_name]['action'])
-    if 'action' in forgestate[stack_name] and 'environment' in forgestate[stack_name]:
-        return redirect(url_for('show_stacks'))
-    else:
-        return redirect(url_for('index'))
-
-
 @app.route('/show_stacks')
 def show_stacks():
     stack_name_list = sorted(get_cfn_stacks_for_environment())
     return render_template('stack_selection.html', stack_name_list=stack_name_list)
-
-
-# @app.route('/stg/upgrade/<stack_name>')
-#TODO Remove this? It was broken so I have added stack_name so it compiles at least
-@app.route('/<env>/<action>/<stack_name>', methods=['POST'])
-def envact(env, action, stack_name):
-    print('after stack selection')
-    for key in request.form:
-        forgestate[stack_name]['selected_stack'] = key.split("_")[1]
-    pprint(forgestate[stack_name])
-    return render_template(action + 'Options.html')
-
-
-@app.route('/doupdate', methods = ['POST'])
-def updateJson():
-    content = request.get_json()
-    new_params = content[0]
-    orig_params = content[1]
-    app_type = ''
-
-    for param in new_params:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            template_type = 'STGorDR' # not working, see below
-
-    mystack = Stack(stack_name, session['env'])
-    stacks.append(mystack)
-    mystack.writeparms(new_params)
-
-    for param in new_params:
-        if param['ParameterKey'] != 'StackName' \
-                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
-            del param['ParameterValue']
-            param['UsePreviousValue'] = True
-
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    if session['env'] == 'stg':
-        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-
-    # this is a hack for now because the snapshot params are not in the stack_parms.
-    # Need to think of a better way to check template based on params.
-    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
-
-    outcome = mystack.update(params_for_update, template_type)
-    return outcome
-
-
-@app.route('/docreate', methods = ['POST'])
-def createJson():
-    content = request.get_json()[0]
-
-    for param in content:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'TemplateName':
-            template_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
-
-    mystack = Stack(stack_name, session['env'], app_type)
-    stacks.append(mystack)
-    mystack.writeparms(content)
-
-    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
-    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
-    session['stacks'] = sorted(get_cfn_stacks_for_environment())
-    return outcome
-
-
-@app.route('/doclone', methods = ['POST'])
-def cloneJson():
-    content = request.get_json()[0]
-    app_type = ''
-
-    for param in content:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        elif param['ParameterKey'] == 'DBSnapshotName':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        # Hackity hack, I know, it's just for now
-        elif param['ParameterKey'] == 'ExternalSubnets':
-            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'InternalSubnets':
-            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'VPC':
-            param['ParameterValue'] = 'vpc-320c1355'
-
-    mystack = Stack(stack_name, 'stg', app_type)
-    stacks.append(mystack)
-    outcome = mystack.clone(content)
-    return outcome
 
 
 if __name__ == '__main__':

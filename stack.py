@@ -8,6 +8,7 @@ import sys
 from pprint import pprint
 from pathlib import Path
 import log
+import os
 
 class Stack:
     """An object describing an instance of an aws cloudformation stack:
@@ -432,11 +433,34 @@ class Stack:
             time.sleep(10)
         return result
 
+    def get_stack_action_in_progress(self):
+        try:
+            with open(f'stacks/{self.stack_name}/{self.stack_name}.current-action', 'r') as infile:
+                action = infile.read()
+                return action
+        except FileNotFoundError:
+            return False
+
+    def store_current_action(self, action):
+        if Path(f'stacks/{self.stack_name}/{self.stack_name}.json').exists():
+            os.remove(f'stacks/{self.stack_name}/{self.stack_name}.json')
+        self.state.update('action', action)
+        with open(f'stacks/{self.stack_name}/{self.stack_name}.current-action', 'w') as outfile:
+            outfile.write(action)
+        outfile.close()
+        return True
+
+    def clear_current_action(self):
+        self.state.archive()
+        os.remove(f'stacks/{self.stack_name}/{self.stack_name}.current-action')
+        self.state.update('action', 'none')
+        return True
+
+
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
         self.state.logaction(log.INFO, f'Beginning upgrade for {self.stack_name}')
-        self.state.update('action', 'upgrade')
         self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
@@ -460,13 +484,11 @@ class Stack:
         # TODO enable traffic at VTM
         self.state.logaction(log.INFO, f'Upgrade successful for {self.stack_name} at {self.env} to version {new_version}')
         self.state.logaction(log.INFO, "Upgrade complete")
-        self.state.archive()
         return True
 
 
     def destroy(self):
         self.state.logaction(log.INFO, f'Destroying stack {self.stack_name} in {self.env}')
-        self.state.update('action', 'destroy')
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
@@ -479,13 +501,11 @@ class Stack:
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
             self.state.logaction(log.INFO, f'Destroy successful for stack {self.stack_name}: {delete_stack}')
         self.state.logaction(log.INFO, "Destroy complete")
-        self.state.archive()
         return True
 
 
     def clone(self, stack_parms):
         self.state.logaction(log.INFO, 'Initiating clone')
-        self.state.update('action', 'clone')
         self.writeparms(stack_parms)
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
@@ -493,11 +513,9 @@ class Stack:
                 if self.run_post_clone_sql():
                     self.full_restart()
         self.state.logaction(log.INFO, "Clone complete")
-        self.state.archive()
         return True
 
     def update(self, stack_parms, template_type):
-        self.state.update('action', 'update')
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = f'{self.app_type.title()}{template_type}.template.yaml'
         template= f'wpe-aws/{self.app_type}/{template_filename}'
@@ -526,7 +544,6 @@ class Stack:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.state.logaction(log.INFO, "Update complete")
-        self.state.archive()
         return True
 
 
@@ -538,7 +555,6 @@ class Stack:
 
 
     def create(self, like_stack=None, like_env=None, parms=None, clone=False, template_filename=None, app_type=None):
-        self.state.update('action', 'create')
         if like_stack:
             self.get_current_state(like_stack, like_env)
             stack_parms = self.state.forgestate['stack_parms']
@@ -578,12 +594,10 @@ class Stack:
         self.state.logaction(log.INFO, f'Stack {self.stack_name} created, waiting on service responding')
         self.validate_service_responding()
         self.state.logaction(log.INFO, "Create complete")
-        self.state.archive()
         return True
 
 
     def rolling_restart(self):
-        self.state.update('action', 'rollingrestart')
         self.state.logaction(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
@@ -592,12 +606,10 @@ class Stack:
             self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Rolling restart complete")
-        self.state.archive()
         return True
 
 
     def full_restart(self):
-        self.state.update('action', 'fullrestart')
         self.state.logaction(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
@@ -607,12 +619,10 @@ class Stack:
             self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
             startup = self.startup_app([instance])
         self.state.logaction(log.INFO, "Full restart complete")
-        self.state.archive()
         return True
 
 
     def thread_dump(self, alsoHeaps=False):
-        self.state.update('action', 'diagnostics')
         heaps_to_come_log_line = ''
         if alsoHeaps:
             heaps_to_come_log_line = ', heap dumps to follow'
@@ -621,12 +631,10 @@ class Stack:
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
         self.state.logaction(log.INFO, "Thread dumps complete")
-        self.state.archive()
         return True
 
 
     def heap_dump(self):
-        self.state.update('action', 'diagnostics')
         self.state.logaction(log.INFO, f'Beginning heap dumps on {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
@@ -635,7 +643,6 @@ class Stack:
             self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
             time.sleep(30) # give node time to recover and rejoin cluster
         self.state.logaction(log.INFO, "Heap dumps complete")
-        self.state.archive()
         return True
 
     def run_post_clone_sql(self):
