@@ -3,4 +3,5 @@ forge.iml
 atl-cfn-forge.iml
 general.json
 *.json
+stacks/**/*.json
 __pycache__*
