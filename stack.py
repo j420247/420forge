@@ -287,7 +287,7 @@ class Stack:
                         f' ==> checking service status at {self.state.forgestate["lburl"]}{context_path}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + context_path + '/status', timeout=5)
-            status = service_status.text if service_status.text else "...?"
+            status = service_status.text if service_status.text else 'unknown'
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
             self.state.logaction(log.INFO,
@@ -473,7 +473,7 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
-                self.state.logaction(log.INFO, "Destroy complete - failed")
+                self.state.logaction(log.INFO, "Destroy complete - not required")
                 return True
         stack_id = stack_state['Stacks'][0]['StackId']
         delete_stack = cfn.delete_stack(StackName=self.stack_name)

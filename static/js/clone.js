@@ -4,6 +4,8 @@ $(document).ready(function() {
         regions[i].addEventListener("click", function (data) {
             var region = data.target.text;
             $("#regionSelector").text(region);
+            $("#ebsSnapshotSelector").text("Select EBS snapshot");
+            $("#rdsSnapshotSelector").text("Select RDS snapshot");
             getEbsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
             getRdsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
             setSubnets(region);

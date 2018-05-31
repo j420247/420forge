@@ -164,16 +164,16 @@ function createInputParameter(param, fieldset) {
 }
 
 function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
+    var ebsSnapDropdown = document.getElementById("ebsSnapshots");
+    while (ebsSnapDropdown.firstChild) {
+        ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
+    }
+
     var ebsSnapshotRequest = new XMLHttpRequest();
     ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + region + "/" + stackToRetrieve, true);
     ebsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     ebsSnapshotRequest.onreadystatechange = function () {
         if (ebsSnapshotRequest.readyState === XMLHttpRequest.DONE && ebsSnapshotRequest.status === 200) {
-            var ebsSnapDropdown = document.getElementById("ebsSnapshots");
-            while (ebsSnapDropdown.firstChild) {
-                ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
-            }
-
             var ebsSnaps = JSON.parse(ebsSnapshotRequest.responseText);
             for (var snap in ebsSnaps) {
                 var li = document.createElement("LI");
@@ -197,16 +197,16 @@ function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
 }
 
 function getRdsSnapshots(baseUrl, region, stackToRetrieve) {
+    var rdsSnapDropdown = document.getElementById("rdsSnapshots");
+    while (rdsSnapDropdown.firstChild) {
+        rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
+    }
+
     var rdsSnapshotRequest = new XMLHttpRequest();
     rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + region + "/" + stackToRetrieve, true);
     rdsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     rdsSnapshotRequest.onreadystatechange = function () {
         if (rdsSnapshotRequest.readyState === XMLHttpRequest.DONE && rdsSnapshotRequest.status === 200) {
-            var rdsSnapDropdown = document.getElementById("rdsSnapshots");
-            while (rdsSnapDropdown.firstChild) {
-                rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
-            }
-
             var rdsSnaps = JSON.parse(rdsSnapshotRequest.responseText);
             for (var snap in rdsSnaps) {
                 var li = document.createElement("LI");
