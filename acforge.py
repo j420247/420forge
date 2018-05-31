@@ -69,7 +69,7 @@ with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
 
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -
-#### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, getsql, doupdate, status)
+#### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, doupdate, status)
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
@@ -320,7 +320,7 @@ class templateParamsForStack(Resource):
         return compared_params
 
 
-class getSql(RestrictedResource):
+class getSql(Resource):
     def get(self, stack_name):
         if Path(f'stacks/{stack_name}/{stack_name}.post-clone.sql').is_file():
             sql_file = open(f'stacks/{stack_name}/{stack_name}.post-clone.sql', "r")

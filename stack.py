@@ -263,14 +263,13 @@ class Stack:
 
     def validate_service_responding(self):
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
-        service_state = self.check_service_status
+        service_state = self.check_service_status()
         while service_state != '{"state":"RUNNING"}':
             time.sleep(60)
-            service_state = self.check_service_status
+            service_state = self.check_service_status()
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    @property
     def check_service_status(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
