@@ -278,15 +278,11 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
-
-        context_path = [param['ParameterValue'] for param in stack_details['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
-        if len(context_path) > 0:
-            context_path = '/' + context_path
         self.state.update('lburl', self.getLburl(stack_details))
         self.state.logaction(log.INFO,
-                        f' ==> checking service status at {self.state.forgestate["lburl"]}{context_path}/status')
+                        f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
-            service_status = requests.get(self.state.forgestate['lburl'] + context_path + '/status', timeout=5)
+            service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
             status = service_status.text if service_status.text else 'unknown'
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
@@ -522,8 +518,8 @@ class Stack:
         if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
             self.state.logaction(log.INFO, "Update complete - failed")
             return
-        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] and \
-            [param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'] > 0:
+        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and \
+                int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0:
             self.state.logaction(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.state.logaction(log.INFO, "Update complete")
