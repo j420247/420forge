@@ -1,14 +1,13 @@
 {% extends "index.html" %}
-{%if code == "403"%}
+{% if code == "403" %}
     {%set class = 'aui-message aui-message-error'%}
     {%set heading = 'Forbidden!'%}
     {%set message = 'You do not have the access to perform this action.'%}
-{%endif%}
-{%if code != "403" %}
+{% else %}
     {%set class = 'aui-message aui-message-warning'%}
     {%set heading = 'Unknown Error'%}
     {%set message = 'An unknown error has occurred, please contact IT Operations.'%}
-{%endif%}
+{% endif %}
 {% block content %}
     <div class="{{ class }}">
     <p>

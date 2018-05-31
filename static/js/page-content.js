@@ -116,7 +116,7 @@ function getStatus(stack_name) {
 }
 
 function processResponse() {
-    if (this.status !==200) {
+    if (this.status !== 200) {
         window.location = baseUrl + "/error/" + this.status;
     }
 }

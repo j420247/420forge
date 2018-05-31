@@ -76,9 +76,9 @@ class RestrictedResource(Resource):
         # check permissions before returning super
         for keys in json_perms:
              if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                 if session['env'] in json_perms[keys]['env'] or "*" in json_perms[keys]['env']:
-                     if request.endpoint in json_perms[keys]['action'] or "*" in json_perms[keys]['action']:
-                         if kwargs['stack_name'] in json_perms[keys]['stack'] or "*" in json_perms[keys]['stack']:
+                 if session['env'] in json_perms[keys]['env'] or '*' in json_perms[keys]['env']:
+                     if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
+                         if kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
                              print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
                              return super().dispatch_request(*args, **kwargs)
         print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
@@ -510,7 +510,7 @@ def general_constructor(loader, tag_suffix, node):
 
 @app.route('/error/<error>')
 def error(error):
-    return render_template('error.html', code=error), 403
+    return render_template('error.html', code=error), error
 
 
 @app.route('/')
