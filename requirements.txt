@@ -5,3 +5,5 @@ boto3
 requests
 ruamel.yaml
 flask_saml
+flask_sqlalchemy
+flask_sessionstore

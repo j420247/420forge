@@ -124,7 +124,6 @@ class Stack:
         self.state.logaction(log.INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
         return (cmd_status, instance)
 
-
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
         if not cmd_id:
@@ -327,7 +326,6 @@ class Stack:
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
-
 
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
