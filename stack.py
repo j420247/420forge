@@ -124,7 +124,6 @@ class Stack:
         self.state.logaction(log.INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
         return (cmd_status, instance)
 
-
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
         if not cmd_id:
@@ -328,7 +327,6 @@ class Stack:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
 
-
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -382,9 +380,9 @@ class Stack:
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.state.logaction(log.ERROR, f'Shutdown result for {cmd_instance}: {result}')
+                self.state.logaction(log.ERROR, f'Shutdown result for {cmd_id}: {result}')
             else:
-                self.state.logaction(log.INFO, f'Shutdown result for {cmd_instance}: {result}')
+                self.state.logaction(log.INFO, f'Shutdown result for {cmd_id}: {result}')
         return
 
     def startup_app(self, instancelist):
@@ -396,12 +394,12 @@ class Stack:
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.state.logaction('ERROR', f'Startup result for {cmd_instance}: {result}')
+                self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
             else:
                 result = ""
                 while result != '{"state":"RUNNING"}':
                     result = self.check_node_status(node_ip)
-                    self.state.logaction(log.INFO, f'Startup result for {cmd_instance}: {result}')
+                    self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
         return
 
@@ -415,10 +413,10 @@ class Stack:
         for cmd_id in cmd_id_dict:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.state.logaction(log.ERROR, f'Command result for {cmd_instance}: {result}')
+                self.state.logaction(log.ERROR, f'Command result for {cmd_id}: {result}')
                 return False
             else:
-                self.state.logaction(log.INFO, f'Command result for {cmd_instance}: {result}')
+                self.state.logaction(log.INFO, f'Command result for {cmd_id}: {result}')
         return True
 
     def wait_for_cmd_result(self, cmd_id):
