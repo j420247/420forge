@@ -493,9 +493,9 @@ class Stack:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
                 return True
         stack_id = stack_state['Stacks'][0]['StackId']
-        delete_stack = cfn.delete_stack(StackName=self.stack_name)
+        cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
-            self.state.logaction(log.INFO, f'Destroy successful for stack {self.stack_name}: {delete_stack}')
+            self.state.logaction(log.INFO, f'Destroy successful for stack {self.stack_name}')
         self.state.logaction(log.INFO, "Destroy complete")
         return True
 
@@ -510,6 +510,7 @@ class Stack:
                     self.full_restart()
         self.state.logaction(log.INFO, "Clone complete")
         return True
+
 
     def update(self, stack_parms, template_type):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
