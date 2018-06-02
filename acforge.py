@@ -49,10 +49,10 @@ api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
 if args.prod:
    app.wsgi_app = ProxyFix(app.wsgi_app)
-   print("SAML auth set to production - the app can be accessed on https://forge.wpt.atlassian.com")
+   print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
-else:
-   print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
+else: 
+   print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
 # Create a SQLalchemy db for session and permission storge.
@@ -290,7 +290,7 @@ class templateParamsForStack(Resource):
                 break
 
         template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
-        if env == 'stg':
+        if env == 'prod':
             template_type = "DataCenter"
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
@@ -336,14 +336,17 @@ class actionReadyToStart(Resource):
 
 
 class getEbsSnapshots(Resource):
-    def get(self, stack_name):
-        ec2 = boto3.client('ec2', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        ec2 = boto3.client('ec2', region_name=region)
+        snap_name_format = f'{stack_name}_ebs_snap_*'
+        if region == 'us-east-1':
+            snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
                 {
-                    'Name': 'description',
+                    'Name': 'tag-value',
                     'Values': [
-                        f'dr-{stack_name}-snap-*',
+                        snap_name_format,
                     ]
                 },
             ],)
@@ -359,8 +362,8 @@ class getEbsSnapshots(Resource):
 
 
 class getRdsSnapshots(Resource):
-    def get(self, stack_name):
-        rds = boto3.client('rds', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        rds = boto3.client('rds', region_name=region)
         try:
             snapshots = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
         except botocore.exceptions.ClientError as e:
@@ -446,8 +449,8 @@ api.add_resource(getSql, '/getsql/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
-api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
+api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 
 
@@ -673,10 +676,14 @@ def createJson():
 def cloneJson():
     content = request.get_json()[0]
     app_type = ''
+    env='stg'
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
+        if param['ParameterKey'] == 'Region':
+            if param['ParameterValue'] == 'us-west-2':
+                env = 'prod'
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
@@ -685,15 +692,10 @@ def cloneJson():
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        # Hackity hack, I know, it's just for now
-        elif param['ParameterKey'] == 'ExternalSubnets':
-            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'InternalSubnets':
-            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'VPC':
-            param['ParameterValue'] = 'vpc-320c1355'
 
-    mystack = Stack(stack_name, 'stg', app_type)
+    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+
+    mystack = Stack(stack_name, env, app_type)
     stacks.append(mystack)
     outcome = mystack.clone(content)
     return outcome
