@@ -6,8 +6,8 @@ $(document).ready(function() {
             $("#regionSelector").text(region);
             $("#ebsSnapshotSelector").text("Select EBS snapshot");
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            getEbsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
-            getRdsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
+            getEbsSnapshots(region, document.getElementById("stackSelector").innerText);
+            getRdsSnapshots(region, document.getElementById("stackSelector").innerText);
             setSubnets(region);
         }, false);
     }

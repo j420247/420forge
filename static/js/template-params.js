@@ -26,8 +26,8 @@ function selectTemplateForStack(stackToRetrieve) {
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
-        getEbsSnapshots(baseUrl, document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
-        getRdsSnapshots(baseUrl, document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getEbsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getRdsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
     } else{
         $('meta[name=stack_name]').attr('value', stackToRetrieve);
     }
@@ -89,49 +89,7 @@ function createInputParameter(param, fieldset) {
     div.appendChild(label);
 
     if (param.AllowedValues) {
-        var dropdownAnchor = document.createElement("A");
-        dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
-        dropdownAnchor.setAttribute("aria-owns", param.ParameterKey + "Dropdown");
-        dropdownAnchor.setAttribute("aria-haspopup", "true");
-        dropdownAnchor.setAttribute("href", "#" + param.ParameterKey + "Dropdown");
-        dropdownAnchor.id = param.ParameterKey + "Val";
-
-        var dropdownDiv = document.createElement("DIV");
-        dropdownDiv.id = param.ParameterKey + "Dropdown";
-        dropdownDiv.className = "aui-style-default aui-dropdown2";
-
-        var ul = document.createElement("UL");
-        ul.className = "aui-list-truncate";
-
-        for (var allowedValue in param['AllowedValues']) {
-            var li = document.createElement("LI");
-            var liAnchor = document.createElement("A");
-            var text = document.createTextNode(param['AllowedValues'][allowedValue]);
-            liAnchor.appendChild(text);
-            liAnchor.addEventListener("click", function (data) {
-                dropdownAnchor.text = data.target.text;
-                if (dropdownAnchor.id === "TomcatSchemeVal") {
-                    if (data.target.text === "https") {
-                        document.getElementById("TomcatProxyPortVal").value = "443";
-                        document.getElementById("TomcatSecureVal").value = "true";
-                    }
-                    else if (data.target.text === "http") {
-                        document.getElementById("TomcatProxyPortVal").value = "80";
-                        document.getElementById("TomcatSecureVal").value = "false";
-                    }
-                }
-            }, false);
-            li.appendChild(liAnchor);
-            ul.appendChild(li);
-        }
-        if (param.ParameterValue.length !== 0)
-            dropdownAnchor.text = param.ParameterValue;
-        else
-            dropdownAnchor.text = 'Select';
-
-        div.appendChild(dropdownAnchor);
-        dropdownDiv.appendChild(ul);
-        div.appendChild(dropdownDiv);
+        createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -163,7 +121,7 @@ function createInputParameter(param, fieldset) {
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
+function getEbsSnapshots(region, stackToRetrieve) {
     var ebsSnapDropdown = document.getElementById("ebsSnapshots");
     while (ebsSnapDropdown.firstChild) {
         ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
@@ -196,7 +154,7 @@ function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(baseUrl, region, stackToRetrieve) {
+function getRdsSnapshots(region, stackToRetrieve) {
     var rdsSnapDropdown = document.getElementById("rdsSnapshots");
     while (rdsSnapDropdown.firstChild) {
         rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
