@@ -125,7 +125,6 @@ class Stack:
         self.state.logaction(log.INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
         return (cmd_status, instance)
 
-
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
         if not cmd_id:
@@ -284,7 +283,7 @@ class Stack:
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
-            status = service_status.text if service_status.text else "...?"
+            status = service_status.text if service_status.text else 'unknown'
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
             self.state.logaction(log.INFO,
@@ -328,7 +327,6 @@ class Stack:
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
-
 
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
@@ -491,6 +489,7 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
                 self.state.logaction(log.INFO, f'Stack {self.stack_name} does not exist')
+                self.state.logaction(log.INFO, "Destroy complete - not required")
                 return True
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)

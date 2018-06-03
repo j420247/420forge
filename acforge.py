@@ -15,6 +15,10 @@ import json
 from pathlib import Path
 from os import path
 import log
+from flask_sqlalchemy import SQLAlchemy
+from flask_sessionstore import Session
+from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
+from werkzeug.contrib.fixers import ProxyFix
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -44,18 +48,46 @@ app.config.from_object(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = SECRET_KEY
 if args.prod:
+   app.wsgi_app = ProxyFix(app.wsgi_app)
    print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
 else: 
-   print("SAML auth set to dev - the app can be accessed on http://172.0.0.1:8000")
+   print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
+# Create a SQLalchemy db for session and permission storge.
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
+app.config['SESSION_TYPE'] = 'sqlalchemy'
+db = SQLAlchemy(app)
+session_store = Session(app)
+session_store.app.session_interface.db.create_all()
+
+# load permissions file
+with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
+    json_perms = json.load(json_data)
+
+##
+#### All actions need to pass through the sub class (RestrictedResource) to control permissions -
+#### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, doupdate, status)
+##
+class RestrictedResource(Resource):
+    def dispatch_request(self, *args, **kwargs):
+        # check permissions before returning super
+        for keys in json_perms:
+             if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
+                 if session['env'] in json_perms[keys]['env'] or '*' in json_perms[keys]['env']:
+                     if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
+                         if kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
+                             print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+                             return super().dispatch_request(*args, **kwargs)
+        print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+        return 'Forbidden', 403
 
 ##
 #### REST Endpoint classes
 ##
-
-class doupgrade(Resource):
+class doupgrade(RestrictedResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -73,7 +105,7 @@ class doupgrade(Resource):
         return
 
 
-class doclone(Resource):
+class doclone(RestrictedResource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -94,13 +126,18 @@ class doclone(Resource):
 
 @app.route('/doclone', methods = ['POST'])
 #TODO see if def post() in class doclone() will work here
+@app.route('/doclone', methods = ['POST'])
 def cloneJson():
     content = request.get_json()[0]
     app_type = ''
+    env='stg'
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
+        if param['ParameterKey'] == 'Region':
+            if param['ParameterValue'] == 'us-west-2':
+                env = 'prod'
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
@@ -109,15 +146,10 @@ def cloneJson():
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        # Hackity hack, I know, it's just for now
-        elif param['ParameterKey'] == 'ExternalSubnets':
-            param['ParameterValue'] = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'InternalSubnets':
-            param['ParameterValue']  = 'subnet-df0c3597,subnet-f1fb87ab'
-        elif param['ParameterKey'] == 'VPC':
-            param['ParameterValue'] = 'vpc-320c1355'
 
-    mystack = Stack(stack_name, 'stg', app_type)
+    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+
+    mystack = Stack(stack_name, env, app_type)
     if mystack.get_stack_action_in_progress():
         mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
         return
@@ -128,7 +160,8 @@ def cloneJson():
     return outcome
 
 
-class dofullrestart(Resource):
+
+class dofullrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -150,7 +183,7 @@ class dofullrestart(Resource):
         return
 
 
-class dorollingrestart(Resource):
+class dorollingrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -172,7 +205,7 @@ class dorollingrestart(Resource):
         return
 
 
-class dodestroy(Resource):
+class dodestroy(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -191,7 +224,7 @@ class dodestroy(Resource):
         return
 
 
-class dothreaddumps(Resource):
+class dothreaddumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -209,7 +242,7 @@ class dothreaddumps(Resource):
         return
 
 
-class doheapdumps(Resource):
+class doheapdumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -227,7 +260,7 @@ class doheapdumps(Resource):
         return
 
 
-class dorunsql(Resource):
+class dorunsql(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
@@ -245,7 +278,7 @@ class dorunsql(Resource):
         return outcome
 
 
-class docreate(Resource):
+class docreate(RestrictedResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
@@ -337,7 +370,7 @@ def updateJson():
     return outcome
 
 
-class status(Resource):
+class status(RestrictedResource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'
@@ -380,7 +413,6 @@ class stackState(Resource):
             return f'Error checking stack state: {e.args[0]}'
         return stack_state['Stacks'][0]['StackStatus']
 
-
 class templateParams(Resource):
     def get(self, template_name):
         app_type = 'confluence' # default for lab
@@ -422,7 +454,7 @@ class templateParamsForStack(Resource):
                 break
 
         template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
-        if env == 'stg':
+        if env == 'prod':
             template_type = "DataCenter"
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
@@ -478,14 +510,17 @@ class actionReadyToStart(Resource):
 
 
 class getEbsSnapshots(Resource):
-    def get(self, stack_name):
-        ec2 = boto3.client('ec2', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        ec2 = boto3.client('ec2', region_name=region)
+        snap_name_format = f'{stack_name}_ebs_snap_*'
+        if region == 'us-east-1':
+            snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
                 {
-                    'Name': 'description',
+                    'Name': 'tag-value',
                     'Values': [
-                        f'dr-{stack_name}-snap-*',
+                        snap_name_format,
                     ]
                 },
             ],)
@@ -501,8 +536,8 @@ class getEbsSnapshots(Resource):
 
 
 class getRdsSnapshots(Resource):
-    def get(self, stack_name):
-        rds = boto3.client('rds', region_name=getRegion('stg'))
+    def get(self, region, stack_name):
+        rds = boto3.client('rds', region_name=region)
         try:
             snapshots = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
         except botocore.exceptions.ClientError as e:
@@ -589,8 +624,8 @@ api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_na
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<stack_name>')
-api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<stack_name>')
+api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
+api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 
 
@@ -649,6 +684,10 @@ def check_loggedin():
 
 def general_constructor(loader, tag_suffix, node):
     return node.value
+
+@app.route('/error/<error>')
+def error(error):
+    return render_template('error.html', code=error), error
 
 
 def useStgIfNoEnvSelected():

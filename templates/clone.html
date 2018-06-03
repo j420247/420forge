@@ -1,4 +1,8 @@
 {% extends "template-params.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="/static/js/clone.js"></script>
+{% endblock head %}
 
 {% block stackSelectorDescription %}
 Select stack to clone
@@ -12,7 +16,20 @@ Select stack to clone
     <label for="StackNameVal">StackName</label>
     <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
 </div>
-
+<div class="field-group">
+    <label for="regionSelector">Region</label>
+    <a id="regionSelector" href="#regionSelection" aria-owns="regionSelection" aria-haspopup="true"
+       class="aui-button aui-style-default aui-dropdown2-trigger">
+        us-east-1
+    </a>
+    <!-- Dropdown -->
+    <div id="regionSelection" class="aui-style-default aui-dropdown2">
+        <ul class="aui-list-truncate" id="region">
+            <li><a class="selectRegionOption">us-east-1</a></li>
+            <li><a class="selectRegionOption">us-west-2</a></li>
+        </ul>
+    </div>
+</div>
 <!-- Snapshot selectors -->
 {#  EBS snapshot selector  #}
 <div class="field-group">
@@ -21,7 +38,6 @@ Select stack to clone
        class="aui-button aui-style-default aui-dropdown2-trigger">
         Select EBS snapshot
     </a>
-
     <!-- Dropdown -->
     <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
         <ul class="aui-list-truncate" id="ebsSnapshots">
@@ -35,7 +51,6 @@ Select stack to clone
        class="aui-button aui-style-default aui-dropdown2-trigger">
         Select RDS snapshot
     </a>
-
     <!-- Dropdown -->
     <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
         <ul class="aui-list-truncate" id="rdsSnapshots">

@@ -129,6 +129,12 @@ function getStatus(stack_name) {
     statusRequest.send();
 }
 
+function processResponse() {
+    if (this.status !== 200) {
+        window.location = baseUrl + "/error/" + this.status;
+    }
+}
+
 function performAction() {
     stackName = $("meta[name=stack_name]").attr("value");
     var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
@@ -147,6 +153,7 @@ function performAction() {
 
     actionRequest.open("GET", url, true);
     actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.addEventListener("load", processResponse);
     actionRequest.send();
 
     // Wait a mo for action to begin  in backend
