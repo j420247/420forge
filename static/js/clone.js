@@ -8,7 +8,15 @@ $(document).ready(function() {
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
             getEbsSnapshots(region, document.getElementById("stackSelector").innerText);
             getRdsSnapshots(region, document.getElementById("stackSelector").innerText);
-            setSubnets(region);
+            var regionEnv = env;
+            if (action === 'clone') {
+                if (region === "us-east-1")
+                    regionEnv = "stg";
+                else
+                    regionEnv = "prod";
+            }
+            getVPCs(regionEnv, document.getElementById("VPCDiv"));
+            // setSubnets(region);
         }, false);
     }
 });

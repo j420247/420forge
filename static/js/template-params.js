@@ -81,6 +81,7 @@ function selectTemplateForStack(stackToRetrieve) {
 function createInputParameter(param, fieldset) {
     var div = document.createElement("DIV");
     div.className = "field-group";
+    div.id = param.ParameterKey + "Div";
     div.name = "parameter";
 
     var label = document.createElement("LABEL");
@@ -90,25 +91,20 @@ function createInputParameter(param, fieldset) {
 
     if (param.AllowedValues) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
+    } else if (param.ParameterKey === "VPC") {
+        var region = env;
+        if (action === 'clone') {
+            if (document.getElementById("regionSelector").innerText.trim() === "us-east-1")
+                region = "stg";
+            else
+                region = "prod";
+        }
+        getVPCs(region, div);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
         input.id = param.ParameterKey + "Val";
-
-        // Set VPC and subnets for env
-        if (param.ParameterKey === "VPC") {
-            if (env === 'stg')
-                input.value = "vpc-320c1355";
-            else
-                input.value = "vpc-dd8dc7ba";
-        } else if (param.ParameterKey === "InternalSubnets" || param.ParameterKey === "ExternalSubnets") {
-            if (env === 'stg')
-                input.value = "subnet-df0c3597,subnet-f1fb87ab";
-            else
-                input.value = "subnet-eb952fa2,subnet-f2bddd95"
-        } else {
-            input.value = param.ParameterValue;
-        }
+        input.value = param.ParameterValue;
 
         if (action === 'clone' && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
@@ -185,6 +181,39 @@ function getRdsSnapshots(region, stackToRetrieve) {
         }
     };
     rdsSnapshotRequest.send();
+}
+
+function getVPCs(region, div) {
+    if (document.getElementById("VPCDropdownAnchor"))
+        div.removeChild(document.getElementById("VPCDropdownAnchor"));
+    if (document.getElementById("VPCDropdownDiv"))
+        div.removeChild(document.getElementById("VPCDropdownDiv"));
+
+    var vpcsRequest = new XMLHttpRequest();
+    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + region, true);
+    vpcsRequest.setRequestHeader("Content-Type", "text/xml");
+    vpcsRequest.onreadystatechange = function () {
+        if (vpcsRequest.readyState === XMLHttpRequest.DONE && vpcsRequest.status === 200) {
+            var vpcs = JSON.parse(vpcsRequest.responseText);
+
+            // Set default VPC and subnets for env
+            var defaultVpc = "";
+            if (region === 'prod')
+                defaultVpc = us_west_2_default_vpc;
+            else
+                defaultVpc = us_east_1_default_vpc;
+            createDropdown("VPC", defaultVpc, vpcs, div);
+        }
+    };
+    vpcsRequest.send();
+}
+
+function getSubnets() {
+ // else if (param.ParameterKey === "InternalSubnets" || param.ParameterKey === "ExternalSubnets") {
+ //    if (env === 'stg')
+ //        input.value = "";
+ //    else
+ //        input.value = ""
 }
 
 function sendParamsAsJson() {

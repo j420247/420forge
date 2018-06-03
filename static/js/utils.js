@@ -11,18 +11,17 @@ function countOccurences(aString, substring) {
 function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     var dropdownAnchor = document.createElement("A");
     dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
-    dropdownAnchor.setAttribute("aria-owns", parameterKey + "Dropdown");
+    dropdownAnchor.setAttribute("aria-owns", parameterKey + "DropdownDiv");
     dropdownAnchor.setAttribute("aria-haspopup", "true");
-    dropdownAnchor.setAttribute("href", "#" + parameterKey + "Dropdown");
-    dropdownAnchor.id = parameterKey + "Val";
+    dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
+    dropdownAnchor.id = parameterKey + "DropdownAnchor";
     if (defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
         dropdownAnchor.text = 'Select';
 
-
     var dropdownDiv = document.createElement("DIV");
-    dropdownDiv.id = parameterKey + "Dropdown";
+    dropdownDiv.id = parameterKey + "DropdownDiv";
     dropdownDiv.className = "aui-style-default aui-dropdown2";
 
     var ul = document.createElement("UL");
