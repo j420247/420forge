@@ -198,7 +198,9 @@ function getVPCs(region, div) {
 
             // Set default VPC and subnets for env
             var defaultVpc = "";
-            if (region === 'prod')
+            if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml")
+                defaultVpc = lab_default_vpc;
+            else if (region === 'prod')
                 defaultVpc = us_west_2_default_vpc;
             else
                 defaultVpc = us_east_1_default_vpc;
@@ -212,7 +214,10 @@ function getVPCs(region, div) {
 function setSubnets(region) {
     document.getElementById("ExternalSubnetsVal").setAttribute('disabled', '');
     document.getElementById("InternalSubnetsVal").setAttribute('disabled', '');
-    if (region === 'prod') {
+    if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml") {
+        document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
+    } else if (region === 'prod') {
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
     } else {
