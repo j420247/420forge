@@ -203,17 +203,22 @@ function getVPCs(region, div) {
             else
                 defaultVpc = us_east_1_default_vpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
+            setSubnets(region);
         }
     };
     vpcsRequest.send();
 }
 
-function getSubnets() {
- // else if (param.ParameterKey === "InternalSubnets" || param.ParameterKey === "ExternalSubnets") {
- //    if (env === 'stg')
- //        input.value = "";
- //    else
- //        input.value = ""
+function setSubnets(region) {
+    document.getElementById("ExternalSubnetsVal").setAttribute('disabled', '');
+    document.getElementById("InternalSubnetsVal").setAttribute('disabled', '');
+    if (region === 'prod') {
+        document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+    } else {
+        document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+    }
 }
 
 function sendParamsAsJson() {

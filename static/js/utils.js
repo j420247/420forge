@@ -45,6 +45,17 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatProxyPortVal").value = "80";
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
+            } else if (dropdownAnchor.id === "VPCDropdownAnchor") {
+                if (data.target.text === us_east_1_default_vpc) {
+                    document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
+                    document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+                } else if (data.target.text === us_west_2_default_vpc) {
+                    document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
+                    document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+                } else if (data.target.text === lab_default_vpc) {
+                    document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
+                    document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
+                }
             }
         }, false);
         li.appendChild(liAnchor);
