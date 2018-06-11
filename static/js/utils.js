@@ -14,7 +14,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownAnchor.setAttribute("aria-owns", parameterKey + "DropdownDiv");
     dropdownAnchor.setAttribute("aria-haspopup", "true");
     dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
-    dropdownAnchor.id = parameterKey + "DropdownAnchor";
+    dropdownAnchor.id = parameterKey + "Val";
     if (defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
@@ -45,7 +45,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatProxyPortVal").value = "80";
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
-            } else if (dropdownAnchor.id === "VPCDropdownAnchor") {
+            } else if (dropdownAnchor.id === "VPCVal") {
                 if (data.target.text === us_east_1_default_vpc) {
                     document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
                     document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;

@@ -184,8 +184,8 @@ function getRdsSnapshots(region, stackToRetrieve) {
 }
 
 function getVPCs(region, div) {
-    if (document.getElementById("VPCDropdownAnchor"))
-        div.removeChild(document.getElementById("VPCDropdownAnchor"));
+    if (document.getElementById("VPCVal"))
+        div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
         div.removeChild(document.getElementById("VPCDropdownDiv"));
 
