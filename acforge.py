@@ -19,6 +19,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
 from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
 from werkzeug.contrib.fixers import ProxyFix
+from sys import argv
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -73,6 +74,8 @@ with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
+        if '--nosaml' in argv:
+            return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         for keys in json_perms:
              if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
