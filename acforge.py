@@ -471,7 +471,6 @@ api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 api.add_resource(getVpcs, '/getVpcs/<env>')
-api.add_resource(getSubnets, '/getSubnets')
 
 
 def app_active_in_lb(forgestate, node):
