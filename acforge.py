@@ -404,11 +404,6 @@ class getVpcs(Resource):
         return vpc_ids
 
 
-class getSubnets(Resource):
-    def get(self, product):
-        subnets = ["subnet-eb952fa2,subnet-f2bddd95"]
-        return subnets
-
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
