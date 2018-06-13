@@ -6,22 +6,16 @@ $(document).ready(function() {
             $("#regionSelector").text(region);
             $("#ebsSnapshotSelector").text("Select EBS snapshot");
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            getEbsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
-            getRdsSnapshots(baseUrl, region, document.getElementById("stackSelector").innerText);
-            setSubnets(region);
+            getEbsSnapshots(region, document.getElementById("stackSelector").innerText);
+            getRdsSnapshots(region, document.getElementById("stackSelector").innerText);
+            var regionEnv = env;
+            if (action === 'clone') {
+                if (region === "us-east-1")
+                    regionEnv = "stg";
+                else
+                    regionEnv = "prod";
+            }
+            getVPCs(regionEnv, document.getElementById("VPCDiv"));
         }, false);
     }
 });
-
-function setSubnets(region) {
-    if (region === 'us-east-1') {
-        document.getElementById("VPCVal").value = "vpc-320c1355";
-        document.getElementById("ExternalSubnetsVal").value = "subnet-df0c3597,subnet-f1fb87ab";
-        document.getElementById("InternalSubnetsVal").value = "subnet-df0c3597,subnet-f1fb87ab";
-    }
-    else if (region === 'us-west-2') {
-        document.getElementById("VPCVal").value = "vpc-dd8dc7ba";
-        document.getElementById("ExternalSubnetsVal").value = "subnet-eb952fa2,subnet-f2bddd95";
-        document.getElementById("InternalSubnetsVal").value = "subnet-eb952fa2,subnet-f2bddd95";
-    }
-}

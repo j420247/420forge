@@ -26,8 +26,8 @@ function selectTemplateForStack(stackToRetrieve) {
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
-        getEbsSnapshots(baseUrl, document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
-        getRdsSnapshots(baseUrl, document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getEbsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getRdsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
     } else{
         $('meta[name=stack_name]').attr('value', stackToRetrieve);
     }
@@ -81,6 +81,7 @@ function selectTemplateForStack(stackToRetrieve) {
 function createInputParameter(param, fieldset) {
     var div = document.createElement("DIV");
     div.className = "field-group";
+    div.id = param.ParameterKey + "Div";
     div.name = "parameter";
 
     var label = document.createElement("LABEL");
@@ -89,68 +90,21 @@ function createInputParameter(param, fieldset) {
     div.appendChild(label);
 
     if (param.AllowedValues) {
-        var dropdownAnchor = document.createElement("A");
-        dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
-        dropdownAnchor.setAttribute("aria-owns", param.ParameterKey + "Dropdown");
-        dropdownAnchor.setAttribute("aria-haspopup", "true");
-        dropdownAnchor.setAttribute("href", "#" + param.ParameterKey + "Dropdown");
-        dropdownAnchor.id = param.ParameterKey + "Val";
-
-        var dropdownDiv = document.createElement("DIV");
-        dropdownDiv.id = param.ParameterKey + "Dropdown";
-        dropdownDiv.className = "aui-style-default aui-dropdown2";
-
-        var ul = document.createElement("UL");
-        ul.className = "aui-list-truncate";
-
-        for (var allowedValue in param['AllowedValues']) {
-            var li = document.createElement("LI");
-            var liAnchor = document.createElement("A");
-            var text = document.createTextNode(param['AllowedValues'][allowedValue]);
-            liAnchor.appendChild(text);
-            liAnchor.addEventListener("click", function (data) {
-                dropdownAnchor.text = data.target.text;
-                if (dropdownAnchor.id === "TomcatSchemeVal") {
-                    if (data.target.text === "https") {
-                        document.getElementById("TomcatProxyPortVal").value = "443";
-                        document.getElementById("TomcatSecureVal").value = "true";
-                    }
-                    else if (data.target.text === "http") {
-                        document.getElementById("TomcatProxyPortVal").value = "80";
-                        document.getElementById("TomcatSecureVal").value = "false";
-                    }
-                }
-            }, false);
-            li.appendChild(liAnchor);
-            ul.appendChild(li);
+        createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
+    } else if (param.ParameterKey === "VPC") {
+        var region = env;
+        if (action === 'clone') {
+            if (document.getElementById("regionSelector").innerText.trim() === "us-east-1")
+                region = "stg";
+            else
+                region = "prod";
         }
-        if (param.ParameterValue.length !== 0)
-            dropdownAnchor.text = param.ParameterValue;
-        else
-            dropdownAnchor.text = 'Select';
-
-        div.appendChild(dropdownAnchor);
-        dropdownDiv.appendChild(ul);
-        div.appendChild(dropdownDiv);
+        getVPCs(region, div);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
         input.id = param.ParameterKey + "Val";
-
-        // Set VPC and subnets for env
-        if (param.ParameterKey === "VPC") {
-            if (env === 'stg')
-                input.value = "vpc-320c1355";
-            else
-                input.value = "vpc-dd8dc7ba";
-        } else if (param.ParameterKey === "InternalSubnets" || param.ParameterKey === "ExternalSubnets") {
-            if (env === 'stg')
-                input.value = "subnet-df0c3597,subnet-f1fb87ab";
-            else
-                input.value = "subnet-eb952fa2,subnet-f2bddd95"
-        } else {
-            input.value = param.ParameterValue;
-        }
+        input.value = param.ParameterValue;
 
         if (action === 'clone' && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
@@ -163,7 +117,7 @@ function createInputParameter(param, fieldset) {
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
+function getEbsSnapshots(region, stackToRetrieve) {
     var ebsSnapDropdown = document.getElementById("ebsSnapshots");
     while (ebsSnapDropdown.firstChild) {
         ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
@@ -196,7 +150,7 @@ function getEbsSnapshots(baseUrl, region, stackToRetrieve) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(baseUrl, region, stackToRetrieve) {
+function getRdsSnapshots(region, stackToRetrieve) {
     var rdsSnapDropdown = document.getElementById("rdsSnapshots");
     while (rdsSnapDropdown.firstChild) {
         rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
@@ -227,6 +181,49 @@ function getRdsSnapshots(baseUrl, region, stackToRetrieve) {
         }
     };
     rdsSnapshotRequest.send();
+}
+
+function getVPCs(region, div) {
+    if (document.getElementById("VPCVal"))
+        div.removeChild(document.getElementById("VPCVal"));
+    if (document.getElementById("VPCDropdownDiv"))
+        div.removeChild(document.getElementById("VPCDropdownDiv"));
+
+    var vpcsRequest = new XMLHttpRequest();
+    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + region, true);
+    vpcsRequest.setRequestHeader("Content-Type", "text/xml");
+    vpcsRequest.onreadystatechange = function () {
+        if (vpcsRequest.readyState === XMLHttpRequest.DONE && vpcsRequest.status === 200) {
+            var vpcs = JSON.parse(vpcsRequest.responseText);
+
+            // Set default VPC and subnets for env
+            var defaultVpc = "";
+            if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml")
+                defaultVpc = lab_default_vpc;
+            else if (region === 'prod')
+                defaultVpc = us_west_2_default_vpc;
+            else
+                defaultVpc = us_east_1_default_vpc;
+            createDropdown("VPC", defaultVpc, vpcs, div);
+            setSubnets(region);
+        }
+    };
+    vpcsRequest.send();
+}
+
+function setSubnets(region) {
+    document.getElementById("ExternalSubnetsVal").setAttribute('disabled', '');
+    document.getElementById("InternalSubnetsVal").setAttribute('disabled', '');
+    if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml") {
+        document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
+    } else if (region === 'prod') {
+        document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+    } else {
+        document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
+        document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+    }
 }
 
 function sendParamsAsJson() {

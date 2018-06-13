@@ -19,6 +19,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
 from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
 from werkzeug.contrib.fixers import ProxyFix
+from sys import argv
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -73,6 +74,8 @@ with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
+        if '--nosaml' in argv:
+            return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         for keys in json_perms:
              if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
@@ -386,6 +389,21 @@ class getTemplates(Resource):
         return templates
 
 
+class getVpcs(Resource):
+    def get(self, env):
+        ec2 = boto3.client('ec2', region_name=getRegion(env))
+        try:
+            vpcs = ec2.describe_vpcs()
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+
+        vpc_ids = []
+        for vpc in vpcs['Vpcs']:
+            vpc_ids.append(vpc['VpcId'])
+        return vpc_ids
+
+
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
@@ -452,6 +470,8 @@ api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
+api.add_resource(getVpcs, '/getVpcs/<env>')
+api.add_resource(getSubnets, '/getSubnets')
 
 
 def app_active_in_lb(forgestate, node):
