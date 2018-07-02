@@ -23,7 +23,7 @@ from sys import argv
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
-PRODUCTS = ["Jira", "Confluence"]
+PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
                         'DELETE_FAILED']
@@ -52,7 +52,7 @@ if args.prod:
    app.wsgi_app = ProxyFix(app.wsgi_app)
    print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
-else: 
+else:
    print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
    app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
 flask_saml.FlaskSAML(app)
@@ -290,6 +290,9 @@ class templateParamsForStack(Resource):
                 break
             elif param['ParameterKey'] == 'JiraVersion':
                 app_type = 'Jira'
+                break
+            elif param['ParameterKey'] == 'CrowdVersion':
+                app_type = 'Crowd'
                 break
 
         template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
@@ -680,6 +683,8 @@ def createJson():
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
+        elif param['ParameterKey'] == 'CrowdVersion':
+            app_type = 'crowd'
 
     mystack = Stack(stack_name, session['env'], app_type)
     stacks.append(mystack)
@@ -707,6 +712,8 @@ def cloneJson():
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
             app_type = 'jira'
+        elif param['ParameterKey'] == 'CrowdVersion':
+            app_type = 'crowd'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':

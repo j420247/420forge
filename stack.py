@@ -33,6 +33,8 @@ class Stack:
                     self.app_type = "jira"
                 elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
                     self.app_type = "confluence"
+                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'CrowdVersion']) == 1:
+                    self.app_type = "crowd"
                 self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
             except Exception as e:
                 print(e.args[0])
@@ -182,6 +184,11 @@ class Stack:
             self.state.update('preupgrade_jira_version',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'JiraVersion'][0])
+        # crowd
+        elif self.app_type == 'crowd':
+            self.state.update('preupgrade_crowd_version',
+                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                 p['ParameterKey'] == 'CrowdVersion'][0])
         self.state.logaction(log.INFO, f'finished getting stack_state for {self.stack_name}')
         return
 
@@ -243,6 +250,8 @@ class Stack:
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
+        elif self.app_type == 'crowd':
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.forgestate['new_version'])
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
         try:
             update_stack = cfn.update_stack(
@@ -335,6 +344,8 @@ class Stack:
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
         if self.app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+        if self.app_type == 'crowd':
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.forgestate['new_version'])
         if self.app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
