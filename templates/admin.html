@@ -1,0 +1,18 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+    <script src="/static/js/admin.js"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<div class="aui-panel">
+        <p id="lock-state">Action in progress: </p>
+</div>
+<div class="aui-panel" id="unlock-warning">
+    <div class="aui-message aui-message-warning">
+        <p>Only unlock if you are certain the stack is locked in error. Performing mutliple actions against a stack can result in corruption.</p>
+    </div>
+</div>
+{% endblock extraInput %}
+
+{% block buttonText %}Unlock{% endblock buttonText %}

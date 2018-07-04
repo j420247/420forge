@@ -61,20 +61,6 @@ function selectStack(stack_name) {
 
     updateStats(stack_name);
 
-    // Check for action in progress
-    var actionInProgressRequest = new XMLHttpRequest();
-    actionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + env + "/" + stack_name, true);
-    actionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
-    actionInProgressRequest.onreadystatechange = function () {
-        debugger;
-        if (actionInProgressRequest.readyState === XMLHttpRequest.DONE && actionInProgressRequest.status === 200) {
-            if (actionInProgressRequest.responseText.trim().toLowerCase() !== 'false')
-                $("#flash-messages").load(location.href + " #flash-messages");
-                return;
-        }
-    };
-    actionInProgressRequest.send();
-
     // Enable extra input parameters per action
     switch (action) {
         case "upgrade":
@@ -88,6 +74,9 @@ function selectStack(stack_name) {
         case "update":
         case "clone":
             $("#versionCheckButton").hide();
+            break;
+        case "admin":
+            $("#action-button").attr("aria-disabled", true);
             break;
         case "rollingrestart":
         case "fullrestart":
@@ -200,6 +189,7 @@ function getStatusLozenge(text) {
         case "UPDATE_COMPLETE":
         case "RUNNING":
         case "Valid":
+        case "None":
             cssClass = "success";
             break;
         case "UPDATE_IN_PROGRESS":

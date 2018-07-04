@@ -165,7 +165,6 @@ def cloneJson():
     return outcome
 
 
-
 class dofullrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
@@ -506,12 +505,19 @@ class getSql(Resource):
 
 class getStackActionInProgress(Resource):
     def get(self, env, stack_name):
-        mystack = Stack(env, stack_name)
+        mystack = Stack(stack_name, env)
         action = mystack.get_stack_action_in_progress()
         if action:
             flash(f'{stack_name} is already being operated on: {action}', 'error')
             return action
         return False
+
+
+class clearStackActionInProgress(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        mystack.clear_current_action()
+        return True
 
 
 class actionReadyToStart(Resource):
@@ -626,6 +632,10 @@ def diagnostics():
 def runsql():
     return render_template('runsql.html')
 
+@app.route('/admin', methods = ['GET'])
+def admin():
+    return render_template('admin.html')
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
@@ -646,6 +656,7 @@ api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
+api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')

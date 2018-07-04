@@ -114,7 +114,10 @@
                                     </li>
                                     {% endif %}
                                     <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
+                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
+                                    </li>
+                                    <li {% if session['action'] == 'admin' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
                                     </li>
                                     {% endblock %}
                                 </ul>
