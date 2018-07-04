@@ -9,6 +9,7 @@ from pprint import pprint
 from pathlib import Path
 import log
 import os
+import shutil
 
 class Stack:
     """An object describing an instance of an aws cloudformation stack:
@@ -439,25 +440,25 @@ class Stack:
         return result
 
     def get_stack_action_in_progress(self):
-        try:
-            with open(f'stacks/{self.stack_name}/{self.stack_name}.current-action', 'r') as infile:
-                action = infile.read()
-                return action
-        except FileNotFoundError:
-            return False
+        if Path(f'locks/{self.stack_name}').exists():
+            return os.listdir(f'locks/{self.stack_name}')
+        return False
 
     def store_current_action(self, action):
         if Path(f'stacks/{self.stack_name}/{self.stack_name}.json').exists():
             os.remove(f'stacks/{self.stack_name}/{self.stack_name}.json')
         self.state.update('action', action)
-        with open(f'stacks/{self.stack_name}/{self.stack_name}.current-action', 'w') as outfile:
-            outfile.write(action)
-        outfile.close()
+        try:
+            os.mkdir(f'locks/{self.stack_name}')
+            os.mkdir(f'locks/{self.stack_name}/{action}')
+        except FileExistsError:
+            self.state.logaction(log.INFO, f'Cannot store action: {action}. Another action is in progress.')
+            return False
         return True
 
     def clear_current_action(self):
         self.state.archive()
-        os.remove(f'stacks/{self.stack_name}/{self.stack_name}.current-action')
+        shutil.rmtree(f'locks/{self.stack_name}')
         self.state.update('action', 'none')
         return True
 
