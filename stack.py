@@ -445,15 +445,16 @@ class Stack:
         return False
 
     def store_current_action(self, action):
-        if Path(f'stacks/{self.stack_name}/{self.stack_name}.json').exists():
-            os.remove(f'stacks/{self.stack_name}/{self.stack_name}.json')
-        self.state.update('action', action)
         try:
             os.mkdir(f'locks/{self.stack_name}')
             os.mkdir(f'locks/{self.stack_name}/{action}')
         except FileExistsError:
-            self.state.logaction(log.INFO, f'Cannot store action: {action}. Another action is in progress.')
+            action_in_progress = os.listdir(f'locks/{self.stack_name}')
+            self.state.logaction(log.INFO, f'Cannot begin action: {action}. Another action is in progress: {action_in_progress[0]}')
             return False
+        if Path(f'stacks/{self.stack_name}/{self.stack_name}.json').exists():
+            os.remove(f'stacks/{self.stack_name}/{self.stack_name}.json')
+        self.state.update('action', action)
         return True
 
     def clear_current_action(self):

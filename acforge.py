@@ -94,10 +94,8 @@ class doupgrade(RestrictedResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('upgrade')
+        if not mystack.store_current_action('upgrade'):
+            return False
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
@@ -112,10 +110,8 @@ class doclone(RestrictedResource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('clone')
+        if not mystack.store_current_action('clone'):
+            return False
         try:
             outcome = mystack.destroy()
             outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
@@ -155,10 +151,8 @@ def cloneJson():
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
 
     mystack = Stack(stack_name, env, app_type)
-    if mystack.get_stack_action_in_progress():
-        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-        return
-    mystack.store_current_action('clone')
+    if not mystack.store_current_action('clone'):
+        return False
     stacks.append(mystack)
     outcome = mystack.clone(content)
     mystack.clear_current_action()
@@ -169,10 +163,8 @@ class dofullrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('fullrestart')
+        if not mystack.store_current_action('fullrestart'):
+            return False
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -191,10 +183,8 @@ class dorollingrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('rollingrestart')
+        if not mystack.store_current_action('rollingrestart'):
+            return False
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -213,10 +203,8 @@ class dodestroy(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('destroy')
+        if not mystack.store_current_action('destroy'):
+            return False
         try:
             outcome = mystack.destroy()
         except Exception as e:
@@ -232,10 +220,8 @@ class dothreaddumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('diagnostics')
+        if not mystack.store_current_action('diagnostics'):
+            return False
         try:
             outcome = mystack.thread_dump()
         except Exception as e:
@@ -250,10 +236,8 @@ class doheapdumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('diagnostics')
+        if not mystack.store_current_action('diagnostics'):
+            return False
         try:
             outcome = mystack.heap_dump()
         except Exception as e:
@@ -268,10 +252,8 @@ class dorunsql(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('runsql')
+        if not mystack.store_current_action('runsql'):
+            return False
         try:
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
@@ -286,10 +268,8 @@ class docreate(RestrictedResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
-        if mystack.get_stack_action_in_progress():
-            mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-            return
-        mystack.store_current_action('create')
+        if not mystack.store_current_action('create'):
+            return False
         try:
             outcome = mystack.create(pg_pass, app_pass, app_type)
         except Exception as e:
@@ -320,10 +300,8 @@ def createJson():
             app_type = 'crowd'
 
     mystack = Stack(stack_name, session['env'], app_type)
-    if mystack.get_stack_action_in_progress():
-        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-        return
-    mystack.store_current_action('create')
+    if not mystack.store_current_action('create'):
+        return False
     stacks.append(mystack)
     mystack.writeparms(content)
 
@@ -349,10 +327,8 @@ def updateJson():
             template_type = 'STGorDR' # not working, see below
 
     mystack = Stack(stack_name, session['env'])
-    if mystack.get_stack_action_in_progress():
-        mystack.state.logaction(log.ERROR, f'Stack is already being operated on: {mystack.get_stack_action_in_progress()}')
-        return
-    mystack.store_current_action('update')
+    if not mystack.store_current_action('update'):
+        return False
     stacks.append(mystack)
     mystack.writeparms(new_params)
 
