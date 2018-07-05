@@ -114,7 +114,10 @@
                                     </li>
                                     {% endif %}
                                     <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Forge Logs</a>
+                                        <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
+                                    </li>
+                                    <li {% if session['action'] == 'admin' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
                                     </li>
                                     {% endblock %}
                                 </ul>
@@ -130,7 +133,7 @@
                             {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
                             {% for category, message in messages %}
-                            <div class="aui-message aui-message-{{ category }} fadeout" id="aui-message-bar">
+                            <div class="aui-message aui-message-{{ category }}{% if category != 'error' %} fadeout{% endif %}" id="aui-message-bar">
                                 <ul style="list-style-type: none;">
                                     <li>{{ message }}</li>
                                 </ul>

@@ -94,11 +94,15 @@ class doupgrade(RestrictedResource):
     def get(self, env, stack_name, new_version):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('upgrade'):
+            return False
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -106,19 +110,61 @@ class doclone(RestrictedResource):
     def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('clone'):
+            return False
         try:
             outcome = mystack.destroy()
             outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
+
+
+@app.route('/doclone', methods = ['POST'])
+#TODO see if def post() in class doclone() will work here
+@app.route('/doclone', methods = ['POST'])
+def cloneJson():
+    content = request.get_json()[0]
+    app_type = ''
+    env='stg'
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+        if param['ParameterKey'] == 'Region':
+            if param['ParameterValue'] == 'us-west-2':
+                env = 'prod'
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+        elif param['ParameterKey'] == 'CrowdVersion':
+            app_type = 'crowd'
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+        elif param['ParameterKey'] == 'DBSnapshotName':
+            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+
+    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+
+    mystack = Stack(stack_name, env, app_type)
+    if not mystack.store_current_action('clone'):
+        return False
+    stacks.append(mystack)
+    outcome = mystack.clone(content)
+    mystack.clear_current_action()
+    return outcome
 
 
 class dofullrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('fullrestart'):
+            return False
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -128,6 +174,8 @@ class dofullrestart(RestrictedResource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -135,6 +183,8 @@ class dorollingrestart(RestrictedResource):
     def get(self, env, stack_name, threads, heaps):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('rollingrestart'):
+            return False
         try:
             if threads == 'true':
                 mystack.thread_dump(alsoHeaps=heaps)
@@ -144,6 +194,8 @@ class dorollingrestart(RestrictedResource):
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -151,12 +203,16 @@ class dodestroy(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('destroy'):
+            return False
         try:
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
+            mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        mystack.clear_current_action()
         return
 
 
@@ -164,11 +220,15 @@ class dothreaddumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('diagnostics'):
+            return False
         try:
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -176,11 +236,15 @@ class doheapdumps(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('diagnostics'):
+            return False
         try:
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return
 
 
@@ -188,11 +252,15 @@ class dorunsql(RestrictedResource):
     def get(self, env, stack_name):
         mystack = Stack(stack_name, env)
         stacks.append(mystack)
+        if not mystack.store_current_action('runsql'):
+            return False
         try:
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
         return outcome
 
 
@@ -200,13 +268,88 @@ class docreate(RestrictedResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
         mystack = Stack(stack_name, env, app_type)
         stacks.append(mystack)
+        if not mystack.store_current_action('create'):
+            return False
         try:
             outcome = mystack.create(pg_pass, app_pass, app_type)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
+            mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        mystack.clear_current_action()
         return outcome
+
+
+@app.route('/docreate', methods = ['POST'])
+def createJson():
+    content = request.get_json()[0]
+
+    for param in content:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'TemplateName':
+            template_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'ConfluenceVersion':
+            app_type = 'confluence'
+        elif param['ParameterKey'] == 'JiraVersion':
+            app_type = 'jira'
+        elif param['ParameterKey'] == 'CrowdVersion':
+            app_type = 'crowd'
+
+    mystack = Stack(stack_name, session['env'], app_type)
+    if not mystack.store_current_action('create'):
+        return False
+    stacks.append(mystack)
+    mystack.writeparms(content)
+
+    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
+    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
+    session['stacks'] = sorted(get_cfn_stacks_for_environment())
+    mystack.clear_current_action()
+    return outcome
+
+
+@app.route('/doupdate', methods = ['POST'])
+def updateJson():
+    content = request.get_json()
+    new_params = content[0]
+    orig_params = content[1]
+    app_type = ''
+
+    for param in new_params:
+        if param['ParameterKey'] == 'StackName':
+            stack_name = param['ParameterValue']
+            continue
+        elif param['ParameterKey'] == 'EBSSnapshotId':
+            template_type = 'STGorDR' # not working, see below
+
+    mystack = Stack(stack_name, session['env'])
+    if not mystack.store_current_action('update'):
+        return False
+    stacks.append(mystack)
+    mystack.writeparms(new_params)
+
+    for param in new_params:
+        if param['ParameterKey'] != 'StackName' \
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+    if session['env'] == 'stg':
+        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+
+    # this is a hack for now because the snapshot params are not in the stack_parms.
+    # Need to think of a better way to check template based on params.
+    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
+
+    outcome = mystack.update(params_for_update, template_type)
+    mystack.clear_current_action()
+    return outcome
 
 
 class status(RestrictedResource):
@@ -336,6 +479,23 @@ class getSql(Resource):
         return sql_to_run
 
 
+class getStackActionInProgress(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        action = mystack.get_stack_action_in_progress()
+        if action:
+            flash(f'{stack_name} is already being operated on: {action}', 'error')
+            return action
+        return False
+
+
+class clearStackActionInProgress(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        mystack.clear_current_action()
+        return True
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -448,6 +608,10 @@ def diagnostics():
 def runsql():
     return render_template('runsql.html')
 
+@app.route('/admin', methods = ['GET'])
+def admin():
+    return render_template('admin.html')
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
@@ -467,6 +631,8 @@ api.add_resource(stackState, '/stackState/<env>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
+api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
+api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
@@ -523,7 +689,6 @@ def check_loggedin():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
-        print("Bypassing SAML auth because --nosaml has been set - the app can be accessed on 127.0.0.1")
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
@@ -538,19 +703,17 @@ def error(error):
     return render_template('error.html', code=error), error
 
 
-@app.route('/')
-def index():
-    #TODO remove?
-    # saved_data = get_saved_data()
-    # if 'forgetype' in forgestate[stack_name] and 'environment' in forgestate[stack_name]:
-    #     gtg_flag = True
-    #     stack_name_list = get_cfn_stacks_for_environment(forgestate[stack_name]['environment'])
-
+def useStgIfNoEnvSelected():
     # use stg if no env selected (eg first load)
     if 'region' not in session:
         session['region'] = getRegion('stg')
         session['env'] = 'stg'
         session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+
+
+@app.route('/')
+def index():
+    useStgIfNoEnvSelected()
     session['products'] = PRODUCTS
     session['action'] = 'none'
     return render_template('index.html')
@@ -588,6 +751,7 @@ def setenv(env):
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
 def setaction(action):
+    useStgIfNoEnvSelected()
     session['action'] = action
     session['stack_name'] = 'none'
     session['version'] = 'none'
@@ -601,130 +765,10 @@ def getparms(action):
     return sorted(get_cfn_stacks_for_environment())
 
 
-# @app.route('/go/stg/upgradeProgress/<stack_name>')
-#TODO fix or remove, this doesn't seem to be used
-@app.route('/go/<environment>/<action>Progress/<stack_name>')
-def progress(environment, action, stack_name):
-    print("in progress")
-    print('env =', forgestate[stack_name]['environment'])
-    print('action = ', forgestate[stack_name]['action'])
-    if 'action' in forgestate[stack_name] and 'environment' in forgestate[stack_name]:
-        return redirect(url_for('show_stacks'))
-    else:
-        return redirect(url_for('index'))
-
-
 @app.route('/show_stacks')
 def show_stacks():
     stack_name_list = sorted(get_cfn_stacks_for_environment())
     return render_template('stack_selection.html', stack_name_list=stack_name_list)
-
-
-# @app.route('/stg/upgrade/<stack_name>')
-#TODO Remove this? It was broken so I have added stack_name so it compiles at least
-@app.route('/<env>/<action>/<stack_name>', methods=['POST'])
-def envact(env, action, stack_name):
-    print('after stack selection')
-    for key in request.form:
-        forgestate[stack_name]['selected_stack'] = key.split("_")[1]
-    pprint(forgestate[stack_name])
-    return render_template(action + 'Options.html')
-
-
-@app.route('/doupdate', methods = ['POST'])
-def updateJson():
-    content = request.get_json()
-    new_params = content[0]
-    orig_params = content[1]
-    app_type = ''
-
-    for param in new_params:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            template_type = 'STGorDR' # not working, see below
-
-    mystack = Stack(stack_name, session['env'])
-    stacks.append(mystack)
-    mystack.writeparms(new_params)
-
-    for param in new_params:
-        if param['ParameterKey'] != 'StackName' \
-                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
-            del param['ParameterValue']
-            param['UsePreviousValue'] = True
-
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    if session['env'] == 'stg':
-        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-
-    # this is a hack for now because the snapshot params are not in the stack_parms.
-    # Need to think of a better way to check template based on params.
-    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
-
-    outcome = mystack.update(params_for_update, template_type)
-    return outcome
-
-
-@app.route('/docreate', methods = ['POST'])
-def createJson():
-    content = request.get_json()[0]
-
-    for param in content:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'TemplateName':
-            template_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
-        elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'crowd'
-
-    mystack = Stack(stack_name, session['env'], app_type)
-    stacks.append(mystack)
-    mystack.writeparms(content)
-
-    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
-    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
-    session['stacks'] = sorted(get_cfn_stacks_for_environment())
-    return outcome
-
-
-@app.route('/doclone', methods = ['POST'])
-def cloneJson():
-    content = request.get_json()[0]
-    app_type = ''
-    env='stg'
-
-    for param in content:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-        if param['ParameterKey'] == 'Region':
-            if param['ParameterValue'] == 'us-west-2':
-                env = 'prod'
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
-        elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'crowd'
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        elif param['ParameterKey'] == 'DBSnapshotName':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-
-    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
-
-    mystack = Stack(stack_name, env, app_type)
-    stacks.append(mystack)
-    outcome = mystack.clone(content)
-    return outcome
 
 
 if __name__ == '__main__':

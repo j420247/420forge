@@ -15,7 +15,7 @@ $(document).ready(function() {
                 clearTimeout(refreshTimer);
                 getStatus(stack_name);
                 updateStats(stack_name);
-                refreshStatus(stack_name, true, 1000);
+                refreshStatus(stack_name, true, 1000, action);
             }, false);
         }
     // or if we got here from an action, refresh info now,
@@ -24,20 +24,20 @@ $(document).ready(function() {
         $("#stackSelector").hide();
         selectStack(stackName);
         if (action !== 'create') getStatus(stackName);
-        refreshStatus(stackName, true, 2000);
+        refreshStatus(stackName, true, 2000, action);
     }
 });
 
 // Refresh the status while the action is still underway
-function refreshStatus(stack_name, cont, refresh_interval) {
+function refreshStatus(stack_name, cont, refresh_interval, this_action) {
     if (cont) {
         refreshTimer = setTimeout(function () {
             getStatus(stack_name);
 
             // Only check stack status in EC2 for stack changing actions
-            if (action !== 'diagnostics' &&
-                action !== 'fullrestart' &&
-                action !== 'rollingrestart') {
+            if (this_action !== 'diagnostics' &&
+                this_action !== 'fullrestart' &&
+                this_action !== 'rollingrestart') {
                 updateStats(stack_name);
             }
 
@@ -51,15 +51,15 @@ function refreshStatus(stack_name, cont, refresh_interval) {
             if (action === 'diagnostics') {
                 if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
                     countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
-                    refreshStatus(stack_name, true, refresh_interval);
+                    refreshStatus(stack_name, true, refresh_interval, this_action);
                 else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
                     countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
-                    refreshStatus(stack_name, true, refresh_interval);
+                    refreshStatus(stack_name, true, refresh_interval, this_action);
                 else
-                    refreshStatus(stack_name, false, refresh_interval);
+                    refreshStatus(stack_name, false, refresh_interval, this_action);
             }
-            else if (countOccurences($("#log").contents().text().toLowerCase(), action.replace(' ', '').toLowerCase() + " complete") >= 1)
-                refreshStatus(stack_name, false, refresh_interval);
+            else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1)
+                refreshStatus(stack_name, false, refresh_interval, this_action);
             else
                 refreshStatus(stack_name, true, refresh_interval);
         }, refresh_interval)

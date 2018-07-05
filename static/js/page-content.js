@@ -59,6 +59,8 @@ function selectStack(stack_name) {
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
+    updateStats(stack_name);
+
     // Enable extra input parameters per action
     switch (action) {
         case "upgrade":
@@ -73,6 +75,9 @@ function selectStack(stack_name) {
         case "clone":
             $("#versionCheckButton").hide();
             break;
+        case "admin":
+            $("#action-button").attr("aria-disabled", true);
+            break;
         case "rollingrestart":
         case "fullrestart":
             $("#takeThreadDumps").removeAttr("disabled");
@@ -81,8 +86,6 @@ function selectStack(stack_name) {
             $("#versionCheckButton").hide();
             $("#action-button").attr("aria-disabled", false);
     }
-
-    updateStats(stack_name);
 }
 
 function getStatus(stack_name) {
@@ -186,6 +189,7 @@ function getStatusLozenge(text) {
         case "UPDATE_COMPLETE":
         case "RUNNING":
         case "Valid":
+        case "None":
             cssClass = "success";
             break;
         case "UPDATE_IN_PROGRESS":

@@ -1,9 +1,9 @@
-function countOccurences(aString, substring) {
+function countOccurences(stringToSearch, searchTerm) {
     var count = 0;
-    var position = aString.indexOf(substring);
+    var position = stringToSearch.indexOf(searchTerm);
     while (position > -1) {
         ++count;
-        position = aString.indexOf(substring, ++position);
+        position = stringToSearch.indexOf(searchTerm, ++position);
     }
     return count;
 }
