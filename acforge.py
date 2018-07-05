@@ -315,15 +315,8 @@ def updateJson():
     content = request.get_json()
     new_params = content[0]
     orig_params = content[1]
-    app_type = ''
 
-    for param in new_params:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            template_type = 'STGorDR' # not working, see below #TODO get from tags
-
+    stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
     mystack = Stack(stack_name, session['region'])
     if not mystack.store_current_action('update'):
         return False
@@ -337,13 +330,24 @@ def updateJson():
             param['UsePreviousValue'] = True
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    if session['region'] == 'us-east-1': #TODO get from tags
+
+    cfn = boto3.client('cloudformation', region_name=session['region'])
+    try:
+        stack_details = cfn.describe_stacks(StackName=stack_name)
+    except Exception as e:
+        if e.response and "does not exist" in e.response['Error']['Message']:
+            print(f'Stack {stack_name} does not exist')
+            return f'Stack {stack_name} does not exist'
+        print(e.args[0])
+
+    # default to DataCenter template
+    template_type = "DataCenter"
+
+    env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
+    if env == 'stg':
         params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
         params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-
-    # this is a hack for now because the snapshot params are not in the stack_parms.
-    # Need to think of a better way to check template based on params.
-    template_type = 'STGorDR' if session['region'] == 'us-east-1' else "DataCenter" #TODO get from tags
+        template_type = 'STGorDR'
 
     outcome = mystack.update(params_for_update, template_type)
     mystack.clear_current_action()
@@ -424,21 +428,13 @@ class templateParamsForStack(Resource):
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
 
-        #  Determine app type
-        for param in stack_params:
-            if param['ParameterKey'] == 'ConfluenceVersion':
-                app_type = 'Confluence'
-                break
-            elif param['ParameterKey'] == 'JiraVersion':
-                app_type = 'Jira'
-                break
-            elif param['ParameterKey'] == 'CrowdVersion':
-                app_type = 'Crowd'
-                break
+        # default to DataCenter template
+        template_type = "DataCenter"
+        env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
+        if env == 'stg':
+            template_type = 'STGorDR'
 
-        template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env - get from tags
-        if region == 'us-west-2':
-            template_type = "DataCenter"
+        app_type = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')['Value']
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
@@ -655,8 +651,6 @@ def get_cfn_stacks_for_region(region=None):
         StackStatusFilter=VALID_STACK_STATUSES)
     for stack in stack_list['StackSummaries']:
         stack_name_list.append(stack['StackName'])
-    #TODO fix or remove
-    #  last_action_log(forgestate, 'general', log.INFO, f'Stack names: {stack_name_list}')
     return stack_name_list
 
 
@@ -694,9 +688,9 @@ def error(error):
 
 
 def use_east1_if_no_region_selected():
-    # use us-east-1 if no region selected (eg first load)
+    # use first region in forge.properties if no region selected (eg first load)
     if 'region' not in session:
-        session['region'] = 'us-east-1' #TODO get from properties
+        session['region'] = get_regions()[0][0]
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
 
 

@@ -30,18 +30,12 @@ class Stack:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                #TODO get product from tags
-                if len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'JiraVersion']) == 1:
-                    self.app_type = "jira"
-                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
-                    self.app_type = "confluence"
-                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'CrowdVersion']) == 1:
-                    self.app_type = "crowd"
+                self.app_type = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')['Value']
                 self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
             except Exception as e:
                 print(e.args[0])
                 self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-        # self.state.update('environment', env) #TODO get env from tag
+        self.state.update('environment', next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value'])
         self.state.update('region', self.region)
 
 
