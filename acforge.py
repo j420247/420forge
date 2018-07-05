@@ -79,7 +79,7 @@ class RestrictedResource(Resource):
         # check permissions before returning super
         for keys in json_perms:
              if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                 if session['env'] in json_perms[keys]['env'] or '*' in json_perms[keys]['env']:
+                 if session['region'] in json_perms[keys]['region'] or '*' in json_perms[keys]['region']:
                      if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
                          if kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
                              print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
@@ -91,8 +91,8 @@ class RestrictedResource(Resource):
 #### REST Endpoint classes
 ##
 class doupgrade(RestrictedResource):
-    def get(self, env, stack_name, new_version):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name, new_version):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('upgrade'):
             return False
@@ -107,8 +107,8 @@ class doupgrade(RestrictedResource):
 
 
 class doclone(RestrictedResource):
-    def get(self, env, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('clone'):
             return False
@@ -129,14 +129,12 @@ class doclone(RestrictedResource):
 def cloneJson():
     content = request.get_json()[0]
     app_type = ''
-    env='stg'
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
         if param['ParameterKey'] == 'Region':
-            if param['ParameterValue'] == 'us-west-2':
-                env = 'prod'
+            region = param['ParameterValue']
         elif param['ParameterKey'] == 'ConfluenceVersion':
             app_type = 'confluence'
         elif param['ParameterKey'] == 'JiraVersion':
@@ -150,7 +148,7 @@ def cloneJson():
 
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
 
-    mystack = Stack(stack_name, env, app_type)
+    mystack = Stack(stack_name, region, app_type)
     if not mystack.store_current_action('clone'):
         return False
     stacks.append(mystack)
@@ -160,8 +158,8 @@ def cloneJson():
 
 
 class dofullrestart(RestrictedResource):
-    def get(self, env, stack_name, threads, heaps):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name, threads, heaps):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('fullrestart'):
             return False
@@ -180,8 +178,8 @@ class dofullrestart(RestrictedResource):
 
 
 class dorollingrestart(RestrictedResource):
-    def get(self, env, stack_name, threads, heaps):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name, threads, heaps):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('rollingrestart'):
             return False
@@ -200,8 +198,8 @@ class dorollingrestart(RestrictedResource):
 
 
 class dodestroy(RestrictedResource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('destroy'):
             return False
@@ -211,14 +209,14 @@ class dodestroy(RestrictedResource):
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
             mystack.clear_current_action()
-        session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return
 
 
 class dothreaddumps(RestrictedResource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('diagnostics'):
             return False
@@ -233,8 +231,8 @@ class dothreaddumps(RestrictedResource):
 
 
 class doheapdumps(RestrictedResource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('diagnostics'):
             return False
@@ -249,8 +247,8 @@ class doheapdumps(RestrictedResource):
 
 
 class dorunsql(RestrictedResource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('runsql'):
             return False
@@ -265,8 +263,8 @@ class dorunsql(RestrictedResource):
 
 
 class docreate(RestrictedResource):
-    def get(self, env, stack_name, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, env, app_type)
+    def get(self, region, stack_name, pg_pass, app_pass, app_type):
+        mystack = Stack(stack_name, region, app_type)
         stacks.append(mystack)
         if not mystack.store_current_action('create'):
             return False
@@ -276,7 +274,7 @@ class docreate(RestrictedResource):
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
             mystack.clear_current_action()
-        session['stacks'] = sorted(get_cfn_stacks_for_environment())
+        session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
 
@@ -299,7 +297,7 @@ def createJson():
         elif param['ParameterKey'] == 'CrowdVersion':
             app_type = 'crowd'
 
-    mystack = Stack(stack_name, session['env'], app_type)
+    mystack = Stack(stack_name, session['region'], app_type)
     if not mystack.store_current_action('create'):
         return False
     stacks.append(mystack)
@@ -307,7 +305,7 @@ def createJson():
 
     params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
     outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
-    session['stacks'] = sorted(get_cfn_stacks_for_environment())
+    session['stacks'] = sorted(get_cfn_stacks_for_region())
     mystack.clear_current_action()
     return outcome
 
@@ -324,9 +322,9 @@ def updateJson():
             stack_name = param['ParameterValue']
             continue
         elif param['ParameterKey'] == 'EBSSnapshotId':
-            template_type = 'STGorDR' # not working, see below
+            template_type = 'STGorDR' # not working, see below #TODO get from tags
 
-    mystack = Stack(stack_name, session['env'])
+    mystack = Stack(stack_name, session['region'])
     if not mystack.store_current_action('update'):
         return False
     stacks.append(mystack)
@@ -339,13 +337,13 @@ def updateJson():
             param['UsePreviousValue'] = True
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-    if session['env'] == 'stg':
+    if session['region'] == 'us-east-1': #TODO get from tags
         params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
         params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
 
     # this is a hack for now because the snapshot params are not in the stack_parms.
     # Need to think of a better way to check template based on params.
-    template_type = 'STGorDR' if session['env'] == 'stg' else "DataCenter"
+    template_type = 'STGorDR' if session['region'] == 'us-east-1' else "DataCenter" #TODO get from tags
 
     outcome = mystack.update(params_for_update, template_type)
     mystack.clear_current_action()
@@ -359,13 +357,13 @@ class status(RestrictedResource):
 
 
 class serviceStatus(Resource):
-    def get(self, env, stack_name):
+    def get(self, region, stack_name):
         return "RUNNING"
 
         #TODO fix?
         # forgestate = defaultdict(dict)
         # forgestate[stack_name] = forgestate_read(stack_name)
-        # forgestate[stack_name]['region'] = getRegion(env)
+        # forgestate[stack_name]['region'] = region
         # cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
         # # forgestate[stack_name]['tomcatcontextpath'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'TomcatContextPath'][0]
         #
@@ -380,11 +378,11 @@ class serviceStatus(Resource):
 
 
 class stackState(Resource):
-    def get(self, env, stack_name):
+    def get(self, region, stack_name):
         for stack in stacks:
             if stack.stack_name == stack_name:
                 return stack.check_stack_state()
-        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+        cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
         except Exception as e:
@@ -417,8 +415,8 @@ class templateParams(Resource):
 
 
 class templateParamsForStack(Resource):
-    def get(self, env, stack_name):
-        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+    def get(self, region, stack_name):
+        cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
         except botocore.exceptions.ClientError as e:
@@ -438,8 +436,8 @@ class templateParamsForStack(Resource):
                 app_type = 'Crowd'
                 break
 
-        template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env
-        if env == 'prod':
+        template_type = "STGorDR" #TODO unhack this - determine from the stack if it is stg/dr or prod, not from env - get from tags
+        if region == 'us-west-2':
             template_type = "DataCenter"
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
@@ -480,8 +478,8 @@ class getSql(Resource):
 
 
 class getStackActionInProgress(Resource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         action = mystack.get_stack_action_in_progress()
         if action:
             flash(f'{stack_name} is already being operated on: {action}', 'error')
@@ -490,8 +488,8 @@ class getStackActionInProgress(Resource):
 
 
 class clearStackActionInProgress(Resource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
 
@@ -553,8 +551,8 @@ class getTemplates(Resource):
 
 
 class getVpcs(Resource):
-    def get(self, env):
-        ec2 = boto3.client('ec2', region_name=getRegion(env))
+    def get(self, region):
+        ec2 = boto3.client('ec2', region_name=region)
         try:
             vpcs = ec2.describe_vpcs()
         except botocore.exceptions.ClientError as e:
@@ -614,32 +612,32 @@ def admin():
 
 
 # Actions
-api.add_resource(doupgrade, '/doupgrade/<env>/<stack_name>/<new_version>')
+api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
 api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(dofullrestart, '/dofullrestart/<env>/<stack_name>/<threads>/<heaps>')
-api.add_resource(dorollingrestart, '/dorollingrestart/<env>/<stack_name>/<threads>/<heaps>')
-api.add_resource(docreate, '/docreate/<app_type>/<env>/<stack_name>/<ebssnap>/<rdssnap>')
-api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
-api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
-api.add_resource(doheapdumps, '/doheapdumps/<env>/<stack_name>')
-api.add_resource(dorunsql, '/dorunsql/<env>/<stack_name>')
+api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
+api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
+api.add_resource(docreate, '/docreate/<app_type>/<region>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
+api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
+api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
+api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
-api.add_resource(serviceStatus, '/serviceStatus/<env>/<stack_name>')
-api.add_resource(stackState, '/stackState/<env>/<stack_name>')
-api.add_resource(templateParamsForStack, '/stackParams/<env>/<stack_name>')
+api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
+api.add_resource(stackState, '/stackState/<region>/<stack_name>')
+api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>')
 api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
-api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
-api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
+api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
+api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
-api.add_resource(getVpcs, '/getVpcs/<env>')
+api.add_resource(getVpcs, '/getVpcs/<region>')
 
 
 def app_active_in_lb(forgestate, node):
@@ -650,15 +648,7 @@ def app_active_in_lb(forgestate, node):
 #### Common functions
 ##
 
-
-def getRegion(env):
-    if env == 'prod':
-        return 'us-west-2'
-    else:
-        return 'us-east-1'
-
-
-def get_cfn_stacks_for_environment(region=None):
+def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     stack_list = cfn.list_stacks(
@@ -703,18 +693,16 @@ def error(error):
     return render_template('error.html', code=error), error
 
 
-def useStgIfNoEnvSelected():
-    # use stg if no env selected (eg first load)
+def useEast1IfNoRegionSelected():
+    # use us-east-1 if no region selected (eg first load)
     if 'region' not in session:
-        session['region'] = getRegion('stg')
-        session['env'] = 'stg'
-        session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion('stg')))
+        session['region'] = 'us-east-1' #TODO get from properties
+        session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
 
 
 @app.route('/')
 def index():
-    useStgIfNoEnvSelected()
-    session['products'] = PRODUCTS
+    useEast1IfNoRegionSelected()
     session['action'] = 'none'
     return render_template('index.html')
 
@@ -736,38 +724,36 @@ def actionprogress(action, stack_name):
     return render_template('actionprogress.html')
 
 
-# Either stg or prod
-@app.route('/setenv/<env>')
-def setenv(env):
-    session['region'] = getRegion(env)
-    session['env'] = env
-    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(env)))
+@app.route('/setregion/<region>')
+def setregion(region):
+    session['region'] = region
+    session['stacks'] = sorted(get_cfn_stacks_for_region(region))
     session['stack_name'] = 'none'
     session['version'] = 'none'
-    flash(f'Environment selected: {env}', 'success')
+    flash(f'Region selected: {region}', 'success')
     return redirect(url_for('index'))
 
 
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
 def setaction(action):
-    useStgIfNoEnvSelected()
+    useEast1IfNoRegionSelected()
     session['action'] = action
     session['stack_name'] = 'none'
     session['version'] = 'none'
-    session['stacks'] = sorted(get_cfn_stacks_for_environment(getRegion(session['env'])))
+    session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     return redirect(url_for(action))
 
 
 #@app.route('/getparms/upgrade')
 @app.route('/getparms/<action>')
 def getparms(action):
-    return sorted(get_cfn_stacks_for_environment())
+    return sorted(get_cfn_stacks_for_region())
 
 
 @app.route('/show_stacks')
 def show_stacks():
-    stack_name_list = sorted(get_cfn_stacks_for_environment())
+    stack_name_list = sorted(get_cfn_stacks_for_region())
     return render_template('stack_selection.html', stack_name_list=stack_name_list)
 
 
