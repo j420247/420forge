@@ -123,12 +123,11 @@ class doclone(RestrictedResource):
         return
 
 
-@app.route('/doclone', methods = ['POST'])
 #TODO see if def post() in class doclone() will work here
 @app.route('/doclone', methods = ['POST'])
 def cloneJson():
     content = request.get_json()[0]
-    app_type = ''
+    app_type = '' #TODO is there a better way to do this?
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
