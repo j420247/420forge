@@ -1,7 +1,6 @@
 # imports
 from collections import defaultdict
 from datetime import timedelta
-from pprint import pprint
 from stack import Stack
 import boto3
 import botocore
@@ -17,9 +16,9 @@ from os import path
 import log
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
-from sqlalchemy import Table, Column, Float, Integer, String, MetaData, ForeignKey
 from werkzeug.contrib.fixers import ProxyFix
 from sys import argv
+import configparser
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -65,6 +64,7 @@ session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 
 # load permissions file
+#TODO think about whether we want to restrict based on environment tags or regions
 with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
     json_perms = json.load(json_data)
 
@@ -693,17 +693,25 @@ def error(error):
     return render_template('error.html', code=error), error
 
 
-def useEast1IfNoRegionSelected():
+def use_east1_if_no_region_selected():
     # use us-east-1 if no region selected (eg first load)
     if 'region' not in session:
         session['region'] = 'us-east-1' #TODO get from properties
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
 
 
+def get_regions():
+    config = configparser.ConfigParser()
+    config.read('forge.properties')
+    return config.items('regions')
+
+
 @app.route('/')
 def index():
-    useEast1IfNoRegionSelected()
+    use_east1_if_no_region_selected()
+    session['products'] = PRODUCTS
     session['action'] = 'none'
+    session['regions'] = get_regions()
     return render_template('index.html')
 
 
@@ -737,7 +745,7 @@ def setregion(region):
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
 def setaction(action):
-    useEast1IfNoRegionSelected()
+    use_east1_if_no_region_selected()
     session['action'] = action
     session['stack_name'] = 'none'
     session['version'] = 'none'

@@ -35,19 +35,14 @@
                     <!-- Horizontal nav bar-->
                     <ul class="aui-nav">
                         {% block hnavitems %}
+                        {% for region, region_name in session['regions'] %}
                         <li>
-                            <a {%if session['region'] == "us-east-1" %}class="region-selected"{%endif%}
-                               href="{{ url_for('setregion', region='us-east-1') }}" id="staging-link">
-                                us-east-1 <!--TODO get all regions from properties -->
+                            <a {%if session['region'] == region %}class="region-selected"{%endif%}
+                               href="{{ url_for('setregion', region=region) }}">
+                                {{ region_name }}
                             </a>
                         </li>
-                        <li>
-                            <a {%if session['region'] == "us-west-2" %}class="region-selected"{%endif%}
-                               href="{{ url_for('setregion', region='us-west-2') }}"  id="production-link">
-                                us-west-2
-                                <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span>
-                            </a>
-                        </li>
+                        {% endfor %}
                         {% endblock %}
                     </ul>
                 </div>
