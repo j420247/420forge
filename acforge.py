@@ -749,7 +749,7 @@ def setregion(region):
     session['stack_name'] = 'none'
     session['version'] = 'none'
     flash(f'Region selected: {region}', 'success')
-    return redirect(url_for('index'))
+    return redirect(request.referrer)
 
 
 # Ex. action could equal upgrade, rollingrestart, etc.
