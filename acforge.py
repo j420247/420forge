@@ -360,14 +360,7 @@ class status(RestrictedResource):
 
 class serviceStatus(Resource):
     def get(self, env, stack_name):
-        if len(stacks) > 0:
-            mystack = next(stack for stack in stacks if stack.stack_name == stack_name)
-            if not mystack:
-                mystack = Stack(stack_name, env)
-                stacks.append(mystack)
-        else:
-            mystack = Stack(stack_name, env)
-            stacks.append(mystack)
+        mystack = get_or_create_stack_obj(env, stack_name)
         return mystack.check_service_status(log=False)
 
 
@@ -486,6 +479,33 @@ class clearStackActionInProgress(Resource):
         mystack = Stack(stack_name, env)
         mystack.clear_current_action()
         return True
+
+
+class getVersion(Resource):
+    def get(self, env, stack_name):
+        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+        try:
+            stack_details = cfn.describe_stacks(StackName=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return 'Error'
+        version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
+        if version_param:
+            version_number = version_param['ParameterValue']
+            return version_number
+        else:
+            return ''
+
+
+def get_or_create_stack_obj(env, stack_name):
+    if len(stacks) > 0:
+        mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
+        if not mystack:
+            mystack = Stack(stack_name, env)
+    else:
+        mystack = Stack(stack_name, env)
+    stacks.append(mystack)
+    return mystack
 
 
 class actionReadyToStart(Resource):
@@ -625,6 +645,7 @@ api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
+api.add_resource(getVersion, '/getVersion/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')

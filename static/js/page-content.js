@@ -181,7 +181,7 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
             if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
-                $("#currentAction").append(getStatusLozenge(serviceStatusRequest.responseText));
+                $("#currentAction").append(getStatusLozenge(getStackActionInProgressRequest.responseText));
             }
             else {
                 $("#currentAction").append(getStatusLozenge('None'));
@@ -189,6 +189,16 @@ function updateStats(stack_name) {
         }
     };
     getStackActionInProgressRequest.send();
+
+    var getVersionRequest = new XMLHttpRequest();
+    getVersionRequest.open("GET", baseUrl + "/getVersion/" + env + "/" + stack_name, true);
+    getVersionRequest.setRequestHeader("Content-Type", "text/xml");
+    getVersionRequest.onreadystatechange = function () {
+        if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
+            $("#currentVersion").html("Current version: " + getVersionRequest.responseText.replace(/['"]+/g, ''));
+        }
+    };
+    getVersionRequest.send();
 }
 
 function getStatusLozenge(text) {
