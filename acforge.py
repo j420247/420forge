@@ -427,13 +427,27 @@ class templateParamsForStack(Resource):
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
 
-        # default to DataCenter template
-        template_type = "DataCenter"
-        env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-        if env == 'stg':
-            template_type = 'STGorDR'
+        # default to Stg template
+        template_type = 'STGorDR'
+        if len(stack_details['Stacks'][0]['Tags']) > 0:
+            product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+            if product_tag:
+                app_type = product_tag['Value']
+            else:
+                flash(f'Stack {stack_name} is not tagged with product, cannot determine template to use', 'error')
+                return False
+            env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+            if env_tag:
+                env = env_tag['Value']
+            else:
+                flash(f'Stack {stack_name} is not tagged with environment, cannot determine template to use', 'error')
+                return False
+        else:
+            flash(f'Stack {stack_name} is not tagged, cannot determine template to use', 'error')
+            return False
 
-        app_type = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')['Value']
+        if env == 'prod':
+            template_type = 'DataCenter'
 
         template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
@@ -567,7 +581,7 @@ def upgrade():
 
 @app.route('/clone', methods = ['GET'])
 def clone():
-    return render_template("clone.html")
+    return render_template('clone.html')
 
 @app.route('/fullrestart', methods = ['GET'])
 def fullrestart():

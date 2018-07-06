@@ -5,6 +5,7 @@ $(document).ready(function() {
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
+            $("#aui-message-bar").hide();
             selectTemplateForStack(data.target.text);
         }, false);
     }
@@ -39,6 +40,8 @@ function selectTemplateForStack(stackToRetrieve) {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
             origParams = JSON.parse(stackParamsRequest.responseText);
+            if (! origParams)
+                window.location = baseUrl + "/" + action;
             origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 
