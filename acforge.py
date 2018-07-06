@@ -646,10 +646,13 @@ def app_active_in_lb(forgestate, node):
 def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
-    stack_list = cfn.list_stacks(
-        StackStatusFilter=VALID_STACK_STATUSES)
-    for stack in stack_list['StackSummaries']:
-        stack_name_list.append(stack['StackName'])
+    try:
+        stack_list = cfn.list_stacks(
+            StackStatusFilter=VALID_STACK_STATUSES)
+        for stack in stack_list['StackSummaries']:
+            stack_name_list.append(stack['StackName'])
+    except (KeyError, botocore.exceptions.NoCredentialsError):
+        flash(f'Cannot query AWS - please authenticate with Cloudtoken', 'error')
     return stack_name_list
 
 
