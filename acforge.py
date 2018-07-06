@@ -497,6 +497,17 @@ class getVersion(Resource):
             return ''
 
 
+class getNodes(Resource):
+    def get(self, env, stack_name):
+        mystack = get_or_create_stack_obj(env, stack_name)
+        mystack.get_stacknodes()
+        nodes = {}
+        for instance in mystack.instancelist:
+            node_ip = list(instance.values())[0]
+            nodes[node_ip] = mystack.check_node_status(node_ip)
+        return nodes
+
+
 def get_or_create_stack_obj(env, stack_name):
     if len(stacks) > 0:
         mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
@@ -646,6 +657,7 @@ api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
 api.add_resource(getVersion, '/getVersion/<env>/<stack_name>')
+api.add_resource(getNodes, '/getNodes/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')

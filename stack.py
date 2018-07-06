@@ -305,7 +305,7 @@ class Stack:
             return status
         except requests.exceptions.ReadTimeout as e:
             if log:
-                self.state.logaction(log.INFO, f'Node status check timed out')
+                self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):

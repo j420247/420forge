@@ -199,6 +199,16 @@ function updateStats(stack_name) {
         }
     };
     getVersionRequest.send();
+
+    var getNodesRequest = new XMLHttpRequest();
+    getNodesRequest.open("GET", baseUrl + "/getNodes/" + env + "/" + stack_name, true);
+    getNodesRequest.setRequestHeader("Content-Type", "text/xml");
+    getNodesRequest.onreadystatechange = function () {
+        if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
+            $("#nodes").html("Nodes<br>" + getNodesRequest.responseText.replace(/['"]+/g, '').replace(/{/g, '').replace(/}/g, '').replace(/,\s/g, '<br>'));
+        }
+    };
+    getNodesRequest.send();
 }
 
 function getStatusLozenge(text) {
