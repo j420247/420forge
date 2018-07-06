@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
 
@@ -9,7 +9,7 @@ $(document).ready(function() {
             selectStack(data.target.text);
         }, false);
     }
-});
+}
 
 function threadDumps() {
     stackName = $("meta[name=stack_name]").attr("value");

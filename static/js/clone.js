@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function onReady() {
     var regions = document.getElementsByClassName("selectRegionOption");
     for (var i = 0; i < regions.length; i++) {
         regions[i].addEventListener("click", function (data) {
@@ -18,4 +18,4 @@ $(document).ready(function() {
             getVPCs(regionEnv, document.getElementById("VPCDiv"));
         }, false);
     }
-});
+}

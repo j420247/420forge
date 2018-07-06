@@ -1,6 +1,4 @@
-$(document).unbind('ready');
-
-$(document).ready(function() {
+function onReady() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
@@ -19,7 +17,7 @@ $(document).ready(function() {
         sendParamsAsJson();
         event.preventDefault();
     });
-});
+}
 
 function selectTemplateForStack(stackToRetrieve) {
     $("#stackSelector").text(stackToRetrieve);

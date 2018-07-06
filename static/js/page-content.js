@@ -4,11 +4,11 @@ var action = $("meta[name=action]").attr("value");
 var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
 
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
 
-    for (var i = 0; i < stacks.length; i ++) {
+    for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
             selectStack(data.target.text);
         }, false);
@@ -42,7 +42,7 @@ $(document).ready(function() {
     var actionButton = document.getElementById("action-button");
     if (actionButton)
         actionButton.addEventListener("click", defaultActionBtnEvent);
-});
+}
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
@@ -160,10 +160,9 @@ function updateStats(stack_name) {
     var stackStateRequest = new XMLHttpRequest();
     stackStateRequest.open("GET", baseUrl  + "/stackState/" + env + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
-    $("#stackState").html("Stack State: ");
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
-            $("#stackState").html("Stack State: " + getStatusLozenge(stackStateRequest.responseText));
+            $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
         }
     };
     stackStateRequest.send();
@@ -171,10 +170,9 @@ function updateStats(stack_name) {
     var serviceStatusRequest = new XMLHttpRequest();
     serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
-    $("#serviceStatus").html("Service Status: ");
     serviceStatusRequest.onreadystatechange = function () {
         if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
-            $("#serviceStatus").html("Service Status: " + getStatusLozenge(serviceStatusRequest.responseText));
+            $("#serviceStatus").append(getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
     serviceStatusRequest.send();
@@ -209,3 +207,7 @@ function removeElementsByClass(className){
         elements[0].parentNode.removeChild(elements[0]);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    onReady();
+}, false);

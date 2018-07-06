@@ -1,8 +1,6 @@
-$(document).unbind('ready');
-
 var refreshTimer;
 
-$(document).ready(function() {
+function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
     $("#action-button").hide();
 
@@ -26,7 +24,7 @@ $(document).ready(function() {
         if (action !== 'create') getStatus(stackName);
         refreshStatus(stackName, true, 2000, action);
     }
-});
+}
 
 // Refresh the status while the action is still underway
 function refreshStatus(stack_name, cont, refresh_interval, this_action) {

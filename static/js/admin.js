@@ -1,6 +1,6 @@
 var stack_name;
 
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     $("#lock-state").hide();
     $("#unlock-warning").hide();
@@ -33,7 +33,7 @@ $(document).ready(function() {
         };
         clearStackActionInProgressRequest.send();
     });
-});
+}
 
 function getStackActionInProgress() {
     var getStackActionInProgressRequest = new XMLHttpRequest();
