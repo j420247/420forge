@@ -275,7 +275,7 @@ class Stack:
     def validate_service_responding(self):
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
         service_state = self.check_service_status()
-        while service_state != '{"state":"RUNNING"}':
+        while service_state != 'RUNNING':
             time.sleep(60)
             service_state = self.check_service_status()
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
@@ -297,6 +297,8 @@ class Stack:
             status = service_status.text if service_status.text else 'unknown'
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
+            if '"state":"' in status:
+                status = status[status.index('"state":"') + 9 : len(status) - 2]
             if log:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
