@@ -5,9 +5,7 @@ var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
 
 function onReady() {
-    $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
-
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
             selectStack(data.target.text);
@@ -176,6 +174,21 @@ function updateStats(stack_name) {
         }
     };
     serviceStatusRequest.send();
+
+    var getStackActionInProgressRequest = new XMLHttpRequest();
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + env + "/" + stack_name, true);
+    getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
+    getStackActionInProgressRequest.onreadystatechange = function () {
+        if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
+            if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
+                $("#currentAction").append(getStatusLozenge(serviceStatusRequest.responseText));
+            }
+            else {
+                $("#currentAction").append(getStatusLozenge('None'));
+            }
+        }
+    };
+    getStackActionInProgressRequest.send();
 }
 
 function getStatusLozenge(text) {
@@ -209,5 +222,6 @@ function removeElementsByClass(className){
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    $("#stackInformation").hide();
     onReady();
 }, false);

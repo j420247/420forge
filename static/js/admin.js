@@ -41,7 +41,6 @@ function getStackActionInProgress() {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            debugger;
             $("#lock-state").show()
             if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
                 $("#lock-state").html("Action in progress: " + getStatusLozenge(getStackActionInProgressRequest.responseText));
