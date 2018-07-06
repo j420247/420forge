@@ -322,7 +322,7 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip):
+    def check_node_status(self, node_ip, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -332,13 +332,18 @@ class Stack:
 
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
-        self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
+        if log:
+            self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
             node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5)
-            self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
-            return node_status.text
+            if '"state":"' in node_status.text:
+                status = node_status.text[node_status.text.index('"state":"') + 9 : len(node_status.text) - 2]
+            if log:
+                self.state.logaction(log.INFO, f' ==> node status is: {status}')
+            return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"

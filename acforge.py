@@ -504,7 +504,7 @@ class getNodes(Resource):
         nodes = {}
         for instance in mystack.instancelist:
             node_ip = list(instance.values())[0]
-            nodes[node_ip] = mystack.check_node_status(node_ip)
+            nodes[node_ip] = mystack.check_node_status(node_ip, False)
         return nodes
 
 
