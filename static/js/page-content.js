@@ -170,9 +170,11 @@ function updateStats(stack_name) {
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     serviceStatusRequest.onreadystatechange = function () {
         if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
-            $("#serviceStatus").append(getStatusLozenge(serviceStatusRequest.responseText));
+            $("#serviceStatus").html("Service status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
+    $("#serviceStatus").html("Service status: <span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
+    AJS.$('.button-spinner').spin();
     serviceStatusRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
@@ -205,9 +207,14 @@ function updateStats(stack_name) {
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
-            $("#nodes").html("Nodes<br>" + getNodesRequest.responseText.replace(/['"]+/g, '').replace(/{/g, '').replace(/}/g, '').replace(/,\s/g, '<br>'));
+            if (getNodesRequest.responseText.trim() != "{}")
+                $("#nodes").html(getNodesRequest.responseText.replace(/['"]+/g, '').replace(/{/g, '').replace(/}/g, '').replace(/,\s/g, '<br>'));
+            else
+                $("#nodes").html("None");
         }
     };
+    $("#nodes").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
+    AJS.$('.button-spinner').spin();
     getNodesRequest.send();
 }
 
