@@ -24,19 +24,24 @@ class Stack:
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.region = region
+        self.state.update('region', self.region)
         if app_type:
             self.app_type = app_type
         else:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                self.app_type = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')['Value']
-                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                if len(stack_details['Stacks'][0]['Tags']) > 0:
+                    product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+                    if product_tag:
+                        self.app_type = product_tag['Value']
+                        self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                    env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+                    if env_tag:
+                        self.state.update('environment', env_tag['Value'])
             except Exception as e:
                 print(e.args[0])
                 self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-        self.state.update('environment', next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value'])
-        self.state.update('region', self.region)
 
 
 ## Stack - micro function methods
