@@ -360,23 +360,15 @@ class status(RestrictedResource):
 
 class serviceStatus(Resource):
     def get(self, env, stack_name):
-        return "RUNNING"
-
-        #TODO fix?
-        # forgestate = defaultdict(dict)
-        # forgestate[stack_name] = forgestate_read(stack_name)
-        # forgestate[stack_name]['region'] = getRegion(env)
-        # cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-        # # forgestate[stack_name]['tomcatcontextpath'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'TomcatContextPath'][0]
-        #
-        # try:
-        #     stack_details = cfn.describe_stacks(StackName=stack_name)
-        # except botocore.exceptions.ClientError as e:
-        #     print(e.args[0])
-        #     return
-        # forgestate[stack_name]['lburl'] = getLburl(stack_details, stack_name)
-        #
-        # return check_service_status(forgestate, stack_name)
+        if len(stacks) > 0:
+            mystack = next(stack for stack in stacks if stack.stack_name == stack_name)
+            if not mystack:
+                mystack = Stack(stack_name, env)
+                stacks.append(mystack)
+        else:
+            mystack = Stack(stack_name, env)
+            stacks.append(mystack)
+        return mystack.check_service_status(log=False)
 
 
 class stackState(Resource):

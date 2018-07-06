@@ -281,7 +281,7 @@ class Stack:
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    def check_service_status(self):
+    def check_service_status(self, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -289,18 +289,21 @@ class Stack:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
         self.state.update('lburl', self.getLburl(stack_details))
-        self.state.logaction(log.INFO,
+        if log:
+            self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
             status = service_status.text if service_status.text else 'unknown'
             if '<title>' in status:
                 status = status[status.index('<title>') + 7 : status.index('</title>')]
-            self.state.logaction(log.INFO,
+            if log:
+                self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
         except requests.exceptions.ReadTimeout as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Node status check timed out')
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
