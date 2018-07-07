@@ -464,7 +464,9 @@ class Stack:
 
     def get_parms_for_update(self):
         parms = self.readparms()
-        parms.remove(next(param for param in parms if param['ParameterKey'] == 'StackName'))
+        stackName_param = next((param for param in parms if param['ParameterKey'] == 'StackName'), None)
+        if stackName_param:
+            parms.remove(stackName_param)
         for dict in parms:
             for k, v in dict.items():
                 if v == 'DBMasterUserPassword' or v == 'DBPassword':
@@ -708,9 +710,11 @@ class Stack:
                 Tags=tags,
                 Capabilities=['CAPABILITY_IAM'],
             )
-            self.state.logaction(log.INFO, f'Tagging was successsful: {outcome}')
+            self.state.logaction(log.INFO, f'Tagging successfully initiated: {outcome}')
         except Exception as e:
             print(e.args[0])
             self.state.logaction(log.ERROR, f'An error occurred tagging stack: {e.args[0]}')
-        self.state.logaction(log.INFO, f'Tag stack complete')
-        return True
+        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+            self.state.logaction(log.INFO, f'Tag complete')
+            return True
+        return False
