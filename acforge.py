@@ -263,6 +263,21 @@ class dorunsql(RestrictedResource):
         mystack.clear_current_action()
         return outcome
 
+class dotag(RestrictedResource):
+    def post(self, env, stack_name):
+        tags = request.get_json()
+        mystack = Stack(stack_name, env)
+        stacks.append(mystack)
+        if not mystack.store_current_action('tag'):
+            return False
+        try:
+            outcome = mystack.tag(tags)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return outcome
 
 class docreate(RestrictedResource):
     def get(self, env, stack_name, pg_pass, app_pass, app_type):
@@ -496,6 +511,13 @@ class clearStackActionInProgress(Resource):
         return True
 
 
+class getTags(Resource):
+    def get(self, env, stack_name):
+        mystack = Stack(stack_name, env)
+        tags = mystack.get_tags()
+        return tags
+
+
 class actionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
@@ -596,6 +618,10 @@ def destroy():
 def update():
     return render_template('update.html')
 
+@app.route('/tag', methods = ['GET'])
+def tag():
+    return render_template('tag.html')
+
 @app.route('/viewlog', methods = ['GET'])
 def viewlog():
     return render_template('viewlog.html')
@@ -623,6 +649,7 @@ api.add_resource(dodestroy, '/dodestroy/<env>/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<env>/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<env>/<stack_name>')
 api.add_resource(dorunsql, '/dorunsql/<env>/<stack_name>')
+api.add_resource(dotag, '/dotag/<env>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
@@ -633,6 +660,7 @@ api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<env>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<env>/<stack_name>')
+api.add_resource(getTags, '/getTags/<env>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')

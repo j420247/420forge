@@ -99,6 +99,9 @@
                                     <li {% if session['action'] == 'update' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack</a>
                                     </li>
+                                    <li {% if session['action'] == 'tag' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='tag') }}" aria-owns="aui-menu-tag" id="tag-link">Tag Stack</a>
+                                    </li>
                                     <li {% if session['action'] == 'diagnostics' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
                                     </li>

@@ -324,7 +324,6 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking node status: {e.args[0]}'
-
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
         self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
@@ -462,6 +461,29 @@ class Stack:
         shutil.rmtree(f'locks/{self.stack_name}')
         self.state.update('action', 'none')
         return True
+
+    def get_parms_for_update(self):
+        parms = self.readparms()
+        parms.remove(next(param for param in parms if param['ParameterKey'] == 'StackName'))
+        for dict in parms:
+            for k, v in dict.items():
+                if v == 'DBMasterUserPassword' or v == 'DBPassword':
+                    try:
+                        del dict['ParameterValue']
+                    except:
+                        pass
+                    dict['UsePreviousValue'] = True
+        return parms
+
+    def get_tags(self):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            stack = cfn.describe_stacks(StackName=self.stack_name)
+        except Exception as e:
+            print(e.args[0])
+            return f'Error checking node status: {e.args[0]}'
+        tags = stack['Stacks'][0]['Tags']
+        return tags
 
 
 ## Stack - Major Action Methods
@@ -672,4 +694,23 @@ class Stack:
             self.state.logaction(log.INFO, f'No post clone SQL file found')
             return False
         self.state.logaction(log.INFO, f'Run SQL complete')
+        return True
+
+    def tag(self, tags):
+        self.state.logaction(log.INFO, f'Tagging stack')
+        params = self.get_parms_for_update()
+        try:
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            outcome = cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=params,
+                UsePreviousTemplate=True,
+                Tags=tags,
+                Capabilities=['CAPABILITY_IAM'],
+            )
+            self.state.logaction(log.INFO, f'Tagging was successsful: {outcome}')
+        except Exception as e:
+            print(e.args[0])
+            self.state.logaction(log.ERROR, f'An error occurred tagging stack: {e.args[0]}')
+        self.state.logaction(log.INFO, f'Tag stack complete')
         return True

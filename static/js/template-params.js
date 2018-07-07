@@ -280,7 +280,6 @@ function sendParamsAsJson() {
         jsonParam["ParameterValue"] = value;
         newParamsArray.push(jsonParam);
     }
-    // construct an HTTP request
     var xhr = new XMLHttpRequest();
     xhr.open("POST", baseUrl + "/do" + action, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
