@@ -1,7 +1,6 @@
 /* Overrides */
-/*Keep instance type button highlighted when selected*/
-.env-selected {
+/*Keep region highlighted when selected*/
+.region-selected {
     color:#deebff;
     background-color:rgba(9,30,66,.48)
 }
-

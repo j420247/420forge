@@ -1,5 +1,5 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
-var env = $("meta[name=env]").attr("value");
+var region = $("meta[name=region]").attr("value");
 var action = $("meta[name=action]").attr("value");
 var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
@@ -126,7 +126,7 @@ function processResponse() {
 
 function performAction() {
     stackName = $("meta[name=stack_name]").attr("value");
-    var url = baseUrl + "/do" + action + "/" + env + "/" + stackName;
+    var url = baseUrl + "/do" + action + "/" + region + "/" + stackName;
 
     var actionRequest = new XMLHttpRequest();
     switch (action) {
@@ -158,7 +158,7 @@ function updateStats(stack_name) {
     removeElementsByClass("aui-lozenge");
 
     var stackStateRequest = new XMLHttpRequest();
-    stackStateRequest.open("GET", baseUrl  + "/stackState/" + env + "/" + stack_name, true);
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     $("#stackState").html("Stack State: ");
     stackStateRequest.onreadystatechange = function () {
@@ -169,7 +169,7 @@ function updateStats(stack_name) {
     stackStateRequest.send();
 
     var serviceStatusRequest = new XMLHttpRequest();
-    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + env + "/" + stack_name, true);
+    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     $("#serviceStatus").html("Service Status: ");
     serviceStatusRequest.onreadystatechange = function () {
