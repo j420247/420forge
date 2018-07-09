@@ -4,6 +4,7 @@ function onReady() {
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
             var stack_name = data.target.text;
+            $("#aui-message-bar").hide();
             selectStack(stack_name);
             selectTemplateForStack(stack_name);
         }, false);
@@ -33,12 +34,14 @@ function selectTemplateForStack(stackToRetrieve) {
     }
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + env + "/" + stackToRetrieve, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + region + "/" + stackToRetrieve, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
             origParams = JSON.parse(stackParamsRequest.responseText);
+            if (! origParams)
+                window.location = baseUrl + "/" + action;
             origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 
@@ -92,13 +95,8 @@ function createInputParameter(param, fieldset) {
     if (param.AllowedValues) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else if (param.ParameterKey === "VPC") {
-        var region = env;
-        if (action === 'clone') {
-            if (document.getElementById("regionSelector").innerText.trim() === "us-east-1")
-                region = "stg";
-            else
-                region = "prod";
-        }
+        if (action === 'clone')
+            region = document.getElementById("regionSelector").innerText.trim();
         getVPCs(region, div);
     } else {
         var input = document.createElement("INPUT");
@@ -196,11 +194,11 @@ function getVPCs(region, div) {
         if (vpcsRequest.readyState === XMLHttpRequest.DONE && vpcsRequest.status === 200) {
             var vpcs = JSON.parse(vpcsRequest.responseText);
 
-            // Set default VPC and subnets for env
+            // Set default VPC and subnets for region
             var defaultVpc = "";
             if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml")
                 defaultVpc = lab_default_vpc;
-            else if (region === 'prod')
+            else if (region === 'us-west-2')
                 defaultVpc = us_west_2_default_vpc;
             else
                 defaultVpc = us_east_1_default_vpc;
@@ -217,7 +215,7 @@ function setSubnets(region) {
     if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml") {
         document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
         document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
-    } else if (region === 'prod') {
+    } else if (region === 'us-west-2') { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
     } else {

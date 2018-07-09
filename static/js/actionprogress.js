@@ -59,7 +59,7 @@ function refreshStatus(stack_name, cont, refresh_interval, this_action) {
             else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval, this_action);
             else
-                refreshStatus(stack_name, true, refresh_interval);
+                refreshStatus(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
     }
 }
