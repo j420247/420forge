@@ -489,8 +489,8 @@ class clearStackActionInProgress(Resource):
 
 
 class getVersion(Resource):
-    def get(self, env, stack_name):
-        cfn = boto3.client('cloudformation', region_name=getRegion(env))
+    def get(self, region, stack_name):
+        cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
         except botocore.exceptions.ClientError as e:
@@ -505,8 +505,8 @@ class getVersion(Resource):
 
 
 class getNodes(Resource):
-    def get(self, env, stack_name):
-        mystack = get_or_create_stack_obj(env, stack_name)
+    def get(self, region, stack_name):
+        mystack = get_or_create_stack_obj(region, stack_name)
         mystack.get_stacknodes()
         nodes = []
         for instance in mystack.instancelist:
@@ -518,13 +518,13 @@ class getNodes(Resource):
         return nodes
 
 
-def get_or_create_stack_obj(env, stack_name):
+def get_or_create_stack_obj(region, stack_name):
     if len(stacks) > 0:
         mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
         if not mystack:
-            mystack = Stack(stack_name, env)
+            mystack = Stack(stack_name, region)
     else:
-        mystack = Stack(stack_name, env)
+        mystack = Stack(stack_name, region)
     stacks.append(mystack)
     return mystack
 

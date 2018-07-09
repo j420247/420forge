@@ -178,7 +178,7 @@ function updateStats(stack_name) {
     serviceStatusRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
-    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + env + "/" + stack_name, true);
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
@@ -194,7 +194,7 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.send();
 
     var getVersionRequest = new XMLHttpRequest();
-    getVersionRequest.open("GET", baseUrl + "/getVersion/" + env + "/" + stack_name, true);
+    getVersionRequest.open("GET", baseUrl + "/getVersion/" + region + "/" + stack_name, true);
     getVersionRequest.setRequestHeader("Content-Type", "text/xml");
     getVersionRequest.onreadystatechange = function () {
         if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
@@ -205,7 +205,7 @@ function updateStats(stack_name) {
     getVersionRequest.send();
 
     var getNodesRequest = new XMLHttpRequest();
-    getNodesRequest.open("GET", baseUrl + "/getNodes/" + env + "/" + stack_name, true);
+    getNodesRequest.open("GET", baseUrl + "/getNodes/" + region + "/" + stack_name, true);
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
