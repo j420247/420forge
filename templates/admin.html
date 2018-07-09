@@ -6,9 +6,9 @@
 
 {% block extraInput %}
 <div class="aui-panel">
-        <p id="lock-state">Action in progress: </p>
+        <p id="lock-state" hidden>Action in progress: </p>
 </div>
-<div class="aui-panel" id="unlock-warning">
+<div class="aui-panel" id="unlock-warning" hidden>
     <div class="aui-message aui-message-warning">
         <p>Only unlock if you are certain the stack is locked in error. Performing mutliple actions against a stack can result in corruption.</p>
     </div>

@@ -260,6 +260,21 @@ class dorunsql(RestrictedResource):
         mystack.clear_current_action()
         return outcome
 
+class dotag(RestrictedResource):
+    def post(self, region, stack_name):
+        tags = request.get_json()
+        mystack = Stack(stack_name, region)
+        stacks.append(mystack)
+        if not mystack.store_current_action('tag'):
+            return False
+        try:
+            outcome = mystack.tag(tags)
+        except Exception as e:
+            print(e.args[0])
+            mystack.state.logaction(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return outcome
 
 class docreate(RestrictedResource):
     def get(self, region, stack_name, pg_pass, app_pass, app_type):
@@ -518,6 +533,13 @@ class getNodes(Resource):
         return nodes
 
 
+class getTags(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        tags = mystack.get_tags()
+        return tags
+
+
 def get_or_create_stack_obj(region, stack_name):
     if len(stacks) > 0:
         mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
@@ -629,6 +651,10 @@ def destroy():
 def update():
     return render_template('update.html')
 
+@app.route('/tag', methods = ['GET'])
+def tag():
+    return render_template('tag.html')
+
 @app.route('/viewlog', methods = ['GET'])
 def viewlog():
     return render_template('viewlog.html')
@@ -656,6 +682,7 @@ api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
 api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
+api.add_resource(dotag, '/dotag/<region>/<stack_name>')
 
 # Stack info
 api.add_resource(status, '/status/<stack_name>')
@@ -668,6 +695,7 @@ api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
 api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
 api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
+api.add_resource(getTags, '/getTags/<region>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
