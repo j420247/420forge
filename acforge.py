@@ -501,10 +501,13 @@ class getNodes(Resource):
     def get(self, env, stack_name):
         mystack = get_or_create_stack_obj(env, stack_name)
         mystack.get_stacknodes()
-        nodes = {}
+        nodes = []
         for instance in mystack.instancelist:
+            node = {}
             node_ip = list(instance.values())[0]
-            nodes[node_ip] = mystack.check_node_status(node_ip, False)
+            node['ip'] = node_ip
+            node['status'] = mystack.check_node_status(node_ip, False)
+            nodes.append(node)
         return nodes
 
 

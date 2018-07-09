@@ -182,8 +182,9 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
-                $("#currentAction").append(getStatusLozenge(getStackActionInProgressRequest.responseText));
+            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
+            if (actionInProgress.length > 0) {
+                $("#currentAction").append(getStatusLozenge(actionInProgress[0]));
             }
             else {
                 $("#currentAction").append(getStatusLozenge('None'));
@@ -197,7 +198,8 @@ function updateStats(stack_name) {
     getVersionRequest.setRequestHeader("Content-Type", "text/xml");
     getVersionRequest.onreadystatechange = function () {
         if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
-            $("#currentVersion").html("Current version: " + getVersionRequest.responseText.replace(/['"]+/g, ''));
+            var version = JSON.parse(getVersionRequest.responseText);
+            $("#currentVersion").html("Current version: " + version);
         }
     };
     getVersionRequest.send();
@@ -207,10 +209,17 @@ function updateStats(stack_name) {
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
-            if (getNodesRequest.responseText.trim() != "{}")
-                $("#nodes").html(getNodesRequest.responseText.replace(/['"]+/g, '').replace(/{/g, '').replace(/}/g, '').replace(/,\s/g, '<br>'));
-            else
+            var nodes = JSON.parse(getNodesRequest.responseText);
+            $("#nodes").html("");
+            if (nodes[0].ip == "") {
                 $("#nodes").html("None");
+                return;
+            }
+            for (var node in nodes) {
+                $("#nodes").append(nodes[node].ip + ": " + nodes[node].status);
+                if (node < nodes.length)
+                    $("#nodes").append("<br>");
+            }
         }
     };
     $("#nodes").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
