@@ -59,7 +59,8 @@ class Stack:
 
     def getLburl(self, stack_details):
         rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + self.getparamvalue('tomcatcontextpath')
+                    p['OutputKey'] == 'LoadBalancerURL'][0] + \
+                    next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
         return rawlburl.replace("https", "http")
 
     def writeparms(self, parms):
