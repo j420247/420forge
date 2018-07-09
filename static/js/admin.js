@@ -1,6 +1,6 @@
 var stack_name;
 
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     $("#lock-state").hide();
     $("#unlock-warning").hide();
@@ -33,7 +33,7 @@ $(document).ready(function() {
         };
         clearStackActionInProgressRequest.send();
     });
-});
+}
 
 function getStackActionInProgress() {
     var getStackActionInProgressRequest = new XMLHttpRequest();
@@ -41,7 +41,6 @@ function getStackActionInProgress() {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            debugger;
             $("#lock-state").show()
             if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
                 $("#lock-state").html("Action in progress: " + getStatusLozenge(getStackActionInProgressRequest.responseText));

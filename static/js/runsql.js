@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
 
@@ -24,5 +24,5 @@ $(document).ready(function() {
             getSqlRequest.send();
         }, false);
     }
-});
+}
 

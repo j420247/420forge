@@ -52,7 +52,8 @@ class Stack:
 
     def getLburl(self, stack_details):
         rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + self.getparamvalue('tomcatcontextpath')
+                    p['OutputKey'] == 'LoadBalancerURL'][0] + \
+                    next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
         return rawlburl.replace("https", "http")
 
     def writeparms(self, parms):
@@ -267,13 +268,13 @@ class Stack:
     def validate_service_responding(self):
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
         service_state = self.check_service_status()
-        while service_state != '{"state":"RUNNING"}':
+        while service_state != 'RUNNING':
             time.sleep(60)
             service_state = self.check_service_status()
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    def check_service_status(self):
+    def check_service_status(self, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -281,18 +282,25 @@ class Stack:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
         self.state.update('lburl', self.getLburl(stack_details))
-        self.state.logaction(log.INFO,
+        if log:
+            self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
-            status = service_status.text if service_status.text else 'unknown'
-            if '<title>' in status:
-                status = status[status.index('<title>') + 7 : status.index('</title>')]
-            self.state.logaction(log.INFO,
+            if service_status.status_code == 200:
+                status = service_status.text
+                json_status = json.loads(status)
+                if 'state' in json_status:
+                    status = json_status['state']
+            else:
+                status = str(service_status.status_code) + ": " + service_status.reason if service_status.reason else str(service_status.status_code)
+            if log:
+                self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
         except requests.exceptions.ReadTimeout as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
@@ -309,7 +317,7 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip):
+    def check_node_status(self, node_ip, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -319,13 +327,20 @@ class Stack:
 
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
-        self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
+        if log:
+            self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5)
-            self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
-            return node_status.text
+            node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
+            if 'state' in node_status:
+                status = node_status['state']
+            else:
+                self.state.logaction(log.ERROR, f'Node status not in expected format: {node_status}')
+            if log:
+                self.state.logaction(log.INFO, f' ==> node status is: {status}')
+            return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"

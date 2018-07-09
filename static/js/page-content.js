@@ -4,11 +4,9 @@ var action = $("meta[name=action]").attr("value");
 var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
 
-$(document).ready(function() {
-    $("#stackInformation").hide();
+function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
-
-    for (var i = 0; i < stacks.length; i ++) {
+    for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
             selectStack(data.target.text);
         }, false);
@@ -42,7 +40,7 @@ $(document).ready(function() {
     var actionButton = document.getElementById("action-button");
     if (actionButton)
         actionButton.addEventListener("click", defaultActionBtnEvent);
-});
+}
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
@@ -160,10 +158,9 @@ function updateStats(stack_name) {
     var stackStateRequest = new XMLHttpRequest();
     stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
-    $("#stackState").html("Stack State: ");
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
-            $("#stackState").html("Stack State: " + getStatusLozenge(stackStateRequest.responseText));
+            $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
         }
     };
     stackStateRequest.send();
@@ -171,13 +168,63 @@ function updateStats(stack_name) {
     var serviceStatusRequest = new XMLHttpRequest();
     serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
-    $("#serviceStatus").html("Service Status: ");
     serviceStatusRequest.onreadystatechange = function () {
         if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
-            $("#serviceStatus").html("Service Status: " + getStatusLozenge(serviceStatusRequest.responseText));
+            $("#serviceStatus").html("Service status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
+    $("#serviceStatus").html("Service status: <span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
+    AJS.$('.button-spinner').spin();
     serviceStatusRequest.send();
+
+    var getStackActionInProgressRequest = new XMLHttpRequest();
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
+    getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
+    getStackActionInProgressRequest.onreadystatechange = function () {
+        if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
+            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
+            if (actionInProgress.length > 0) {
+                $("#currentAction").append(getStatusLozenge(actionInProgress[0]));
+            }
+            else {
+                $("#currentAction").append(getStatusLozenge('None'));
+            }
+        }
+    };
+    getStackActionInProgressRequest.send();
+
+    var getVersionRequest = new XMLHttpRequest();
+    getVersionRequest.open("GET", baseUrl + "/getVersion/" + region + "/" + stack_name, true);
+    getVersionRequest.setRequestHeader("Content-Type", "text/xml");
+    getVersionRequest.onreadystatechange = function () {
+        if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
+            var version = JSON.parse(getVersionRequest.responseText);
+            $("#currentVersion").html("Current version: " + version);
+        }
+    };
+    getVersionRequest.send();
+
+    var getNodesRequest = new XMLHttpRequest();
+    getNodesRequest.open("GET", baseUrl + "/getNodes/" + region + "/" + stack_name, true);
+    getNodesRequest.setRequestHeader("Content-Type", "text/xml");
+    getNodesRequest.onreadystatechange = function () {
+        if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
+            var nodes = JSON.parse(getNodesRequest.responseText);
+            $("#nodes").html("");
+            if (!nodes[0]) {
+                $("#nodes").html("None");
+                return;
+            }
+            for (var node in nodes) {
+                $("#nodes").append(nodes[node].ip + ": " + nodes[node].status);
+                if (node < nodes.length)
+                    $("#nodes").append("<br>");
+            }
+        }
+    };
+    $("#nodes").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
+    AJS.$('.button-spinner').spin();
+    getNodesRequest.send();
 }
 
 function getStatusLozenge(text) {
@@ -209,3 +256,8 @@ function removeElementsByClass(className){
         elements[0].parentNode.removeChild(elements[0]);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    $("#stackInformation").hide();
+    onReady();
+}, false);

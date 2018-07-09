@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function onReady() {
     var products = document.getElementsByClassName("selectProductOption");
     for (var i = 0; i < products.length; i++) {
         products[i].addEventListener("click", function (data) {
@@ -7,7 +7,7 @@ $(document).ready(function() {
             getTemplates(product);
         }, false);
     }
-});
+}
 
 function getTemplates(product) {
     var getTemplatesRequest = new XMLHttpRequest();

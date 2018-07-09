@@ -361,23 +361,8 @@ class status(RestrictedResource):
 
 class serviceStatus(Resource):
     def get(self, region, stack_name):
-        return "RUNNING"
-
-        #TODO fix?
-        # forgestate = defaultdict(dict)
-        # forgestate[stack_name] = forgestate_read(stack_name)
-        # forgestate[stack_name]['region'] = region
-        # cfn = boto3.client('cloudformation', region_name=forgestate[stack_name]['region'])
-        # # forgestate[stack_name]['tomcatcontextpath'] = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'TomcatContextPath'][0]
-        #
-        # try:
-        #     stack_details = cfn.describe_stacks(StackName=stack_name)
-        # except botocore.exceptions.ClientError as e:
-        #     print(e.args[0])
-        #     return
-        # forgestate[stack_name]['lburl'] = getLburl(stack_details, stack_name)
-        #
-        # return check_service_status(forgestate, stack_name)
+        mystack = get_or_create_stack_obj(region, stack_name)
+        return mystack.check_service_status(log=False)
 
 
 class stackState(Resource):
@@ -501,6 +486,47 @@ class clearStackActionInProgress(Resource):
         mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
+
+
+class getVersion(Resource):
+    def get(self, region, stack_name):
+        cfn = boto3.client('cloudformation', region_name=region)
+        try:
+            stack_details = cfn.describe_stacks(StackName=stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return 'Error'
+        version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
+        if version_param:
+            version_number = version_param['ParameterValue']
+            return version_number
+        else:
+            return ''
+
+
+class getNodes(Resource):
+    def get(self, region, stack_name):
+        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack.get_stacknodes()
+        nodes = []
+        for instance in mystack.instancelist:
+            node = {}
+            node_ip = list(instance.values())[0]
+            node['ip'] = node_ip
+            node['status'] = mystack.check_node_status(node_ip, False)
+            nodes.append(node)
+        return nodes
+
+
+def get_or_create_stack_obj(region, stack_name):
+    if len(stacks) > 0:
+        mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
+        if not mystack:
+            mystack = Stack(stack_name, region)
+    else:
+        mystack = Stack(stack_name, region)
+    stacks.append(mystack)
+    return mystack
 
 
 class actionReadyToStart(Resource):
@@ -640,6 +666,8 @@ api.add_resource(templateParams, '/templateParams/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
+api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
+api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')

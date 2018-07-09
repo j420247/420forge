@@ -1,12 +1,12 @@
-$(document).unbind('ready');
-
-$(document).ready(function() {
+function onReady() {
     $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
+            var stack_name = data.target.text;
             $("#aui-message-bar").hide();
-            selectTemplateForStack(data.target.text);
+            selectStack(stack_name);
+            selectTemplateForStack(stack_name);
         }, false);
     }
 
@@ -20,7 +20,7 @@ $(document).ready(function() {
         sendParamsAsJson();
         event.preventDefault();
     });
-});
+}
 
 function selectTemplateForStack(stackToRetrieve) {
     $("#stackSelector").text(stackToRetrieve);
