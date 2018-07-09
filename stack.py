@@ -295,11 +295,13 @@ class Stack:
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
-            status = service_status.text if service_status.text else 'unknown'
-            if '<title>' in status:
-                status = status[status.index('<title>') + 7 : status.index('</title>')]
-            if '"state":"' in status:
-                status = status[status.index('"state":"') + 9 : len(status) - 2]
+            if service_status.status_code == 200:
+                status = service_status.text
+                json_status = json.loads(status)
+                if 'state' in json_status:
+                    status = json_status['state']
+            else:
+                status = service_status.reason
             if log:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
@@ -336,9 +338,11 @@ class Stack:
         if log:
             self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5)
-            if '"state":"' in node_status.text:
-                status = node_status.text[node_status.text.index('"state":"') + 9 : len(node_status.text) - 2]
+            node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
+            if 'state' in node_status:
+                status = node_status['state']
+            else:
+                self.state.logaction(log.ERROR, f'Node status not in expected format: {node_status}')
             if log:
                 self.state.logaction(log.INFO, f' ==> node status is: {status}')
             return status

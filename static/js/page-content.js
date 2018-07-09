@@ -211,7 +211,7 @@ function updateStats(stack_name) {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
             var nodes = JSON.parse(getNodesRequest.responseText);
             $("#nodes").html("");
-            if (nodes[0].ip == "") {
+            if (!nodes[0]) {
                 $("#nodes").html("None");
                 return;
             }
