@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
 
@@ -9,12 +9,12 @@ $(document).ready(function() {
             selectStack(data.target.text);
         }, false);
     }
-});
+}
 
 function threadDumps() {
     stackName = $("meta[name=stack_name]").attr("value");
     var threadDumpRequest = new XMLHttpRequest();
-    threadDumpRequest.open("GET", baseUrl + "/dothreaddumps/" + env + "/" + stackName, true);
+    threadDumpRequest.open("GET", baseUrl + "/dothreaddumps/" + region + "/" + stackName, true);
     threadDumpRequest.setRequestHeader("Content-Type", "text/xml");
     threadDumpRequest.send();
 
@@ -28,7 +28,7 @@ function threadDumps() {
 function heapDumps() {
     stackName = $("meta[name=stack_name]").attr("value");
     var heapDumpRequest = new XMLHttpRequest();
-    heapDumpRequest.open("GET", baseUrl + "/doheapdumps/" + env + "/" + stackName, true);
+    heapDumpRequest.open("GET", baseUrl + "/doheapdumps/" + region + "/" + stackName, true);
     heapDumpRequest.setRequestHeader("Content-Type", "text/xml");
     heapDumpRequest.send();
 

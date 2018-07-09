@@ -19,30 +19,29 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, env, app_type=None):
+    def __init__(self, stack_name, region, app_type=None):
         self.state = Forgestate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
-        self.env = env
-        self.region = self.setRegion(env)
+        self.region = region
+        self.state.update('region', self.region)
         if app_type:
             self.app_type = app_type
         else:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                if len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'JiraVersion']) == 1:
-                    self.app_type = "jira"
-                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ConfluenceVersion']) == 1:
-                    self.app_type = "confluence"
-                elif len([p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'CrowdVersion']) == 1:
-                    self.app_type = "crowd"
-                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                if len(stack_details['Stacks'][0]['Tags']) > 0:
+                    product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+                    if product_tag:
+                        self.app_type = product_tag['Value']
+                        self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                    env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+                    if env_tag:
+                        self.state.update('environment', env_tag['Value'])
             except Exception as e:
                 print(e.args[0])
                 self.state.logaction(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-        self.state.update('environment', env)
-        self.state.update('region', self.region)
 
 
 ## Stack - micro function methods
@@ -51,15 +50,10 @@ class Stack:
         pprint(self.state.forgestate)
         return
 
-    def setRegion(self, env):
-        if env == 'prod':
-            return 'us-west-2'
-        else:
-            return 'us-east-1'
-
     def getLburl(self, stack_details):
         rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + self.getparamvalue('tomcatcontextpath')
+                    p['OutputKey'] == 'LoadBalancerURL'][0] + \
+                    next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
         return rawlburl.replace("https", "http")
 
     def writeparms(self, parms):
@@ -139,12 +133,11 @@ class Stack:
 
 ## Stack - helper methods
 
-    def get_current_state(self, like_stack=None, like_env=None):
+    def get_current_state(self, like_stack=None, like_region=None):
         self.state.logaction(log.INFO, f'Getting pre-upgrade stack state for {self.stack_name}')
         # use the "like" stack and parms in preference to self
         query_stack = like_stack if like_stack else self.stack_name
-        query_env = like_env if like_env else self.env
-        query_region = self.setRegion(query_env)
+        query_region = like_region if like_region else self.region
         cfn = boto3.client('cloudformation', region_name=query_region)
         try:
             stack_details = cfn.describe_stacks(StackName=query_stack)
@@ -275,13 +268,13 @@ class Stack:
     def validate_service_responding(self):
         self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
         service_state = self.check_service_status()
-        while service_state != '{"state":"RUNNING"}':
+        while service_state != 'RUNNING':
             time.sleep(60)
             service_state = self.check_service_status()
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    def check_service_status(self):
+    def check_service_status(self, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -289,18 +282,25 @@ class Stack:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
         self.state.update('lburl', self.getLburl(stack_details))
-        self.state.logaction(log.INFO,
+        if log:
+            self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
             service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
-            status = service_status.text if service_status.text else 'unknown'
-            if '<title>' in status:
-                status = status[status.index('<title>') + 7 : status.index('</title>')]
-            self.state.logaction(log.INFO,
+            if service_status.status_code == 200:
+                status = service_status.text
+                json_status = json.loads(status)
+                if 'state' in json_status:
+                    status = json_status['state']
+            else:
+                status = str(service_status.status_code) + ": " + service_status.reason if service_status.reason else str(service_status.status_code)
+            if log:
+                self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
         except requests.exceptions.ReadTimeout as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"
 
     def check_stack_state(self, stack_id=None):
@@ -317,7 +317,7 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip):
+    def check_node_status(self, node_ip, log=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -326,13 +326,20 @@ class Stack:
             return f'Error checking node status: {e.args[0]}'
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
-        self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
+        if log:
+            self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5)
-            self.state.logaction(log.INFO, f' ==> node status is: {node_status.text}')
-            return node_status.text
+            node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
+            if 'state' in node_status:
+                status = node_status['state']
+            else:
+                self.state.logaction(log.ERROR, f'Node status not in expected format: {node_status}')
+            if log:
+                self.state.logaction(log.INFO, f' ==> node status is: {status}')
+            return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            self.state.logaction(log.INFO, f'Node status check timed out')
+            if log:
+                self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)
         return "Timed Out"
@@ -513,13 +520,13 @@ class Stack:
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
-        self.state.logaction(log.INFO, f'Upgrade successful for {self.stack_name} at {self.env} to version {new_version}')
+        self.state.logaction(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
         self.state.logaction(log.INFO, "Upgrade complete")
         return True
 
 
     def destroy(self):
-        self.state.logaction(log.INFO, f'Destroying stack {self.stack_name} in {self.env}')
+        self.state.logaction(log.INFO, f'Destroying stack {self.stack_name} in {self.region}')
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
@@ -587,9 +594,9 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, like_stack=None, like_env=None, parms=None, clone=False, template_filename=None, app_type=None):
+    def create(self, like_stack=None, like_region=None, parms=None, clone=False, template_filename=None, app_type=None):
         if like_stack:
-            self.get_current_state(like_stack, like_env)
+            self.get_current_state(like_stack, like_region)
             stack_parms = self.state.forgestate['stack_parms']
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         elif parms:

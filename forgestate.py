@@ -42,7 +42,7 @@ class Forgestate:
         return (self)
 
     def update(self, update_key, update_value):
-        if not "stack_name" in self.forgestate:
+        if not 'stack_name' in self.forgestate:
             self.load_state()
         self.forgestate[update_key] = update_value
         self.write_state()

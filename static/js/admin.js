@@ -1,6 +1,6 @@
 var stack_name;
 
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     $("#lock-state").hide();
     $("#unlock-warning").hide();
@@ -25,7 +25,7 @@ $(document).ready(function() {
         $("#unlock-warning").hide();
         $("#action-button").attr("aria-disabled", true);
         var clearStackActionInProgressRequest = new XMLHttpRequest();
-        clearStackActionInProgressRequest.open("GET", baseUrl  + "/clearActionInProgress/" + env + "/" + stack_name, true);
+        clearStackActionInProgressRequest.open("GET", baseUrl  + "/clearActionInProgress/" + region + "/" + stack_name, true);
         clearStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
         clearStackActionInProgressRequest.onreadystatechange = function () {
             if (clearStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && clearStackActionInProgressRequest.status === 200)
@@ -33,15 +33,14 @@ $(document).ready(function() {
         };
         clearStackActionInProgressRequest.send();
     });
-});
+}
 
 function getStackActionInProgress() {
     var getStackActionInProgressRequest = new XMLHttpRequest();
-    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + env + "/" + stack_name, true);
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            debugger;
             $("#lock-state").show()
             if (countOccurences(getStackActionInProgressRequest.responseText, 'false') == 0) {
                 $("#lock-state").html("Action in progress: " + getStatusLozenge(getStackActionInProgressRequest.responseText));

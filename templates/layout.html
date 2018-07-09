@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <meta name="env" value={{ session['env'] }}>
+        <meta name="region" value={{ session['region'] }}>
         <meta name="action" value={{ session['action'] }}>
         <meta name="stack_name" value={{ session['stack_name'] }}>
         <meta name="version" value={{ session['version'] }}>
@@ -35,19 +35,14 @@
                     <!-- Horizontal nav bar-->
                     <ul class="aui-nav">
                         {% block hnavitems %}
+                        {% for region, region_name in session['regions'] %}
                         <li>
-                            <a {%if session['env'] == "stg" %}class="env-selected"{%endif%}
-                               href="{{ url_for('setenv', env='stg') }}" id="staging-link">
-                                Staging
+                            <a {%if session['region'] == region %}class="region-selected"{%endif%}
+                               href="{{ url_for('setregion', region=region) }}">
+                                {{ region_name }}
                             </a>
                         </li>
-                        <li>
-                            <a {%if session['env'] == "prod" %}class="env-selected"{%endif%}
-                               href="{{ url_for('setenv', env='prod') }}"  id="production-link">
-                                Production
-                                <span class="aui-lozenge aui-lozenge-current">Are You Sure?</span>
-                            </a>
-                        </li>
+                        {% endfor %}
                         {% endblock %}
                     </ul>
                 </div>
@@ -111,11 +106,9 @@
                                     <li {% if session['action'] == 'runsql' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
                                     </li>
-                                    {% if session['env'] == "prod" %}
                                     <li {% if session['action'] == 'backup' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
                                     </li>
-                                    {% endif %}
                                     <li {% if session['action'] == 'viewlog' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
                                     </li>

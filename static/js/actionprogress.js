@@ -1,8 +1,6 @@
-$(document).unbind('ready');
-
 var refreshTimer;
 
-$(document).ready(function() {
+function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
     $("#action-button").hide();
 
@@ -26,7 +24,7 @@ $(document).ready(function() {
         if (action !== 'create') getStatus(stackName);
         refreshStatus(stackName, true, 2000, action);
     }
-});
+}
 
 // Refresh the status while the action is still underway
 function refreshStatus(stack_name, cont, refresh_interval, this_action) {
@@ -61,7 +59,7 @@ function refreshStatus(stack_name, cont, refresh_interval, this_action) {
             else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1)
                 refreshStatus(stack_name, false, refresh_interval, this_action);
             else
-                refreshStatus(stack_name, true, refresh_interval);
+                refreshStatus(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
     }
 }
