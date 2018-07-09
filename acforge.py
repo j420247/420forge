@@ -261,9 +261,9 @@ class dorunsql(RestrictedResource):
         return outcome
 
 class dotag(RestrictedResource):
-    def post(self, env, stack_name):
+    def post(self, region, stack_name):
         tags = request.get_json()
-        mystack = Stack(stack_name, env)
+        mystack = Stack(stack_name, region)
         stacks.append(mystack)
         if not mystack.store_current_action('tag'):
             return False
@@ -534,8 +534,8 @@ class getNodes(Resource):
 
 
 class getTags(Resource):
-    def get(self, env, stack_name):
-        mystack = Stack(stack_name, env)
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
         tags = mystack.get_tags()
         return tags
 

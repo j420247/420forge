@@ -1,6 +1,6 @@
 var stack_name;
 
-$(document).ready(function() {
+function onReady() {
     $("#stackInformation").hide();
     $("#tags").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -20,14 +20,14 @@ $(document).ready(function() {
     actionButton.addEventListener("click", function (data) {
         sendTagsAsJson();
     });
-});
+}
 
 function getTags() {
     var tagsList = document.getElementById("existing-tags");
     tagsList.innerHTML = "<h3>Existing tags</h3>";
 
     var getTagsRequest = new XMLHttpRequest();
-    getTagsRequest.open("GET", baseUrl + "/getTags/" + env + "/" + stack_name, true); //TODO update to region when region PR merged
+    getTagsRequest.open("GET", baseUrl + "/getTags/" + region + "/" + stack_name, true);
     getTagsRequest.setRequestHeader("Content-Type", "text/xml");
     getTagsRequest.onreadystatechange = function () {
         if (getTagsRequest.readyState === XMLHttpRequest.DONE && getTagsRequest.status === 200) {
@@ -108,7 +108,7 @@ function sendTagsAsJson() {
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/do" + action + "/" + env + "/" + stack_name, true); //TODO update to region when region PR merged
+    xhr.open("POST", baseUrl + "/do" + action + "/" + region + "/" + stack_name, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.send(JSON.stringify(tagsArray));
 
