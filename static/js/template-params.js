@@ -1,5 +1,4 @@
 function onReady() {
-    $("#paramsForm").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
@@ -23,6 +22,9 @@ function onReady() {
 }
 
 function selectTemplateForStack(stackToRetrieve) {
+    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
+    AJS.$('.button-spinner').spin();
+
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
 
