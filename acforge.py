@@ -267,49 +267,31 @@ class dotag(RestrictedResource):
         return outcome
 
 class docreate(RestrictedResource):
-    def get(self, region, stack_name, pg_pass, app_pass, app_type):
-        mystack = get_or_create_stack_obj(region, stack_name)
+    def post(self):
+        content = request.get_json()[0]
+
+        for param in content:
+            if param['ParameterKey'] == 'StackName':
+                stack_name = param['ParameterValue']
+                continue
+            elif param['ParameterKey'] == 'TemplateName':
+                template_name = param['ParameterValue']
+                continue
+            elif param['ParameterKey'] == 'ConfluenceVersion':
+                app_type = 'confluence'
+            elif param['ParameterKey'] == 'JiraVersion':
+                app_type = 'jira'
+            elif param['ParameterKey'] == 'CrowdVersion':
+                app_type = 'crowd'
+
+        mystack = get_or_create_stack_obj(session['region'], stack_name)
         if not mystack.store_current_action('create'):
             return False
-        try:
-            outcome = mystack.create(pg_pass, app_pass, app_type)
-        except Exception as e:
-            print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred creating stack: {e.args[0]}')
-            mystack.clear_current_action()
+        params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
+        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
-
-
-@app.route('/docreate', methods = ['POST'])
-def createJson():
-    content = request.get_json()[0]
-
-    for param in content:
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'TemplateName':
-            template_name = param['ParameterValue']
-            continue
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
-        elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'crowd'
-
-    mystack = get_or_create_stack_obj(session['region'], stack_name)
-    if not mystack.store_current_action('create'):
-        return False
-    mystack.writeparms(content) #TODO remove read/write parms
-
-    params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
-    outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
-    session['stacks'] = sorted(get_cfn_stacks_for_region())
-    mystack.clear_current_action()
-    return outcome
 
 
 @app.route('/doupdate', methods = ['POST'])
@@ -322,8 +304,6 @@ def updateJson():
     mystack = get_or_create_stack_obj(session['region'], stack_name)
     if not mystack.store_current_action('update'):
         return False
-    mystack.writeparms(new_params)
-
     for param in new_params:
         if param['ParameterKey'] != 'StackName' \
                 and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:

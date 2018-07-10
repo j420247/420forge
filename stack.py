@@ -56,24 +56,18 @@ class Stack:
                     next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
         return rawlburl.replace("https", "http")
 
-    def writeparms(self, parms):
-        with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'w') as outfile:
-            json.dump(parms, outfile)
-        outfile.close()
-        return (self)
-
-    def readparms(self):
+    def getparms(self):
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'r') as infile:
-                parms = json.load(infile)
-                return parms
-        except FileNotFoundError:
-            self.state.logaction(log.ERROR, f'can not load parms, stacks/{self.stack_name}/{self.stack_name}.parms.json does not exist')
-            sys.exit() # do we really want to stop Forge at this point? If so, remove the 'return' because it's unreachable.
-            return
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return False
+        return stack_details['Stacks'][0]['Parameters']
 
     def getparamvalue(self, param_to_get):
-        params = self.readparms()
+        params = self.getparms()
         for param in params:
             if param['ParameterKey'].lower() == param_to_get.lower():
                 return param['ParameterValue']
@@ -147,10 +141,8 @@ class Stack:
             return
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
-        # write out the most recent parms to a file
-        self.writeparms(stack_details['Stacks'][0]['Parameters'])
         # store the most recent parms (list of dicts)
-        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
+        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
         self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                         p['ParameterKey'] == 'ClusterNodeMax'][0])
         self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
@@ -470,7 +462,7 @@ class Stack:
         return True
 
     def get_parms_for_update(self):
-        parms = self.readparms()
+        parms = self.getparms()
         stackName_param = next((param for param in parms if param['ParameterKey'] == 'StackName'), None)
         if stackName_param:
             parms.remove(stackName_param)
@@ -594,7 +586,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, like_stack=None, like_region=None, parms=None, clone=False, template_filename=None, app_type=None):
+    def create(self, parms, like_stack=None, like_region=None, template_filename=None, app_type=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.forgestate['stack_parms']
@@ -602,9 +594,6 @@ class Stack:
         elif parms:
             parms.remove(parms[0])
             stack_parms = parms
-            self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
-        else:
-            stack_parms = self.readparms()
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
         if not template_filename:
