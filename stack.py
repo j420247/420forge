@@ -298,7 +298,7 @@ class Stack:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
-        except requests.exceptions.ReadTimeout as e:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if log:
                 self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"

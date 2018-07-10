@@ -1,8 +1,10 @@
+var stack_name;
+
 function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            var stack_name = data.target.text;
+            stack_name = data.target.text;
             $("#aui-message-bar").hide();
             selectStack(stack_name);
             selectTemplateForStack(stack_name);
@@ -41,9 +43,18 @@ function selectTemplateForStack(stackToRetrieve) {
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
-            origParams = JSON.parse(stackParamsRequest.responseText);
-            if (! origParams)
-                window.location = baseUrl + "/" + action;
+            var origParams = JSON.parse(stackParamsRequest.responseText);
+            if (origParams === 'tag-error') {
+                $("#paramsList").html("");
+                $("#flash-messages").html
+                ("<div class=\"aui-message aui-message-error\" id=\"aui-message-bar\">\n" +
+                    "    <ul style=\"list-style-type: none;\">\n" +
+                    "        <li>Stack " + stack_name + " is not correctly tagged, cannot determine template to use</li>\n" +
+                    "    </ul>\n" +
+                    "</div>");
+                return;
+            }
+
             origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 

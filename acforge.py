@@ -434,17 +434,14 @@ class templateParamsForStack(Resource):
             if product_tag:
                 app_type = product_tag['Value']
             else:
-                flash(f'Stack {stack_name} is not tagged with product, cannot determine template to use', 'error')
-                return False
+                return 'tag-error'
             env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
             if env_tag:
                 env = env_tag['Value']
             else:
-                flash(f'Stack {stack_name} is not tagged with environment, cannot determine template to use', 'error')
-                return False
+                return 'tag-error'
         else:
-            flash(f'Stack {stack_name} is not tagged, cannot determine template to use', 'error')
-            return False
+            return 'tag-error'
 
         if env == 'prod':
             template_type = 'DataCenter'
