@@ -139,6 +139,15 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
+        # get tags
+        if len(stack_details['Stacks'][0]['Tags']) > 0:
+            product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+            if product_tag:
+                self.app_type = product_tag['Value']
+                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+            env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+            if env_tag:
+                self.state.update('environment', env_tag['Value'])
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
         # store the most recent parms (list of dicts)
@@ -154,6 +163,9 @@ class Stack:
         self.state.update('lburl', self.getLburl(stack_details))
         # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
         # versions in different parms relative to products - we should probably abstract the product
+        if not hasattr(self, 'app_type'):
+            self.state.logaction(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
+            return False
         # connie
         if self.app_type == 'confluence':
             self.state.update('preupgrade_confluence_version',
@@ -176,8 +188,8 @@ class Stack:
             self.state.update('preupgrade_crowd_version',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'CrowdVersion'][0])
-        self.state.logaction(log.INFO, f'finished getting stack_state for {self.stack_name}')
-        return
+        self.state.logaction(log.INFO, f'Finished getting stack_state for {self.stack_name}')
+        return True
 
     def spindown_to_zero_appnodes(self):
         self.state.logaction(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
@@ -457,7 +469,8 @@ class Stack:
 
     def clear_current_action(self):
         self.state.archive()
-        shutil.rmtree(f'locks/{self.stack_name}')
+        if Path(f'locks/{self.stack_name}').exists():
+            shutil.rmtree(f'locks/{self.stack_name}')
         self.state.update('action', 'none')
         return True
 
@@ -494,7 +507,9 @@ class Stack:
         self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
-        self.get_current_state()
+        if not self.get_current_state():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
+            return False
         # # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes():
             self.state.logaction(log.INFO, "Upgrade complete - failed")
