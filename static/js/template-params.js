@@ -1,7 +1,7 @@
 var origParams;
 var stack_name;
 
-function onReady() {
+function readyTheTemplate() {
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
@@ -24,7 +24,13 @@ function onReady() {
     });
 }
 
+function onReady() {
+    readyTheTemplate();
+}
+
 function selectTemplateForStack(stackToRetrieve) {
+    if (document.getElementById("clone-params"))
+        $("#clone-params").hide();
     $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
     AJS.$('.button-spinner').spin();
 
@@ -88,6 +94,8 @@ function selectTemplateForStack(stackToRetrieve) {
                     }
                 }
             }
+            if (document.getElementById("clone-params"))
+                $("#clone-params").show();
             $("#paramsForm").show();
             $("#action-button").attr("aria-disabled", false);
         }

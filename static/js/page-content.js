@@ -155,16 +155,6 @@ function updateStats(stack_name) {
 
     removeElementsByClass("aui-lozenge");
 
-    var stackStateRequest = new XMLHttpRequest();
-    stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
-    stackStateRequest.setRequestHeader("Content-Type", "text/xml");
-    stackStateRequest.onreadystatechange = function () {
-        if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
-            $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
-        }
-    };
-    stackStateRequest.send();
-
     var serviceStatusRequest = new XMLHttpRequest();
     serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
@@ -175,7 +165,19 @@ function updateStats(stack_name) {
     };
     $("#serviceStatus").html("Service status: <span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
     AJS.$('.button-spinner').spin();
-    serviceStatusRequest.send();
+
+    var stackStateRequest = new XMLHttpRequest();
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
+    stackStateRequest.setRequestHeader("Content-Type", "text/xml");
+    stackStateRequest.onreadystatechange = function () {
+        if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
+            $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
+            if (stackStateRequest.responseText.trim() !== "\"CREATE_IN_PROGRESS\"")
+                // only request service status if stack creation complete
+                serviceStatusRequest.send();
+        }
+    };
+    stackStateRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
     getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
