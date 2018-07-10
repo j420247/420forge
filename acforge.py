@@ -92,8 +92,7 @@ class RestrictedResource(Resource):
 ##
 class doupgrade(RestrictedResource):
     def get(self, region, stack_name, new_version):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('upgrade'):
             return False
         try:
@@ -108,8 +107,7 @@ class doupgrade(RestrictedResource):
 
 class doclone(RestrictedResource):
     def get(self, region, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('clone'):
             return False
         try:
@@ -147,10 +145,9 @@ def cloneJson():
 
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
 
-    mystack = Stack(stack_name, region, app_type)
+    mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone'):
         return False
-    stacks.append(mystack)
     outcome = mystack.clone(content)
     mystack.clear_current_action()
     return outcome
@@ -158,8 +155,7 @@ def cloneJson():
 
 class dofullrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('fullrestart'):
             return False
         try:
@@ -178,8 +174,7 @@ class dofullrestart(RestrictedResource):
 
 class dorollingrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('rollingrestart'):
             return False
         try:
@@ -198,8 +193,7 @@ class dorollingrestart(RestrictedResource):
 
 class dodestroy(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('destroy'):
             return False
         try:
@@ -215,8 +209,7 @@ class dodestroy(RestrictedResource):
 
 class dothreaddumps(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('diagnostics'):
             return False
         try:
@@ -231,8 +224,7 @@ class dothreaddumps(RestrictedResource):
 
 class doheapdumps(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('diagnostics'):
             return False
         try:
@@ -247,8 +239,7 @@ class doheapdumps(RestrictedResource):
 
 class dorunsql(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('runsql'):
             return False
         try:
@@ -263,8 +254,7 @@ class dorunsql(RestrictedResource):
 class dotag(RestrictedResource):
     def post(self, region, stack_name):
         tags = request.get_json()
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('tag'):
             return False
         try:
@@ -278,8 +268,7 @@ class dotag(RestrictedResource):
 
 class docreate(RestrictedResource):
     def get(self, region, stack_name, pg_pass, app_pass, app_type):
-        mystack = Stack(stack_name, region, app_type)
-        stacks.append(mystack)
+        mystack = get_or_create_stack_obj(region, stack_name)
         if not mystack.store_current_action('create'):
             return False
         try:
@@ -311,11 +300,10 @@ def createJson():
         elif param['ParameterKey'] == 'CrowdVersion':
             app_type = 'crowd'
 
-    mystack = Stack(stack_name, session['region'], app_type)
+    mystack = get_or_create_stack_obj(session['region'], stack_name)
     if not mystack.store_current_action('create'):
         return False
-    stacks.append(mystack)
-    mystack.writeparms(content)
+    mystack.writeparms(content) #TODO remove read/write parms
 
     params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
     outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
@@ -331,10 +319,9 @@ def updateJson():
     orig_params = content[1]
 
     stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
-    mystack = Stack(stack_name, session['region'])
+    mystack = get_or_create_stack_obj(session['region'], stack_name)
     if not mystack.store_current_action('update'):
         return False
-    stacks.append(mystack)
     mystack.writeparms(new_params)
 
     for param in new_params:
@@ -382,9 +369,8 @@ class serviceStatus(Resource):
 
 class stackState(Resource):
     def get(self, region, stack_name):
-        for stack in stacks:
-            if stack.stack_name == stack_name:
-                return stack.check_stack_state()
+        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack.check_stack_state()
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
@@ -485,7 +471,7 @@ class getSql(Resource):
 
 class getStackActionInProgress(Resource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
+        mystack = get_or_create_stack_obj(region, stack_name)
         action = mystack.get_stack_action_in_progress()
         if action:
             flash(f'{stack_name} is already being operated on: {action}', 'error')
@@ -495,7 +481,7 @@ class getStackActionInProgress(Resource):
 
 class clearStackActionInProgress(Resource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
+        mystack = get_or_create_stack_obj(region, stack_name)
         mystack.clear_current_action()
         return True
 
@@ -532,7 +518,7 @@ class getNodes(Resource):
 
 class getTags(Resource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
+        mystack = get_or_create_stack_obj(region, stack_name)
         tags = mystack.get_tags()
         return tags
 
@@ -542,9 +528,10 @@ def get_or_create_stack_obj(region, stack_name):
         mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
         if not mystack:
             mystack = Stack(stack_name, region)
+            stacks.append(mystack)
     else:
         mystack = Stack(stack_name, region)
-    stacks.append(mystack)
+        stacks.append(mystack)
     return mystack
 
 
@@ -751,10 +738,6 @@ def check_loggedin():
 def general_constructor(loader, tag_suffix, node):
     return node.value
 
-@app.route('/error/<error>')
-def error(error):
-    return render_template('error.html', code=error), error
-
 
 def use_east1_if_no_region_selected():
     # use first region in forge.properties if no region selected (eg first load)
@@ -767,6 +750,30 @@ def get_regions():
     config = configparser.ConfigParser()
     config.read('forge.properties')
     return config.items('regions')
+
+
+def get_nice_action_name(action):
+    switcher = {
+        'admin': 'Admin',
+        'backup': 'Backup stack',
+        'clone': 'Clone stack',
+        'create': 'Create stack',
+        'destroy': 'Destroy stack',
+        'diagnostics': 'Diagnostics',
+        'fullrestart': 'Full restart',
+        'rollingrestart': 'Rolling restart',
+        'runsql': 'Run SQL',
+        'viewlog': 'Stack logs',
+        'tag': 'Tag stack',
+        'update': 'Update stack',
+        'upgrade': 'Upgrade',
+    }
+    return switcher.get(action, '')
+
+
+@app.route('/error/<error>')
+def error(error):
+    return render_template('error.html', code=error), error
 
 
 @app.route('/')
@@ -810,6 +817,7 @@ def setregion(region):
 def setaction(action):
     use_east1_if_no_region_selected()
     session['action'] = action
+    session['nice_action_name'] = get_nice_action_name(action)
     session['stack_name'] = 'none'
     session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
