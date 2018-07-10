@@ -1,3 +1,4 @@
+var origParams;
 var stack_name;
 
 function onReady() {
@@ -43,7 +44,7 @@ function selectTemplateForStack(stackToRetrieve) {
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
-            var origParams = JSON.parse(stackParamsRequest.responseText);
+            origParams = JSON.parse(stackParamsRequest.responseText);
             if (origParams === 'tag-error') {
                 $("#paramsList").html("");
                 $("#flash-messages").html
