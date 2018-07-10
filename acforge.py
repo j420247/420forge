@@ -454,9 +454,8 @@ class getStackActionInProgress(Resource):
         mystack = get_or_create_stack_obj(region, stack_name)
         action = mystack.get_stack_action_in_progress()
         if action:
-            flash(f'{stack_name} is already being operated on: {action}', 'error')
             return action
-        return False
+        return 'None'
 
 
 class clearStackActionInProgress(Resource):

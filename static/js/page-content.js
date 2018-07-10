@@ -57,6 +57,14 @@ function selectStack(stack_name) {
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").show();
 
+    // clean up stack info
+    removeElementsByClass("aui-lozenge");
+    $("#serviceStatus").html("Service status: ");
+    $("#stackState").html("Stack status: ");
+    $("#currentAction").html("Action in progress:");
+    $("#currentVersion").html("Current version: ");
+    $("#nodes").html("");
+
     updateStats(stack_name);
 
     // Enable extra input parameters per action
@@ -171,7 +179,8 @@ function updateStats(stack_name) {
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
-            $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
+            if (!$("#stackState").children().hasClass("aui-lozenge"))
+                $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
             if (stackStateRequest.responseText.trim() !== "\"CREATE_IN_PROGRESS\"")
                 // only request service status if stack creation complete
                 serviceStatusRequest.send();
@@ -184,13 +193,8 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
-            if (actionInProgress.length > 0) {
-                $("#currentAction").append(getStatusLozenge(actionInProgress[0]));
-            }
-            else {
-                $("#currentAction").append(getStatusLozenge('None'));
-            }
+            if (!$("#currentAction").children().hasClass("aui-lozenge"))
+                $("#currentAction").append(getStatusLozenge(getStackActionInProgressRequest.responseText));
         }
     };
     getStackActionInProgressRequest.send();
@@ -218,7 +222,7 @@ function updateStats(stack_name) {
                 return;
             }
             for (var node in nodes) {
-                $("#nodes").append(nodes[node].ip + ": " + nodes[node].status);
+                $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
                 if (node < nodes.length)
                     $("#nodes").append("<br>");
             }
