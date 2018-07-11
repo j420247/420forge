@@ -412,7 +412,7 @@ class templateParamsForStack(Resource):
         if env == 'prod':
             template_type = 'DataCenter'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type}{template_type}.template.yaml', "r")
+        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{template_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
