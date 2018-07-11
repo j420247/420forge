@@ -552,7 +552,6 @@ class Stack:
 
     def clone(self, stack_parms, app_type, region):
         self.state.logaction(log.INFO, 'Initiating clone')
-        content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
         self.state.update('region', region)
