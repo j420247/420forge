@@ -550,11 +550,13 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms):
+    def clone(self, stack_parms, app_type):
         self.state.logaction(log.INFO, 'Initiating clone')
+        self.state.update('stack_parms', stack_parms)
+        self.state.update('app_type', app_type)
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms):
+            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}STGorDR.template.yaml', app_type=app_type):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
