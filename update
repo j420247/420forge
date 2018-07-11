@@ -1,7 +1,9 @@
-#!//usr/bin/env bash
+#!/usr/bin/env bash
+
 git fetch
 git checkout master
 git pull
 git submodule update --init --recursive
 git submodule foreach git checkout master
 git submodule foreach git pull
+git checkout -
