@@ -555,6 +555,7 @@ class Stack:
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
         self.state.update('region', region)
+        self.region = region
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
             if self.create(parms=stack_parms, template_filename=f'{app_type.title()}STGorDR.template.yaml', app_type=app_type):

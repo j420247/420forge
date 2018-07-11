@@ -61,7 +61,7 @@ function selectStack(stack_name) {
     removeElementsByClass("aui-lozenge");
     $("#serviceStatus").html("Service status: ");
     $("#stackState").html("Stack status: ");
-    $("#currentAction").html("Action in progress:");
+    $("#currentAction").html("Action in progress: ");
     $("#currentVersion").html("Current version: ");
     $("#nodes").html("");
 
