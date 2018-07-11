@@ -550,10 +550,12 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type):
+    def clone(self, stack_parms, app_type, region):
         self.state.logaction(log.INFO, 'Initiating clone')
+        content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
+        self.state.update('region', region)
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
             if self.create(parms=stack_parms, template_filename=f'{app_type.title()}STGorDR.template.yaml', app_type=app_type):

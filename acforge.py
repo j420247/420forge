@@ -148,7 +148,7 @@ def cloneJson():
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone'):
         return False
-    outcome = mystack.clone(content, app_type=app_type)
+    outcome = mystack.clone(content, app_type=app_type, region=region)
     mystack.clear_current_action()
     return outcome
 
