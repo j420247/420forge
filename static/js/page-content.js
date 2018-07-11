@@ -181,8 +181,9 @@ function updateStats(stack_name) {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
             if (!$("#stackState").children().hasClass("aui-lozenge"))
                 $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
-            if (stackStateRequest.responseText.trim() !== "\"CREATE_IN_PROGRESS\"")
-                // only request service status if stack creation complete
+            if (stackStateRequest.responseText.trim() === "\"CREATE_COMPLETE\"" ||
+                stackStateRequest.responseText.trim() === "\"UPDATE_COMPLETE\"")
+                // only request service status if stack actions are complete and successful
                 serviceStatusRequest.send();
         }
     };
