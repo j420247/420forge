@@ -554,9 +554,15 @@ class Stack:
         self.state.logaction(log.INFO, 'Initiating clone')
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, clone=True):
+            if self.create(parms=stack_parms):
                 if self.run_post_clone_sql():
                     self.full_restart()
+                else:
+                    self.clear_current_action()
+            else:
+                self.clear_current_action()
+        else:
+            self.clear_current_action()
         self.state.logaction(log.INFO, "Clone complete")
         return True
 
