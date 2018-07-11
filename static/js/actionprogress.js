@@ -17,11 +17,12 @@ function onReady() {
             }, false);
         }
     // or if we got here from an action, refresh info now,
-    // unless it's create in which case wait 1s for the creation to begin
+    // unless it's create in which case wait 2s for the creation to begin
     } else {
         $("#stackSelector").hide();
         selectStack(stackName);
-        if (action !== 'create') getStatus(stackName);
+        if (action !== 'create')
+            getStatus(stackName);
         refreshStatus(stackName, true, 2000, action);
     }
 }

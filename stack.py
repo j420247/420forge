@@ -51,10 +51,13 @@ class Stack:
         return
 
     def getLburl(self, stack_details):
-        rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + \
-                    next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
-        return rawlburl.replace("https", "http")
+        if 'lburl' in self.state.forgestate:
+            return self.state.forgestate['lburl'].replace("https", "http")
+        else:
+            rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                        p['OutputKey'] == 'LoadBalancerURL'][0] + \
+                        next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
+            return rawlburl.replace("https", "http")
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -297,7 +300,7 @@ class Stack:
                 if 'state' in json_status:
                     status = json_status['state']
             else:
-                status = str(service_status.status_code) + ": " + service_status.reason if service_status.reason else str(service_status.status_code)
+                status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
             if log:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')

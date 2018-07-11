@@ -350,7 +350,6 @@ class serviceStatus(Resource):
 class stackState(Resource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        mystack.check_stack_state()
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
