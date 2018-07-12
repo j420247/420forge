@@ -395,12 +395,12 @@ class templateParamsForStack(Resource):
         # default to Stg template
         template_type = 'STGorDR'
         if len(stack_details['Stacks'][0]['Tags']) > 0:
-            product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
             if product_tag:
                 app_type = product_tag['Value']
             else:
                 return 'tag-error'
-            env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
             if env_tag:
                 env = env_tag['Value']
             else:

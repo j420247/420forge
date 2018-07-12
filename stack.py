@@ -144,11 +144,11 @@ class Stack:
             return
         # get tags
         if len(stack_details['Stacks'][0]['Tags']) > 0:
-            product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
             if product_tag:
                 self.app_type = product_tag['Value']
                 self.state.logaction(log.INFO, f'{self.stack_name} is a {self.app_type}')
-            env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
             if env_tag:
                 self.state.update('environment', env_tag['Value'])
         # store the template
