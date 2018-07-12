@@ -344,7 +344,7 @@ class status(RestrictedResource):
 class serviceStatus(Resource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        return mystack.check_service_status(log=False)
+        return mystack.check_service_status(logMsgs=False)
 
 
 class stackState(Resource):

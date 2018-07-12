@@ -35,7 +35,7 @@ class Stack:
                     product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
                     if product_tag:
                         self.app_type = product_tag['Value']
-                        self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                        self.state.logaction(log.INFO, f'{self.stack_name} is a {self.app_type}')
                     env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
                     if env_tag:
                         self.state.update('environment', env_tag['Value'])
@@ -147,7 +147,7 @@ class Stack:
             product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
             if product_tag:
                 self.app_type = product_tag['Value']
-                self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
+                self.state.logaction(log.INFO, f'{self.stack_name} is a {self.app_type}')
             env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
             if env_tag:
                 self.state.update('environment', env_tag['Value'])
@@ -281,7 +281,7 @@ class Stack:
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    def check_service_status(self, log=True):
+    def check_service_status(self, logMsgs=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -289,7 +289,7 @@ class Stack:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
         self.state.update('lburl', self.getLburl(stack_details))
-        if log:
+        if logMsgs:
             self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
@@ -301,12 +301,12 @@ class Stack:
                     status = json_status['state']
             else:
                 status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"
 
@@ -324,7 +324,7 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip, log=True):
+    def check_node_status(self, node_ip, logMsgs=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -333,7 +333,7 @@ class Stack:
             return f'Error checking node status: {e.args[0]}'
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
-        if log:
+        if logMsgs:
             self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
             node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
@@ -341,11 +341,11 @@ class Stack:
                 status = node_status['state']
             else:
                 self.state.logaction(log.ERROR, f'Node status not in expected format: {node_status}')
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO, f' ==> node status is: {status}')
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)

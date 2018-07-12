@@ -64,13 +64,14 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
 
 function refreshStackInfo(stack_name, this_action) {
     // Only check stack status in EC2 for stack changing actions
-    // Refresh every 60s
+    // Refresh every 20s
+    //TODO check more frequently until stack_state is IN_PROGRESS
     if (this_action !== 'diagnostics' &&
         this_action !== 'fullrestart' &&
         this_action !== 'rollingrestart') {
         refreshStackInfoTimer = setTimeout(function () {
             updateStats(stack_name);
             refreshStackInfo(stack_name, this_action);
-        }, 60000)
+        }, 20000)
     }
 }
