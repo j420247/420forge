@@ -185,7 +185,8 @@ function updateStats(stack_name) {
             if (!$("#stackState").children().hasClass("aui-lozenge"))
                 $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
             if (stackStateRequest.responseText.trim() === "\"CREATE_COMPLETE\"" ||
-                stackStateRequest.responseText.trim() === "\"UPDATE_COMPLETE\"")
+                stackStateRequest.responseText.trim() === "\"UPDATE_COMPLETE\"" ||
+                stackStateRequest.responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
                 // only request service status if stack actions are complete and successful
                 serviceStatusRequest.send();
         }
