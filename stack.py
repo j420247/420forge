@@ -497,8 +497,9 @@ class Stack:
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
-            print(e.args[0])
-            return f'Error checking node status: {e.args[0]}'
+            self.state.logaction(log.ERROR, f'Error checking node status: {e.args[0]}')
+            print(f'Error checking node status: {e.args[0]}')
+            return [{'error': e.args[0]}]
         tags = stack['Stacks'][0]['Tags']
         return tags
 
