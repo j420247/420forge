@@ -36,7 +36,10 @@ function onReady() {
             });
         });
     }
+    addDefaultActionButtonListener();
+}
 
+function addDefaultActionButtonListener() {
     var actionButton = document.getElementById("action-button");
     if (actionButton)
         actionButton.addEventListener("click", defaultActionBtnEvent);

@@ -74,7 +74,7 @@ DELETE from bandana WHERE bandanakey='synchrony_collaborative_editor_app_registe
 -- long list of strings as an argument.
 -- CREATE LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION add_admin_users(role varchar(64), username varchar(64)) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION add_admin_users(role varchar(64), username varchar(64)) RETURNS void AS \$\$
 DECLARE
     directoryid bigint := id FROM cwd_directory WHERE directory_type = 'INTERNAL';
     userid bigint := id FROM cwd_user WHERE user_name = username AND directory_id = directoryid;
@@ -89,7 +89,7 @@ BEGIN
             VALUES (membershipid, groupid, NULL, userid);
     END IF;
 END
--- $$ LANGUAGE plpgsql;
+-- \$\$ LANGUAGE plpgsql;
 -- End seriously dodgy hack alert
 
 -- Add smoke test account - ADM-44531 refers
@@ -101,5 +101,6 @@ update cwd_user_attribute set   attribute_value = '0' where attribute_name = 'in
 update cwd_user_attribute set   attribute_lower_value = '0' where attribute_name = 'invalidPasswordAttempts' and user_id = 1870856280;
 update logininfo set curfailed = 0 where username = '2c9082c93f36441c013f364a7e74001a';
 update cwd_user set credential = '{PKCS5S2}QbOQRweYgQXOy7QZWwKGhaQ0yyAClaLJ06lSDyuwXtq2O98WAZeX56b/pe+5348Q' where id = 1870856280;
+delete from cwd_membership where id=1870856280;
 insert into cwd_membership (id, parent_id, child_user_id) values ((select id from cwd_user where user_name='admin'), (select id from cwd_group where group_name='confluence-users' and directory_id=(select id from cwd_directory where directory_name='Confluence Internal Directory')), (select id from cwd_user where user_name='admin'));
 SELECT add_admin_users('confluence-administrators', 'admin');
