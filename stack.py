@@ -423,7 +423,7 @@ class Stack:
                 self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
             else:
                 result = ""
-                while result != '{"state":"RUNNING"}':
+                while result != 'RUNNING':
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
