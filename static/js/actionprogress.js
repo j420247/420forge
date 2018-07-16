@@ -1,4 +1,5 @@
-var refreshTimer;
+var refreshLogsTimer;
+var refreshStackInfoTimer;
 
 function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -10,34 +11,31 @@ function onReady() {
             stacks[i].addEventListener("click", function (data) {
                 var stack_name = data.target.text;
                 selectStack(stack_name);
-                clearTimeout(refreshTimer);
+                clearTimeout(refreshLogsTimer);
+                clearTimeout(refreshStackInfoTimer);
                 getStatus(stack_name);
                 updateStats(stack_name);
-                refreshStatus(stack_name, true, 1000, action);
+                refreshLogs(stack_name, true, 1000, action);
+                refreshStackInfo(stack_name);
             }, false);
         }
     // or if we got here from an action, refresh info now,
-    // unless it's create in which case wait 1s for the creation to begin
+    // unless it's create in which case wait 2s for the creation to begin
     } else {
         $("#stackSelector").hide();
         selectStack(stackName);
-        if (action !== 'create') getStatus(stackName);
-        refreshStatus(stackName, true, 2000, action);
+        if (action !== 'create')
+            getStatus(stackName);
+        refreshLogs(stackName, true, 2000, action);
+        refreshStackInfo(stackName);
     }
 }
 
 // Refresh the status while the action is still underway
-function refreshStatus(stack_name, cont, refresh_interval, this_action) {
+function refreshLogs(stack_name, cont, refresh_interval, this_action) {
     if (cont) {
-        refreshTimer = setTimeout(function () {
+        refreshLogsTimer = setTimeout(function () {
             getStatus(stack_name);
-
-            // Only check stack status in EC2 for stack changing actions
-            if (this_action !== 'diagnostics' &&
-                this_action !== 'fullrestart' &&
-                this_action !== 'rollingrestart') {
-                updateStats(stack_name);
-            }
 
             // Set refresh interval to more frequent if there is no logging yet
             if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
@@ -49,17 +47,31 @@ function refreshStatus(stack_name, cont, refresh_interval, this_action) {
             if (action === 'diagnostics') {
                 if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
                     countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
-                    refreshStatus(stack_name, true, refresh_interval, this_action);
+                    refreshLogs(stack_name, true, refresh_interval, this_action);
                 else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
                     countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
-                    refreshStatus(stack_name, true, refresh_interval, this_action);
+                    refreshLogs(stack_name, true, refresh_interval, this_action);
                 else
-                    refreshStatus(stack_name, false, refresh_interval, this_action);
+                    refreshLogs(stack_name, false, refresh_interval, this_action);
             }
             else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1)
-                refreshStatus(stack_name, false, refresh_interval, this_action);
+                refreshLogs(stack_name, false, refresh_interval, this_action);
             else
-                refreshStatus(stack_name, true, refresh_interval, this_action);
+                refreshLogs(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
+    }
+}
+
+function refreshStackInfo(stack_name, this_action) {
+    // Only check stack status in EC2 for stack changing actions
+    // Refresh every 20s
+    //TODO check more frequently until stack_state is IN_PROGRESS
+    if (this_action !== 'diagnostics' &&
+        this_action !== 'fullrestart' &&
+        this_action !== 'rollingrestart') {
+        refreshStackInfoTimer = setTimeout(function () {
+            updateStats(stack_name);
+            refreshStackInfo(stack_name, this_action);
+        }, 20000)
     }
 }

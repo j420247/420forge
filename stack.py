@@ -32,11 +32,11 @@ class Stack:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
                 if len(stack_details['Stacks'][0]['Tags']) > 0:
-                    product_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product')
+                    product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
                     if product_tag:
                         self.app_type = product_tag['Value']
-                        self.state.logaction(log.INFO, f'{stack_name} is a {self.app_type}')
-                    env_tag = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')
+                        self.state.logaction(log.INFO, f'{self.stack_name} is a {self.app_type}')
+                    env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
                     if env_tag:
                         self.state.update('environment', env_tag['Value'])
             except Exception as e:
@@ -51,29 +51,26 @@ class Stack:
         return
 
     def getLburl(self, stack_details):
-        rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                    p['OutputKey'] == 'LoadBalancerURL'][0] + \
-                    next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
-        return rawlburl.replace("https", "http")
+        if 'lburl' in self.state.forgestate:
+            return self.state.forgestate['lburl'].replace("https", "http")
+        else:
+            rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                        p['OutputKey'] == 'LoadBalancerURL'][0] + \
+                        next(parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath')['ParameterValue']
+            return rawlburl.replace("https", "http")
 
-    def writeparms(self, parms):
-        with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'w') as outfile:
-            json.dump(parms, outfile)
-        outfile.close()
-        return (self)
-
-    def readparms(self):
+    def getparms(self):
+        cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            with open(f'stacks/{self.stack_name}/{self.stack_name}.parms.json', 'r') as infile:
-                parms = json.load(infile)
-                return parms
-        except FileNotFoundError:
-            self.state.logaction(log.ERROR, f'can not load parms, stacks/{self.stack_name}/{self.stack_name}.parms.json does not exist')
-            sys.exit() # do we really want to stop Forge at this point? If so, remove the 'return' because it's unreachable.
-            return
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return False
+        return stack_details['Stacks'][0]['Parameters']
 
     def getparamvalue(self, param_to_get):
-        params = self.readparms()
+        params = self.getparms()
         for param in params:
             if param['ParameterKey'].lower() == param_to_get.lower():
                 return param['ParameterValue']
@@ -145,12 +142,19 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
+        # get tags
+        if len(stack_details['Stacks'][0]['Tags']) > 0:
+            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
+            if product_tag:
+                self.app_type = product_tag['Value']
+                self.state.logaction(log.INFO, f'{self.stack_name} is a {self.app_type}')
+            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
+            if env_tag:
+                self.state.update('environment', env_tag['Value'])
         # store the template
         self.state.update('TemplateBody', template['TemplateBody'])
-        # write out the most recent parms to a file
-        self.writeparms(stack_details['Stacks'][0]['Parameters'])
         # store the most recent parms (list of dicts)
-        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'] )
+        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
         self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                         p['ParameterKey'] == 'ClusterNodeMax'][0])
         self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
@@ -162,6 +166,9 @@ class Stack:
         self.state.update('lburl', self.getLburl(stack_details))
         # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
         # versions in different parms relative to products - we should probably abstract the product
+        if not hasattr(self, 'app_type'):
+            self.state.logaction(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
+            return False
         # connie
         if self.app_type == 'confluence':
             self.state.update('preupgrade_confluence_version',
@@ -184,8 +191,8 @@ class Stack:
             self.state.update('preupgrade_crowd_version',
                 [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                  p['ParameterKey'] == 'CrowdVersion'][0])
-        self.state.logaction(log.INFO, f'finished getting stack_state for {self.stack_name}')
-        return
+        self.state.logaction(log.INFO, f'Finished getting stack_state for {self.stack_name}')
+        return True
 
     def spindown_to_zero_appnodes(self):
         self.state.logaction(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
@@ -274,7 +281,7 @@ class Stack:
         self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
         return
 
-    def check_service_status(self, log=True):
+    def check_service_status(self, logMsgs=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -282,7 +289,7 @@ class Stack:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
         self.state.update('lburl', self.getLburl(stack_details))
-        if log:
+        if logMsgs:
             self.state.logaction(log.INFO,
                         f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
         try:
@@ -293,13 +300,13 @@ class Stack:
                 if 'state' in json_status:
                     status = json_status['state']
             else:
-                status = str(service_status.status_code) + ": " + service_status.reason if service_status.reason else str(service_status.status_code)
-            if log:
+                status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
+            if logMsgs:
                 self.state.logaction(log.INFO,
                             f' ==> service status is: {status}')
             return status
-        except requests.exceptions.ReadTimeout as e:
-            if log:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            if logMsgs:
                 self.state.logaction(log.INFO, f'Service status check timed out')
         return "Timed Out"
 
@@ -317,7 +324,7 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip, log=True):
+    def check_node_status(self, node_ip, logMsgs=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -326,7 +333,7 @@ class Stack:
             return f'Error checking node status: {e.args[0]}'
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
-        if log:
+        if logMsgs:
             self.state.logaction(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
             node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
@@ -334,11 +341,11 @@ class Stack:
                 status = node_status['state']
             else:
                 self.state.logaction(log.ERROR, f'Node status not in expected format: {node_status}')
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO, f' ==> node status is: {status}')
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
-            if log:
+            if logMsgs:
                 self.state.logaction(log.INFO, f'Node status check timed out')
         except Exception as e:
             print('type is:', e.__class__.__name__)
@@ -416,7 +423,7 @@ class Stack:
                 self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
             else:
                 result = ""
-                while result != '{"state":"RUNNING"}':
+                while result != 'RUNNING':
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
@@ -447,16 +454,16 @@ class Stack:
 
     def get_stack_action_in_progress(self):
         if Path(f'locks/{self.stack_name}').exists():
-            return os.listdir(f'locks/{self.stack_name}')
+            return os.listdir(f'locks/{self.stack_name}')[0]
         return False
 
     def store_current_action(self, action):
-        try:
+        action_already_in_progress = self.get_stack_action_in_progress()
+        if not action_already_in_progress:
             os.mkdir(f'locks/{self.stack_name}')
             os.mkdir(f'locks/{self.stack_name}/{action}')
-        except FileExistsError:
-            action_in_progress = os.listdir(f'locks/{self.stack_name}')
-            self.state.logaction(log.INFO, f'Cannot begin action: {action}. Another action is in progress: {action_in_progress[0]}')
+        else:
+            self.state.logaction(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
             return False
         if Path(f'stacks/{self.stack_name}/{self.stack_name}.json').exists():
             os.remove(f'stacks/{self.stack_name}/{self.stack_name}.json')
@@ -465,12 +472,13 @@ class Stack:
 
     def clear_current_action(self):
         self.state.archive()
-        shutil.rmtree(f'locks/{self.stack_name}')
+        if Path(f'locks/{self.stack_name}').exists():
+            shutil.rmtree(f'locks/{self.stack_name}')
         self.state.update('action', 'none')
         return True
 
     def get_parms_for_update(self):
-        parms = self.readparms()
+        parms = self.getparms()
         stackName_param = next((param for param in parms if param['ParameterKey'] == 'StackName'), None)
         if stackName_param:
             parms.remove(stackName_param)
@@ -489,8 +497,9 @@ class Stack:
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
-            print(e.args[0])
-            return f'Error checking node status: {e.args[0]}'
+            self.state.logaction(log.ERROR, f'Error checking node status: {e.args[0]}')
+            print(f'Error checking node status: {e.args[0]}')
+            return [{'error': e.args[0]}]
         tags = stack['Stacks'][0]['Tags']
         return tags
 
@@ -502,7 +511,9 @@ class Stack:
         self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
-        self.get_current_state()
+        if not self.get_current_state():
+            self.state.logaction(log.INFO, "Upgrade complete - failed")
+            return False
         # # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes():
             self.state.logaction(log.INFO, "Upgrade complete - failed")
@@ -543,14 +554,23 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms):
+    def clone(self, stack_parms, app_type, region):
         self.state.logaction(log.INFO, 'Initiating clone')
-        self.writeparms(stack_parms)
+        self.state.update('stack_parms', stack_parms)
+        self.state.update('app_type', app_type)
+        self.state.update('region', region)
+        self.region = region
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, clone=True):
+            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}STGorDR.template.yaml', app_type=app_type):
                 if self.run_post_clone_sql():
                     self.full_restart()
+                else:
+                    self.clear_current_action()
+            else:
+                self.clear_current_action()
+        else:
+            self.clear_current_action()
         self.state.logaction(log.INFO, "Clone complete")
         return True
 
@@ -594,7 +614,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, like_stack=None, like_region=None, parms=None, clone=False, template_filename=None, app_type=None):
+    def create(self, parms, like_stack=None, like_region=None, template_filename=None, app_type=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.forgestate['stack_parms']
@@ -602,9 +622,6 @@ class Stack:
         elif parms:
             parms.remove(parms[0])
             stack_parms = parms
-            self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
-        else:
-            stack_parms = self.readparms()
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
         if not template_filename:
@@ -692,7 +709,7 @@ class Stack:
         if sqlfile.is_file():
             with open(sqlfile, 'r') as outfile:
                 if self.run_command([self.instancelist[0]], f'echo "{outfile.read()}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
-                    db_conx_string = 'PGPASSWORD=${ATL_JDBC_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+                    db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
                     if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
                         self.state.logaction(log.ERROR, f'Running SQL script failed')
                         return False

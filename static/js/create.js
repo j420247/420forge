@@ -1,4 +1,6 @@
 function onReady() {
+    readyTheTemplate();
+    $("#stack-name-input").hide();
     var products = document.getElementsByClassName("selectProductOption");
     for (var i = 0; i < products.length; i++) {
         products[i].addEventListener("click", function (data) {
@@ -45,6 +47,10 @@ function getTemplates(product) {
 }
 
 function getTemplate(template) {
+    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
+    AJS.$('.button-spinner').spin();
+    $("#stack-name-input").hide();
+
     var templateParamsRequest = new XMLHttpRequest();
     templateParamsRequest.open("GET", baseUrl + "/templateParams/" + template, true);
     templateParamsRequest.setRequestHeader("Content-Type", "text/xml");
@@ -65,6 +71,7 @@ function getTemplate(template) {
 
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
+            $("#stack-name-input").show();
             $("#paramsForm").show();
             $("#action-button").attr("aria-disabled", false);
         }

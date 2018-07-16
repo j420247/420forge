@@ -60,7 +60,8 @@ class Forgestate:
     def archive(self):
         # at the end of an action, archive will take the current forgestate and write it out to a datestamped file
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f'stacks/{self.stack_name}/{self.stack_name}_{self.forgestate["action"]}_{timestamp}.json', 'w') as outfile:
+        action = self.forgestate['action'] if 'action' in self.forgestate else 'no-action'
+        with open(f'stacks/{self.stack_name}/{self.stack_name}_{action}_{timestamp}.json', 'w') as outfile:
             json.dump(self.forgestate, outfile)
         outfile.close()
         return (self)

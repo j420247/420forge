@@ -33,13 +33,21 @@ function getTags() {
         if (getTagsRequest.readyState === XMLHttpRequest.DONE && getTagsRequest.status === 200) {
             tags = JSON.parse(getTagsRequest.responseText);
 
+            // check for errors or no tags
             if (tags.length === 0) {
                 var label = document.createElement("LABEL");
                 label.innerText = "None";
                 tagsList.appendChild(label);
                 return;
             }
+            if (tags[0].error) {
+                var label = document.createElement("LABEL");
+                label.innerText = tag[0].error;
+                tagsList.appendChild(label);
+                return;
+            }
 
+            // display each tag
             for (var tag in tags) {
                 var div = document.createElement("DIV");
                 div.className = "field-group";

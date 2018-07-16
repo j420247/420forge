@@ -1,9 +1,11 @@
-function onReady() {
-    $("#paramsForm").hide();
+var origParams;
+var stack_name;
+
+function readyTheTemplate() {
     var stacks = document.getElementsByClassName("selectStackOption");
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
-            var stack_name = data.target.text;
+            stack_name = data.target.text;
             $("#aui-message-bar").hide();
             selectStack(stack_name);
             selectTemplateForStack(stack_name);
@@ -22,7 +24,16 @@ function onReady() {
     });
 }
 
+function onReady() {
+    readyTheTemplate();
+}
+
 function selectTemplateForStack(stackToRetrieve) {
+    if (document.getElementById("clone-params"))
+        $("#clone-params").hide();
+    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
+    AJS.$('.button-spinner').spin();
+
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
 
@@ -40,8 +51,17 @@ function selectTemplateForStack(stackToRetrieve) {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
             var product;
             origParams = JSON.parse(stackParamsRequest.responseText);
-            if (! origParams)
-                window.location = baseUrl + "/" + action;
+            if (origParams === 'tag-error') {
+                $("#paramsList").html("");
+                $("#flash-messages").html
+                ("<div class=\"aui-message aui-message-error\" id=\"aui-message-bar\">\n" +
+                    "    <ul style=\"list-style-type: none;\">\n" +
+                    "        <li>Stack " + stack_name + " is not correctly tagged, cannot determine template to use</li>\n" +
+                    "    </ul>\n" +
+                    "</div>");
+                return;
+            }
+
             origParams.sort(function(a, b) {
                 return a.ParameterKey.localeCompare(b.ParameterKey)});
 
@@ -74,6 +94,8 @@ function selectTemplateForStack(stackToRetrieve) {
                     }
                 }
             }
+            if (document.getElementById("clone-params"))
+                $("#clone-params").show();
             $("#paramsForm").show();
             $("#action-button").attr("aria-disabled", false);
         }

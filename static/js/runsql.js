@@ -1,4 +1,5 @@
 function onReady() {
+    addDefaultActionButtonListener();
     $("#stackInformation").hide();
     var stacks = document.getElementsByClassName("selectStackOption");
 
