@@ -14,7 +14,7 @@
      "3": {
          "group": ["forge-dl-jira-champ"],
          "region": ["us-east-1"],
-         "stack": ["eacj-stg", "foj-stg", "hrj-stg", "opsj-stg", "finj-stg","legj-stg"],
+         "stack": ["eacj-stg", "eacj-upg", "foj-stg", "hrj-stg", "opsj-stg", "finj-stg","legj-stg"],
          "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","doupdate","dorunsql","dodestroy","docreate"]
      },
       "4": {
