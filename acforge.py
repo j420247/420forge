@@ -335,7 +335,7 @@ def updateJson():
     return outcome
 
 
-class status(RestrictedResource):
+class status(Resource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'
