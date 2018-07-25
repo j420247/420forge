@@ -78,12 +78,16 @@ class RestrictedResource(Resource):
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         for keys in json_perms:
-             if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                 if session['region'] in json_perms[keys]['region'] or '*' in json_perms[keys]['region']:
-                     if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
-                         if kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
-                             print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
-                             return super().dispatch_request(*args, **kwargs)
+            if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
+                if session['region'] in json_perms[keys]['region'] or '*' in json_perms[keys]['region']:
+                    if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
+                        if request.endpoint == 'docreate':
+                            # do not check stack_name on stack creation
+                            print(f'User is authorised to perform {request.endpoint}')
+                            return super().dispatch_request(*args, **kwargs)
+                        elif kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
+                            print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+                            return super().dispatch_request(*args, **kwargs)
         print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
 
@@ -335,7 +339,7 @@ def updateJson():
     return outcome
 
 
-class status(RestrictedResource):
+class status(Resource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'

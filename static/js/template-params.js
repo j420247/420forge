@@ -56,7 +56,7 @@ function selectTemplateForStack(stackToRetrieve) {
                 $("#flash-messages").html
                 ("<div class=\"aui-message aui-message-error\" id=\"aui-message-bar\">\n" +
                     "    <ul style=\"list-style-type: none;\">\n" +
-                    "        <li>Stack " + stack_name + " is not correctly tagged, cannot determine template to use</li>\n" +
+                    "        <li>Stack " + stack_name + " is not tagged with 'product' and/or 'environment', cannot determine template to use</li>\n" +
                     "    </ul>\n" +
                     "</div>");
                 return;
