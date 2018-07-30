@@ -25,6 +25,13 @@ function onReady() {
         };
         clearStackActionInProgressRequest.send();
     });
+
+    var stackToAdmin = $("meta[name=stackToAdmin]").attr("value");
+    if (stackToAdmin) {
+        document.getElementById("lockedStackSelector").text = stackToAdmin;
+        selectStack(stackToAdmin);
+        getStackActionInProgress(stackToAdmin);
+    }
 }
 
 function getLockedStacks() {

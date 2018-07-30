@@ -645,6 +645,10 @@ def runsql():
 def admin():
     return render_template('admin.html')
 
+@app.route('/admin/<stack_name>', methods = ['GET'])
+def admin_stack(stack_name):
+    return render_template('admin.html', stackToAdmin=stack_name)
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
