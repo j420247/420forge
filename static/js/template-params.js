@@ -13,10 +13,12 @@ function readyTheTemplate() {
     }
 
     var actionButton = document.getElementById("action-button");
+    actionButton.setAttribute("aria-disabled", true);
     actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#paramsForm").submit();
     });
+
 
     AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
         sendParamsAsJson();
@@ -53,6 +55,7 @@ function selectTemplateForStack(stackToRetrieve) {
             origParams = JSON.parse(stackParamsRequest.responseText);
             if (origParams === 'tag-error') {
                 $("#paramsList").html("");
+                $("#action-button").attr("aria-disabled", true);
                 $("#flash-messages").html
                 ("<div class=\"aui-message aui-message-error\" id=\"aui-message-bar\">\n" +
                     "    <ul style=\"list-style-type: none;\">\n" +
