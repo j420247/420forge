@@ -272,12 +272,12 @@ class Stack:
         return True
 
     def validate_service_responding(self):
-        self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
+        self.state.logaction(log.INFO, "Waiting for service to reply on /status")
         service_state = self.check_service_status()
-        while service_state != 'RUNNING':
+        while service_state != 'RUNNING' or 'FIRST_RUN':
             time.sleep(60)
             service_state = self.check_service_status()
-        self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
+        self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting {service_state}')
         return
 
     def check_service_status(self, logMsgs=True):
@@ -422,7 +422,7 @@ class Stack:
                 self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
             else:
                 result = ""
-                while result != 'RUNNING':
+                while result != 'RUNNING' or 'FIRST_RUN':
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
