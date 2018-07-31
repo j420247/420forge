@@ -578,8 +578,6 @@ class getTemplates(Resource):
         templates = []
         template_folder = Path(f'wpe-aws/{product.lower()}')
         for file in list(template_folder.glob('**/*.yaml')):
-            if 'Clone' in file.name:
-                continue
             # TODO support Server
             if 'Server' in file.name:
                 continue
