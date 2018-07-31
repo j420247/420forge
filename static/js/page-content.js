@@ -164,7 +164,11 @@ function performAction() {
 function updateStats(stack_name) {
     if (stack_name === 'actionreadytostart') return;
 
+    // clean up previous run
     removeElementsByClass("aui-lozenge");
+    var padlock = document.getElementById("unlockIcon");
+    if (padlock)
+        padlock.parentNode.removeChild(padlock);
 
     var serviceStatusRequest = new XMLHttpRequest();
     serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
@@ -198,10 +202,10 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            var actionInProgress = getStackActionInProgressRequest.responseText;
+            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
             if (!$("#currentAction").children().hasClass("aui-lozenge")) {
                 $("#currentAction").append(getStatusLozenge(actionInProgress));
-                if (actionInProgress !== "None") {
+                if (actionInProgress.toLowerCase() !== "none") {
                     $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock\" id=\"unlockIcon\">Unlock this stack</span>");
                     document.getElementById("unlockIcon").addEventListener("click", function (data) {
                         window.location = baseUrl + "/admin/" + stack_name;
