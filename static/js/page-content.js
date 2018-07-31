@@ -198,8 +198,16 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            if (!$("#currentAction").children().hasClass("aui-lozenge"))
-                $("#currentAction").append(getStatusLozenge(getStackActionInProgressRequest.responseText));
+            var actionInProgress = getStackActionInProgressRequest.responseText;
+            if (!$("#currentAction").children().hasClass("aui-lozenge")) {
+                $("#currentAction").append(getStatusLozenge(actionInProgress));
+                if (actionInProgress !== "None") {
+                    $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock\" id=\"unlockIcon\">Unlock this stack</span>");
+                    document.getElementById("unlockIcon").addEventListener("click", function (data) {
+                        window.location = baseUrl + "/admin/" + stack_name;
+                    });
+                }
+            }
         }
     };
     getStackActionInProgressRequest.send();

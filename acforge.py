@@ -19,6 +19,7 @@ from flask_sessionstore import Session
 from werkzeug.contrib.fixers import ProxyFix
 from sys import argv
 import configparser
+import os
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -588,6 +589,13 @@ class getVpcs(Resource):
         return vpc_ids
 
 
+class getLockedStacks(Resource):
+    def get(self):
+        locked_stacks = [dir.name for dir in os.scandir(f'locks/') if dir.is_dir()]
+        locked_stacks.sort()
+        return locked_stacks
+
+
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
@@ -637,6 +645,10 @@ def runsql():
 def admin():
     return render_template('admin.html')
 
+@app.route('/admin/<stack_name>', methods = ['GET'])
+def admin_stack(stack_name):
+    return render_template('admin.html', stackToAdmin=stack_name)
+
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
@@ -669,6 +681,7 @@ api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
+api.add_resource(getLockedStacks, '/getLockedStacks')
 
 
 def app_active_in_lb(forgestate, node):
