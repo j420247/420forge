@@ -19,7 +19,6 @@ function readyTheTemplate() {
         $("#paramsForm").submit();
     });
 
-
     AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
         sendParamsAsJson();
         event.preventDefault();
