@@ -12,30 +12,31 @@ function onReady() {
         }, false);
     }
 
-    // currently only works for Confluence
-    if (action === "upgrade" && stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
-        document.getElementById("versionCheckButton").addEventListener("click", function (data) {
-            var version = $("#upgradeVersionSelector").val();
-            $('meta[name=version]').attr('value', version);
-            var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
-            $.ajax({
-                url: url,
-                type: 'HEAD',
-                headers: {'Access-Control-Allow-Origin': url},
-                complete: function (xhr) {
-                    switch (xhr.status) {
-                        case 200:
-                            $("#versionExists").html(getStatusLozenge("Valid"));
-                            $("#action-button").attr("aria-disabled", false);
-                            break;
-                        case 403:
-                        default:
-                            $("#versionExists").html(getStatusLozenge("Invalid"));
-                    }
-                },
-            });
-        });
-    }
+    // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
+    // if (action === "upgrade") {
+    //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
+    //         var version = $("#upgradeVersionSelector").val();
+    //         $('meta[name=version]').attr('value', version);
+    //         var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
+    //         $.ajax({
+    //             url: url,
+    //             type: 'HEAD',
+    //             headers: {'Access-Control-Allow-Origin': url},
+    //             complete: function (xhr) {
+    //                 switch (xhr.status) {
+    //                     case 200:
+    //                         $("#versionExists").html(getStatusLozenge("Valid"));
+    //                         $("#action-button").attr("aria-disabled", false);
+    //                         break;
+    //                     case 403:
+    //                     default:
+    //                         $("#versionExists").html(getStatusLozenge("Invalid"));
+    //                 }
+    //             },
+    //         });
+    //     });
+    // }
+
     addDefaultActionButtonListener();
 }
 
@@ -76,9 +77,10 @@ function selectStack(stack_name) {
             $("#upgradeVersionSelector").removeAttr("disabled");
             $("#action-button").attr("aria-disabled", false);
 
-            // currently only works for Confluence
-            if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
-                $("#versionCheckButton").removeAttr("disabled");
+            // Version checking not currently working
+            // // currently only works for Confluence
+            // if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
+            //     $("#versionCheckButton").removeAttr("disabled");
             break;
         case "update":
         case "clone":
