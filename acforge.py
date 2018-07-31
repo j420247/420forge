@@ -810,7 +810,7 @@ def setaction(action):
     session['stack_name'] = 'none'
     session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-    return redirect(url_for(action, action=action))
+    return redirect(url_for(action))
 
 
 #@app.route('/getparms/upgrade')

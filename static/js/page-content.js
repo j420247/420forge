@@ -1,6 +1,6 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var region = $("meta[name=region]").attr("value");
-var action = $("meta[name=action]").attr("value");
+var action = window.location.pathname.substr(1);
 var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
 
@@ -205,8 +205,8 @@ function updateStats(stack_name) {
             var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
             if (!$("#currentAction").children().hasClass("aui-lozenge")) {
                 $("#currentAction").append(getStatusLozenge(actionInProgress));
-                if (actionInProgress.toLowerCase() !== "none") {
-                    $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock\" id=\"unlockIcon\">Unlock this stack</span>");
+                if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf("/admin/") === -1) {
+                    $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock aui-button\" id=\"unlockIcon\">Unlock this stack</span>");
                     document.getElementById("unlockIcon").addEventListener("click", function (data) {
                         window.location = baseUrl + "/admin/" + stack_name;
                     });
@@ -258,6 +258,7 @@ function getStatusLozenge(text) {
         case "CREATE_COMPLETE":
         case "UPDATE_COMPLETE":
         case "RUNNING":
+        case "FIRST_RUN":
         case "Valid":
         case "None":
             cssClass = "success";
