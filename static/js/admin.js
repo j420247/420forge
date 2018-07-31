@@ -6,7 +6,7 @@ function onReady() {
     $("#unlock-warning").hide();
     $("#stackSelector").hide();
 
-    document.getElementById("lockStacksCheckBox").checked = $("meta[name=stack_locking]").attr("value") === 'true';
+    document.getElementById("lockStacksCheckBox").checked = $("meta[name=stack_locking]").attr("value").toLowerCase() === 'true';
 
     // get locked stacks only
     getLockedStacks();
