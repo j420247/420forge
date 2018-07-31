@@ -37,8 +37,8 @@ parser.add_argument('--prod',
                         help='Start with --prod for SAML production auth. Default (no args) is dev auth')
 args = parser.parse_args()
 
-# using dict of dicts called forgestate to track state of all actions
-forgestate = defaultdict(dict)
+# using dict of dicts called stackstate to track state of a stack's actions
+stackstate = defaultdict(dict)
 
 # list to hold stacks that have already been initialised
 stacks = []
@@ -682,10 +682,6 @@ api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
-
-
-def app_active_in_lb(forgestate, node):
-    return(forgestate)
 
 
 ##

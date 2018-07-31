@@ -7,7 +7,7 @@ mystack = Stack(stack_name, stack_region, app_type)
 
 #status = mystack.print_action_log()
 outcome = mystack.get_current_state()
-outcome = mystack.debug_forgestate()
+outcome = mystack.debug_stackstate()
 #outcome = mystack.rolling_restart()
 #outcome = mystack.full_restart()
 #outcome = mystack.destroy()
