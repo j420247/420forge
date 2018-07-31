@@ -615,7 +615,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, like_stack=None, like_region=None, template_filename=None, app_type=None, instance_type=None, deploy_type=None):
+    def create(self, parms, template_filename, app_type, like_stack=None, like_region=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.forgestate['stack_parms']
@@ -625,8 +625,6 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        if not template_filename:
-            template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
         template=f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
