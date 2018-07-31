@@ -577,7 +577,11 @@ class getTemplates(Resource):
     def get(self, product):
         templates = []
         template_folder = Path(f'wpe-aws/{product.lower()}')
-        templates.extend([file.name for file in list(template_folder.glob('**/*.yaml'))])
+        for file in list(template_folder.glob('**/*.yaml')):
+            # TODO support Server
+            if 'Server' in file.name:
+                continue
+            templates.extend([file.name])
         templates.sort()
         return templates
 
