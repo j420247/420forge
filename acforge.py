@@ -131,6 +131,7 @@ class doclone(RestrictedResource):
 def cloneJson():
     content = request.get_json()[0]
     app_type = '' #TODO is there a better way to do this?
+    instance_type = 'DataCenter' #TODO support server
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
@@ -153,7 +154,7 @@ def cloneJson():
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
-    outcome = mystack.clone(content, app_type=app_type, region=region)
+    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region)
     mystack.clear_current_action()
     return outcome
 
@@ -332,18 +333,19 @@ def updateJson():
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
 
-    # default to DataCenter template
-    template_type = "DataCenter"
+    # default to DataCenter and prod/non-clone template
+    instance_type = 'DataCenter'  # TODO support server
+    deploy_type = ''
 
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-    if env == 'stg':
+    if env == 'stg' or env == 'dr':
         if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
             params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
         if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
             params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        template_type = 'STGorDR'
+        deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, template_type)
+    outcome = mystack.update(params_for_update, instance_type, deploy_type)
     mystack.clear_current_action()
     return outcome
 
@@ -405,8 +407,6 @@ class templateParamsForStack(Resource):
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
 
-        # default to Stg template
-        template_type = 'STGorDR'
         if len(stack_details['Stacks'][0]['Tags']) > 0:
             product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
             if product_tag:
@@ -421,10 +421,10 @@ class templateParamsForStack(Resource):
         else:
             return 'tag-error'
 
-        if env == 'prod':
-            template_type = 'DataCenter'
+        instance_type = 'DataCenter' # TODO support server
+        deploy_type = '' if env == 'prod' else 'Clone'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{template_type}.template.yaml', "r")
+        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
