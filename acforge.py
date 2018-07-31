@@ -771,7 +771,6 @@ def error(error):
 def index():
     use_east1_if_no_region_selected()
     session['products'] = PRODUCTS
-    session['action'] = 'none'
     session['regions'] = get_regions()
     return render_template('index.html')
 
@@ -807,12 +806,11 @@ def setregion(region):
 @app.route('/setaction/<action>')
 def setaction(action):
     use_east1_if_no_region_selected()
-    session['action'] = action
     session['nice_action_name'] = get_nice_action_name(action)
     session['stack_name'] = 'none'
     session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-    return redirect(url_for(action))
+    return redirect(url_for(action, action=action))
 
 
 #@app.route('/getparms/upgrade')
