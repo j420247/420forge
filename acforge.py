@@ -332,8 +332,16 @@ def updateJson():
 
     params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
 
+    # default to DataCenter template
+    template_type = "DataCenter"
+
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-    template_type = 'STGorDR' if env == 'stg' else 'DataCenter'
+    if env == 'stg':
+        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+            params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+            params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+        template_type = 'STGorDR'
 
     outcome = mystack.update(params_for_update, template_type)
     mystack.clear_current_action()
