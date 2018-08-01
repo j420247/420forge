@@ -1,7 +1,6 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var region = $("meta[name=region]").attr("value");
 var action = window.location.pathname.substr(1);
-var stackName = $("meta[name=stack_name]").attr("value");
 var version = $("meta[name=version]").attr("value");
 
 function onReady() {
@@ -55,7 +54,6 @@ var defaultActionBtnEvent = function() {
 };
 
 function selectStack(stack_name) {
-    $('meta[name=stack_name]').attr('value', stack_name);
     $("#stackSelector").text(stack_name);
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
@@ -136,8 +134,13 @@ function processResponse() {
 }
 
 function performAction() {
-    stackName = $("meta[name=stack_name]").attr("value");
-    var url = baseUrl + "/do" + action + "/" + region + "/" + stackName;
+    // scrape page for stack_name
+    var stack_name = $("#stackName").text();
+    if (! stack_name) {
+        stack_name = $("#StackNameVal").val();
+    }
+
+    var url = baseUrl + "/do" + action + "/" + region + "/" + stack_name;
 
     var actionRequest = new XMLHttpRequest();
     switch (action) {
@@ -159,7 +162,7 @@ function performAction() {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
 }
 

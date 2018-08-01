@@ -313,6 +313,6 @@ function sendParamsAsJson() {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackNameForAction;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction;
     }, 1000);
 }

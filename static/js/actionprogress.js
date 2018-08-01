@@ -22,12 +22,13 @@ function onReady() {
     // or if we got here from an action, refresh info now,
     // unless it's create in which case wait 2s for the creation to begin
     } else {
+        var stack_name = new URL(window.location).searchParams.values().next().value;
         $("#stackSelector").hide();
-        selectStack(stackName);
+        selectStack(stack_name);
         if (action !== 'create')
-            getStatus(stackName);
-        refreshLogs(stackName, true, 2000, action);
-        refreshStackInfo(stackName);
+            getStatus(stack_name);
+        refreshLogs(stack_name, true, 2000, action);
+        refreshStackInfo(stack_name);
     }
 }
 

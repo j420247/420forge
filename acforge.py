@@ -785,10 +785,9 @@ def actionReadyToStartRenderTemplate():
     return render_template('actionreadytostart.html')
 
 
-@app.route('/actionprogress/<action>/<stack_name>')
-def actionprogress(action, stack_name):
-    session['stack_name'] = stack_name
-    flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
+@app.route('/actionprogress/<action>')
+def actionprogress(action):
+    flash(f"Action '{action}' on {request.args.get('stack')} has begun", 'success')
     return render_template('actionprogress.html')
 
 
@@ -796,7 +795,6 @@ def actionprogress(action, stack_name):
 def setregion(region):
     session['region'] = region
     session['stacks'] = sorted(get_cfn_stacks_for_region(region))
-    session['stack_name'] = 'none'
     session['version'] = 'none'
     flash(f'Region selected: {region}', 'success')
     return redirect(request.referrer)
@@ -807,7 +805,6 @@ def setregion(region):
 def setaction(action):
     use_east1_if_no_region_selected()
     session['nice_action_name'] = get_nice_action_name(action)
-    session['stack_name'] = 'none'
     session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     return redirect(url_for(action))
