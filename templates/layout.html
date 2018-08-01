@@ -5,10 +5,10 @@
         <meta name="region" value={{ session['region'] }}>
         <meta name="action" value={{ session['action'] }}>
         <meta name="stack_name" value={{ session['stack_name'] }}>
+        <meta name="stack_locking" value={{ session['stack_locking'] }}>
         <meta name="version" value={{ session['version'] }}>
-        <title>Atlassian Cloudformation Forge</title>
-        <link rel="stylesheet" href="/static/css/index.css">
 
+        <link rel="stylesheet" href="/static/css/index.css">
         {#    AUI    #}
         <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
@@ -20,6 +20,8 @@
         <script src="/static/js/global-variables.js"></script>
         <script src="/static/js/page-content.js"></script>
         <script src="/static/js/utils.js"></script>
+
+        <title>Atlassian Cloudformation Forge</title>
         {% block head %}
         {% endblock head %}
     </head>
@@ -124,7 +126,9 @@
                     <section class="aui-page-panel-content">
                         <!--Title-->
                         <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
+                        {% if session['nice_action_name'] != 'Admin' %}
                         <h4 class="component-heading">{{ session['nice_action_name'] }}</h4>
+                        {% endif %}
                         <!--Message bar-->
                         <div id="flash-messages">
                             {% with messages = get_flashed_messages(with_categories=true) %}

@@ -6,6 +6,8 @@ function onReady() {
     $("#unlock-warning").hide();
     $("#stackSelector").hide();
 
+    document.getElementById("lockStacksCheckBox").checked = $("meta[name=stack_locking]").attr("value").toLowerCase() === 'true';
+
     // get locked stacks only
     getLockedStacks();
 
@@ -48,7 +50,6 @@ function getLockedStacks() {
             }
 
             var lockedStacks = JSON.parse(getLockedStacksRequest.responseText);
-            debugger;
             var ul = document.createElement("UL");
             ul.className = "aui-list-truncate";
 
@@ -92,4 +93,17 @@ function getStackActionInProgress(locked_stack) {
         }
     };
     getStackActionInProgressRequest.send();
+}
+
+function setStackLocking() {
+    $("#lockStacksCheckBox").disabled = true;
+    var setStackLockingRequest = new XMLHttpRequest();
+    setStackLockingRequest.open("POST", baseUrl + "/setStackLocking/" + $("#lockStacksCheckBox")[0].checked, true);
+    setStackLockingRequest.setRequestHeader("Content-Type", "text/xml");
+    setStackLockingRequest.onreadystatechange = function () {
+        if (setStackLockingRequest.readyState === XMLHttpRequest.DONE && setStackLockingRequest.status === 200) {
+            $("#lockStacksCheckBox").removeAttr("disabled");
+        }
+    };
+    setStackLockingRequest.send();
 }

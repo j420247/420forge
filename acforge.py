@@ -98,7 +98,7 @@ class RestrictedResource(Resource):
 class doupgrade(RestrictedResource):
     def get(self, region, stack_name, new_version):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('upgrade'):
+        if not mystack.store_current_action('upgrade', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.upgrade(new_version)
@@ -113,7 +113,7 @@ class doupgrade(RestrictedResource):
 class doclone(RestrictedResource):
     def get(self, region, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('clone'):
+        if not mystack.store_current_action('clone', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.destroy()
@@ -151,7 +151,7 @@ def cloneJson():
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
 
     mystack = get_or_create_stack_obj(region, stack_name)
-    if not mystack.store_current_action('clone'):
+    if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
     outcome = mystack.clone(content, app_type=app_type, region=region)
     mystack.clear_current_action()
@@ -161,7 +161,7 @@ def cloneJson():
 class dofullrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('fullrestart'):
+        if not mystack.store_current_action('fullrestart', stack_locking_enabled()):
             return False
         try:
             if threads == 'true':
@@ -180,7 +180,7 @@ class dofullrestart(RestrictedResource):
 class dorollingrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('rollingrestart'):
+        if not mystack.store_current_action('rollingrestart', stack_locking_enabled()):
             return False
         try:
             if threads == 'true':
@@ -199,7 +199,7 @@ class dorollingrestart(RestrictedResource):
 class dodestroy(RestrictedResource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('destroy'):
+        if not mystack.store_current_action('destroy', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.destroy()
@@ -215,7 +215,7 @@ class dodestroy(RestrictedResource):
 class dothreaddumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('diagnostics'):
+        if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.thread_dump()
@@ -230,7 +230,7 @@ class dothreaddumps(RestrictedResource):
 class doheapdumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('diagnostics'):
+        if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.heap_dump()
@@ -245,7 +245,7 @@ class doheapdumps(RestrictedResource):
 class dorunsql(RestrictedResource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('runsql'):
+        if not mystack.store_current_action('runsql', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.run_post_clone_sql()
@@ -260,7 +260,7 @@ class dotag(RestrictedResource):
     def post(self, region, stack_name):
         tags = request.get_json()
         mystack = get_or_create_stack_obj(region, stack_name)
-        if not mystack.store_current_action('tag'):
+        if not mystack.store_current_action('tag', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.tag(tags)
@@ -290,7 +290,7 @@ class docreate(RestrictedResource):
                 app_type = 'crowd'
 
         mystack = get_or_create_stack_obj(session['region'], stack_name)
-        if not mystack.store_current_action('create'):
+        if not mystack.store_current_action('create', stack_locking_enabled()):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
@@ -307,7 +307,7 @@ def updateJson():
 
     stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
     mystack = get_or_create_stack_obj(session['region'], stack_name)
-    if not mystack.store_current_action('update'):
+    if not mystack.store_current_action('update', stack_locking_enabled()):
         return False
     for param in new_params:
         if param['ParameterKey'] != 'StackName' \
@@ -596,6 +596,15 @@ class getLockedStacks(Resource):
         return locked_stacks
 
 
+class setStackLocking(Resource):
+    def post(self, lock):
+        lockfile = Path(f'locks/locking')
+        with open(lockfile, 'w') as lock_state:
+            lock_state.write(lock)
+            session['stack_locking'] = lock
+            return lock
+
+
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
 def upgrade():
@@ -682,6 +691,7 @@ api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<product>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
+api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 
 
 def app_active_in_lb(forgestate, node):
@@ -766,6 +776,22 @@ def get_nice_action_name(action):
     return switcher.get(action, '')
 
 
+def stack_locking_enabled():
+    lockfile = Path(f'locks/locking')
+    with open(lockfile, 'r') as lock_state:
+        try:
+            return lock_state.read() == 'true'
+        except Exception as e:
+            print(e.args[0])
+
+
+def get_forge_settings():
+    use_east1_if_no_region_selected()
+    session['products'] = PRODUCTS
+    session['regions'] = get_regions()
+    session['stack_locking'] = stack_locking_enabled()
+
+
 @app.route('/error/<error>')
 def error(error):
     return render_template('error.html', code=error), error
@@ -773,10 +799,8 @@ def error(error):
 
 @app.route('/')
 def index():
-    use_east1_if_no_region_selected()
-    session['products'] = PRODUCTS
+    get_forge_settings()
     session['action'] = 'none'
-    session['regions'] = get_regions()
     return render_template('index.html')
 
 
@@ -810,7 +834,7 @@ def setregion(region):
 # Ex. action could equal upgrade, rollingrestart, etc.
 @app.route('/setaction/<action>')
 def setaction(action):
-    use_east1_if_no_region_selected()
+    get_forge_settings()
     session['action'] = action
     session['nice_action_name'] = get_nice_action_name(action)
     session['stack_name'] = 'none'

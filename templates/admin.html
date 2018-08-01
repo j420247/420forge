@@ -6,7 +6,18 @@
 {% endblock head %}
 
 {% block extraInput %}
-<h5 class="component-heading">Locked stacks (multi region)</h5>
+<h4 class="component-heading">Stack locking</h4>
+<p>Locking stacks prevents multiple actions from being performed on a stack at the same time</p>
+<form class="aui">
+    <fieldset class="group">
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="lockStacksCheckBox" id="lockStacksCheckBox" onclick="setStackLocking()">
+            <label for="lockStacksCheckBox">Enable stack locking</label>
+        </div>
+    </fieldset>
+</form>
+
+<h5 class="component-heading">Currently locked stacks (multi region)</h5>
 <div class="aui-panel">
     <a id="lockedStackSelector" href="#lockedStacksDropdownDiv" aria-owns="lockedStacksDropdownDiv" aria-haspopup="true"
        class="aui-button aui-style-default aui-dropdown2-trigger">
