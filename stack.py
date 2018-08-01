@@ -723,6 +723,12 @@ class Stack:
 
     def tag(self, tags):
         self.state.logaction(log.INFO, f'Tagging stack')
+        product = next((tag for tag in tags if tag['Key'] == 'product'), None)
+        if product:
+            self.app_type = product['Value']
+        environment = next((tag for tag in tags if tag['Key'] == 'environment'), None)
+        if 'environment':
+            self.state.update('environment', environment['Value'])
         params = self.get_parms_for_update()
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
