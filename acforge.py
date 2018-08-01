@@ -26,7 +26,7 @@ SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
-                        'DELETE_FAILED']
+                        'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -309,31 +309,31 @@ def updateJson():
     mystack = get_or_create_stack_obj(session['region'], stack_name)
     if not mystack.store_current_action('update', stack_locking_enabled()):
         return False
-    for param in new_params:
-        if param['ParameterKey'] != 'StackName' \
-                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
-            del param['ParameterValue']
-            param['UsePreviousValue'] = True
 
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-
-    cfn = boto3.client('cloudformation', region_name=session['region'])
+    cfn_client = boto3.client('cloudformation', region_name=session['region'])
+    cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
     try:
-        stack_details = cfn.describe_stacks(StackName=stack_name)
+        stack_details = cfn_client.describe_stacks(StackName=stack_name)
+        existing_template_params = cfn_resource.Stack(stack_name).parameters
     except Exception as e:
         if e.response and "does not exist" in e.response['Error']['Message']:
             print(f'Stack {stack_name} does not exist')
             return f'Stack {stack_name} does not exist'
         print(e.args[0])
 
-    # default to DataCenter template
-    template_type = "DataCenter"
+    for param in new_params:
+        # if param was not in previous template, always pass it in the change set
+        if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
+            continue
+        # if param has not changed from previous, delete the value and set UsePreviousValue to true
+        if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
 
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-    if env == 'stg':
-        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        template_type = 'STGorDR'
+    template_type = 'STGorDR' if env == 'stg' else 'DataCenter'
 
     outcome = mystack.update(params_for_update, template_type)
     mystack.clear_current_action()
