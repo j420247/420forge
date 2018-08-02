@@ -13,8 +13,6 @@ function readyTheTemplate() {
     }
 
     var actionButton = document.getElementById("action-button");
-    actionButton.setAttribute("aria-disabled", true);
-    actionButton.disabled = true;
     actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#paramsForm").submit();
@@ -55,8 +53,6 @@ function selectTemplateForStack(stackToRetrieve) {
             origParams = JSON.parse(stackParamsRequest.responseText);
             if (origParams === 'tag-error') {
                 $("#paramsList").html("");
-                $("#action-button").attr("aria-disabled", true);
-                $("#action-button").prop("disabled", true);
                 $("#flash-messages").html
                 ("<div class=\"aui-message aui-message-error\" id=\"aui-message-bar\">\n" +
                     "    <ul style=\"list-style-type: none;\">\n" +
@@ -102,7 +98,6 @@ function selectTemplateForStack(stackToRetrieve) {
                 $("#clone-params").show();
             $("#paramsForm").show();
             $("#action-button").attr("aria-disabled", false);
-            $("#action-button").prop("disabled", false);
         }
     };
     stackParamsRequest.send();

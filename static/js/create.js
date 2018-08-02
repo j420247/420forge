@@ -74,7 +74,6 @@ function getTemplate(template) {
             paramsList.appendChild(fieldset);
             $("#stack-name-input").show();
             $("#action-button").attr("aria-disabled", false);
-            $("#action-button").prop("disabled", false);
         }
     };
     templateParamsRequest.send();
@@ -85,5 +84,4 @@ function resetForm() {
     $("#stack-name-input").hide();
     $("#paramsList").html("");
     $("#action-button").attr("aria-disabled", true);
-    $("#action-button").prop("disabled", true);
 }
