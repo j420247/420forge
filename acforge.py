@@ -636,7 +636,6 @@ def rollingrestart():
 
 @app.route('/create', methods = ['GET'])
 def create():
-    get_forge_settings()
     return render_template('create.html')
 
 @app.route('/destroy', methods = ['GET'])
