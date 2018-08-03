@@ -7,6 +7,7 @@ function onReady() {
             var product = data.target.text;
             $("#productSelector").text(product);
             getTemplates(product);
+            resetForm();
         }, false);
     }
 }
@@ -72,9 +73,15 @@ function getTemplate(template) {
             var paramsList = document.getElementById("paramsList");
             paramsList.appendChild(fieldset);
             $("#stack-name-input").show();
-            $("#paramsForm").show();
             $("#action-button").attr("aria-disabled", false);
         }
     };
     templateParamsRequest.send();
+}
+
+function resetForm() {
+    $("#templateSelector").text('Select Template');
+    $("#stack-name-input").hide();
+    $("#paramsList").html("");
+    $("#action-button").attr("aria-disabled", true);
 }

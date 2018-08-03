@@ -26,7 +26,7 @@ SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
-                        'DELETE_FAILED']
+                        'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -131,6 +131,7 @@ class doclone(RestrictedResource):
 def cloneJson():
     content = request.get_json()[0]
     app_type = '' #TODO is there a better way to do this?
+    instance_type = 'DataCenter' #TODO support server
 
     for param in content:
         if param['ParameterKey'] == 'StackName':
@@ -153,7 +154,7 @@ def cloneJson():
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
-    outcome = mystack.clone(content, app_type=app_type, region=region)
+    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region)
     mystack.clear_current_action()
     return outcome
 
@@ -309,33 +310,42 @@ def updateJson():
     mystack = get_or_create_stack_obj(session['region'], stack_name)
     if not mystack.store_current_action('update', stack_locking_enabled()):
         return False
-    for param in new_params:
-        if param['ParameterKey'] != 'StackName' \
-                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
-            del param['ParameterValue']
-            param['UsePreviousValue'] = True
 
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-
-    cfn = boto3.client('cloudformation', region_name=session['region'])
+    cfn_client = boto3.client('cloudformation', region_name=session['region'])
+    cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
     try:
-        stack_details = cfn.describe_stacks(StackName=stack_name)
+        stack_details = cfn_client.describe_stacks(StackName=stack_name)
+        existing_template_params = cfn_resource.Stack(stack_name).parameters
     except Exception as e:
         if e.response and "does not exist" in e.response['Error']['Message']:
             print(f'Stack {stack_name} does not exist')
             return f'Stack {stack_name} does not exist'
         print(e.args[0])
 
-    # default to DataCenter template
-    template_type = "DataCenter"
+    for param in new_params:
+        # if param was not in previous template, always pass it in the change set
+        if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
+            continue
+        # if param has not changed from previous, delete the value and set UsePreviousValue to true
+        if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            del param['ParameterValue']
+            param['UsePreviousValue'] = True
+
+    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
+
+    # default to DataCenter and prod/non-clone template
+    instance_type = 'DataCenter'  # TODO support server
+    deploy_type = ''
 
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-    if env == 'stg':
-        params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-        params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        template_type = 'STGorDR'
+    if env == 'stg' or env == 'dr':
+        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+            params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+            params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+        deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, template_type)
+    outcome = mystack.update(params_for_update, instance_type, deploy_type)
     mystack.clear_current_action()
     return outcome
 
@@ -397,8 +407,6 @@ class templateParamsForStack(Resource):
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
 
-        # default to Stg template
-        template_type = 'STGorDR'
         if len(stack_details['Stacks'][0]['Tags']) > 0:
             product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
             if product_tag:
@@ -413,10 +421,10 @@ class templateParamsForStack(Resource):
         else:
             return 'tag-error'
 
-        if env == 'prod':
-            template_type = 'DataCenter'
+        instance_type = 'DataCenter' # TODO support server
+        deploy_type = '' if env == 'prod' else 'Clone'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{template_type}.template.yaml', "r")
+        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -569,7 +577,11 @@ class getTemplates(Resource):
     def get(self, product):
         templates = []
         template_folder = Path(f'wpe-aws/{product.lower()}')
-        templates.extend([file.name for file in list(template_folder.glob('**/*.yaml'))])
+        for file in list(template_folder.glob('**/*.yaml')):
+            # TODO support Server
+            if 'Server' in file.name:
+                continue
+            templates.extend([file.name])
         templates.sort()
         return templates
 

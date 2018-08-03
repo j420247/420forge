@@ -553,15 +553,16 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type, region):
+    def clone(self, stack_parms, app_type, instance_type, region):
         self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
         self.state.update('region', region)
         self.region = region
+        deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}STGorDR.template.yaml', app_type=app_type):
+            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -574,9 +575,9 @@ class Stack:
         return True
 
 
-    def update(self, stack_parms, template_type):
+    def update(self, stack_parms, instance_type, deploy_type):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
-        template_filename = f'{self.app_type.title()}{template_type}.template.yaml'
+        template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
         template= f'wpe-aws/{self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -613,7 +614,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, like_stack=None, like_region=None, template_filename=None, app_type=None):
+    def create(self, parms, template_filename, app_type, like_stack=None, like_region=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.stackstate['stack_parms']
@@ -623,8 +624,6 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        if not template_filename:
-            template_filename = f'{self.app_type.title()}STGorDR.template.yaml'
         template=f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
