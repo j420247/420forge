@@ -1,7 +1,6 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var region = $("meta[name=region]").attr("value");
 var action = window.location.pathname.substr(1);
-var version = $("meta[name=version]").attr("value");
 
 function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -15,7 +14,6 @@ function onReady() {
     // if (action === "upgrade") {
     //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
     //         var version = $("#upgradeVersionSelector").val();
-    //         $('meta[name=version]').attr('value', version);
     //         var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
     //         $.ajax({
     //             url: url,
@@ -47,10 +45,10 @@ function addDefaultActionButtonListener() {
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
-        version = $("#upgradeVersionSelector").val();
-        $('meta[name=version]').attr('value', version);
+        performAction($("#upgradeVersionSelector").val())
+    } else {
+        performAction()
     }
-    performAction()
 };
 
 function selectStack(stack_name) {
@@ -133,7 +131,7 @@ function processResponse() {
     }
 }
 
-function performAction() {
+function performAction(version) {
     // scrape page for stack_name
     var stack_name = $("#stackName").text();
     if (! stack_name) {
@@ -145,7 +143,6 @@ function performAction() {
     var actionRequest = new XMLHttpRequest();
     switch (action) {
         case "upgrade":
-            version = $("meta[name=version]").attr("value");
             url += "/" + version;
             break;
         case "rollingrestart":

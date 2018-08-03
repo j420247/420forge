@@ -815,7 +815,6 @@ def actionprogress(action):
 def setregion(region):
     session['region'] = region
     session['stacks'] = sorted(get_cfn_stacks_for_region(region))
-    session['version'] = 'none'
     flash(f'Region selected: {region}', 'success')
     return redirect(request.referrer)
 
@@ -825,7 +824,6 @@ def setregion(region):
 def setaction(action):
     get_forge_settings()
     session['nice_action_name'] = get_nice_action_name(action)
-    session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     return redirect(url_for(action))
 
