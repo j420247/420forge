@@ -740,13 +740,6 @@ def general_constructor(loader, tag_suffix, node):
     return node.value
 
 
-def use_east1_if_no_region_selected():
-    # use first region in forge.properties if no region selected (eg first load)
-    if 'region' not in session:
-        session['region'] = get_regions()[0][0]
-        session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-
-
 def get_regions():
     config = configparser.ConfigParser()
     config.read('forge.properties')
@@ -782,7 +775,10 @@ def stack_locking_enabled():
 
 
 def get_forge_settings():
-    use_east1_if_no_region_selected()
+    # use first region in forge.properties if no region selected (eg first load)
+    if 'region' not in session:
+        session['region'] = get_regions()[0][0]
+        session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     session['products'] = PRODUCTS
     session['regions'] = get_regions()
     session['stack_locking'] = stack_locking_enabled()
