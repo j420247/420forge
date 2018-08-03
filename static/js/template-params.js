@@ -40,8 +40,6 @@ function selectTemplateForStack(stackToRetrieve) {
     if (action == 'clone') {
         getEbsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
         getRdsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
-    } else{
-        $('meta[name=stack_name]').attr('value', stackToRetrieve);
     }
 
     var stackParamsRequest = new XMLHttpRequest();
