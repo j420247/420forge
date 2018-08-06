@@ -1,10 +1,9 @@
-from forgestate import Forgestate
+from stackstate import Stackstate
 import boto3
 import botocore
 import time
 import requests
 import json
-import sys
 from pprint import pprint
 from pathlib import Path
 import log
@@ -15,12 +14,12 @@ class Stack:
     """An object describing an instance of an aws cloudformation stack:
 
     Attributes:
-        forgestate: A dict of dicts containing all state information.
+        stackstate: A dict of dicts containing all state information.
         stack_name: The name of the stack we are keeping state for
     """
 
     def __init__(self, stack_name, region, app_type=None):
-        self.state = Forgestate(stack_name)
+        self.state = Stackstate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.region = region
@@ -45,14 +44,14 @@ class Stack:
 
 
 ## Stack - micro function methods
-    def debug_forgestate(self):
+    def debug_stackstate(self):
         self.state.load_state()
-        pprint(self.state.forgestate)
+        pprint(self.state.stackstate)
         return
 
     def getLburl(self, stack_details):
-        if 'lburl' in self.state.forgestate:
-            return self.state.forgestate['lburl'].replace("https", "http")
+        if 'lburl' in self.state.stackstate:
+            return self.state.stackstate['lburl'].replace("https", "http")
         else:
             rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                         p['OutputKey'] == 'LoadBalancerURL'][0] + \
@@ -83,7 +82,7 @@ class Stack:
                 if v == parmkey:
                     dict['ParameterValue'] = parmvalue
                     key_found=True
-                if self.state.forgestate['action'] == 'upgrade' and (v == 'DBMasterUserPassword' or v == 'DBPassword'):
+                if self.state.stackstate['action'] == 'upgrade' and (v == 'DBMasterUserPassword' or v == 'DBPassword'):
                     try:
                         del dict['ParameterValue']
                     except:
@@ -197,7 +196,7 @@ class Stack:
     def spindown_to_zero_appnodes(self):
         self.state.logaction(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spindown_parms = self.state.forgestate['stack_parms']
+        spindown_parms = self.state.stackstate['stack_parms']
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
         if self.app_type == 'confluence':
@@ -243,17 +242,17 @@ class Stack:
         self.state.logaction(log.INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.forgestate['stack_parms']
+        spinup_parms = self.state.stackstate['stack_parms']
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
         if self.app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
         elif self.app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif self.app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
         try:
             update_stack = cfn.update_stack(
@@ -273,12 +272,12 @@ class Stack:
         return True
 
     def validate_service_responding(self):
-        self.state.logaction(log.INFO, "Waiting for service to reply RUNNING on /status")
+        self.state.logaction(log.INFO, "Waiting for service to reply on /status")
         service_state = self.check_service_status()
-        while service_state != 'RUNNING':
+        while service_state  not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
-        self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting RUNNING')
+        self.state.logaction(log.INFO, f' {self.stack_name} /status now reporting {service_state}')
         return
 
     def check_service_status(self, logMsgs=True):
@@ -291,9 +290,9 @@ class Stack:
         self.state.update('lburl', self.getLburl(stack_details))
         if logMsgs:
             self.state.logaction(log.INFO,
-                        f' ==> checking service status at {self.state.forgestate["lburl"]}/status')
+                        f' ==> checking service status at {self.state.stackstate["lburl"]}/status')
         try:
-            service_status = requests.get(self.state.forgestate['lburl'] + '/status', timeout=5)
+            service_status = requests.get(self.state.stackstate['lburl'] + '/status', timeout=5)
             if service_status.status_code == 200:
                 status = service_status.text
                 json_status = json.loads(status)
@@ -354,17 +353,17 @@ class Stack:
     def spinup_remaining_nodes(self):
         self.state.logaction(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.forgestate['stack_parms']
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.forgestate['appnodemax'])
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.forgestate['appnodemin'])
+        spinup_parms = self.state.stackstate['stack_parms']
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.stackstate['appnodemax'])
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.stackstate['appnodemin'])
         if self.app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
         if self.app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.forgestate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
         if self.app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.forgestate['new_version'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.forgestate['syncnodemax'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.forgestate['syncnodemin'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.stackstate['syncnodemax'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.stackstate['syncnodemin'])
         self.state.logaction(log.INFO, f'Spinup params: {spinup_parms}')
         try:
             update_stack = cfn.update_stack(
@@ -423,7 +422,7 @@ class Stack:
                 self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
             else:
                 result = ""
-                while result != 'RUNNING':
+                while result not in ['RUNNING', 'FIRST_RUN']:
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
@@ -524,9 +523,9 @@ class Stack:
             self.state.logaction(log.INFO, "Upgrade complete - failed")
             return False
         # spinup remaining appnodes in stack if needed
-        if self.state.forgestate['appnodemin'] != "1":
+        if self.state.stackstate['appnodemin'] != "1":
             self.spinup_remaining_nodes()
-        elif 'syncnodemin' in self.state.forgestate.keys() and self.state.forgestate[
+        elif 'syncnodemin' in self.state.stackstate.keys() and self.state.stackstate[
             'syncnodemin'] != "1":
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
@@ -618,7 +617,7 @@ class Stack:
     def create(self, parms, template_filename, app_type, like_stack=None, like_region=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
-            stack_parms = self.state.forgestate['stack_parms']
+            stack_parms = self.state.stackstate['stack_parms']
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         elif parms:
             parms.remove(parms[0])
@@ -723,6 +722,12 @@ class Stack:
 
     def tag(self, tags):
         self.state.logaction(log.INFO, f'Tagging stack')
+        product = next((tag for tag in tags if tag['Key'] == 'product'), None)
+        if product:
+            self.app_type = product['Value']
+        environment = next((tag for tag in tags if tag['Key'] == 'environment'), None)
+        if 'environment':
+            self.state.update('environment', environment['Value'])
         params = self.get_parms_for_update()
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)

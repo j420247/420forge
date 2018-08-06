@@ -123,6 +123,6 @@ function sendTagsAsJson() {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stack_name;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
 }

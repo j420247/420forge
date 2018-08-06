@@ -37,8 +37,8 @@ parser.add_argument('--prod',
                         help='Start with --prod for SAML production auth. Default (no args) is dev auth')
 args = parser.parse_args()
 
-# using dict of dicts called forgestate to track state of all actions
-forgestate = defaultdict(dict)
+# using dict of dicts called stackstate to track state of a stack's actions
+stackstate = defaultdict(dict)
 
 # list to hold stacks that have already been initialised
 stacks = []
@@ -706,10 +706,6 @@ api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 
 
-def app_active_in_lb(forgestate, node):
-    return(forgestate)
-
-
 ##
 #### Common functions
 ##
@@ -756,13 +752,6 @@ def general_constructor(loader, tag_suffix, node):
     return node.value
 
 
-def use_east1_if_no_region_selected():
-    # use first region in forge.properties if no region selected (eg first load)
-    if 'region' not in session:
-        session['region'] = get_regions()[0][0]
-        session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-
-
 def get_regions():
     config = configparser.ConfigParser()
     config.read('forge.properties')
@@ -798,7 +787,10 @@ def stack_locking_enabled():
 
 
 def get_forge_settings():
-    use_east1_if_no_region_selected()
+    # use first region in forge.properties if no region selected (eg first load)
+    if 'region' not in session:
+        session['region'] = get_regions()[0][0]
+        session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     session['products'] = PRODUCTS
     session['regions'] = get_regions()
     session['stack_locking'] = stack_locking_enabled()
@@ -812,7 +804,6 @@ def error(error):
 @app.route('/')
 def index():
     get_forge_settings()
-    session['action'] = 'none'
     return render_template('index.html')
 
 
@@ -826,10 +817,9 @@ def actionReadyToStartRenderTemplate():
     return render_template('actionreadytostart.html')
 
 
-@app.route('/actionprogress/<action>/<stack_name>')
-def actionprogress(action, stack_name):
-    session['stack_name'] = stack_name
-    flash(f'Action \'{action}\' on {stack_name} has begun', 'success')
+@app.route('/actionprogress/<action>')
+def actionprogress(action):
+    flash(f"Action '{action}' on {request.args.get('stack')} has begun", 'success')
     return render_template('actionprogress.html')
 
 
@@ -837,8 +827,6 @@ def actionprogress(action, stack_name):
 def setregion(region):
     session['region'] = region
     session['stacks'] = sorted(get_cfn_stacks_for_region(region))
-    session['stack_name'] = 'none'
-    session['version'] = 'none'
     flash(f'Region selected: {region}', 'success')
     return redirect(request.referrer)
 
@@ -847,10 +835,7 @@ def setregion(region):
 @app.route('/setaction/<action>')
 def setaction(action):
     get_forge_settings()
-    session['action'] = action
     session['nice_action_name'] = get_nice_action_name(action)
-    session['stack_name'] = 'none'
-    session['version'] = 'none'
     session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     return redirect(url_for(action))
 

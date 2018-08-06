@@ -1,8 +1,6 @@
 var baseUrl = window.location .protocol + "//" + window.location.host;
 var region = $("meta[name=region]").attr("value");
-var action = $("meta[name=action]").attr("value");
-var stackName = $("meta[name=stack_name]").attr("value");
-var version = $("meta[name=version]").attr("value");
+var action = window.location.pathname.substr(1);
 
 function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -12,30 +10,30 @@ function onReady() {
         }, false);
     }
 
-    // currently only works for Confluence
-    if (action === "upgrade" && stackName.indexOf("eac") !== -1 && stackName.indexOf("eacj") === -1) {
-        document.getElementById("versionCheckButton").addEventListener("click", function (data) {
-            var version = $("#upgradeVersionSelector").val();
-            $('meta[name=version]').attr('value', version);
-            var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
-            $.ajax({
-                url: url,
-                type: 'HEAD',
-                headers: {'Access-Control-Allow-Origin': url},
-                complete: function (xhr) {
-                    switch (xhr.status) {
-                        case 200:
-                            $("#versionExists").html(getStatusLozenge("Valid"));
-                            $("#action-button").attr("aria-disabled", false);
-                            break;
-                        case 403:
-                        default:
-                            $("#versionExists").html(getStatusLozenge("Invalid"));
-                    }
-                },
-            });
-        });
-    }
+    // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
+    // if (action === "upgrade") {
+    //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
+    //         var version = $("#upgradeVersionSelector").val();
+    //         var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
+    //         $.ajax({
+    //             url: url,
+    //             type: 'HEAD',
+    //             headers: {'Access-Control-Allow-Origin': url},
+    //             complete: function (xhr) {
+    //                 switch (xhr.status) {
+    //                     case 200:
+    //                         $("#versionExists").html(getStatusLozenge("Valid"));
+    //                         $("#action-button").attr("aria-disabled", false);
+    //                         break;
+    //                     case 403:
+    //                     default:
+    //                         $("#versionExists").html(getStatusLozenge("Invalid"));
+    //                 }
+    //             },
+    //         });
+    //     });
+    // }
+
     addDefaultActionButtonListener();
 }
 
@@ -47,14 +45,13 @@ function addDefaultActionButtonListener() {
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
-        version = $("#upgradeVersionSelector").val();
-        $('meta[name=version]').attr('value', version);
+        performAction($("#upgradeVersionSelector").val())
+    } else {
+        performAction()
     }
-    performAction()
 };
 
 function selectStack(stack_name) {
-    $('meta[name=stack_name]').attr('value', stack_name);
     $("#stackSelector").text(stack_name);
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
@@ -76,9 +73,10 @@ function selectStack(stack_name) {
             $("#upgradeVersionSelector").removeAttr("disabled");
             $("#action-button").attr("aria-disabled", false);
 
-            // currently only works for Confluence
-            if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
-                $("#versionCheckButton").removeAttr("disabled");
+            // Version checking not currently working
+            // // currently only works for Confluence
+            // if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
+            //     $("#versionCheckButton").removeAttr("disabled");
             break;
         case "update":
         case "clone":
@@ -133,14 +131,18 @@ function processResponse() {
     }
 }
 
-function performAction() {
-    stackName = $("meta[name=stack_name]").attr("value");
-    var url = baseUrl + "/do" + action + "/" + region + "/" + stackName;
+function performAction(version) {
+    // scrape page for stack_name
+    var stack_name = $("#stackName").text();
+    if (! stack_name) {
+        stack_name = $("#StackNameVal").val();
+    }
+
+    var url = baseUrl + "/do" + action + "/" + region + "/" + stack_name;
 
     var actionRequest = new XMLHttpRequest();
     switch (action) {
         case "upgrade":
-            version = $("meta[name=version]").attr("value");
             url += "/" + version;
             break;
         case "rollingrestart":
@@ -157,7 +159,7 @@ function performAction() {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
 }
 
@@ -205,8 +207,8 @@ function updateStats(stack_name) {
             var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
             if (!$("#currentAction").children().hasClass("aui-lozenge")) {
                 $("#currentAction").append(getStatusLozenge(actionInProgress));
-                if (actionInProgress.toLowerCase() !== "none") {
-                    $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock\" id=\"unlockIcon\">Unlock this stack</span>");
+                if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf("/admin/") === -1) {
+                    $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock aui-button\" id=\"unlockIcon\">Unlock this stack</span>");
                     document.getElementById("unlockIcon").addEventListener("click", function (data) {
                         window.location = baseUrl + "/admin/" + stack_name;
                     });
@@ -258,6 +260,7 @@ function getStatusLozenge(text) {
         case "CREATE_COMPLETE":
         case "UPDATE_COMPLETE":
         case "RUNNING":
+        case "FIRST_RUN":
         case "Valid":
         case "None":
             cssClass = "success";

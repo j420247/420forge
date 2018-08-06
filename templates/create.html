@@ -43,7 +43,8 @@
 {% block extraParams %}
 <div class="field-group" id="stack-name-input">
     <label for="StackNameVal">StackName</label>
-    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
+    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required
+           pattern="[a-zA-Z][-a-zA-Z0-9]*" data-aui-validation-pattern-msg="Stack name must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*">
 </div>
 {% endblock extraParams %}
 

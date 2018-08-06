@@ -12,29 +12,29 @@ function onReady() {
 }
 
 function threadDumps() {
-    stackName = $("meta[name=stack_name]").attr("value");
+    var stack_name = $("#stackName").text();
     var threadDumpRequest = new XMLHttpRequest();
-    threadDumpRequest.open("GET", baseUrl + "/dothreaddumps/" + region + "/" + stackName, true);
+    threadDumpRequest.open("GET", baseUrl + "/dothreaddumps/" + region + "/" + stack_name, true);
     threadDumpRequest.setRequestHeader("Content-Type", "text/xml");
     threadDumpRequest.send();
 
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
 }
 
 function heapDumps() {
-    stackName = $("meta[name=stack_name]").attr("value");
+    var stack_name = $("#stackName").text();
     var heapDumpRequest = new XMLHttpRequest();
-    heapDumpRequest.open("GET", baseUrl + "/doheapdumps/" + region + "/" + stackName, true);
+    heapDumpRequest.open("GET", baseUrl + "/doheapdumps/" + region + "?stack=" + stack_name, true);
     heapDumpRequest.setRequestHeader("Content-Type", "text/xml");
     heapDumpRequest.send();
 
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "/" + stackName;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
 }
