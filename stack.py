@@ -208,7 +208,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spindown_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM'],
+                Capabilities=['CAPABILITY_IAM']
             )
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
@@ -259,7 +259,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM'],
+                Capabilities=['CAPABILITY_IAM']
             )
         except botocore.exceptions.ClientError as e:
             self.state.logaction(log.INFO, f'Stack spinup failed: {e.args[0]}')
@@ -370,7 +370,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM'],
+                Capabilities=['CAPABILITY_IAM']
             )
         except Exception as e:
             print(e.args[0])
@@ -586,7 +586,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
-                Capabilities=['CAPABILITY_IAM'],
+                Capabilities=['CAPABILITY_IAM']
             )
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
@@ -643,7 +643,7 @@ class Stack:
                     },{
                         'Key': 'created_by',
                         'Value': creator
-                    },],
+                    }]
             )
             time.sleep(5)
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -746,7 +746,7 @@ class Stack:
                 Parameters=params,
                 UsePreviousTemplate=True,
                 Tags=tags,
-                Capabilities=['CAPABILITY_IAM'],
+                Capabilities=['CAPABILITY_IAM']
             )
             self.state.logaction(log.INFO, f'Tagging successfully initiated: {outcome}')
         except Exception as e:
