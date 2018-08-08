@@ -553,7 +553,7 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type, instance_type, region):
+    def clone(self, stack_parms, app_type, instance_type, region, creator):
         self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
@@ -562,7 +562,7 @@ class Stack:
         deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type):
+            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -614,7 +614,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, template_filename, app_type, like_stack=None, like_region=None):
+    def create(self, parms, template_filename, app_type, creator, like_stack=None, like_region=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.stackstate['stack_parms']
@@ -624,7 +624,7 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        template=f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
+        template = f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -634,6 +634,16 @@ class Stack:
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
                 Capabilities=['CAPABILITY_IAM'],
+                Tags=[{
+                        'Key': 'product',
+                        'Value': app_type
+                    },{
+                        'Key': 'environment',
+                        'Value': next(parm['ParameterValue'] for parm in parms if parm['ParameterKey'] == 'DeployEnvironment')
+                    },{
+                        'Key': 'created_by',
+                        'Value': creator
+                    },],
             )
             time.sleep(5)
             stack_details = cfn.describe_stacks(StackName=self.stack_name)

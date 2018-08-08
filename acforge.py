@@ -113,11 +113,12 @@ class doupgrade(RestrictedResource):
 class doclone(RestrictedResource):
     def get(self, region, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
         mystack = get_or_create_stack_obj(region, stack_name)
+        creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         if not mystack.store_current_action('clone', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.destroy()
-            outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type)
+            outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type, creator)
         except Exception as e:
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
@@ -154,7 +155,8 @@ def cloneJson():
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
-    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region)
+    creator = session['saml']['subject'] if 'saml' in session else 'unknown'
+    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region, creator=creator)
     mystack.clear_current_action()
     return outcome
 
@@ -294,7 +296,8 @@ class docreate(RestrictedResource):
         if not mystack.store_current_action('create', stack_locking_enabled()):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type)
+        creator = session['saml']['subject'] if 'saml' in session else 'unknown'
+        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator)
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
