@@ -3,7 +3,7 @@ flask
 flask_restful
 boto3
 requests
-ruamel.yaml
+ruamel.yaml==0.15.53
 flask_saml
 flask_sqlalchemy
 flask_sessionstore
