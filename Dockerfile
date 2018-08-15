@@ -3,7 +3,7 @@ FROM python:3.6-alpine
 WORKDIR /opt/forge
 
 RUN apk update && \
-    apk add build-base libffi-dev openssl-dev
+    apk add build-base libffi-dev openssl-dev libxml2 xmlsec
 
 ADD . /opt/forge
 
