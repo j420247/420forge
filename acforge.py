@@ -20,6 +20,7 @@ from werkzeug.contrib.fixers import ProxyFix
 from sys import argv
 import configparser
 import os
+from version import __version__
 
 # global configuration
 SECRET_KEY = 'key_to_the_forge'
@@ -44,6 +45,7 @@ stackstate = defaultdict(dict)
 stacks = []
 
 # create and initialize app
+print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
@@ -797,6 +799,7 @@ def get_forge_settings():
     session['products'] = PRODUCTS
     session['regions'] = get_regions()
     session['stack_locking'] = stack_locking_enabled()
+    session['forge_version'] = __version__
 
 
 @app.route('/error/<error>')
