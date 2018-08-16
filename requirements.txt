@@ -3,6 +3,7 @@ flask
 flask_restful
 boto3
 requests
+# pinned temporarily due to YAML parsing errors; see ITOPS-620
 ruamel.yaml==0.15.53
 flask_saml
 flask_sqlalchemy
