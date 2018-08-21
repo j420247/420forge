@@ -810,6 +810,7 @@ def error(error):
 @app.route('/')
 def index():
     get_forge_settings()
+    session['nice_action_name'] = ''
     return render_template('index.html')
 
 

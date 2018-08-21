@@ -124,7 +124,7 @@ function createInputParameter(param, fieldset) {
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
 
-        if (action === 'clone' && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+        if ((action === 'clone' || action === 'create') && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
             input.type="password";
             input.value = "";
