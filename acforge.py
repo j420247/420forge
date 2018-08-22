@@ -350,7 +350,7 @@ def updateJson():
     return outcome
 
 
-class selfStatus(Resource):
+class forgeStatus(Resource):
     def get(self):
         return {
             'status': 'ok',
@@ -694,7 +694,7 @@ api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(dotag, '/dotag/<region>/<stack_name>')
 
 # Stack info
-api.add_resource(selfStatus, '/status')
+api.add_resource(forgeStatus, '/status')
 api.add_resource(stackStatus, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(stackState, '/stackState/<region>/<stack_name>')
