@@ -1,10 +1,8 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Atlassian CloudFormation Forge
-
 Metadata:
   AWS::CloudFormation::Interface:
-
     ParameterGroups:
       - Label:
           default: Forge setup
@@ -33,7 +31,6 @@ Metadata:
           - ForgeImageName
           - CpuUnits
           - MemoryUnits
-
     ParameterLabels:
       CpuUnits:
         default: ECS CPU units
@@ -65,7 +62,6 @@ Metadata:
         default: Sub-domain for Hosted Zone (optional)
       VPC:
         default: VPC *
-
 Parameters:
   CpuUnits:
     Default: 256
@@ -134,7 +130,6 @@ Parameters:
   VPC:
     Description: Virtual Private Cloud
     Type: AWS::EC2::VPC::Id
-
 Conditions:
   DoSSL:
     !Not [!Equals [!Ref SSLCertificateName, '']]
@@ -148,12 +143,9 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, ""]]
   UseSubDomainName:
     !Not [!Equals [!Ref SubDomainName, '']]
-
 Resources:
-
   ECSCluster:
     Type: AWS::ECS::Cluster
-
   Service:
     Type: AWS::ECS::Service
     Properties:
@@ -173,7 +165,6 @@ Resources:
           Subnets: !Ref InternalSubnets
       ServiceName: forge
       TaskDefinition: !Ref TaskDefinition
-
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -212,7 +203,6 @@ Resources:
               Version: !Ref ForgeVersion
           PortMappings:
             - ContainerPort: 8000
-
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -222,7 +212,6 @@ Resources:
       Scheme: !Ref LoadBalancerScheme
       SecurityGroups: [!Ref SecurityGroup]
       Subnets: !Ref ExternalSubnets
-
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -238,7 +227,6 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer
       Port: !If [DoSSL, 443, 80]
       Protocol: !If [DoSSL, HTTPS, HTTP]
-
   LoadBalancerCname:
     Condition: UseHostedZone
     Type: AWS::Route53::RecordSet
@@ -253,7 +241,6 @@ Resources:
       TTL: 900
       ResourceRecords:
         - !GetAtt LoadBalancer.DNSName
-
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn:
@@ -277,7 +264,6 @@ Resources:
           Value: lb_cookie
       TargetType: ip
       VpcId: !Ref VPC
-
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -295,7 +281,6 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName} sg"
       VpcId: !Ref VPC
-
   SecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -304,7 +289,6 @@ Resources:
       FromPort: -1
       ToPort: -1
       SourceSecurityGroupId: !Ref SecurityGroup
-
   ConfigBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -317,7 +301,6 @@ Resources:
       #     - Event: s3:ObjectCreated:*
       #       Function: !GetAtt ConfigUpdaterLambda.Arn
       #       Function: 'arn:aws:lambda:us-east-1:515798882395:function:lgoolsbee-testing-ConfigUpdaterLambda-1D1JB2KZQGGEP'
-
   DiagnosticsBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -325,7 +308,6 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !Sub 'atl-default-s3-logging-${AWS::AccountId}-${AWS::Region}'
         LogFilePrefix: ${AWS::StackName}-atl-forge-diagnostics/
-
   TemplatesBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -333,7 +315,6 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !Sub 'atl-default-s3-logging-${AWS::AccountId}-${AWS::Region}'
         LogFilePrefix: ${AWS::StackName}-atl-forge-templates/
-
   StackLogsBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -345,13 +326,11 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !Sub 'atl-default-s3-logging-${AWS::AccountId}-${AWS::Region}'
         LogFilePrefix: ${AWS::StackName}-atl-forge-stacklogs/
-
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "${AWS::StackName}-atl-cfn-forge"
       RetentionInDays: 14
-
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -438,7 +417,6 @@ Resources:
                 Effect: Allow
                 Resource:
                   - !GetAtt LogGroup.Arn
-
   ConfigUpdaterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -462,7 +440,6 @@ Resources:
                   - logs:CreateLogStream
                 Effect: Allow
                 Resource: "*"
-
   ConfigUpdaterLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -476,7 +453,6 @@ Resources:
       Handler: index.handler
       Role: !GetAtt ConfigUpdaterRole.Arn
       Runtime: python3.6
-
 Outputs:
   ServiceURL:
     Description: The URL to access Forge
