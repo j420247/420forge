@@ -1,0 +1,36 @@
+---
+image: amazonlinux:2018.03
+
+pipelines:
+  branches:
+    develop:
+      - step:
+          caches:
+            - docker
+          name: Containerize
+          script:
+            - export BUILD_ID=$BITBUCKET_BRANCH_$BITBUCKET_COMMIT_$BITBUCKET_BUILD_NUMBER
+            - docker build -t ${BUILD_ID} .
+            - docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
+            - docker push ${BUILD_ID}
+            - docker tag ${BUILD_ID} develop
+            - docker push develop
+
+  custom:
+    release:
+      - step:
+          name: Check tag
+          script:
+            - test -n "${BITBUCKET_TAG}" || echo "Release builds must be tagged!" && exit 1
+      - step:
+          name: Containerize
+          script:
+            - export BUILD_ID=$BITBUCKET_BRANCH_$BITBUCKET_COMMIT_$BITBUCKET_BUILD_NUMBER
+            - docker build -t ${BUILD_ID} .
+            - docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASSWORD}
+            - docker push ${BUILD_ID}
+            - docker tag ${BUILD_ID} ${BITBUCKET_TAG}
+            - docker push ${BITBUCKET_TAG}
+
+options:
+  docker: true
