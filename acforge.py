@@ -48,7 +48,7 @@ if FORGE_CONFIG.saml:
         app.config['SAML_METADATA_URL'] = FORGE_CONFIG.saml_metadata_url
         flask_saml.FlaskSAML(app)
         try:
-            permission_statements = FORGE_CONFIG.permissions
+            permissions = FORGE_CONFIG.permissions
             print('permissions loaded from config.yml')
         except AttributeError:
             sys.exit('Could not initialize SAML auth; could not read permissions from config.yml')
@@ -75,15 +75,15 @@ class RestrictedResource(Resource):
         if not FORGE_CONFIG.saml:
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
-        for stmt in permission_statements:
-            if stmt['group'] in session['saml']['attributes']['memberOf']:
-                if session['region'] in stmt['region'] or '*' in stmt['region']:
-                    if request.endpoint in stmt['action'] or '*' in stmt['action']:
+        for perm in permissions:
+            if perm['group'] in session['saml']['attributes']['memberOf']:
+                if session['region'] in perm['region'] or '*' in perm['region']:
+                    if request.endpoint in perm['action'] or '*' in perm['action']:
                         if request.endpoint == 'docreate':
                             # do not check stack_name on stack creation
                             print(f'User is authorised to perform {request.endpoint}')
                             return super().dispatch_request(*args, **kwargs)
-                        elif kwargs['stack_name'] in stmt['stack'] or '*' in stmt['stack']:
+                        elif kwargs['stack_name'] in perm['stack'] or '*' in perm['stack']:
                             print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
                             return super().dispatch_request(*args, **kwargs)
         print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
