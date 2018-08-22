@@ -204,7 +204,7 @@ function updateStats(stack_name) {
             var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
             if (!$("#currentAction").children().hasClass("aui-lozenge")) {
                 $("#currentAction").html("Action in progress: ");
-                $("#currentAction").append(getStatusLozenge(actionInProgress));
+                $("#currentAction").append(getStatusLozenge(actionInProgress, "moved"));
                 if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf("/admin/") === -1) {
                     $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock aui-button\" id=\"unlockIcon\">Unlock this stack</span>");
                     document.getElementById("unlockIcon").addEventListener("click", function (data) {
@@ -250,25 +250,33 @@ function updateStats(stack_name) {
     getNodesRequest.send();
 }
 
-function getStatusLozenge(text) {
-    var cssClass = "";
-    text = text.trim();
-    text = text.replace(/"/g, "");
-    switch (text) {
-        case "CREATE_COMPLETE":
-        case "UPDATE_COMPLETE":
-        case "RUNNING":
-        case "FIRST_RUN":
-        case "Valid":
-        case "None":
+function getStatusLozenge(text, cssClass) {
+    if (cssClass) {
+        if (text.toLowerCase() === 'none') {
             cssClass = "success";
-            break;
-        case "UPDATE_IN_PROGRESS":
-            cssClass = "moved";
-            break;
-        case "Invalid":
-        default:
-            cssClass = "error";
+        }
+    } else {
+        var cssClass = "";
+        text = text.trim();
+        text = text.replace(/"/g, "");
+        switch (text) {
+            case "CREATE_COMPLETE":
+            case "UPDATE_COMPLETE":
+            case "RUNNING":
+            case "FIRST_RUN":
+            case "Valid":
+            case "None":
+                cssClass = "success";
+                break;
+            case "UPDATE_IN_PROGRESS":
+            case "CREATE_IN_PROGRESS":
+            case "DELETE_IN_PROGRESS":
+                cssClass = "moved";
+                break;
+            case "Invalid":
+            default:
+                cssClass = "error";
+        }
     }
 
     return "<span class=\"aui-lozenge aui-lozenge-" + cssClass + "\">" + text + "</span>"
