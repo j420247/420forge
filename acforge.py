@@ -38,8 +38,6 @@ parser.add_argument('--prod',
                         help='Start with --prod for SAML production auth. Default (no args) is dev auth')
 args = parser.parse_args()
 
-# using dict of dicts called stackstate to track state of a stack's actions
-stackstate = defaultdict(dict)
 
 # list to hold stacks that have already been initialised
 stacks = []
