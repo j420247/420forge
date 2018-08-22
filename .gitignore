@@ -3,6 +3,7 @@ forge.iml
 atl-cfn-forge.iml
 *.json
 stacks/**/*.json
-__pycache__*
+__pycache__/
 *.db
 .DS_Store
+config.yml
