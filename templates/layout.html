@@ -46,7 +46,7 @@
                     <!-- Horizontal nav bar-->
                     <ul class="aui-nav">
                         {% block hnavitems %}
-                        {% for region, region_name in session['regions'] %}
+                        {% for region, region_name in session['regions'].items() %}
                         <li>
                             <a {%if session['region'] == region %}class="region-selected"{%endif%}
                                href="{{ url_for('setregion', region=region) }}">

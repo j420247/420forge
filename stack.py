@@ -10,6 +10,7 @@ import log
 import os
 import shutil
 
+
 class Stack:
     """An object describing an instance of an aws cloudformation stack:
 
@@ -18,12 +19,13 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, region, app_type=None):
-        self.state = Stackstate(stack_name)
+    def __init__(self, stack_name, region, forge_config, app_type=None):
+        self.state = Stackstate(stack_name, forge_config)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.region = region
         self.state.update('region', self.region)
+        self.forge_config = forge_config
         if app_type:
             self.app_type = app_type
         else:
@@ -93,8 +95,8 @@ class Stack:
         return parmlist
 
     def upload_template(self, file, s3_name):
-        s3 = boto3.resource('s3', region_name=self.region)
-        s3.meta.client.upload_file(file, 'wpe-public-software', f'forge-templates/{s3_name}')
+        s3 = boto3.resource('s3')
+        s3.meta.client.upload_file(file, self.forge_config.S3_BUCKETS['templates'], s3_name)
 
     def ssm_send_command(self, instance, cmd):
         ssm = boto3.client('ssm', region_name=self.region)
@@ -578,14 +580,14 @@ class Stack:
     def update(self, stack_parms, instance_type, deploy_type):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
-        template= f'wpe-aws/{self.app_type}/{template_filename}'
+        template = f'wpe-aws/{self.app_type}/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             updated_stack = cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
+                TemplateURL=f"https://s3.amazonaws.com/{self.forge_config.S3_BUCKETS['templates']}/{template_filename}",
                 Capabilities=['CAPABILITY_IAM']
             )
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -632,7 +634,7 @@ class Stack:
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f'https://s3.amazonaws.com/wpe-public-software/forge-templates/{template_filename}',
+                TemplateURL=f"https://s3.amazonaws.com/{self.forge_config.S3_BUCKETS['templates']}/{template_filename}",
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=[{
                         'Key': 'product',

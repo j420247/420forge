@@ -1,0 +1,33 @@
+---
+# Regions in format 'aws_region: region_name'
+# Names are for reference only, so can be AWS region names or Staging/Production etc
+# Enter default region first
+regions:
+    us-east-1: Production
+    us-west-2: Staging
+
+# Permissions are assigned by AD groups, with restrictions available by action, region and stack
+# Avaialble actions:
+#   - doclone
+#   - docreate
+#   - dodestroy
+#   - dofullrestart
+#   - doheapdumps
+#   - dorollingrestart
+#   - dorunsql
+#   - dotag
+#   - dothreaddumps
+#   - doupgrade
+permissions:
+    - group: all-read-only
+      action: [none]
+      region: ['*']
+      stack: ['*']
+    - group: dev-team-admins
+      action: [doclone, dofullrestart, dorollingrestart, doupgrade, dothreaddumps, doheapdumps, doupdate, dorunsql, dotag]
+      region: [us-east-1]
+      stack: [some-stack-name, other-stack-name]
+    - group: ops-team-admins
+      action: ['*']
+      region: ['*']
+      stack: ['*']

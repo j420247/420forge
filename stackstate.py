@@ -4,6 +4,7 @@ import json
 import pprint
 from pathlib import Path
 import os
+import boto3
 
 class Stackstate:
     """An object containing the forge configuration information and state of actions conducted by Forge:
@@ -13,9 +14,10 @@ class Stackstate:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name):
+    def __init__(self, stack_name, forge_config):
         self.stackstate = defaultdict(dict)
         self.stack_name = stack_name
+        self.forge_config = forge_config
 
     def write_state(self):
         if not Path(f'stacks/{self.stack_name}').exists():
@@ -61,9 +63,16 @@ class Stackstate:
         # at the end of an action, archive will take the current stackstate and write it out to a datestamped file
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         action = self.stackstate['action'] if 'action' in self.stackstate else 'no-action'
-        with open(f'stacks/{self.stack_name}/{self.stack_name}_{action}_{timestamp}.json', 'w') as outfile:
+        logpath = f'stacks/{self.stack_name}'
+        logfile = f'{self.stack_name}_{action}_{timestamp}.json'
+        with open(f'{logpath}/{logfile}', 'w') as outfile:
             json.dump(self.stackstate, outfile)
         outfile.close()
+        s3 = boto3.resource('s3')
+        try:
+            s3.meta.client.upload_file(f'{logpath}/{logfile}', self.forge_config.S3_BUCKETS['stacklogs'], f'{self.stack_name}/{logfile}')
+        except boto3.exceptions.S3UploadFailedError:
+            print('unable to upload log file to S3; bucket does not exist?')
         return (self)
 
     def logaction(self, level, message):

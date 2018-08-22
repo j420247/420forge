@@ -1,65 +1,62 @@
 # imports
-from collections import defaultdict
+import json
+import os
+import sys
 from datetime import timedelta
-from stack import Stack
+from pathlib import Path
+
 import boto3
 import botocore
-from flask import Flask, request, session, redirect, url_for, \
-    render_template, flash
-from flask_restful import Api, Resource
 import flask_saml
-from ruamel import yaml
-import argparse
-import json
-from pathlib import Path
-from os import path
-import log
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, session, redirect, url_for, render_template, flash
+from flask_restful import Api, Resource
 from flask_sessionstore import Session
+from flask_sqlalchemy import SQLAlchemy
+from ruamel import yaml
 from werkzeug.contrib.fixers import ProxyFix
-from sys import argv
-import configparser
-import os
+
+import log
+import preflight
+from stack import Stack
 from version import __version__
 
-# global configuration
-SECRET_KEY = 'key_to_the_forge'
-PRODUCTS = ["Jira", "Confluence", "Crowd"]
-VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
-                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
-                        'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
-
-parser = argparse.ArgumentParser(description='Forge')
-parser.add_argument('--nosaml',
-                        action='store_true',
-                        help='Start with --nosaml to bypass SAML for local testing')
-parser.add_argument('--prod',
-                        action='store_true',
-                        help='Start with --prod for SAML production auth. Default (no args) is dev auth')
-args = parser.parse_args()
-
+FORGE_CONFIG = preflight.ForgeConfig()
+FORGE_CONFIG.parse_args()
 
 # list to hold stacks that have already been initialised
-stacks = []
+STACKS = []
 
 # create and initialize app
-print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = SECRET_KEY
-if args.prod:
-   app.wsgi_app = ProxyFix(app.wsgi_app)
-   print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
-else:
-   print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
-flask_saml.FlaskSAML(app)
-# Create a SQLalchemy db for session and permission storge.
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
-app.config['SESSION_TYPE'] = 'sqlalchemy'
+
+# set base config
+app.config.update({
+    'DEBUG': FORGE_CONFIG.dev,
+    'ENV': 'development' if FORGE_CONFIG.dev else 'production',
+    'SECRET_KEY': FORGE_CONFIG.flask_secret,
+    'SESSION_TYPE': 'sqlalchemy',
+    'SQLALCHEMY_DATABASE_URI': 'sqlite:///acforge.db',
+    'SQLALCHEMY_TRACK_MODIFICATIONS': False  # suppress warning messages
+})
+
+# saml config, if enabled
+if FORGE_CONFIG.saml:
+    if FORGE_CONFIG.saml_metadata_url:
+        app.wsgi_app = ProxyFix(app.wsgi_app)
+        app.config['SAML_METADATA_URL'] = FORGE_CONFIG.saml_metadata_url
+        flask_saml.FlaskSAML(app)
+        try:
+            permission_statements = FORGE_CONFIG.permissions
+            print('permissions loaded from config.yml')
+        except AttributeError:
+            sys.exit('Could not initialize SAML auth; could not read permissions from config.yml')
+        print('SAML auth enabled')
+    else:
+        sys.exit('Could not initialize SAML auth; could not find value for env var \'ATL_FORGE_SAML_METADATA_URL\'')
+
+# create a SQLalchemy db for session and permission storge
 db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
@@ -69,29 +66,24 @@ config.read('forge.properties')
 if config.items('analytics')[0][1] == 'true':
     app.config['ANALYTICS'] = 'true'
 
-# load permissions file
-#TODO think about whether we want to restrict based on environment tags or regions
-with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
-    json_perms = json.load(json_data)
-
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -
 #### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, doupdate, status)
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
-        if '--nosaml' in argv:
+        if not FORGE_CONFIG.saml:
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
-        for keys in json_perms:
-            if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                if session['region'] in json_perms[keys]['region'] or '*' in json_perms[keys]['region']:
-                    if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
+        for stmt in permission_statements:
+            if stmt['group'] in session['saml']['attributes']['memberOf']:
+                if session['region'] in stmt['region'] or '*' in stmt['region']:
+                    if request.endpoint in stmt['action'] or '*' in stmt['action']:
                         if request.endpoint == 'docreate':
                             # do not check stack_name on stack creation
                             print(f'User is authorised to perform {request.endpoint}')
                             return super().dispatch_request(*args, **kwargs)
-                        elif kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
+                        elif kwargs['stack_name'] in stmt['stack'] or '*' in stmt['stack']:
                             print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
                             return super().dispatch_request(*args, **kwargs)
         print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
@@ -323,7 +315,7 @@ def updateJson():
     cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
     try:
         stack_details = cfn_client.describe_stacks(StackName=stack_name)
-        existing_template_params = cfn_resource.Stack(stack_name).parameters
+        existing_template_params = cfn_resource.Stack(stack_name, FORGE_CONFIG=FORGE_CONFIG).parameters
     except Exception as e:
         if e.response and "does not exist" in e.response['Error']['Message']:
             print(f'Stack {stack_name} does not exist')
@@ -397,7 +389,7 @@ class stackState(Resource):
 class templateParams(Resource):
     def get(self, template_name):
         app_type = 'confluence' # default for lab
-        for product in PRODUCTS:
+        for product in FORGE_CONFIG.PRODUCTS:
             if product.lower() in template_name.lower():
                 app_type = product.lower()
                 break
@@ -533,14 +525,14 @@ class getTags(Resource):
 
 
 def get_or_create_stack_obj(region, stack_name):
-    if len(stacks) > 0:
-        mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
+    if len(STACKS) > 0:
+        mystack = next((stack for stack in STACKS if stack.stack_name == stack_name), None)
         if not mystack:
-            mystack = Stack(stack_name, region)
-            stacks.append(mystack)
+            mystack = Stack(stack_name, region, FORGE_CONFIG)
+            STACKS.append(mystack)
     else:
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
+        mystack = Stack(stack_name, region, FORGE_CONFIG)
+        STACKS.append(mystack)
     return mystack
 
 
@@ -733,8 +725,7 @@ def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     try:
-        stack_list = cfn.list_stacks(
-            StackStatusFilter=VALID_STACK_STATUSES)
+        stack_list = cfn.list_stacks(StackStatusFilter=FORGE_CONFIG.VALID_STACK_STATUSES)
         for stack in stack_list['StackSummaries']:
             stack_name_list.append(stack['StackName'])
     except (KeyError, botocore.exceptions.NoCredentialsError):
@@ -744,7 +735,7 @@ def get_cfn_stacks_for_region(region=None):
 
 def get_current_log(stack_name):
     statefile = Path(f'stacks/{stack_name}/{stack_name}.json')
-    if statefile.is_file() and path.getsize(statefile) > 0:
+    if statefile.is_file() and os.path.getsize(statefile) > 0:
         with open(statefile, 'r') as stack_state:
             try:
                 json_state = json.load(stack_state)
@@ -760,7 +751,7 @@ def get_current_log(stack_name):
 def check_loggedin():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=60)
-    if args.nosaml:
+    if not FORGE_CONFIG.saml:
         return
     if not request.path.startswith("/saml") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
@@ -769,12 +760,6 @@ def check_loggedin():
 
 def general_constructor(loader, tag_suffix, node):
     return node.value
-
-
-def get_regions():
-    config = configparser.ConfigParser()
-    config.read('forge.properties')
-    return config.items('regions')
 
 
 def get_nice_action_name(action):
@@ -806,12 +791,12 @@ def stack_locking_enabled():
 
 
 def get_forge_settings():
-    # use first region in forge.properties if no region selected (eg first load)
+    # use first region if no region selected (eg first load)
     if 'region' not in session:
-        session['region'] = get_regions()[0][0]
+        session['region'] = list(FORGE_CONFIG.regions.keys())[0]
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-    session['products'] = PRODUCTS
-    session['regions'] = get_regions()
+    session['products'] = FORGE_CONFIG.PRODUCTS
+    session['regions'] = FORGE_CONFIG.regions
     session['stack_locking'] = stack_locking_enabled()
     session['forge_version'] = __version__
 
@@ -874,4 +859,9 @@ def show_stacks():
 
 
 if __name__ == '__main__':
-    app.run(threaded=True, debug=True, host='0.0.0.0', port=8000)
+    print(f'Starting Atlassian CloudFormation Forge v{__version__}')
+    app.run(
+        host='0.0.0.0',
+        port=FORGE_CONFIG.port,
+        threaded=True
+    )
