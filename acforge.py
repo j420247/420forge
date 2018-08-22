@@ -358,7 +358,17 @@ def updateJson():
     return outcome
 
 
-class status(Resource):
+class selfStatus(Resource):
+    def get(self):
+        return {
+            'status': 'ok',
+            'num_stacks': len([dir.name for dir in os.scandir(f'stacks/') if dir.is_dir()]),
+            'num_locked_stacks': len([dir.name for dir in os.scandir(f'locks/') if dir.is_dir()]),
+            'version': __version__
+        }
+
+
+class stackStatus(Resource):
     def get(self, stack_name):
         log_json = get_current_log(stack_name)
         return log_json if log_json else f'No current status for {stack_name}'
@@ -692,7 +702,8 @@ api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(dotag, '/dotag/<region>/<stack_name>')
 
 # Stack info
-api.add_resource(status, '/status/<stack_name>')
+api.add_resource(selfStatus, '/status')
+api.add_resource(stackStatus, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(stackState, '/stackState/<region>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>')
