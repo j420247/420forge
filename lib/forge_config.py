@@ -36,7 +36,10 @@ class ForgeConfig:
                 config_file = yaml.safe_load(config_file['Body'].read())
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'NoSuchKey':
-                    print(f"no config file found in bucket: ${forge_const.S3_BUCKETS['config']}")
+                    print(f"no config file found in bucket: {forge_const.S3_BUCKETS['config']}")
+                    print(f'no regions or SAML auth permissions will be loaded')
+                elif e.response['Error']['Code'] == 'NoSuchBucket':
+                    print(f"S3 bucket for configuration ({forge_const.S3_BUCKETS['config']}) not found")
                     print(f'no regions or SAML auth permissions will be loaded')
                 else:
                     raise e
