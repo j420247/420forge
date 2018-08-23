@@ -51,10 +51,8 @@ class ForgeConfig:
         # load saml auth permissions
         self._load_from_config(config_file, 'permissions', 'no configured saml auth permissions found; saml auth will not be available if enabled')
 
-        # load google analytics, if configured
-        self._load_from_config(config_file, 'analytics_ua', 'no configured UA for Google Analytics found')
-
         # grab environment variables
+        self.analytics_ua = os.environ.get('ATL_FORGE_ANALYTICS_UA')
         self.flask_secret = os.environ.get('ATL_FORGE_SECRET', 'key_to_the_forge')
         self.saml_metadata_url = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
         self.port = os.environ.get('ATL_FORGE_PORT', 8000)

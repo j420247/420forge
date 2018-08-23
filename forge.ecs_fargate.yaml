@@ -10,6 +10,7 @@ Metadata:
           - ForgeVersion
           - ForgeFlaskSecretKey
           - SamlMetadataUrl
+          - GoogleAnalyticsUA
       - Label:
           default: Networking
         Parameters:
@@ -49,6 +50,8 @@ Metadata:
         default: Forge registry URL
       ForgeVersion:
         default: Version *
+      GoogleAnalyticsUA:
+        default: Google Analytics UA
       HostedZone:
         default: R53 Hosted Zone (optional)
       InternalSubnets:
@@ -102,6 +105,9 @@ Parameters:
     AllowedPattern: '^(\d+\.\d+\.\d+(-?.*))|latest$'
     ConstraintDescription: Must be a valid tag or "latest"
     Description: The version tag of Forge to install; find valid tags at https://hub.docker.com/r/atlassian/atl-cfn-forge
+    Type: String
+  GoogleAnalyticsUA:
+    Description: Provide a Google Analytics tracking ID (UA number) to enable collection of Forge usage statistics within your org
     Type: String
   HostedZone:
     Description: The domain name of the Route53 PRIVATE Hosted Zone in which to create cnames
@@ -189,6 +195,8 @@ Resources:
           Command: !If [UseSamlAuth, ['--saml'], !Ref AWS::NoValue]
           Environment:
             - Name: ATL_FORGE_SECRET
+            - Name: ATL_FORGE_ANALYTICS_UA
+              Value: !Ref GoogleAnalyticsUA
               Value: !Ref ForgeFlaskSecretKey
             - Name: ATL_FORGE_S3_DIAGNOSTICS
               Value: !Ref DiagnosticsBucket

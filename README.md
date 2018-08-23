@@ -66,6 +66,7 @@ Forge uses a config file (config.yml) for configuring which AWS regions are avai
 
 ### Environment variables
 
+| `ATL_FORGE_ANALYTICS_UA` | The Google Analytics UA number for collecting analytics on Forge usage in your org |
 | `ATL_FORGE_PORT` | Override the port that Forge runs on; defaults to 8000 |
 | `ATL_FORGE_S3_CONFIG` | The name of an S3 bucket used for reading configuration files |
 | `ATL_FORGE_S3_DIAGNOSTICS` | The name of an S3 bucket used for CloudFormation stack diagnostic information |
