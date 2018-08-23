@@ -65,6 +65,11 @@ app.config['SESSION_TYPE'] = 'sqlalchemy'
 db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
+# is analytics enabled
+config = configparser.ConfigParser()
+config.read('forge.properties')
+if config.items('analytics')[0][1] == 'true':
+    app.config['ANALYTICS'] = 'true'
 
 # load permissions file
 #TODO think about whether we want to restrict based on environment tags or regions
