@@ -447,6 +447,13 @@ Resources:
                   - logs:CreateLogStream
                 Effect: Allow
                 Resource: "*"
+  ConfigUpdaterPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref ConfigUpdaterLambda
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt ConfigBucket.Arn
   ConfigUpdaterLambda:
     Type: AWS::Lambda::Function
     Properties:
