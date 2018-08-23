@@ -171,7 +171,7 @@ Resources:
         AwsvpcConfiguration:
           SecurityGroups: [!Ref SecurityGroup]
           Subnets: !Ref InternalSubnets
-      ServiceName: forge
+      ServiceName: !Sub '${AWS::StackName}-atl-cfn-forge'
       TaskDefinition: !Ref TaskDefinition
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
