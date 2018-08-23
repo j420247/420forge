@@ -1,6 +1,8 @@
-# Running Forge locally
+# atl-cfn-forge
 
-This README outlines how to run Forge locally for testing and development. For more complete documentation, including instructions for deploying Forge to your AWS account, see [link here](https://some.url.here)..
+Atlassian Cloudformation Forge is a tool which enables the creation and management of Cloudformation stacks of Atlassian products by users without "physical" access to the underlying AWS services.
+
+This README outlines how to run Forge locally for testing and development. For more complete documentation, including instructions for deploying Forge to your AWS account, see [link here](https://some.url.here).
 
 ## Prerequisites
 
