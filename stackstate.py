@@ -5,6 +5,7 @@ import pprint
 from pathlib import Path
 import os
 import boto3
+from lib import forge_const
 
 class Stackstate:
     """An object containing the forge configuration information and state of actions conducted by Forge:
@@ -14,10 +15,9 @@ class Stackstate:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, forge_config):
+    def __init__(self, stack_name):
         self.stackstate = defaultdict(dict)
         self.stack_name = stack_name
-        self.forge_config = forge_config
 
     def write_state(self):
         if not Path(f'stacks/{self.stack_name}').exists():
@@ -70,7 +70,7 @@ class Stackstate:
         outfile.close()
         s3 = boto3.resource('s3')
         try:
-            s3.meta.client.upload_file(f'{logpath}/{logfile}', self.forge_config.S3_BUCKETS['stacklogs'], f'{self.stack_name}/{logfile}')
+            s3.meta.client.upload_file(f'{logpath}/{logfile}', forge_const.S3_BUCKETS['stacklogs'], f'{self.stack_name}/{logfile}')
         except boto3.exceptions.S3UploadFailedError:
             print('unable to upload log file to S3; bucket does not exist?')
         return (self)

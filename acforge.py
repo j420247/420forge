@@ -152,7 +152,14 @@ def cloneJson():
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
     creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region, creator=creator)
+    outcome = mystack.clone(
+        content,
+        app_type=app_type,
+        instance_type=instance_type,
+        region=region,
+        templates_bucket=forge_const.S3_BUCKETS['templates'],
+        creator=creator
+    )
     mystack.clear_current_action()
     return outcome
 
@@ -293,7 +300,13 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator)
+        outcome = mystack.create(
+            parms=params_for_create,
+            template_filename=template_name,
+            templates_bucket=forge_const.S3_BUCKETS['templates'],
+            app_type=app_type,
+            creator=creator
+        )
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
@@ -314,7 +327,7 @@ def updateJson():
     cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
     try:
         stack_details = cfn_client.describe_stacks(StackName=stack_name)
-        existing_template_params = cfn_resource.Stack(stack_name, FORGE_CONFIG=FORGE_CONFIG).parameters
+        existing_template_params = cfn_resource.Stack(stack_name).parameters
     except Exception as e:
         if e.response and "does not exist" in e.response['Error']['Message']:
             print(f'Stack {stack_name} does not exist')
@@ -344,7 +357,12 @@ def updateJson():
             params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
         deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, instance_type, deploy_type)
+    outcome = mystack.update(
+        stack_parms=params_for_update,
+        instance_type=instance_type,
+        deploy_type=deploy_type,
+        templates_bucket=forge_const.S3_BUCKETS['templates']
+    )
     mystack.clear_current_action()
     return outcome
 
@@ -388,7 +406,7 @@ class stackState(Resource):
 class templateParams(Resource):
     def get(self, template_name):
         app_type = 'confluence' # default for lab
-        for product in FORGE_CONFIG.PRODUCTS:
+        for product in forge_const.PRODUCTS:
             if product.lower() in template_name.lower():
                 app_type = product.lower()
                 break
@@ -527,10 +545,10 @@ def get_or_create_stack_obj(region, stack_name):
     if len(STACKS) > 0:
         mystack = next((stack for stack in STACKS if stack.stack_name == stack_name), None)
         if not mystack:
-            mystack = Stack(stack_name, region, FORGE_CONFIG)
+            mystack = Stack(stack_name, region)
             STACKS.append(mystack)
     else:
-        mystack = Stack(stack_name, region, FORGE_CONFIG)
+        mystack = Stack(stack_name, region)
         STACKS.append(mystack)
     return mystack
 
@@ -724,7 +742,7 @@ def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     try:
-        stack_list = cfn.list_stacks(StackStatusFilter=FORGE_CONFIG.VALID_STACK_STATUSES)
+        stack_list = cfn.list_stacks(StackStatusFilter=forge_const.VALID_STACK_STATUSES)
         for stack in stack_list['StackSummaries']:
             stack_name_list.append(stack['StackName'])
     except (KeyError, botocore.exceptions.NoCredentialsError):
@@ -794,7 +812,7 @@ def get_forge_settings():
     if 'region' not in session:
         session['region'] = list(FORGE_CONFIG.regions.keys())[0]
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
-    session['products'] = FORGE_CONFIG.PRODUCTS
+    session['products'] = forge_const.PRODUCTS
     session['regions'] = FORGE_CONFIG.regions
     session['stack_locking'] = stack_locking_enabled()
     session['forge_version'] = __version__

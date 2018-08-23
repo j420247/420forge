@@ -1,11 +1,9 @@
 import argparse
 import os
-import re
 from pathlib import Path
 
 import boto3
 import botocore
-import forge_const
 from ruamel import yaml
 
 from lib import forge_const
@@ -53,11 +51,6 @@ class ForgeConfig:
         # empty vars for user args
         self.dev = False
         self.saml = False
-
-        # pull in our constants
-        for k in vars(forge_const).keys():
-            if re.match(r"^[A-Z0-9]+[A-Z0-9_]+$", k):
-                setattr(self, k, getattr(forge_const, k))
 
     def parse_args(self):
         parser = argparse.ArgumentParser(description='Atlassian CloudFormation Forge')

@@ -19,13 +19,12 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, region, forge_config, app_type=None):
-        self.state = Stackstate(stack_name, forge_config)
+    def __init__(self, stack_name, region, app_type=None):
+        self.state = Stackstate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
         self.region = region
         self.state.update('region', self.region)
-        self.forge_config = forge_config
         if app_type:
             self.app_type = app_type
         else:
@@ -94,9 +93,9 @@ class Stack:
             parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
         return parmlist
 
-    def upload_template(self, file, s3_name):
+    def upload_template(self, file, bucket, s3_name):
         s3 = boto3.resource('s3')
-        s3.meta.client.upload_file(file, self.forge_config.S3_BUCKETS['templates'], s3_name)
+        s3.meta.client.upload_file(file, bucket, s3_name)
 
     def ssm_send_command(self, instance, cmd):
         ssm = boto3.client('ssm', region_name=self.region)
@@ -555,7 +554,7 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type, instance_type, region, creator):
+    def clone(self, stack_parms, app_type, instance_type, region, templates_bucket, creator):
         self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
@@ -564,7 +563,13 @@ class Stack:
         deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator):
+            if self.create(
+                    parms=stack_parms,
+                    template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml',
+                    templates_bucket=templates_bucket,
+                    app_type=app_type,
+                    creator=creator
+            ):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -577,17 +582,17 @@ class Stack:
         return True
 
 
-    def update(self, stack_parms, instance_type, deploy_type):
+    def update(self, stack_parms, instance_type, deploy_type, templates_bucket):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
         template = f'wpe-aws/{self.app_type}/{template_filename}'
-        self.upload_template(template, template_filename)
+        self.upload_template(template, templates_bucket, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             updated_stack = cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f"https://s3.amazonaws.com/{self.forge_config.S3_BUCKETS['templates']}/{template_filename}",
+                TemplateURL=f"https://s3.amazonaws.com/{templates_bucket}/{template_filename}",
                 Capabilities=['CAPABILITY_IAM']
             )
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
@@ -616,7 +621,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, template_filename, app_type, creator, like_stack=None, like_region=None):
+    def create(self, parms, template_filename, templates_bucket, app_type, creator, like_stack=None, like_region=None):
         if like_stack:
             self.get_current_state(like_stack, like_region)
             stack_parms = self.state.stackstate['stack_parms']
@@ -627,14 +632,14 @@ class Stack:
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
         template = f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
-        self.upload_template(template, template_filename)
+        self.upload_template(template, templates_bucket, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f"https://s3.amazonaws.com/{self.forge_config.S3_BUCKETS['templates']}/{template_filename}",
+                TemplateURL=f"https://s3.amazonaws.com/{templates_bucket}/{template_filename}",
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=[{
                         'Key': 'product',
