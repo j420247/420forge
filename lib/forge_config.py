@@ -13,10 +13,19 @@ class ForgeConfig:
     """configuration management class for Forge"""
     def __init__(self):
 
-        # load config files
-        local_config_file = Path('config.yml')
-        if local_config_file.is_file():
-            with open(local_config_file) as config_file:
+        print('Initializing...')
+
+        # empty vars for user args
+        self.dev = False
+        self.saml = False
+
+        # parse user args
+        self._parse_args()
+
+        # load config file
+        config_file_path = Path('config.yml')
+        if config_file_path.is_file():
+            with open(config_file_path) as config_file:
                 config_file = yaml.safe_load(config_file)
         else:
             s3 = boto3.client('s3')
@@ -31,31 +40,33 @@ class ForgeConfig:
                     raise e
 
         # load regions
-        try:
-            self.regions = config_file['regions']
-        except Exception:
-            print(f'no configured regions found; using default us-east-1')
-            self.regions = {"us-east-1": "US East 1"}
+        self.regions = {"us-east-1": "US East 1"}
+        self._load_from_config(config_file, 'regions', 'no configured regions found; using default us-east-1')
 
         # load saml auth permissions
-        try:
-            self.permissions = config_file['permissions']
-        except Exception:
-            print(f'no configured saml auth permissions found; saml auth will not be available if enabled')
+        self._load_from_config(config_file, 'permissions', 'no configured saml auth permissions found; saml auth will not be available if enabled')
+
+        # load google analytics, if configured
+        self._load_from_config(config_file, 'analytics_ua', 'no configured UA for Google Analytics found')
 
         # grab environment variables
         self.flask_secret = os.environ.get('ATL_FORGE_SECRET', 'key_to_the_forge')
         self.saml_metadata_url = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
         self.port = os.environ.get('ATL_FORGE_PORT', 8000)
 
-        # empty vars for user args
-        self.dev = False
-        self.saml = False
+    def _load_from_config(self, config, key, err_msg):
+        try:
+            setattr(self, key, config[key])
+        except Exception:
+            print(err_msg)
 
-    def parse_args(self):
+    def _parse_args(self):
         parser = argparse.ArgumentParser(description='Atlassian CloudFormation Forge')
         parser.add_argument('--saml', action='store_true', help='Use SAML auth')
         parser.add_argument('--dev', action='store_true', help='Run flask app in debug mode for local development')
         user_args = parser.parse_args()
         self.dev = user_args.dev
         self.saml = user_args.saml
+
+
+FORGE_CONFIG = ForgeConfig()

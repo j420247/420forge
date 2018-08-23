@@ -19,8 +19,8 @@ from lib import forge_config, forge_const, log
 from stack import Stack
 from version import __version__
 
-FORGE_CONFIG = preflight.ForgeConfig()
-FORGE_CONFIG.parse_args()
+# load our config
+FORGE_CONFIG = forge_config.FORGE_CONFIG
 
 # list to hold stacks that have already been initialised
 STACKS = []
