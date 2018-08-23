@@ -1,10 +1,4 @@
 ---
-# Regions in format 'aws_region: region_name'
-# Names are for reference only, so can be AWS region names or Staging/Production etc
-# Enter default region first
-regions:
-    us-east-1: Production
-    us-west-2: Staging
 
 # Permissions are assigned by AD groups, with restrictions available by action, region and stack
 # Avaialble actions:
@@ -31,3 +25,10 @@ permissions:
       action: ['*']
       region: ['*']
       stack: ['*']
+
+# Regions in format 'aws_region: region_name'
+# Names are for reference only, so can be AWS region names or Staging/Production etc
+# Enter default region first
+regions:
+    us-east-1: Production
+    us-west-2: Staging
