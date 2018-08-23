@@ -1,9 +1,14 @@
-.idea
-forge.iml
-atl-cfn-forge.iml
-*.json
-stacks/**/*.json
-__pycache__/
-*.db
-.DS_Store
+# app configuration
 config.yml
+*.db
+stacks/**/*.json
+
+# development
+__pycache__/
+Pipfile
+Pipfile.lock
+.idea
+*.iml
+
+# operating system
+.DS_Store
