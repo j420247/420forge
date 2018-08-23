@@ -9,6 +9,7 @@ Metadata:
         Parameters:
           - ForgeVersion
           - ForgeFlaskSecretKey
+          - SamlMetadataUrl
       - Label:
           default: Networking
         Parameters:
@@ -58,6 +59,8 @@ Metadata:
         default: ECS Memory units
       SSLCertificateName:
         default: SSL Certificate Name
+      SamlMetadataUrl:
+        default: SAML Metadata URL
       SubDomainName:
         default: Sub-domain for Hosted Zone (optional)
       VPC:
@@ -121,6 +124,9 @@ Parameters:
     Type: Number
   SSLCertificateName:
     Description: The name of your server certificate to use for HTTPS; leave blank if you don't want to set up HTTPS at this time
+  SamlMetadataUrl:
+    Description: The URL for your SSO's SAML metadata provider; enter a value to enable SAML auth, leave blank to disable
+    Type: String
     MinLength: 0
     MaxLength: 50
     Type: String
@@ -141,6 +147,8 @@ Conditions:
     !Not [!Equals [!Ref ForgeRegistryUrl, ""]]
   UseHostedZone:
     !Not [!Equals [!Ref HostedZone, ""]]
+  UseSamlAuth:
+    !Not [!Equals [!Ref SamlMetadataUrl]]
   UseSubDomainName:
     !Not [!Equals [!Ref SubDomainName, '']]
 Resources:
@@ -178,7 +186,7 @@ Resources:
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: forge
-          # Command: ['--saml']
+          Command: !If [UseSamlAuth, ['--saml'], !Ref AWS::NoValue]
           Environment:
             - Name: ATL_FORGE_SECRET
               Value: !Ref ForgeFlaskSecretKey
@@ -190,6 +198,8 @@ Resources:
               Value: !Ref StackLogsBucket
             - Name: ATL_FORGE_S3_CONFIG
               Value: !Ref ConfigBucket
+            - Name: ATL_FORGE_SAML_METADATA_URL
+              Value: !If [UseSamlAuth, !Ref SamlMetadataUrl, !Ref AWS::NoValue]
           LogConfiguration:
             LogDriver: awslogs
             Options:
