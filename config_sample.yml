@@ -1,4 +1,6 @@
 ---
+# Analytics are provided by Google Analytics; add your UA to enable
+analytics_ua: UA-124483963-2
 
 # Permissions are assigned by AD groups, with restrictions available by action, region and stack
 # Avaialble actions:

@@ -59,11 +59,13 @@ if FORGE_CONFIG.saml:
 db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
-# is analytics enabled
-config = configparser.ConfigParser()
-config.read('forge.properties')
-if config.items('analytics')[0][1] == 'true':
-    app.config['ANALYTICS'] = 'true'
+
+# enable analytics if configured and not dev environment
+if not FORGE_CONFIG.dev:
+    try:
+        app.config['ANALYTICS'] = FORGE_CONFIG.analytics_ua
+    except AttributeError:
+        pass
 
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -
