@@ -8,6 +8,8 @@ import botocore
 import forge_const
 from ruamel import yaml
 
+from lib import forge_const
+
 
 class ForgeConfig:
     """configuration management class for Forge"""

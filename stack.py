@@ -6,7 +6,7 @@ import requests
 import json
 from pprint import pprint
 from pathlib import Path
-import log
+from lib import log
 import os
 import shutil
 

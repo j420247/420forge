@@ -15,8 +15,7 @@ from flask_sqlalchemy import SQLAlchemy
 from ruamel import yaml
 from werkzeug.contrib.fixers import ProxyFix
 
-import log
-import preflight
+from lib import forge_config, forge_const, log
 from stack import Stack
 from version import __version__
 
