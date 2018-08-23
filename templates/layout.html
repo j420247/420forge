@@ -22,7 +22,7 @@
         {% block head %}
         {% endblock head %}
 
-        {%if config['ANALYTICS'] %}
+        {% if config['ANALYTICS'] %}
         <!-- Global site tag (gtag.js) - Google Analytics -->
         <script async src="https://www.googletagmanager.com/gtag/js?id={{ config['ANALYTICS'] }}"></script>
         <script>
@@ -32,7 +32,7 @@
 
             gtag("config", "{{ config['ANALYTICS'] }}");
         </script>
-        {%endif%}
+        {% endif %}
     </head>
     <body>
             <nav class="aui-header aui-dropdown2-trigger-group" role="navigation" data-aui-responsive="true">
@@ -48,7 +48,7 @@
                         {% block hnavitems %}
                         {% for region, region_name in session['regions'].items() %}
                         <li>
-                            <a {%if session['region'] == region %}class="region-selected"{%endif%}
+                            <a {% if session['region'] == region %}class="region-selected"{% endif %}
                                href="{{ url_for('setregion', region=region) }}">
                                 {{ region_name }}
                             </a>
@@ -57,7 +57,7 @@
                         {% endblock %}
                     </ul>
                 </div>
-                {%if session['saml'] %}
+                {% if session['saml'] %}
                 <div class="aui-header-secondary">
                     <ul class="aui-nav">
                         <li class="user-dropdown">
