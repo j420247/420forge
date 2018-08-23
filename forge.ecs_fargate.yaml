@@ -17,7 +17,7 @@ Metadata:
           - ExternalSubnets
           - InternalSubnets
           - LoadBalancerScheme
-          - SSLCertificateName
+          - SSLCertificateARN
           - VPC
       - Label:
           default: DNS (Optional)
@@ -57,10 +57,10 @@ Metadata:
         default: Load Balancer Scheme
       MemoryUnits:
         default: ECS Memory units
-      SSLCertificateName:
-        default: SSL Certificate Name
       SamlMetadataUrl:
         default: SAML Metadata URL
+      SSLCertificateARN:
+        default: SSL Certificate ARN
       SubDomainName:
         default: Sub-domain for Hosted Zone (optional)
       VPC:
@@ -122,11 +122,11 @@ Parameters:
     MinValue: 512
     MaxValue: 30720
     Type: Number
-  SSLCertificateName:
-    Description: The name of your server certificate to use for HTTPS; leave blank if you don't want to set up HTTPS at this time
   SamlMetadataUrl:
     Description: The URL for your SSO's SAML metadata provider; enter a value to enable SAML auth, leave blank to disable
     Type: String
+  SSLCertificateARN:
+    Description: Amazon Resource Name (ARN) of your SSL certificate. If you want to use your own certificate that you generated outside of Amazon, you need to first import it to AWS Certificate Manager. After a successful import, you'll receive the ARN. If you want to create a certificate with AWS Certificate Manager (ACM certificate), you will receive the ARN after it's successfully created
     MinLength: 0
     MaxLength: 50
     Type: String
@@ -138,7 +138,7 @@ Parameters:
     Type: AWS::EC2::VPC::Id
 Conditions:
   DoSSL:
-    !Not [!Equals [!Ref SSLCertificateName, '']]
+    !Not [!Equals [!Ref SSLCertificateARN, '']]
   UseCustomDnsName:
     !Not [!Equals [!Ref CustomDnsName, ""]]
   UseCustomImage:
@@ -226,11 +226,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       Certificates:
-        - CertificateArn:
-            Fn::If:
-              - DoSSL
-              - !Sub "arn:aws:iam::${AWS::AccountId}:server-certificate/${SSLCertificateName}"
-              - !Ref AWS::NoValue
+        - CertificateArn: !If [DoSSL, !Ref SSLCertificateARN, !Ref AWS::NoValue]
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
