@@ -22,6 +22,8 @@ class ForgeConfig:
         # parse user args
         self._parse_args()
 
+        config_file = None
+
         # load config file
         config_file_path = Path('config.yml')
         if config_file_path.is_file():
