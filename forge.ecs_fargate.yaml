@@ -192,7 +192,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: forge
+      Family: !Sub '${AWS::StackName}-atl-cfn-forge-task'
       Cpu: !Ref CpuUnits
       Memory: !Ref MemoryUnits
       NetworkMode: awsvpc
