@@ -9,6 +9,8 @@ from pathlib import Path
 from lib import log
 import os
 import shutil
+import configparser
+
 
 
 class Stack:
@@ -396,6 +398,9 @@ class Stack:
 
     def shutdown_app(self, instancelist):
         cmd_id_list = []
+        if not hasattr(self, 'app_type'):
+            self.state.logaction(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
+            return False
         for i in range(0, len(instancelist)):
             for key in instancelist[i]:
                 instance = key
@@ -409,9 +414,12 @@ class Stack:
                 self.state.logaction(log.ERROR, f'Shutdown result for {cmd_id}: {result}')
             else:
                 self.state.logaction(log.INFO, f'Shutdown result for {cmd_id}: {result}')
-        return
+        return True
 
     def startup_app(self, instancelist):
+        if not hasattr(self, 'app_type'):
+            self.state.logaction(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
+            return False
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
@@ -427,7 +435,7 @@ class Stack:
                     result = self.check_node_status(node_ip)
                     self.state.logaction(log.INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
-        return
+        return True
 
     def run_command(self, instancelist, cmd):
         cmd_id_dict = {}
@@ -634,6 +642,9 @@ class Stack:
         template = f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, templates_bucket, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        template_bucket = config['s3']['templates']
         try:
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
@@ -674,10 +685,12 @@ class Stack:
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         for instance in self.instancelist:
-            shutdown = self.shutdown_app([instance])
-            self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
-            startup = self.startup_app([instance])
-        self.state.logaction(log.INFO, "Rolling restart complete")
+            if self.shutdown_app([instance]):
+                self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
+                startup = self.startup_app([instance])
+                self.state.logaction(log.INFO, "Rolling restart complete")
+            else:
+                self.state.logaction(log.INFO, "Rolling restart complete - failed")
         return True
 
 
@@ -685,12 +698,13 @@ class Stack:
         self.state.logaction(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        self.state.logaction(log.INFO, f'Shutting down {self.app_type} on all instances of {self.stack_name}')
-        shutdown = self.shutdown_app(self.instancelist)
-        for instance in self.instancelist:
-            self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
-            startup = self.startup_app([instance])
-        self.state.logaction(log.INFO, "Full restart complete")
+        if self.shutdown_app(self.instancelist):
+            for instance in self.instancelist:
+                self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
+                startup = self.startup_app([instance])
+            self.state.logaction(log.INFO, "Full restart complete")
+        else:
+            self.state.logaction(log.INFO, "Full restart complete - failed")
         return True
 
 
