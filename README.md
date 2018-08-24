@@ -67,12 +67,12 @@ Forge uses a config file (config.yml) for configuring which AWS regions are avai
 ### Environment variables
 
 | `ATL_FORGE_ANALYTICS_UA` | The Google Analytics UA number for collecting analytics on Forge usage in your org |
+| `ATL_FORGE_FLASK_SECRET` | Secret passed to Flask app initialization |
 | `ATL_FORGE_PORT` | Override the port that Forge runs on; defaults to 8000 |
 | `ATL_FORGE_S3_CONFIG` | The name of an S3 bucket used for reading configuration files |
 | `ATL_FORGE_S3_DIAGNOSTICS` | The name of an S3 bucket used for CloudFormation stack diagnostic information |
 | `ATL_FORGE_S3_STACKLOGS` | The name of an S3 bucket used for log storage |
 | `ATL_FORGE_S3_TEMPLATES` | The name of an S3 bucket used for the uploading and storage of CloudFormation templates |
 | `ATL_FORGE_SAML_METADATA_URL` | Metadata URL for SAML auth |
-| `ATL_FORGE_SECRET` | Secret passed to Flask app initialization |
 
 *WARNING:* It is highly-recommended to create separate S3 buckets for local development and to pass those values via the env vars above; otherwise, the app will try to use the default naming patterns and/or will access "live" buckets on S3.

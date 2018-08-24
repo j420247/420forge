@@ -204,9 +204,9 @@ Resources:
         - Name: forge
           Command: !If [UseSamlAuth, ['--saml'], !Ref 'AWS::NoValue']
           Environment:
-            - Name: ATL_FORGE_SECRET
             - Name: ATL_FORGE_ANALYTICS_UA
               Value: !Ref GoogleAnalyticsUA
+            - Name: ATL_FORGE_FLASK_SECRET
               Value: !Ref ForgeFlaskSecretKey
             - Name: ATL_FORGE_S3_DIAGNOSTICS
               Value: !Ref DiagnosticsBucket
