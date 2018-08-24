@@ -154,15 +154,15 @@ Conditions:
   UseConfigUpdaterLambda:
     !Not [!Equals [!Ref ConfigurationLambdaArn, '']]
   UseCustomDnsName:
-    !Not [!Equals [!Ref CustomDnsName, ""]]
+    !Not [!Equals [!Ref CustomDnsName, '']]
   UseCustomImage:
-    !Not [!Equals [!Ref ForgeImageName, ""]]
+    !Not [!Equals [!Ref ForgeImageName, '']]
   UseCustomRegistry:
-    !Not [!Equals [!Ref ForgeRegistryUrl, ""]]
+    !Not [!Equals [!Ref ForgeRegistryUrl, '']]
   UseHostedZone:
-    !Not [!Equals [!Ref HostedZone, ""]]
+    !Not [!Equals [!Ref HostedZone, '']]
   UseSamlAuth:
-    !Not [!Equals [!Ref SamlMetadataUrl]]
+    !Not [!Equals [!Ref SamlMetadataUrl, '']]
   UseSubDomainName:
     !Not [!Equals [!Ref SubDomainName, '']]
 Resources:
@@ -215,7 +215,7 @@ Resources:
             - Name: ATL_FORGE_S3_CONFIG
               Value: !Ref ConfigBucket
             - Name: ATL_FORGE_SAML_METADATA_URL
-              Value: !If [UseSamlAuth, !Ref SamlMetadataUrl, !Ref AWS::NoValue]
+              Value: !Ref SamlMetadataUrl
           LogConfiguration:
             LogDriver: awslogs
             Options:
