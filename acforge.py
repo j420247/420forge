@@ -66,9 +66,9 @@ db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
-config = configparser.ConfigParser()
-config.read('forge.properties')
-if config.items('analytics')[0][1] == 'true':
+config_props = configparser.ConfigParser()
+config_props.read('forge.properties')
+if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
 # load permissions file
