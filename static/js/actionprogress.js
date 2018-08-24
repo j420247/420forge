@@ -67,26 +67,14 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
 
 function refreshStackInfo(stack_name, this_action) {
     // Only check stack status in EC2 for stack changing actions
-    // Refresh every 1s until action is in progress, then every 20s
-    var refreshInterval = 1000;
-    if (document.getElementById("stackState") &&
-        document.getElementById("stackState").childElementCount > 0) {
-        if (document.getElementById("stackState").childNodes[1].innerText.indexOf("IN_PROGRESS") === -1) {
-            if (actionProgressBegun) {
-                actionProgressComplete = true;
-            }
-        } else if (!actionProgressBegun) {
-            actionProgressBegun = true;
-            refreshInterval = 20000;
-        }
-    }
-
+    // Refresh every 10s
+    //TODO check more frequently until stack_state is IN_PROGRESS
     if (this_action !== 'diagnostics' &&
         this_action !== 'fullrestart' &&
         this_action !== 'rollingrestart') {
         refreshStackInfoTimer = setTimeout(function () {
             updateStats(stack_name);
             refreshStackInfo(stack_name, this_action);
-        }, refreshInterval)
+        }, 10000)
     }
 }
