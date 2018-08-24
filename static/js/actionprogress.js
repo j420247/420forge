@@ -69,13 +69,16 @@ function refreshStackInfo(stack_name, this_action) {
     // Only check stack status in EC2 for stack changing actions
     // Refresh every 1s until action is in progress, then every 20s
     var refreshInterval = 1000;
-    if (document.getElementById("stackState").childNodes[1].innerText.indexOf("IN_PROGRESS") === -1) {
-        if (actionProgressBegun) {
-        actionProgressComplete = true;
+    if (document.getElementById("stackState") &&
+        document.getElementById("stackState").childElementCount > 0) {
+        if (document.getElementById("stackState").childNodes[1].innerText.indexOf("IN_PROGRESS") === -1) {
+            if (actionProgressBegun) {
+                actionProgressComplete = true;
+            }
+        } else if (!actionProgressBegun) {
+            actionProgressBegun = true;
+            refreshInterval = 20000;
         }
-    } else if (!actionProgressBegun) {
-        actionProgressBegun = true;
-        refreshInterval = 20000;
     }
 
     if (this_action !== 'diagnostics' &&
