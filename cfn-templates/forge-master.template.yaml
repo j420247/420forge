@@ -142,11 +142,12 @@ Resources:
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
+                - iam:DeleteInstanceProfile
                 - rds:CreateDBInstance
                 - rds:CreateDBSubnetGroup
                 - rds:DeleteDBInstance
                 - rds:DeleteDBSubnetGroup
-                - iam:DeleteInstanceProfile
+                - rds:RestoreDBInstanceFromDBSnapshot
                 - rds:DescribeDBInstances
                 - rds:DescribeDBSnapshots
                 - rds:DescribeDBSubnetGroups
