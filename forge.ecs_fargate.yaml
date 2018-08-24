@@ -11,6 +11,7 @@ Metadata:
           - ForgeFlaskSecretKey
           - SamlMetadataUrl
           - GoogleAnalyticsUA
+          - ConfigurationLambdaArn
       - Label:
           default: Networking
         Parameters:
@@ -38,6 +39,8 @@ Metadata:
         default: ECS CPU units
       CidrBlock:
         default: Permitted IP range
+      ConfigurationLambdaArn:
+        default: Configuration Updater Lambda ARN
       CustomDnsName:
         default: Existing DNS name (optional)
       ExternalSubnets:
@@ -82,6 +85,9 @@ Parameters:
     Description: The CIDR IP range that is permitted to access Forge; use 0.0.0.0/0 if you want public access from the internet
     MinLength: 9
     MaxLength: 18
+    Type: String
+  ConfigurationLambdaArn:
+    Description: The ARN of the Lambda created for auto-updating Forge's configuration
     Type: String
   CustomDnsName:
     Description: 'Use custom existing DNS name for your Forge instance; please note: you must own the domain and configure it to point at the load balancer'
@@ -145,6 +151,8 @@ Parameters:
 Conditions:
   DoSSL:
     !Not [!Equals [!Ref SSLCertificateARN, '']]
+  UseConfigUpdaterLambda:
+    !Not [!Equals [!Ref ConfigurationLambdaArn, '']]
   UseCustomDnsName:
     !Not [!Equals [!Ref CustomDnsName, ""]]
   UseCustomImage:
@@ -310,11 +318,13 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !Sub 'atl-default-s3-logging-${AWS::AccountId}-${AWS::Region}'
         LogFilePrefix: ${AWS::StackName}-atl-forge-config/
-      # NotificationConfiguration:
-      #   LambdaConfigurations:
-      #     - Event: s3:ObjectCreated:*
-      #       Function: !GetAtt ConfigUpdaterLambda.Arn
-      #       Function: 'arn:aws:lambda:us-east-1:515798882395:function:lgoolsbee-testing-ConfigUpdaterLambda-1D1JB2KZQGGEP'
+      NotificationConfiguration:
+        !If
+          - UseConfigUpdaterLambda
+          - LambdaConfigurations:
+            - Event: 's3:ObjectCreated:*'
+              Function: !Ref ConfigurationLambdaArn
+          - !Ref AWS::NoValue
   DiagnosticsBucket:
     Type: AWS::S3::Bucket
     Properties:
