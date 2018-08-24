@@ -200,7 +200,7 @@ Resources:
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: forge
-          Command: !If [UseSamlAuth, ['--saml'], !Ref AWS::NoValue]
+          Command: !If [UseSamlAuth, ['--saml'], !Ref 'AWS::NoValue']
           Environment:
             - Name: ATL_FORGE_SECRET
             - Name: ATL_FORGE_ANALYTICS_UA
@@ -242,7 +242,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       Certificates:
-        - CertificateArn: !If [DoSSL, !Ref SSLCertificateArn, !Ref AWS::NoValue]
+        - CertificateArn: !If [DoSSL, !Ref SSLCertificateArn, !Ref 'AWS::NoValue']
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
