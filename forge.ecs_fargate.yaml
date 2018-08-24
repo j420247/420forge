@@ -19,7 +19,7 @@ Metadata:
           - ExternalSubnets
           - InternalSubnets
           - LoadBalancerScheme
-          - SSLCertificateARN
+          - SSLCertificateArn
           - VPC
       - Label:
           default: DNS (Optional)
@@ -65,7 +65,7 @@ Metadata:
         default: ECS Memory units
       SamlMetadataUrl:
         default: SAML Metadata URL
-      SSLCertificateARN:
+      SSLCertificateArn:
         default: SSL Certificate ARN
       SubDomainName:
         default: Sub-domain for Hosted Zone (optional)
@@ -137,7 +137,7 @@ Parameters:
   SamlMetadataUrl:
     Description: The URL for your SSO's SAML metadata provider; enter a value to enable SAML auth, leave blank to disable
     Type: String
-  SSLCertificateARN:
+  SSLCertificateArn:
     Description: Amazon Resource Name (ARN) of your SSL certificate. If you want to use your own certificate that you generated outside of Amazon, you need to first import it to AWS Certificate Manager. After a successful import, you'll receive the ARN. If you want to create a certificate with AWS Certificate Manager (ACM certificate), you will receive the ARN after it's successfully created
     MinLength: 0
     MaxLength: 50
@@ -150,7 +150,7 @@ Parameters:
     Type: AWS::EC2::VPC::Id
 Conditions:
   DoSSL:
-    !Not [!Equals [!Ref SSLCertificateARN, '']]
+    !Not [!Equals [!Ref SSLCertificateArn, '']]
   UseConfigUpdaterLambda:
     !Not [!Equals [!Ref ConfigurationLambdaArn, '']]
   UseCustomDnsName:
@@ -242,7 +242,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       Certificates:
-        - CertificateArn: !If [DoSSL, !Ref SSLCertificateARN, !Ref AWS::NoValue]
+        - CertificateArn: !If [DoSSL, !Ref SSLCertificateArn, !Ref AWS::NoValue]
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
