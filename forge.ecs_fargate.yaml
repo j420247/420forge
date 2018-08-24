@@ -170,6 +170,8 @@ Resources:
     Type: AWS::ECS::Cluster
   Service:
     Type: AWS::ECS::Service
+    DependsOn:
+      - LoadBalancer
     Properties:
       Cluster: !Ref ECSCluster
       DeploymentConfiguration:
