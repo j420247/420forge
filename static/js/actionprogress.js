@@ -70,7 +70,7 @@ function refreshStackInfo(stack_name, this_action) {
     // Refresh every 1s until action is in progress, then every 20s
     var refreshInterval = 1000;
     if (document.getElementById("stackState") &&
-        document.getElementById("stackState").hasChildNodes()) {
+        document.getElementById("stackState").childElementCount > 0) {
         if (document.getElementById("stackState").childNodes[1].innerText.indexOf("IN_PROGRESS") === -1) {
             if (actionProgressBegun) {
                 actionProgressComplete = true;
