@@ -44,9 +44,10 @@ class ForgeConfig:
                 else:
                     raise e
 
-        # load regions
-        self.regions = {"us-east-1": "US East 1"}
-        self._load_from_config(config_file, 'regions', 'no configured regions found; using default us-east-1')
+        # load aws_defaults; provide us-east-1 as fallback region
+        self.aws_defaults = {}
+        self.aws_defaults['regions'] = {"us-east-1": "US East 1"}
+        self._load_from_config(config_file, 'aws_defaults', 'no aws configuration found; using default us-east-1 region')
 
         # load saml auth permissions
         self._load_from_config(config_file, 'permissions', 'no configured saml auth permissions found; saml auth will not be available if enabled')

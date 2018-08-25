@@ -11,23 +11,37 @@
 #   - dotag
 #   - dothreaddumps
 #   - doupgrade
-permissions:
-    - group: all-read-only
-      action: [none]
-      region: ['*']
-      stack: ['*']
-    - group: dev-team-admins
-      action: [doclone, dofullrestart, dorollingrestart, doupgrade, dothreaddumps, doheapdumps, doupdate, dorunsql, dotag]
-      region: [us-east-1]
-      stack: [some-stack-name, other-stack-name]
-    - group: ops-team-admins
-      action: ['*']
-      region: ['*']
-      stack: ['*']
+# permissions:
+#     - group: all-read-only
+#       action: [none]
+#       region: ['*']
+#       stack: ['*']
+#     - group: dev-team-admins
+#       action: [doclone, dofullrestart, dorollingrestart, doupgrade, dothreaddumps, doheapdumps, doupdate, dorunsql, dotag]
+#       region: [us-east-1]
+#       stack: [some-stack-name, other-stack-name]
+#     - group: ops-team-admins
+#       action: ['*']
+#       region: ['*']
+#       stack: ['*']
 
-# Regions in format 'aws_region: region_name'
-# Names are for reference only, so can be AWS region names or Staging/Production etc
+# AWS config
+# Region names are optional and for reference only, so can be AWS region names or Staging/Production etc
+# All other values are only used for prepopulation of stack parameter lists
 # Enter default region first
-regions:
-    us-east-1: Production
-    us-west-2: Staging
+# aws_defaults:
+#     hosted_zone: 'your-domain-here.com.'
+#     ssh_key_name: 'SshKeyPairName'
+#     regions:
+#         us-east-1:
+#             name: Production
+#             vpc: vpc-########
+#             subnets:
+#                 - subnet-########
+#                 - subnet-########
+#         us-west-2:
+#             name: Staging
+#             vpc: vpc-########
+#             subnets:
+#                 - subnet-########
+#                 - subnet-########

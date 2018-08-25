@@ -14,7 +14,12 @@
         <script src="/static/aui/js/aui.js"></script>
         <script src="/static/aui/js/aui-experimental.min.js"></script>
         <script src="/static/aui/js/aui-soy.min.js"></script>
-        <script src="/static/js/global-variables.js"></script>
+
+        <script>
+            window.forge = {};
+            window.forge.region = "{{ session['region'] }}";
+            window.forge.aws_defaults = JSON.parse('{{ session.aws_defaults | tojson | safe}}');
+        </script>
         <script src="/static/js/page-content.js"></script>
         <script src="/static/js/utils.js"></script>
 
@@ -46,11 +51,11 @@
                     <!-- Horizontal nav bar-->
                     <ul class="aui-nav">
                         {% block hnavitems %}
-                        {% for region, region_name in session['regions'].items() %}
+                        {% for region, region_details in session['aws_defaults']['regions'].items() %}
                         <li>
                             <a {% if session['region'] == region %}class="region-selected"{% endif %}
                                href="{{ url_for('setregion', region=region) }}">
-                                {{ region_name }}
+                                {{ region_details['name'] }}
                             </a>
                         </li>
                         {% endfor %}

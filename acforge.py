@@ -812,10 +812,10 @@ def stack_locking_enabled():
 def get_forge_settings():
     # use first region if no region selected (eg first load)
     if 'region' not in session:
-        session['region'] = list(FORGE_CONFIG.regions.keys())[0]
+        session['region'] = list(FORGE_CONFIG.aws_defaults['regions'].keys())[0]
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     session['products'] = forge_const.PRODUCTS
-    session['regions'] = FORGE_CONFIG.regions
+    session['aws_defaults'] = FORGE_CONFIG.aws_defaults
     session['stack_locking'] = stack_locking_enabled()
     session['forge_version'] = __version__
 

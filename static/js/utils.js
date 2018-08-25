@@ -46,16 +46,19 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                if (data.target.text === us_east_1_default_vpc) {
-                    document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
-                } else if (data.target.text === us_west_2_default_vpc) {
-                    document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-                } else if (data.target.text === lab_default_vpc) {
-                    document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
+                var default_subnets = '';
+                var external_subnets_field = document.getElementById("ExternalSubnetsVal");
+                var internal_subnets_field = document.getElementById("InternalSubnetsVal");
+                if (dropdownAnchor.text === window.forge.aws_defaults.regions[window.forge.region].vpc) {
+                    default_subnets = window.forge.aws_defaults.regions[window.forge.region].subnets.join(',');
+                    external_subnets_field.setAttribute('disabled', '');
+                    internal_subnets_field.setAttribute('disabled', '');
+                } else {
+                    external_subnets_field.removeAttribute('disabled');
+                    internal_subnets_field.removeAttribute('disabled');
                 }
+                external_subnets_field.value = default_subnets;
+                internal_subnets_field.value = default_subnets;
             }
         }, false);
         li.appendChild(liAnchor);
