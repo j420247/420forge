@@ -24,6 +24,7 @@ Metadata:
           Parameters:
             - Analytics
             - Regions
+            - CreateS3
       ParameterLabels:
         VPC:
           default: VPC Id
@@ -41,6 +42,8 @@ Metadata:
           default: Enable analytics
         Regions:
           default: Regions to operate in
+        CreateS3:
+          default: Create S3 buckets
 
 Parameters:
   VPC:
@@ -90,6 +93,14 @@ Parameters:
     Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'.
     Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
     Type: CommaDelimitedList
+  CreateS3:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be true or false
+    Description: "Create S3 buckets for diagnostics and templates. Must be true if this is the first creation of a Forge stack in your account. Must be false if buckets already exist.
+    Buckets will be named 'atl-forge-templates-<youraccountid>'."
+    Type: String
 
 Mappings:
   RegionAmiMap:
@@ -99,6 +110,9 @@ Mappings:
       "64": "ami-51537029"
     ap-southeast-2:
       "64": "ami-059b78064586da1b7"
+
+Conditions:
+  CreateS3Buckets: !Equals [ !Ref CreateS3, true ]
 
 Resources:
   ForgeRole:
@@ -180,6 +194,8 @@ Resources:
                 - s3:PutObjectAcl
                 Effect: Allow
                 Resource:
+                  - !Sub ["arn:aws:s3:::atl-forge-templates-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+                  - !Sub ["arn:aws:s3:::atl-forge-diagnostics-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
                   - arn:aws:s3:::wpe-diagnostics/*
                   - arn:aws:s3:::wpe-public-software/*
                   - arn:aws:s3:::wpe-storage-us-east-1/*
@@ -235,7 +251,7 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    git clone -b ITOPS-665/link-public-repo ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
@@ -332,3 +348,16 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ForgeNode-SG
+  # S3 Buckets
+  TemplateBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+  DiagnosticsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
