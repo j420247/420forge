@@ -4,3 +4,10 @@
     color:#deebff;
     background-color:rgba(9,30,66,.48)
 }
+img {
+    opacity: 0.3;
+    height: 200px;
+    position: absolute;
+    top: 130px;
+    left: 330px;
+}
