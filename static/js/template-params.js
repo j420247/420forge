@@ -31,8 +31,7 @@ function onReady() {
 function selectTemplateForStack(stackToRetrieve) {
     if (document.getElementById("clone-params"))
         $("#clone-params").hide();
-    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
 
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);

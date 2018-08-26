@@ -14,7 +14,7 @@
 }
 /*! AUI Label */
 .aui-label {
-  background: #f5f5f5;
+  background: #F4F5F7;
   border: 1px solid #DFE1E6;
   border-radius: 3.01px;
   color: #0052CC;
@@ -38,7 +38,7 @@ span.aui-label {
 a.aui-label:focus,
 a.aui-label:hover,
 a.aui-label:active {
-  border-color: #707070;
+  border-color: #7A869A;
   text-decoration: none;
 }
 .aui-label-split .aui-label-split-main:hover,
@@ -65,65 +65,73 @@ a.aui-label:active {
 /*! AUI Sortable Tables */
 .aui-table-sortable .tablesorter-header {
   cursor: pointer;
+  border-bottom: 2px solid #DFE1E6;
 }
-/**
- * Unsortable columns should not get the hover effects
- */
 .aui-table-sortable .tablesorter-header.aui-table-column-unsortable {
   cursor: default;
 }
-.aui-table-sortable .tablesorter-header.aui-table-column-unsortable:hover {
-  background-color: inherit;
-  color: inherit;
+.aui-table-sortable .tablesorter-header:focus,
+.aui-table-sortable .tablesorter-header:hover {
+  background-color: rgba(9, 30, 66, 0.08);
 }
-/**
- * Color of header when selected or hovered.
- */
-.aui-table-sortable .tablesorter-header:hover,
+.aui-table-sortable .tablesorter-header:active {
+  background-color: #DEEBFF;
+  border-color: #0747A6;
+  color: #0747A6;
+}
 .aui-table-sortable .tablesorter-headerAsc,
 .aui-table-sortable .tablesorter-headerDesc {
-  background-color: #f5f5f5;
+  background-color: transparent;
   color: #172B4D;
 }
-/**
- * Used to generate the arrow on the right.
- */
-.aui-table-sortable .aui-table-header-content:after {
-  border: 4px solid transparent;
+table.aui.aui-table-sortable .tablesorter-header:active {
+  border-bottom: 2px solid #0747A6;
+}
+table.aui.aui-table-sortable .tablesorter-headerAsc,
+table.aui.aui-table-sortable .tablesorter-headerDesc {
+  border-bottom: 2px solid #7A869A;
+}
+table.aui.aui-table-sortable .tablesorter-header.aui-table-column-unsortable:focus,
+table.aui.aui-table-sortable .tablesorter-header.aui-table-column-unsortable:hover,
+table.aui.aui-table-sortable .tablesorter-header.aui-table-column-unsortable:active {
+  background-color: inherit;
+  border-color: inherit;
+  color: #7A869A;
+}
+.aui-table-sortable .aui-table-header-content::after {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-stroke-width: 0;
+  font-family: "Adgs Icons";
+  font-weight: normal;
+  font-style: normal;
+  speak: none;
   content: "";
   display: inline-block;
+  height: 16px;
+  line-height: 1;
+  font-size: 16px;
   margin-left: 5px;
   position: relative;
-  width: 0;
+  width: 16px;
+  vertical-align: text-bottom;
 }
-/**
- * If the table header is hovered add the border color.
- */
-.aui-table-sortable .tablesorter-header:hover .aui-table-header-content:after {
-  border-top-color: #172B4D;
-  border-bottom-color: transparent;
+.aui-table-sortable .tablesorter-header:focus .aui-table-header-content::after,
+.aui-table-sortable .tablesorter-header:hover .aui-table-header-content::after {
+  content: "\f140";
   opacity: 0.5;
-  top: 2px;
 }
-/**
- * If descending add border color
- */
-.aui-table-sortable .tablesorter-headerAsc .aui-table-header-content:after,
-.aui-table-sortable .tablesorter-headerAsc:hover .aui-table-header-content:after {
-  border-top-color: transparent;
-  border-bottom-color: #172B4D;
+.aui-table-sortable .tablesorter-headerAsc .aui-table-header-content::after,
+.aui-table-sortable .tablesorter-headerAsc:focus .aui-table-header-content::after,
+.aui-table-sortable .tablesorter-headerAsc:hover .aui-table-header-content::after {
+  content: "\f140";
   opacity: 1;
-  top: -2px;
 }
-/**
- * If ascending add border color
- */
-.aui-table-sortable .tablesorter-headerDesc .aui-table-header-content:after,
-.aui-table-sortable .tablesorter-headerDesc:hover .aui-table-header-content:after {
-  border-top-color: #172B4D;
-  border-bottom-color: transparent;
+.aui-table-sortable .tablesorter-headerDesc .aui-table-header-content::after,
+.aui-table-sortable .tablesorter-headerDesc:focus .aui-table-header-content::after,
+.aui-table-sortable .tablesorter-headerDesc:hover .aui-table-header-content::after {
+  content: "\f1ac";
   opacity: 1;
-  top: 2px;
 }
 /* Layout */
 .aui-progress-tracker {
@@ -149,67 +157,73 @@ a.aui-label:active {
 /* Progress Bar */
 .aui-progress-tracker-step > span,
 .aui-progress-tracker-step > a {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.42857143;
+  letter-spacing: -0.003em;
+  text-transform: none;
+  font-weight: 400;
+  color: #172B4D;
   display: block;
-  font-weight: bold;
   outline: none;
   padding-top: 25px;
   position: relative;
 }
 .aui-progress-tracker-step > span:before,
 .aui-progress-tracker-step > a:before {
-  background: #0052CC;
+  background: #0065FF;
   border-radius: 100%;
-  box-shadow: 0 0 0 3px #f5f5f5;
-  /* can't just use a 3px border as an IE9 bug causes it to draw a strange additional darker border on the outside in addition to the 3px border */
   content: "";
-  height: 10px;
+  height: 8px;
   left: 50%;
   margin-left: -5px;
   position: absolute;
-  top: 3px;
-  width: 10px;
+  top: 4px;
+  width: 8px;
 }
 .aui-progress-tracker-step + .aui-progress-tracker-step > span:after,
 .aui-progress-tracker-step + .aui-progress-tracker-step > a:after {
-  background: #0052CC;
-  border: solid #f5f5f5;
-  border-width: 2px 0;
-  box-shadow: -5px 0 0 -2px #0052CC, 5px 0 0 -2px #0052CC;
+  background: #0065FF;
+  box-shadow: -5px 0 0 -2px #0065FF, 5px 0 0 -2px #0065FF;
   content: "";
-  height: 4px;
+  height: 8px;
   left: -50%;
-  margin-left: -14px;
-  /* almost touches right edge of previous dot (leaves 1px room for rounding widths like 33.3% in webkit) */
-  margin-right: 6px;
-  /* almost touches left edge of this dot (leaves 1px room for rounding widths like 33.3% in webkit) */
+  margin-left: -20px;
+  /* touches right edge of previous dot */
+  margin-right: 1px;
+  /* touches left edge of this dot */
   position: absolute;
   right: 50%;
   top: 4px;
 }
-.aui-progress-tracker-step-current ~ .aui-progress-tracker-step {
-  color: #707070;
+.aui-progress-tracker-step-current > span,
+.aui-progress-tracker-step-current > a {
+  font-weight: 600;
+}
+.aui-progress-tracker-step-current ~ .aui-progress-tracker-step > span,
+.aui-progress-tracker-step-current ~ .aui-progress-tracker-step > a {
+  color: #5E6C84;
+  font-weight: 400;
+}
+.aui-progress-tracker-step-current ~ .aui-progress-tracker-step > span:hover,
+.aui-progress-tracker-step-current ~ .aui-progress-tracker-step > a:hover {
+  color: #5E6C84;
 }
 .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > span:before,
 .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > a:before {
-  background-color: #DFE1E6;
+  background-color: #A5ADBA;
 }
 .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > span:after,
 .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > a:after {
-  background-color: #f5f5f5;
+  background-color: transparent;
+  border: none;
   box-shadow: none;
 }
-/* Inverted Colours */
-.aui-progress-tracker-inverted .aui-progress-tracker-step > span:before,
-.aui-progress-tracker-inverted .aui-progress-tracker-step > a:before {
-  box-shadow: 0 0 0 3px #fff;
+.aui-progress-tracker-step > a:hover {
+  color: #0052CC;
 }
-.aui-progress-tracker-inverted .aui-progress-tracker-step + .aui-progress-tracker-step > span:after,
-.aui-progress-tracker-inverted .aui-progress-tracker-step + .aui-progress-tracker-step > a:after {
-  border-color: #fff;
-}
-.aui-progress-tracker-inverted .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > span:after,
-.aui-progress-tracker-inverted .aui-progress-tracker-step-current ~ .aui-progress-tracker-step > a:after {
-  background-color: #fff;
+.aui-progress-tracker-step > a:active {
+  color: #0747A6;
 }
 /* Interaction wih page layout */
 .aui-page-header-actions .aui-progress-tracker {
@@ -366,7 +380,7 @@ a.aui-label:active {
   margin: 0;
 }
 .aui-tooltip-title {
-  color: #fff;
+  color: #FFFFFF;
   font-weight: bold;
   margin: 0;
 }
@@ -391,7 +405,7 @@ a.aui-label:active {
 }
 /* ADG REVEAL TEXT PATTERN */
 a.aui-expander-trigger.aui-expander-reveal-text {
-  background: #fff;
+  background: #FFFFFF;
   bottom: 0;
   position: absolute;
   right: 0;
@@ -413,63 +427,64 @@ a.aui-expander-trigger.aui-expander-reveal-text {
 .aui-expander-content[aria-expanded="true"] .aui-expander-trigger.aui-expander-reveal-text {
   position: relative;
 }
+aui-progressbar {
+  display: block;
+}
 .aui-progress-indicator {
-  background: #e9e9e9;
+  background: rgba(9, 30, 66, 0.13);
   border-radius: 3px;
-  height: 5px;
+  height: 6px;
   overflow: hidden;
   position: relative;
   /* so that animations work */
   width: 100%;
 }
 .aui-progress-indicator-value {
-  -webkit-animation: progressSlide 1s infinite linear;
-  animation: progressSlide 1s infinite linear;
-  background: transparent;
-  background-size: 20px 5px;
-  background-image: linear-gradient(90deg, #DFE1E6 50%, transparent 50%, transparent 100%);
+  -webkit-animation: progressSlide 5s infinite ease-in-out;
+  animation: progressSlide 5s infinite ease-in-out;
   border-radius: 3px;
   display: block;
-  height: 5px;
-  -webkit-transform: skewX(45deg);
-  transform: skewX(45deg);
+  height: 6px;
   transition: none;
   position: absolute;
-  width: 100%;
+  width: 10%;
+  background: #42526E;
 }
 @-webkit-keyframes progressSlide {
-  from {
-    background-position: 20px;
+  0% {
+    left: 0%;
   }
-  to {
-    background-position: 0;
+  50% {
+    left: 90%;
+  }
+  100% {
+    left: 0%;
   }
 }
 @keyframes progressSlide {
-  from {
-    background-position: 20px;
+  0% {
+    left: 0%;
   }
-  to {
-    background-position: 0;
+  50% {
+    left: 90%;
+  }
+  100% {
+    left: 0%;
   }
 }
 .aui-progress-indicator[data-value] .aui-progress-indicator-value {
-  -webkit-animation-play-state: paused;
-  animation-play-state: paused;
-  background: #0052CC;
-  border-radius: 3px 0 0 3px;
+  -webkit-animation: none;
+  animation: none;
+  left: 0;
+  background: #42526E;
+  border-radius: 3px;
   transition: width 0.5s;
-  -webkit-transform: skewX(0);
-  transform: skewX(0);
 }
 .aui-progress-indicator-static[data-value] .aui-progress-indicator-value {
-  -webkit-animation-play-state: paused;
-  animation-play-state: paused;
+  -webkit-animation: none;
+  animation: none;
+  left: 0;
   transition: none;
-}
-/* Special rule for progress bar at 100%, needs to be round at the end */
-.aui-progress-indicator[data-value="1"] .aui-progress-indicator-value {
-  border-radius: 3px;
 }
 /* ----- table loading styles ----- */
 span.aui-restfultable-throbber {
@@ -496,7 +511,7 @@ span.aui-restfultable-throbber {
 }
 /* ----- Some basics ----- */
 table.aui.aui-restfultable > thead > tr > th {
-  background-color: #fff;
+  background-color: #FFFFFF;
 }
 .aui-restfultable .aui-restfultable-status {
   width: 1px;
@@ -548,7 +563,7 @@ table.aui.aui-restfultable > thead > tr > th {
 }
 /* ----- Focused row ----- */
 .aui-restfultable-row.aui-restfultable-focused td {
-  background-color: #ebf2f9;
+  background-color: #DEEBFF;
 }
 /* ----- Disabled row ----- */
 .aui-restfultable-row.aui-restfultable-disabled td {
@@ -563,7 +578,7 @@ table.aui.aui-restfultable > thead > tr > th {
   white-space: nowrap;
 }
 .aui-restfultable-readonly.aui-restfultable-movable > div {
-  background-color: #f5f5f5 !important;
+  background-color: #F4F5F7 !important;
   box-sizing: border-box;
   display: table-cell;
   height: 100%;
@@ -605,21 +620,21 @@ table.aui.aui-restfultable > thead > tr > th {
   visibility: visible;
 }
 .aui-restfultable-readonly .aui-restfultable-editable em {
-  color: #999;
+  color: #97A0AF;
 }
 /* ----- Hover row ----- */
 .aui-restfultable-row.aui-restfultable-active {
-  background-color: #f5f5f5;
+  background-color: #F4F5F7;
 }
 .aui-restfultable-allowhover tr:hover td {
-  background-color: #f5f5f5;
+  background-color: #F4F5F7;
 }
 .aui-restfultable-allowhover tr.aui-restfultable-focused td {
-  background-color: #ebf2f9;
+  background-color: #DEEBFF;
 }
 .aui-restfultable-allowhover td:hover .aui-restfultable-editable {
   visibility: visible;
-  background: #fffdf6;
+  background: #FFFAE6;
   cursor: pointer;
 }
 /* ----- Validation ----- */
@@ -1191,34 +1206,42 @@ disabled look for disabled choices in the results dropdown
   padding: 5px;
 }
 .aui-select2-drop {
+  margin-top: 3px;
+  margin-bottom: 0;
   z-index: 9999;
-  /* re-instated style from core select2 style */
 }
 .aui-select2-drop.select2-drop-above.select2-drop-active {
-  border: 1px solid #DFE1E6;
-  border-top-left-radius: 3.01px;
-  border-top-right-radius: 3.01px;
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  background: #FFFFFF;
+  border: 0 solid #DFE1E6;
+  border-radius: 3px;
+  color: #344563;
+  margin-bottom: 3px;
   margin-top: 0;
 }
-.aui-select2-drop .select2-result-unselectable > .select2-result-label {
-  font-size: 12px;
-  color: #707070;
-  padding: 5px 10px 0;
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-select2-drop.select2-drop-above.select2-drop-active {
+    box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 .aui-select2-drop .select2-results ul.select2-result-sub > li .select2-result-label,
 .aui-select2-drop .select2-results .select2-result-label,
 .aui-select2-drop .select2-results .select2-searching,
 .aui-select2-drop .select2-results .select2-no-results,
 .aui-select2-drop .select2-results .select2-more-results {
-  padding: 3px 10px;
+  box-sizing: content-box;
+  display: block;
+  line-height: 1.14285714;
+  padding: 7px 10px;
 }
 .aui-select2-drop .select2-result-label {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  cursor: inherit;
 }
 .aui-select2-drop .select2-results {
-  margin: 2px 0;
+  margin: 0;
   padding: 0;
 }
 .aui-select2-drop .select2-more-results,
@@ -1239,19 +1262,58 @@ disabled look for disabled choices in the results dropdown
   color: inherit;
   max-width: none;
 }
-.aui-select2-drop .select2-results ul.select2-result-sub {
-  margin: 2px 0;
-}
-.aui-select2-drop .select2-result-sub .select2-result-unselectable > .select2-result-label {
-  text-transform: none;
-  font-size: inherit;
-  margin-top: 5px;
-}
 .aui-select2-drop.aui-dropdown2.aui-style-default {
   margin-left: 0;
 }
+.aui-select2-drop .select2-results .select2-result-selectable {
+  background-color: transparent;
+  color: #344563;
+  text-decoration: none;
+  cursor: pointer;
+}
 .aui-select2-drop .select2-results .select2-highlighted {
-  background-color: #0052CC;
+  background-color: #EBECF0;
+  color: #344563;
+}
+.aui-select2-drop .select2-results .select2-result-unselectable {
+  background-color: transparent;
+  color: #7A869A;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+.aui-select2-drop .select2-results .select2-result-with-children {
+  border-top: 1px solid #DFE1E6;
+  border-bottom: 1px solid #DFE1E6;
+  margin: 3px 0;
+  padding: 0;
+}
+.aui-select2-drop .select2-results .select2-result-with-children:first-child {
+  border-top: 0;
+  margin-top: 0;
+}
+.aui-select2-drop .select2-results .select2-result-with-children:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+.aui-select2-drop .select2-results .select2-result-with-children > :first-child {
+  margin-top: 3px;
+}
+.aui-select2-drop .select2-results .select2-result-with-children > :last-child {
+  margin-bottom: 3px;
+}
+.aui-select2-drop .select2-results .select2-result-with-children > .select2-result-label {
+  color: #6B778C;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45454545;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.aui-select2-drop .select2-results .select2-result-with-children + .select2-result > .select2-result-label {
+  margin-top: 3px;
+}
+.aui-select2-drop .select2-results .select2-result-with-children + .select2-result-with-children {
+  border-top: 0;
 }
 .aui-select2-container.select2-container .select2-choice > span {
   display: block;
@@ -1300,7 +1362,7 @@ disabled look for disabled choices in the results dropdown
   width: 0;
 }
 .aui-select2-container.select2-container .select2-choice:after {
-  border-top-color: #172B4D;
+  border-top-color: #344563;
 }
 .aui-select2-container.select2-container .select2-choice:hover:after,
 .aui-select2-container.select2-container .select2-choice.active:after {
@@ -1322,7 +1384,7 @@ disabled look for disabled choices in the results dropdown
   NOTE: this class is only marked as !important because Select2 marks the same
   selector as !important in its styles. */
 .aui-select2-container .select2-default {
-  color: #707070 !important;
+  color: #7A869A !important;
 }
 .aui-select2-container .select2-choices .select2-search-field input {
   font-family: inherit;
@@ -1335,16 +1397,16 @@ disabled look for disabled choices in the results dropdown
 }
 .aui-select2-container.select2-container-multi .select2-choices {
   min-height: 0;
-  background: #fff;
+  background: #FFFFFF;
 }
 .aui-select2-container.select2-container-multi.text {
   height: auto;
 }
 .aui-select2-container .select2-choices .select2-search-choice {
-  background: #f5f5f5;
+  background: transparent;
   border: 1px solid #DFE1E6;
   border-radius: 3.01px;
-  color: #172B4D;
+  color: #344563;
   display: inline-block;
   font-size: 14px;
   font-weight: normal;
@@ -1392,10 +1454,11 @@ disabled look for disabled choices in the results dropdown
 .aui-select2-container.select2-container a.select2-choice,
 .aui-select2-container.select2-container .select2-choice:visited {
   box-sizing: border-box;
-  background: rgba(9, 30, 66, 0.04);
+  transition: background-color 0.1s ease-out;
+  background: rgba(9, 30, 66, 0.08);
   border: 1px solid transparent;
   border-radius: 3.01px;
-  color: #42526E;
+  color: #344563;
   cursor: pointer;
   display: inline-block;
   filter: none;
@@ -1414,11 +1477,14 @@ disabled look for disabled choices in the results dropdown
   white-space: nowrap;
 }
 .aui-select2-container.select2-container .select2-choice:hover {
-  background: rgba(9, 30, 66, 0.08);
+  background: #EBECF0;
   border-color: transparent;
   box-shadow: none;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
+}
+.aui-select2-container.select2-container .select2-choice:hover::after {
+  border-top-color: #344563;
 }
 .aui-select2-container.select2-container.select2-container-active .select2-choice,
 .aui-select2-container.select2-container .select2-choice:active {
@@ -1434,8 +1500,8 @@ disabled look for disabled choices in the results dropdown
 .aui-select2-container.select2-container .select2-choice:active::after {
   border-top-color: #0052CC;
 }
-.aui-select2-container.select2-container.select2-dropdown-open .select2-choice,
-.aui-select2-container.select2-container.select2-dropdown-open .select2-choices {
+.aui-select2-container.select2-container.select2-dropdown-open:not(.select2-container-multi) .select2-choice,
+.aui-select2-container.select2-container.select2-dropdown-open:not(.select2-container-multi) .select2-choices {
   /* square off bottom corners */
   border-bottom-right-radius: 0;
   border-bottom-left-radius: 0;
@@ -1443,6 +1509,12 @@ disabled look for disabled choices in the results dropdown
   /* avoid double border when the dropdown is active - increase padding to cater for this reduction */
   padding-bottom: 5px;
   /* increase the padding to cater for the lack of border so the button doesn't change size */
+  background: #344563;
+  color: #FFFFFF;
+}
+.aui-select2-container.select2-container.select2-dropdown-open:not(.select2-container-multi) .select2-choice::after,
+.aui-select2-container.select2-container.select2-dropdown-open:not(.select2-container-multi) .select2-choices::after {
+  border-top-color: #FFFFFF;
 }
 .aui-select2-container.select2-container.select2-dropdown-open.select2-drop-above .select2-choice,
 .aui-select2-container.select2-container.select2-dropdown-open.select2-drop-above .select2-choices {
@@ -1491,7 +1563,7 @@ disabled look for disabled choices in the results dropdown
 #aui-flag-container {
   pointer-events: none;
   position: fixed;
-  top: 71px;
+  top: 70px;
   right: 30px;
   z-index: 4000;
 }
@@ -1520,7 +1592,13 @@ disabled look for disabled choices in the results dropdown
 .aui-flag .aui-message {
   box-shadow: 0 20px 32px -8px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
   pointer-events: auto;
+  border-width: 0;
   width: 300px;
+}
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-flag .aui-message {
+    box-shadow: 0 20px 32px -8px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 /*
     Tipsy's
@@ -1536,19 +1614,19 @@ disabled look for disabled choices in the results dropdown
 }
 .tipsy.aui-form-notification-tooltip-error .tipsy-inner {
   background-color: #DE350B;
-  color: #fff;
+  color: #FFFFFF;
 }
 .tipsy.aui-form-notification-tooltip-info .tipsy-arrow-n {
-  border-bottom-color: #fff;
+  border-bottom-color: #FFFFFF;
 }
 .tipsy.aui-form-notification-tooltip-info .tipsy-arrow-s {
-  border-top-color: #fff;
+  border-top-color: #FFFFFF;
 }
 .tipsy.aui-form-notification-tooltip-info .tipsy-arrow-w {
-  border-right-color: #fff;
+  border-right-color: #FFFFFF;
 }
 .tipsy.aui-form-notification-tooltip-info .tipsy-inner {
-  background-color: #fff;
+  background-color: #FFFFFF;
   border: 1px solid #DFE1E6;
   color: #172B4D;
 }
@@ -1620,10 +1698,10 @@ disabled look for disabled choices in the results dropdown
     Icons.
 */
 [data-aui-notification-info] + .aui-icon.aui-icon-notification {
-  color: #999;
+  color: #97A0AF;
 }
 [data-aui-notification-info] + .aui-icon.aui-icon-notification:before {
-  content: "\f16f";
+  content: "\f234";
 }
 [data-aui-notification-success] + .aui-icon.aui-icon-notification {
   color: #00875A;
@@ -1692,7 +1770,7 @@ form.aui .textarea[data-aui-notification-success] {
 }
 #content .aui-sidebar + .aui-page-header {
   padding-left: 300px;
-  background: #fff;
+  background: #FFFFFF;
 }
 .aui-sidebar + .aui-page-header + .aui-navgroup {
   padding-left: 290px;
@@ -1789,10 +1867,12 @@ form.aui .textarea[data-aui-notification-success] {
 }
 .aui-sidebar .aui-sidebar-header-large .aui-page-header-main > h1,
 .aui-sidebar .aui-sidebar-header-large .aui-page-header-main > h2 {
-  padding-top: 10px;
-  font-size: 20px;
+  font-size: 24px;
+  font-weight: 500;
   line-height: 1.25;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  padding-top: 10px;
 }
 .aui-sidebar .aui-sidebar-header-large .aui-page-header-main > h1:only-child,
 .aui-sidebar .aui-sidebar-header-large .aui-page-header-main > h2:only-child {
@@ -1803,10 +1883,14 @@ form.aui .textarea[data-aui-notification-success] {
 }
 .aui-sidebar .aui-page-header-main > h1,
 .aui-sidebar .aui-page-header-main > h2 {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.006em;
+  text-transform: none;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  font-size: 14px;
   line-height: 20px;
 }
 .aui-sidebar .aui-page-header-main > h1:only-child,
@@ -1820,7 +1904,7 @@ form.aui .textarea[data-aui-notification-success] {
   width: 100%;
 }
 .aui-sidebar .aui-sidebar-handle {
-  background: #fff url(images/icons/sidebar/icon-handle.png) center center no-repeat;
+  background: #FFFFFF url(images/icons/sidebar/icon-handle.png) center center no-repeat;
   cursor: col-resize;
   height: 100%;
   position: absolute;
@@ -1849,7 +1933,6 @@ form.aui .textarea[data-aui-notification-success] {
 }
 .aui-sidebar .aui-sidebar-footer .aui-icon.aui-icon-small {
   vertical-align: text-bottom;
-  margin-right: 0;
 }
 .aui-sidebar .aui-sidebar-footer .aui-button {
   white-space: nowrap;
@@ -2004,7 +2087,7 @@ form.aui .textarea[data-aui-notification-success] {
 }
 .aui-sidebar .aui-navgroup-vertical .aui-nav .aui-nav-selected > .aui-nav-item,
 .aui-sidebar-submenu .aui-navgroup-vertical .aui-nav .aui-nav-selected > .aui-nav-item {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   color: #42526E;
   font-weight: 500;
 }
@@ -2035,16 +2118,6 @@ form.aui .textarea[data-aui-notification-success] {
 .aui-sidebar-submenu .aui-nav > li > .aui-nav-item > .aui-icon.aui-icon-small::before {
   font-size: 16px;
   padding: 2px;
-}
-.aui-sidebar .aui-nav > li > .aui-nav-item > .aui-badge,
-.aui-sidebar-submenu .aui-nav > li > .aui-nav-item > .aui-badge,
-.aui-sidebar .aui-nav > li > .aui-nav-item > aui-badge,
-.aui-sidebar-submenu .aui-nav > li > .aui-nav-item > aui-badge {
-  background-color: #C1C7D0;
-  border-color: #F4F5F7;
-  color: rgba(9, 30, 66, 0.95);
-  float: right;
-  margin-top: 2px;
 }
 .aui-sidebar .aui-navgroup-vertical .aui-nav > li[aria-expanded] > .aui-nav-subtree-toggle,
 .aui-sidebar-submenu .aui-navgroup-vertical .aui-nav > li[aria-expanded] > .aui-nav-subtree-toggle {
@@ -2084,9 +2157,6 @@ form.aui .textarea[data-aui-notification-success] {
 .aui-sidebar[aria-expanded="false"] .aui-nav-item-actions {
   display: none;
 }
-.aui-sidebar[aria-expanded="false"] .aui-nav > li > a:hover > .aui-nav-item > .aui-badge {
-  visibility: visible;
-}
 .aui-sidebar-submenu-dialog > .aui-inline-dialog-contents {
   padding: 10px;
   width: 300px;
@@ -2097,16 +2167,6 @@ form.aui .textarea[data-aui-notification-success] {
   background: transparent;
   border-right: 0;
   width: auto;
-}
-#arrow-sidebar-submenu:before {
-  border-width: 8px 8px 8px 0;
-  border-color: transparent #ccc;
-}
-#arrow-sidebar-submenu:after {
-  border-width: 8px 8px 8px 0;
-  border-color: transparent #ffffff transparent transparent;
-  right: 0;
-  top: 0;
 }
 .aui-sidebar .aui-sidebar-group {
   margin-top: 20px;
@@ -2134,11 +2194,11 @@ form.aui .textarea[data-aui-notification-success] {
 }
 .aui-sidebar[aria-expanded="false"] .aui-sidebar-group:focus,
 .aui-sidebar[aria-expanded="false"] .aui-sidebar-group:hover {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   text-decoration: none;
 }
 .aui-sidebar[aria-expanded="false"] .aui-sidebar-group.active {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   color: #42526E;
   font-weight: 500;
 }
@@ -2205,23 +2265,12 @@ form.aui .textarea[data-aui-notification-success] {
   padding-right: 0;
   text-align: center;
 }
-.aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item > .aui-badge,
-.aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item > aui-badge {
-  border-width: 2px;
-  font-size: 9px;
-  margin-top: 0;
-  padding: 0.2em 0.4em;
-  position: absolute;
-  right: -0.5em;
-  top: -0.5em;
-  z-index: 1;
-}
 .aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item > .aui-icon {
   float: none;
   margin: 0 auto;
 }
 .aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item.active {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   color: #42526E;
   font-weight: 500;
 }
@@ -2248,6 +2297,31 @@ form.aui .textarea[data-aui-notification-success] {
   border-top: 2px solid #DFE1E6;
   margin-top: 10px;
   padding-top: 10px;
+}
+.aui-sidebar .aui-nav > li > .aui-nav-item > .aui-badge,
+.aui-sidebar-submenu .aui-nav > li > .aui-nav-item > .aui-badge,
+.aui-sidebar .aui-nav > li > .aui-nav-item > aui-badge,
+.aui-sidebar-submenu .aui-nav > li > .aui-nav-item > aui-badge {
+  background-color: #C1C7D0;
+  border-color: #F4F5F7;
+  color: rgba(9, 30, 66, 0.95);
+  float: right;
+  margin-top: 2px;
+}
+.aui-sidebar[aria-expanded="false"] .aui-nav > li > a:hover > .aui-nav-item > .aui-badge {
+  visibility: visible;
+}
+.aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item > .aui-badge,
+.aui-sidebar[aria-expanded="false"] .aui-sidebar-group-tier-one .aui-nav > li > .aui-nav-item > aui-badge {
+  border-width: 2px;
+  border-style: solid;
+  font-size: 9px;
+  margin-top: 0;
+  padding: 0.2em 0.4em;
+  position: absolute;
+  right: -0.5em;
+  top: -0.5em;
+  z-index: 1;
 }
 .aui-checkbox-multiselect {
   display: inline-block;
@@ -2313,6 +2387,11 @@ aui-toggle[busy] .aui-toggle-cross::before {
 }
 aui-toggle[busy]::after {
   background-color: rgba(255, 255, 255, 0.5);
+}
+aui-toggle[busy] aui-spinner[size="small"] {
+  color: inherit;
+  position: relative;
+  top: -2px;
 }
 aui-toggle[disabled] .aui-toggle-view {
   background-color: #F4F5F7;

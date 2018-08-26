@@ -48,8 +48,7 @@ function getTemplates(product) {
 }
 
 function getTemplate(template) {
-    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
     $("#stack-name-input").hide();
 
     var templateParamsRequest = new XMLHttpRequest();
