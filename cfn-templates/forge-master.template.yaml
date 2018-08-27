@@ -115,7 +115,7 @@ Mappings:
     us-east-1:
       "64": "ami-0ff8a91507f77f867"
     us-west-2:
-      "64": "ami-51537029"
+      "64": "ami-a0cfeed8"
     ap-southeast-2:
       "64": "ami-059b78064586da1b7"
 
@@ -264,7 +264,7 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone -b ITOPS-665/AUI-update ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
