@@ -25,6 +25,11 @@ FORGE_CONFIG = forge_config.FORGE_CONFIG
 # list to hold stacks that have already been initialised
 STACKS = []
 
+# ensure local storage for stack data exists
+for directory in [Path('stacks')]:
+    if not directory.exists():
+        directory.mkdir(exist_ok=True)
+
 # create and initialize app
 app = Flask(__name__)
 app.config.from_object(__name__)
