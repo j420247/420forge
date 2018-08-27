@@ -44,7 +44,6 @@ Metadata:
 
 Parameters:
   VPC:
-    Default: vpc-dd8dc7ba
     ConstraintDescription: Must be the ID of a VPC.
     Description: Virtual Private Cloud (VPC)
     Type: AWS::EC2::VPC::Id
@@ -67,12 +66,10 @@ Parameters:
     Description: Size of the root EBS volume on application nodes
     Type: Number
   KeyName:
-    Default: WPE-GenericKeyPair-20161102
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
   HostedZone:
-    Default: 'wpt.atlassian.com.'
     ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
@@ -167,7 +164,7 @@ Resources:
                 - s3:GetBucketVersioning
                 - s3:GetBucketAcl
                 Effect: Allow
-                Resource: arn:aws:s3:::wpe*
+                Resource: ['*']
               - Action:
                 - s3:PutObject
                 - s3:GetObjectAcl
@@ -177,11 +174,7 @@ Resources:
                 - s3:PutObjectTagging
                 - s3:PutObjectAcl
                 Effect: Allow
-                Resource:
-                  - arn:aws:s3:::wpe-diagnostics/*
-                  - arn:aws:s3:::wpe-public-software/*
-                  - arn:aws:s3:::wpe-storage-us-east-1/*
-                  - arn:aws:s3:::wpe-storage-us-west-2/*
+                Resource: ['*']
   ForgeNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -233,7 +226,7 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    git clone git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
