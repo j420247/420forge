@@ -113,7 +113,8 @@ Parameters:
     Description: The version tag of Forge to install; find valid tags at https://hub.docker.com/r/atlassian/atl-cfn-forge
     Type: String
   GoogleAnalyticsUA:
-    Description: Provide a Google Analytics tracking ID (UA number) to enable collection of Forge usage statistics within your org
+    Default: 'UA-124483963-2'
+    Description: Leave default value to allow Atlassian to collect usage information via Google Analytics or provide your own Google Analytics tracking ID; leave blank to disable Google Analytics
     Type: String
   HostedZone:
     Description: The domain name of the Route53 PRIVATE Hosted Zone in which to create cnames
