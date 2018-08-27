@@ -102,12 +102,15 @@ class Stack:
         s3.meta.client.upload_file(file, template_bucket, f'forge-templates/{s3_name}')
 
     def ssm_send_command(self, instance, cmd):
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        logs_bucket = config['s3']['logs']
         ssm = boto3.client('ssm', region_name=self.region)
         ssm_command = ssm.send_command(
             InstanceIds=[instance],
             DocumentName='AWS-RunShellScript',
             Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
-            OutputS3BucketName='wpe-logs',
+            OutputS3BucketName=logs_bucket,
             OutputS3KeyPrefix='run-command-logs'
         )
         self.state.logaction(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')

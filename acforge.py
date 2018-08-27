@@ -23,7 +23,6 @@ import os
 from version import __version__
 
 # global configuration
-SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
@@ -49,14 +48,14 @@ print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = SECRET_KEY
+app.config['SECRET_KEY'] = os.environ.get('ATL_FORGE_SECRET_KEY', 'REPLACE_ME')
 if args.prod:
    app.wsgi_app = ProxyFix(app.wsgi_app)
-   print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
+   print("SAML auth set to production")
+   app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
 else:
-   print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
+   print("SAML auth set to dev")
+   app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
 flask_saml.FlaskSAML(app)
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
@@ -73,8 +72,11 @@ if config_props['analytics']['enabled'] == 'true':
 
 # load permissions file
 #TODO think about whether we want to restrict based on environment tags or regions
-with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
-    json_perms = json.load(json_data)
+try:
+    with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
+        json_perms = json.load(json_data)
+except Exception:
+    print('could not open permissions.json; SAML auth will not work!')
 
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -

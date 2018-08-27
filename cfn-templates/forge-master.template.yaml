@@ -26,6 +26,8 @@ Metadata:
             - CreateS3
             - Regions
             - Nodes
+            - FlaskSecretKey
+            - SamlMetadataUrl
       ParameterLabels:
         VPC:
           default: VPC Id
@@ -47,10 +49,13 @@ Metadata:
           default: Regions to operate in
         Nodes:
           default: Number of nodes
+        FlaskSecretKey:
+          default: Flask secret key
+        SamlMetadataUrl:
+          default: SAML metadata URL
 
 Parameters:
   VPC:
-    Default: vpc-dd8dc7ba
     ConstraintDescription: Must be the ID of a VPC.
     Description: Virtual Private Cloud (VPC)
     Type: AWS::EC2::VPC::Id
@@ -73,12 +78,10 @@ Parameters:
     Description: Size of the root EBS volume on application nodes
     Type: Number
   KeyName:
-    Default: WPE-GenericKeyPair-20161102
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
   HostedZone:
-    Default: 'wpt.atlassian.com.'
     ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
@@ -109,6 +112,12 @@ Parameters:
     ConstraintDescription: Must be a number
     Description: Number of Forge nodes. We recommend 1 as stack locking and action logs are not cluster aware.
     Type: Number
+  FlaskSecretKey:
+    Description: Secret key passed to Flask app
+    Type: String
+  SamlMetadataUrl:
+    Description: Metadata URL for your SAML provider
+    Type: String
 
 Mappings:
   RegionAmiMap:
@@ -207,10 +216,7 @@ Resources:
                 Resource:
                   - !Sub ["arn:aws:s3:::atl-forge-templates-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
                   - !Sub ["arn:aws:s3:::atl-forge-diagnostics-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
-                  - arn:aws:s3:::wpe-diagnostics/*
-                  - arn:aws:s3:::wpe-public-software/*
-                  - arn:aws:s3:::wpe-storage-us-east-1/*
-                  - arn:aws:s3:::wpe-storage-us-west-2/*
+                  - !Sub ["arn:aws:s3:::atl-forge-logs-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
   ForgeNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -264,13 +270,14 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
                 /usr/bin/pip-3.6 install -r requirements.txt
                 mv /tmp/forge.properties $forgepath/forge.properties --force
                 chown -R forge:forge $forgepath
+
               mode: "000700"
               owner: root
               group: root
@@ -288,6 +295,8 @@ Resources:
 
                 script
                   cd /home/forge/atl-cfn-forge
+                  export ATL_FORGE_SECRET_KEY="${FlaskSecretKey}"
+                  export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
                   exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --nosaml >> /var/log/forge.log 2>&1
                 end script
               mode: "000600"
@@ -310,6 +319,7 @@ Resources:
                     - "[s3]"
                     - !Sub ["templates: atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
                     - !Sub ["diagnostics: atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["logs: atl-forge-logs-${AccountId}", AccountId: !Ref "AWS::AccountId"]
               mode: "000750"
               owner: root
               group: root
@@ -374,6 +384,12 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName: !Sub ["atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-logs-${AccountId}", AccountId: !Ref "AWS::AccountId"]
 # Loadbalancer
   LoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
