@@ -54,7 +54,7 @@ class ForgeConfig:
 
         # grab environment variables
         self.analytics_ua = os.environ.get('ATL_FORGE_ANALYTICS_UA')
-        self.flask_secret = os.environ.get('ATL_FORGE_FLASK_SECRET', 'key_to_the_forge')
+        self.flask_secret = os.environ.get('ATL_FORGE_FLASK_SECRET', os.urandom(24))
         self.saml_metadata_url = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
         self.port = os.environ.get('ATL_FORGE_PORT', 8000)
 
