@@ -129,58 +129,53 @@ h6 {
   color: #172B4D;
 }
 /* Headings: desired line height in px / font size = unitless line height */
-h1,
-.aui-page-header-hero .aui-page-header-main h1,
-.aui-page-header-hero .aui-page-header-main h2,
-.aui-page-header-marketing .aui-page-header-main h1,
-.aui-page-header-marketing .aui-page-header-main h2 {
-  font-size: 32px;
+h1 {
+  font-size: 24px;
   font-weight: 500;
   line-height: 1.25;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   text-transform: none;
   margin: 30px 0 0 0;
 }
 h2 {
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: 0;
-  text-transform: none;
-  margin: 30px 0 0 0;
-}
-h3,
-.aui-page-header-hero .aui-page-header-main p,
-.aui-page-header-marketing .aui-page-header-main p {
   font-size: 20px;
   font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0;
+  letter-spacing: -0.008em;
+  text-transform: none;
+  margin: 30px 0 0 0;
+}
+h3 {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.006em;
   text-transform: none;
   margin: 30px 0 0 0;
 }
 h4 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0;
+  line-height: 1.42857143;
+  letter-spacing: -0.003em;
   text-transform: none;
   margin: 20px 0 0 0;
 }
 h5 {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.42857143;
+  line-height: 1.66666667;
   letter-spacing: 0;
   text-transform: none;
   margin: 20px 0 0 0;
 }
 h6 {
+  color: #6B778C;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.66666667;
   letter-spacing: 0;
-  text-transform: uppercase;
+  text-transform: none;
   margin: 20px 0 0 0;
 }
 h1:first-child,
@@ -219,13 +214,13 @@ h5 + h6 {
 }
 /* Other typographical elements */
 small {
-  color: #707070;
+  color: #7A869A;
   font-size: 12px;
   line-height: 1.33333333;
 }
 code,
 kbd {
-  font-family: monospace;
+  font-family: "SFMono-Medium", "SF Mono", "Segoe UI Mono", "Roboto Mono", "Ubuntu Mono", Menlo, Courier, monospace;
 }
 var,
 address,
@@ -238,7 +233,7 @@ cite:before {
 }
 blockquote {
   border-left: 1px solid #DFE1E6;
-  color: #707070;
+  color: #7A869A;
   margin-left: 19px;
   padding: 10px 20px;
 }
@@ -247,7 +242,7 @@ blockquote > cite {
   margin-top: 10px;
 }
 q {
-  color: #707070;
+  color: #7A869A;
 }
 q:before {
   content: open-quote;
@@ -256,8 +251,29 @@ q:after {
   content: close-quote;
 }
 abbr {
-  border-bottom: 1px #707070 dotted;
+  border-bottom: 1px #7A869A dotted;
   cursor: help;
+}
+/* Deprecated header styles; to be removed in AUI 8.0 */
+.aui-page-header-hero .aui-page-header-main h1,
+.aui-page-header-hero .aui-page-header-main h2,
+.aui-page-header-marketing .aui-page-header-main h1,
+.aui-page-header-marketing .aui-page-header-main h2 {
+  font-size: 29px;
+  font-weight: 600;
+  line-height: 1.37931034;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  margin: 30px 0 0 0;
+}
+.aui-page-header-hero .aui-page-header-main p,
+.aui-page-header-marketing .aui-page-header-main p {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.008em;
+  text-transform: none;
+  margin: 30px 0 0 0;
 }
 @font-face {
   font-family: "Atlassian Icons";
@@ -288,11 +304,9 @@ abbr {
 }
 .aui-avatar img {
   display: block;
-  height: auto;
-  margin: 0 auto;
-  max-height: 100%;
-  max-width: 100%;
-  width: auto;
+  height: 100%;
+  margin: auto;
+  width: 100%;
 }
 .aui-avatar.aui-avatar-xsmall,
 .aui-avatar.aui-avatar-xsmall .aui-avatar-inner {
@@ -422,7 +436,7 @@ aui-badge.aui-badge-primary,
 .aui-dropdown2.aui-style-default .active > aui-badge,
 .aui-dropdown2.aui-style-default .active > .aui-badge {
   background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: #FFFFFF;
 }
 .aui-button[disabled] > aui-badge,
 .aui-button[disabled] > .aui-badge {
@@ -452,15 +466,15 @@ a.aui-button,
   font-family: inherit;
   font-size: 14px;
   font-variant: normal;
-  font-weight: normal;
+  font-weight: 400;
   background-image: none;
-  background-color: rgba(9, 30, 66, 0.04);
+  background-color: rgba(9, 30, 66, 0.08);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
   display: inline-block;
   height: 2.14285714em;
-  line-height: 1.36363636em;
+  line-height: 1.42857143em;
   margin: 0;
   padding: 4px 10px;
   vertical-align: baseline;
@@ -483,9 +497,9 @@ a.aui-button:focus {
 .aui-button:hover,
 .aui-button-subtle.aui-button:focus,
 .aui-button-subtle.aui-button:hover {
-  background-color: rgba(9, 30, 66, 0.08);
+  background-color: rgba(9, 30, 66, 0.13);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
 }
 .aui-button:active,
@@ -505,23 +519,8 @@ a.aui-button:focus {
   color: #FFFFFF;
   text-decoration: none;
 }
-.aui-buttons .aui-button.aui-button-split-main:not(:active) {
-  border-right-color: transparent;
-}
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary):hover + .aui-button-split-more::before,
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary):active + .aui-button-split-more::before,
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary):focus + .aui-button-split-more::before {
-  visibility: hidden;
-}
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary) + .aui-button-split-more:hover::before,
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary) + .aui-button-split-more:active::before,
-.aui-buttons .aui-button.aui-button-split-main:not(.aui-button-primary) + .aui-button-split-more:focus::before {
-  visibility: hidden;
-}
-.aui-buttons .aui-button.aui-button-split-main + .aui-button-split-more,
-.aui-buttons .aui-button.aui-button-split-main + .aui-button-split-more:focus,
-.aui-buttons .aui-button.aui-button-split-main + .aui-button-split-more:hover {
-  margin-left: 0;
+.aui-button.aui-button-split-main + .aui-button-split-more {
+  margin-left: 2px;
 }
 .aui-button.aui-button-primary,
 .aui-button.aui-button-primary:visited {
@@ -530,6 +529,7 @@ a.aui-button:focus {
   border-color: transparent;
   color: #FFFFFF;
   text-decoration: none;
+  font-weight: 600;
 }
 .aui-button.aui-button-primary:hover,
 .aui-button.aui-button-primary:focus {
@@ -601,13 +601,10 @@ a.aui-button:focus {
 .aui-button.aui-button-subtle {
   background-color: transparent;
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
 }
 .aui-buttons .aui-button.aui-button-subtle {
   border-radius: 3.01px;
-}
-.aui-button.aui-button-subtle .aui-icon {
-  margin-right: 1px;
 }
 .aui-button > .aui-icon + .aui-button-label {
   margin-left: 4px;
@@ -676,15 +673,8 @@ a.aui-button:focus {
   color: #FFFFFF;
   background-color: #344563;
 }
-.aui-button[aria-pressed="true"].aui-button-subtle,
-.aui-button[aria-pressed="true"].aui-button-link,
-.aui-buttons .aui-button[aria-pressed="true"].aui-button-subtle {
-  color: #42526E;
-  border-color: transparent;
-  background: transparent;
-}
 .aui-buttons .aui-button[aria-pressed="true"]:active {
-  color: #42526E;
+  color: #344563;
   background-color: #DEEBFF;
 }
 .aui-button[disabled],
@@ -744,10 +734,10 @@ a.aui-button:focus {
   margin-top: -1px;
 }
 .aui-button .aui-icon {
-  color: #42526E;
+  color: #344563;
 }
 .aui-button:hover .aui-icon {
-  color: #42526E;
+  color: #344563;
 }
 .aui-button:active .aui-icon {
   color: #0052CC;
@@ -776,16 +766,30 @@ a.aui-button:focus {
 .aui-button[disabled]:active .aui-icon {
   color: #A5ADBA;
 }
-.aui-button[busy],
-.aui-button.aui-button-primary[busy] {
-  color: rgba(0, 0, 0, 0) !important;
+.aui-button[busy] {
+  position: relative;
+  color: transparent !important;
+}
+.aui-button[busy] aui-spinner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+}
+.aui-button[busy] aui-spinner {
+  color: #344563;
+}
+.aui-button[busy].aui-button-primary aui-spinner {
+  color: #FFFFFF;
 }
 aui-header {
   display: block;
 }
 .aui-header {
   background: #0747A6;
-  border-bottom: 1px solid #2e3D54;
+  border-bottom: 0 solid #0747A6;
   box-sizing: border-box;
   color: #DEEBFF;
   padding: 0 10px;
@@ -934,12 +938,14 @@ aui-header {
   border-color: #B3D4FF;
   color: #0052CC;
 }
-.aui-lozenge-complete {
+.aui-lozenge-complete,
+.aui-lozenge-new {
   background-color: #5243AA;
   border-color: #5243AA;
   color: #FFFFFF;
 }
-.aui-lozenge-complete.aui-lozenge-subtle {
+.aui-lozenge-complete.aui-lozenge-subtle,
+.aui-lozenge-new.aui-lozenge-subtle {
   background-color: #FFFFFF;
   border-color: #C0B6F2;
   color: #5243AA;
@@ -980,15 +986,19 @@ aui-header {
 /* Navigation headings
 -------------------- */
 .aui-nav-heading {
-  color: #5E6C84;
+  color: #6B778C;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.45454545;
+  letter-spacing: 0;
+  text-transform: uppercase;
   line-height: 1.81818182;
   padding: 0 10px;
-  text-transform: uppercase;
 }
 .aui-nav-heading > strong {
-  font-weight: 500;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }
 /* Breadcrumb navigation
 -------------------- */
@@ -1039,7 +1049,7 @@ aui-header {
 .aui-nav-pagination a[aria-disabled="true"]:focus,
 .aui-nav-pagination a[aria-disabled="true"]:hover,
 .aui-nav-pagination a[aria-disabled="true"]:active {
-  color: #999;
+  color: #97A0AF;
   text-decoration: none;
 }
 /* "current" is deprecated in 5.1 */
@@ -1064,7 +1074,7 @@ aui-header {
 }
 .aui-navgroup-vertical .aui-nav > li > a:hover,
 .aui-nav-vertical > li > a:hover {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   text-decoration: none;
 }
 .aui-navgroup-vertical .aui-nav > li > a:active,
@@ -1079,7 +1089,7 @@ aui-header {
 }
 .aui-navgroup-vertical .aui-nav .aui-nav-selected > a,
 .aui-nav-vertical .aui-nav .aui-nav-selected > a {
-  background-color: #DFE1E6;
+  background-color: rgba(9, 30, 66, 0.08);
   color: #42526E;
   font-weight: 500;
 }
@@ -1149,7 +1159,7 @@ aui-header {
 .aui-navgroup-vertical .aui-nav .aui-nav-item-actions {
   background: transparent none;
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
   border-radius: 2px;
   display: block;
@@ -1185,9 +1195,9 @@ aui-header {
 }
 .aui-navgroup-vertical .aui-nav .aui-nav-item-actions:hover,
 .aui-navgroup-vertical .aui-nav .aui-nav-item-actions:focus {
-  background-color: rgba(9, 30, 66, 0.08);
+  background-color: rgba(9, 30, 66, 0.13);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
 }
 .aui-navgroup-vertical .aui-nav .aui-nav-item-actions:active {
@@ -1361,61 +1371,6 @@ aui-header {
   margin-right: 10px;
 }
 /**
- * PAGE LAYOUT
- */
-.aui-header,
-#footer {
-  clear: both;
-  float: left;
-  width: 100%;
-}
-#content {
-  box-sizing: border-box;
-  clear: both;
-  position: relative;
-}
-#content:before {
-  content: "";
-  clear: both;
-  display: table;
-}
-#footer .footer-body a {
-  color: #707070;
-}
-#footer .footer-body > ul,
-#footer .footer-body > p {
-  margin: 10px 0 0 0;
-}
-#footer .footer-body > ul:first-child,
-#footer .footer-body > p:first-child {
-  margin: 0;
-}
-#footer .footer-body > ul {
-  display: block;
-  font-size: 0;
-  list-style: none;
-  padding: 0;
-}
-#footer .footer-body > ul > li {
-  display: inline-block;
-  font-size: 12px;
-  line-height: 1.66666667;
-  padding: 0;
-  white-space: nowrap;
-}
-#footer .footer-body > ul > li + li {
-  margin-left: 10px;
-}
-#footer .footer-body > ul > li:after {
-  content: "\b7";
-  /* mid dot */
-  margin-left: 10px;
-  speak: none;
-}
-#footer .footer-body > ul > li:last-child:after {
-  display: none;
-}
-/**
  * GROUP/ITEM
  */
 .aui-group {
@@ -1455,20 +1410,27 @@ aui-header {
 .aui-group.aui-group-trio > .aui-item + .aui-item + .aui-item {
   text-align: right;
 }
-/**
- * DEFAULT THEME SPACING
- */
-#content {
-  margin: 0;
-  padding: 0;
+@media screen and (max-width: 767px) {
+  html.aui-responsive .aui-group > .aui-item {
+    display: block;
+    width: auto;
+  }
+  html.aui-responsive .aui-group > .aui-item + .aui-item {
+    padding-left: 0;
+    padding-top: 10px;
+  }
+  html.aui-responsive .aui-group.aui-group-split > .aui-item,
+  html.aui-responsive .aui-group.aui-group-trio > .aui-item,
+  html.aui-responsive .aui-group.aui-group-split > .aui-item + .aui-item,
+  html.aui-responsive .aui-group.aui-group-trio > .aui-item + .aui-item,
+  html.aui-responsive .aui-group.aui-group-split > .aui-item + .aui-item + .aui-item,
+  html.aui-responsive .aui-group.aui-group-trio > .aui-item + .aui-item + .aui-item {
+    text-align: left;
+  }
 }
 /**
- * PAGE DESIGN
+ * LINK
  */
-body {
-  background: #F4F5F7;
-  color: #172B4D;
-}
 a {
   color: #0052CC;
   text-decoration: none;
@@ -1484,8 +1446,77 @@ a:active {
 a:active {
   color: #0747A6;
 }
+/**
+ * PAGE LAYOUT
+ */
+.aui-header,
+#footer {
+  clear: both;
+  float: left;
+  width: 100%;
+}
+#content {
+  box-sizing: border-box;
+  clear: both;
+  position: relative;
+}
+#content:before {
+  content: "";
+  clear: both;
+  display: table;
+}
+#footer .footer-body a {
+  color: #7A869A;
+}
+#footer .footer-body > ul,
+#footer .footer-body > p {
+  margin: 10px 0 0 0;
+}
+#footer .footer-body > ul:first-child,
+#footer .footer-body > p:first-child {
+  margin: 0;
+}
+#footer .footer-body > ul {
+  display: block;
+  font-size: 0;
+  list-style: none;
+  padding: 0;
+}
+#footer .footer-body > ul > li {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1.66666667;
+  padding: 0;
+  white-space: nowrap;
+}
+#footer .footer-body > ul > li + li {
+  margin-left: 10px;
+}
+#footer .footer-body > ul > li:after {
+  content: "\b7";
+  /* mid dot */
+  margin-left: 10px;
+  speak: none;
+}
+#footer .footer-body > ul > li:last-child:after {
+  display: none;
+}
+/**
+ * DEFAULT THEME SPACING
+ */
+#content {
+  margin: 0;
+  padding: 0;
+}
+/**
+ * PAGE DESIGN
+ */
+body {
+  background: #F4F5F7;
+  color: #172B4D;
+}
 #footer .footer-body {
-  color: #707070;
+  color: #7A869A;
   font-size: 12px;
   line-height: 1.66666667;
   margin: 20px 0;
@@ -1498,7 +1529,7 @@ a:active {
  * CONTENT PANEL
  */
 #content > .aui-panel {
-  background: #fff;
+  background: #FFFFFF;
   margin: 20px 0 0 0;
   padding: 20px;
   border-color: #DFE1E6;
@@ -1519,7 +1550,7 @@ a:active {
 }
 /*! AUI Page Panel */
 .aui-page-panel {
-  background: #fff;
+  background: #FFFFFF;
   border: 1px solid #DFE1E6;
   border-left-width: 0;
   border-right-width: 0;
@@ -1751,7 +1782,7 @@ a:active {
   margin-top: 50px;
 }
 .aui-page-notification .aui-page-panel-content {
-  color: #707070;
+  color: #7A869A;
   padding: 40px;
   text-align: center;
 }
@@ -1767,7 +1798,7 @@ a:active {
   width: 980px;
 }
 .aui-page-notification-details-header {
-  color: #707070;
+  color: #7A869A;
   margin: 20px auto 0;
   position: relative;
   text-align: center;
@@ -1786,7 +1817,7 @@ a:active {
   flex: 1;
 }
 .aui-page-notification-details-header-expander .aui-expander-trigger {
-  background-color: rgba(9, 30, 66, 0.04);
+  background-color: rgba(9, 30, 66, 0.08);
   display: inline-block;
   padding: 10px;
   position: relative;
@@ -1797,22 +1828,6 @@ a:active {
   padding-top: 20px;
 }
 @media screen and (max-width: 767px) {
-  html.aui-responsive .aui-group > .aui-item {
-    display: block;
-    width: auto;
-  }
-  html.aui-responsive .aui-group > .aui-item + .aui-item {
-    padding-left: 0;
-    padding-top: 10px;
-  }
-  html.aui-responsive .aui-group.aui-group-split > .aui-item,
-  html.aui-responsive .aui-group.aui-group-trio > .aui-item,
-  html.aui-responsive .aui-group.aui-group-split > .aui-item + .aui-item,
-  html.aui-responsive .aui-group.aui-group-trio > .aui-item + .aui-item,
-  html.aui-responsive .aui-group.aui-group-split > .aui-item + .aui-item + .aui-item,
-  html.aui-responsive .aui-group.aui-group-trio > .aui-item + .aui-item + .aui-item {
-    text-align: left;
-  }
   html.aui-responsive .aui-page-fixed #content > .aui-page-header,
   html.aui-responsive .aui-page-hybrid #content > .aui-page-header,
   html.aui-responsive .aui-page-fixed .aui-page-panel-inner,
@@ -2029,6 +2044,86 @@ html.aui-responsive #footer .footer-body > ul > li {
 .aui-toolbar2-secondary > .aui-buttons:last-child {
   margin-right: 0;
 }
+@keyframes spinnerRotateAnimation {
+  to {
+    -webkit-transform: rotate(360deg);
+    -ms-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes spinnerRotateAnimation {
+  to {
+    -webkit-transform: rotate(360deg);
+    -ms-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+aui-spinner {
+  display: block;
+  position: relative;
+  z-index: 2000000000;
+  color: #42526E;
+  width: 30px;
+  height: 30px;
+}
+aui-spinner > .aui-spinner > svg {
+  stroke-dasharray: 84px;
+  stroke-dashoffset: 67.5px;
+  stroke-width: 3px;
+}
+aui-spinner[filled] > .aui-spinner > svg {
+  left: -15px;
+}
+aui-spinner[size="small"] {
+  width: 20px;
+  height: 20px;
+}
+aui-spinner[size="small"] > .aui-spinner > svg {
+  stroke-dasharray: 56px;
+  stroke-dashoffset: 45px;
+  stroke-width: 2px;
+}
+aui-spinner[size="small"][filled] > .aui-spinner > svg {
+  left: -10px;
+}
+aui-spinner[size="large"] {
+  width: 50px;
+  height: 50px;
+}
+aui-spinner[size="large"] > .aui-spinner > svg {
+  stroke-dasharray: 140px;
+  stroke-dashoffset: 112.5px;
+  stroke-width: 5px;
+}
+aui-spinner[size="large"][filled] > .aui-spinner > svg {
+  left: -25px;
+}
+aui-spinner .aui-spinner {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+aui-spinner .aui-spinner > svg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  -webkit-animation: 0.86s cubic-bezier(0.4, 0.15, 0.6, 0.85) infinite spinnerRotateAnimation;
+  animation: 0.86s cubic-bezier(0.4, 0.15, 0.6, 0.85) infinite spinnerRotateAnimation;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  -webkit-transform-origin: center;
+  -ms-transform-origin: center;
+  transform-origin: center;
+}
+aui-spinner[filled] {
+  height: 0 !important;
+  width: 0 !important;
+  margin: auto;
+}
 /*! Atlassian UI and the Atlassian Design Guidelines are created by Atlassian. See https://developer.atlassian.com/display/AUI/ and https://developer.atlassian.com/design/ for license details. */
 .clear {
   clear: both;
@@ -2116,16 +2211,22 @@ form.aui legend.assistive {
 .aui-dd-parent .aui-dropdown,
 .aui-dropdown,
 .aui-dd-parent .aui-shadow-parent {
-  background: #fff;
-  border: 1px solid #ccc;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-  color: #000;
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  background: #FFFFFF;
+  border: 0 solid #DFE1E6;
+  border-radius: 3px;
+  color: #344563;
   margin-top: -1px;
-  padding: 4px 0 4px 0;
+  padding: 3px 0;
   position: absolute;
   z-index: 2003;
+}
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-dd-parent .aui-dropdown,
+  .aui-dropdown,
+  .aui-dd-parent .aui-shadow-parent {
+    box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 .aui-dd-parent .aui-dropdown-left {
   left: 0px;
@@ -2138,8 +2239,6 @@ form.aui legend.assistive {
 }
 .aui-dd-parent .aui-dropdown li.dropdown-item,
 .aui-dropdown li.dropdown-item {
-  background: #fff;
-  color: #000;
   display: block;
   float: none;
   margin: 0;
@@ -2147,8 +2246,6 @@ form.aui legend.assistive {
 }
 .aui-dd-parent .aui-dropdown a.item-link,
 .aui-dropdown a.item-link {
-  background: #fff;
-  color: #333;
   display: inline-block;
   float: none;
   height: auto;
@@ -2159,22 +2256,29 @@ form.aui legend.assistive {
   white-space: nowrap;
   width: auto;
 }
+.aui-dd-parent .aui-dropdown a.item-link,
 .aui-dd-parent .aui-dropdown a.item-link:link,
 .aui-dd-parent .aui-dropdown a.item-link:visited,
+.aui-dropdown a.item-link,
 .aui-dropdown a.item-link:link,
 .aui-dropdown a.item-link:visited {
-  background: #fff;
-  color: #333;
+  background-color: transparent;
+  color: #344563;
+  text-decoration: none;
+  cursor: pointer;
 }
 .aui-dd-parent .aui-dropdown li.dropdown-item.active a.item-link,
 .aui-dd-parent .aui-dropdown a.item-link:hover,
-.aui-dd-parent .aui-dropdown a.item-link:active,
 .aui-dd-parent .aui-dropdown a.item-link:focus,
 .aui-dropdown a.item-link:hover,
-.aui-dropdown a.item-link:active,
 .aui-dropdown a.item-link:focus {
-  background: #0052CC;
-  color: #fff;
+  background-color: #EBECF0;
+  color: #344563;
+}
+.aui-dd-parent .aui-dropdown a.item-link:active,
+.aui-dropdown a.item-link:active {
+  background-color: #DEEBFF;
+  color: #0052CC;
 }
 .aui-dd-parent .aui-dropdown li.dropdown-item a.item-link span.icon {
   display: inline-block;
@@ -2189,7 +2293,7 @@ div.shim {
   top: 50%;
 }
 .aui-popup {
-  background-color: #fff;
+  background-color: #FFFFFF;
   left: 50%;
   position: fixed;
   top: 50%;
@@ -2202,12 +2306,17 @@ div.shim {
   border-radius: 3px;
   overflow: hidden;
 }
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-dialog {
+    box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
+}
 .aui-dialog .dialog-blanket {
   position: absolute;
   top: 0;
   left: 0;
   opacity: 0.2;
-  background: #000;
+  background: rgba(23, 43, 77, 0.45);
 }
 /* dialog header styles */
 .aui-dialog .dialog-title {
@@ -2225,13 +2334,13 @@ div.shim {
   font-size: 20px;
   font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0;
+  letter-spacing: -0.008em;
   text-transform: none;
   color: #172B4D;
 }
 /* dialog navigation styles */
 .aui-dialog .dialog-page-menu {
-  background: #fff;
+  background: #FFFFFF;
   border-right: 1px solid #EBECF0;
   box-sizing: border-box;
   float: left;
@@ -2244,41 +2353,46 @@ div.shim {
   width: 25%;
 }
 .aui-dialog .dialog-page-menu li.page-menu-item {
+  display: flex;
   margin: 0;
   padding: 0;
 }
 .aui-dialog .dialog-page-menu li.page-menu-item button.item-button {
+  border-radius: 3px;
+  box-sizing: content-box;
+  display: block;
+  line-height: 1.14285714;
+  padding: 7px 10px;
+  background-color: transparent;
+  color: #42526E;
   background: none;
   border: 0;
-  color: #0052CC;
   cursor: pointer;
   font-family: inherit;
   font-size: inherit;
-  /* = 14px */
-  line-height: 1.1428;
-  /* 16px equiv */
-  padding: 7px 10px;
-  margin: 0;
   text-align: left;
   text-decoration: none;
   width: 100%;
 }
 .aui-dialog .dialog-page-menu li.page-menu-item button.item-button:hover,
 .aui-dialog .dialog-page-menu li.page-menu-item button.item-button:focus {
-  background-color: #e6e6e6;
+  background-color: rgba(9, 30, 66, 0.08);
+  text-decoration: none;
 }
 .aui-dialog .dialog-page-menu li.page-menu-item.selected button.item-button {
-  color: #172B4D;
-  font-weight: bold;
+  background-color: rgba(9, 30, 66, 0.08);
+  color: #42526E;
+  font-weight: 500;
 }
 .aui-dialog .dialog-page-menu li.page-menu-item button.item-button:active,
 .aui-dialog .dialog-page-menu li.page-menu-item.selected button.item-button:active {
-  background-color: #0052CC;
-  color: #fff;
+  background-color: #DEEBFF;
+  color: #42526E;
+  text-decoration: none;
 }
 /* dialog body content styles */
 .aui-dialog .dialog-page-body {
-  background: #fff;
+  background: #FFFFFF;
 }
 .aui-dialog .dialog-panel-body {
   box-sizing: border-box;
@@ -2309,11 +2423,11 @@ div.shim {
   font-family: inherit;
   font-size: 14px;
   font-variant: normal;
-  font-weight: normal;
+  font-weight: 400;
   background-image: none;
-  background-color: rgba(9, 30, 66, 0.04);
+  background-color: rgba(9, 30, 66, 0.08);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
   line-height: 20px;
   padding: 4px 10px;
@@ -2321,9 +2435,9 @@ div.shim {
 }
 .aui-dialog .dialog-button-panel button.button-panel-button:hover,
 .aui-dialog .dialog-button-panel button.button-panel-button:focus {
-  background-color: rgba(9, 30, 66, 0.08);
+  background-color: rgba(9, 30, 66, 0.13);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
 }
 .aui-dialog .dialog-button-panel button.button-panel-button:active {
@@ -2396,6 +2510,11 @@ div.shim {
   position: relative;
   right: 0;
 }
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-dialog2 {
+    box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
+}
 .aui-dialog2.aui-layer {
   overflow: visible;
   position: fixed;
@@ -2447,7 +2566,7 @@ div.shim {
   max-height: 100%;
 }
 .aui-dialog2-content {
-  background-color: #fff;
+  background-color: #FFFFFF;
   box-sizing: border-box;
   overflow: auto;
   padding: 20px;
@@ -2477,7 +2596,7 @@ div.shim {
   font-size: 20px;
   font-weight: 500;
   line-height: 1.5;
-  letter-spacing: 0;
+  letter-spacing: -0.008em;
   text-transform: none;
 }
 .aui-dialog2[data-aui-modal="true"] .aui-dialog2-header-close {
@@ -2679,7 +2798,18 @@ div.shim {
   -moz-user-select: none;
   -webkit-user-select: none;
   user-select: none;
+  box-sizing: content-box;
   display: block;
+  line-height: 1.14285714;
+  padding: 7px 10px;
+}
+.aui-dropdown2 [role="menuitem"] :focus,
+.aui-dropdown2 [role="menuitemcheckbox"] :focus,
+.aui-dropdown2 [role="menuitemradio"] :focus,
+.aui-dropdown2 [role="radio"] :focus,
+.aui-dropdown2 [role="checkbox"] :focus,
+.aui-dropdown2 a :focus {
+  z-index: 1;
 }
 .aui-dropdown2 .aui-list-truncate [role="menuitem"],
 .aui-dropdown2 .aui-list-truncate [role="menuitemcheckbox"],
@@ -2694,36 +2824,56 @@ div.shim {
 /* Default style for Dropdown2, invoked with aui-style-default
 ---------------------------------------------------------------------- */
 .aui-dropdown2.aui-style-default {
-  background-color: #fff;
-  border: 1px solid #DFE1E6;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  background: #FFFFFF;
+  border: 0 solid #DFE1E6;
+  border-radius: 3px;
+  color: #344563;
+  padding: 3px 0;
 }
-.aui-dropdown2.aui-style-default.aui-layer {
-  -webkit-height: auto;
-  height: auto;
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-dropdown2.aui-style-default {
+    box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 .aui-dropdown2.aui-style-default ul {
   list-style: none;
-  margin: 2px 0;
+  margin: 0;
   padding-left: 0;
 }
-.aui-style-default .aui-dropdown2-section + .aui-dropdown2-section {
+.aui-dropdown2.aui-style-default .aui-dropdown2-section {
+  margin-top: 3px;
+}
+.aui-dropdown2.aui-style-default .aui-dropdown2-section:first-child {
+  margin-top: 0;
+}
+.aui-dropdown2.aui-style-default .aui-dropdown2-section + .aui-dropdown2-section {
   border-top: 1px solid #DFE1E6;
+  padding-top: 3px;
 }
 .aui-dropdown2.aui-style-default > strong,
 .aui-dropdown2.aui-style-default .aui-dropdown2-section > strong,
 .aui-dropdown2-heading {
-  color: #707070;
-  display: block;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 7px 10px 5px;
+  color: #6B778C;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45454545;
+  letter-spacing: 0;
   text-transform: uppercase;
+  display: block;
+  padding: 7px 10px;
+}
+.aui-dropdown2-heading > strong {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }
 .aui-dropdown2.aui-style-default strong + ul {
   margin-top: 0;
+}
+.aui-dropdown2.aui-style-default {
+  /* If not hovering on the dropdown, the "hover" style is best for whatever has browser focus. */
+  /* Set disabled styles last, so that the cascade gives them a higher precedence. */
 }
 .aui-dropdown2.aui-style-default [role="menuitem"],
 .aui-dropdown2.aui-style-default [role="menuitemcheckbox"],
@@ -2731,41 +2881,60 @@ div.shim {
 .aui-dropdown2.aui-style-default [role="radio"],
 .aui-dropdown2.aui-style-default [role="checkbox"],
 .aui-dropdown2.aui-style-default a {
-  color: #172B4D;
-  padding: 3px 10px;
+  background-color: transparent;
+  color: #344563;
   text-decoration: none;
-}
-.aui-dropdown2.aui-style-default [aria-disabled="true"],
-.aui-dropdown2.aui-style-default a.disabled {
-  color: #999;
-  cursor: default;
-}
-.aui-dropdown2.aui-style-default a:focus,
-.aui-dropdown2.aui-style-default a:hover {
-  text-decoration: none;
-}
-.aui-dropdown2.aui-style-default a:focus {
-  z-index: 1;
-}
-.aui-dropdown2.aui-style-default .aui-dropdown2-radio:not([aria-disabled="true"]),
-.aui-dropdown2.aui-style-default .aui-dropdown2-checkbox:not([aria-disabled="true"]) {
   cursor: pointer;
 }
-.aui-dropdown2.aui-style-default .aui-icon-container,
-.aui-dropdown2.aui-style-default .aui-dropdown2-radio,
-.aui-dropdown2.aui-style-default .aui-dropdown2-checkbox {
-  padding-left: 31px;
+.aui-dropdown2.aui-style-default:hover {
+  /*
+         * When a user hovers over the dropdown with the mouse, we set all but the hovered item to inactive display.
+         * If the user pressed 'enter' while this was happening, it wouldn't activate what was behind the cursor,
+         * but the likelihood of a mixed-mode user is fairly low. The only way to remedy this would be to set
+         * the document's active element to whatever is behind the mouse... but that has its own problems, such as
+         * unintentionally changing the selected item when the screen or dropdown content scrolls behind the mouse.
+         * This styling choice seems to be the best compromise.
+         */
+}
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox,
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio,
+.aui-dropdown2.aui-style-default:hover a {
+  background-color: transparent;
+  color: #344563;
+  text-decoration: none;
+  cursor: pointer;
+}
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox:not(.aui-dropdown2-disabled):hover,
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio:not(.aui-dropdown2-disabled):hover,
+.aui-dropdown2.aui-style-default:hover a:not(.aui-dropdown2-disabled):hover {
+  background-color: #EBECF0;
+  color: #344563;
+}
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox:not(.aui-dropdown2-disabled):active,
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio:not(.aui-dropdown2-disabled):active,
+.aui-dropdown2.aui-style-default:hover a:not(.aui-dropdown2-disabled):active {
+  background-color: #DEEBFF;
+  color: #0052CC;
+}
+.aui-dropdown2.aui-style-default .active,
+.aui-dropdown2.aui-style-default .aui-dropdown2-active {
+  background-color: #EBECF0;
+  color: #344563;
+}
+.aui-dropdown2.aui-style-default:hover .aui-dropdown2-disabled,
+.aui-dropdown2.aui-style-default .aui-dropdown2-disabled,
+.aui-dropdown2.aui-style-default [aria-disabled="true"],
+.aui-dropdown2.aui-style-default a.disabled {
+  background-color: transparent;
+  color: #7A869A;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 .aui-dropdown2.aui-style-default .aui-icon-container,
 .aui-dropdown2.aui-style-default .aui-dropdown2-radio,
 .aui-dropdown2.aui-style-default .aui-dropdown2-checkbox {
-  /* position of the background or icon (both 16x16) is:
-     * - 10px from the left to match the item padding
-     * - 7px from the top which is calculated:
-     *   - 5px for the top padding of the item
-     *   - 2px is half the difference between the line-height (20) and the icon height (16) so it's vertically spaced
-     */
-  background-position: 10px 5px;
+  padding-left: 35px;
+  background-position: 10px 7px;
   background-repeat: no-repeat;
   position: relative;
 }
@@ -2773,14 +2942,11 @@ div.shim {
 .aui-dropdown2.aui-style-default .aui-icon-container > .aui-icon,
 .aui-dropdown2.aui-style-default .aui-icon-container > .aui-avatar {
   border-width: 0;
+  display: inline-block;
   left: 10px;
-  position: absolute;
-  top: 5px;
-}
-.aui-dropdown2.aui-style-default .aui-icon-container > .aui-icon {
-  display: block;
   overflow: hidden;
-  text-indent: -99999px;
+  position: absolute;
+  top: 7px;
 }
 /* Checkbox items */
 .aui-dropdown2.aui-style-default .aui-dropdown2-checkbox.aui-dropdown2-checked::before {
@@ -2826,10 +2992,7 @@ div.shim {
   width: 16px;
   margin-left: 8px;
 }
-.aui-dropdown2.aui-dropdown2-tailed {
-  border: 1px solid #DFE1E6;
-  margin-top: 10px;
-}
+/* Tailed dropdown variant */
 .aui-dropdown2.aui-dropdown2-tailed::before,
 .aui-dropdown2.aui-dropdown2-tailed::after {
   border-color: transparent;
@@ -2847,7 +3010,7 @@ div.shim {
   margin-bottom: 1px;
 }
 .aui-dropdown2.aui-dropdown2-tailed::after {
-  border-bottom-color: #fff;
+  border-bottom-color: #FFFFFF;
 }
 /* basic in-page dropdown trigger style DEPRECATED as of 4.2 */
 .aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1 {
@@ -2860,12 +3023,8 @@ div.shim {
 .aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1.aui-dropdown2-active {
   background-color: #326ca6;
   border-radius: 4px;
-  color: #fff;
+  color: #ffffff;
   text-decoration: none;
-}
-.aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1.active,
-.aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1.aui-dropdown2active {
-  border-radius: 4px 4px 0 0;
 }
 .aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1[aria-disabled="true"],
 .aui-dropdown2-trigger.aui-style-dropdown2triggerlegacy1[aria-disabled="true"]:hover,
@@ -2876,78 +3035,31 @@ div.shim {
   /* equivalent of opacity: 0.5 */
   cursor: default;
 }
-/* Toolbar/Toolbar2-via-buttons integration. Avoid double border: */
-.aui-dropdown2.aui-style-default.aui-dropdown2-in-toolbar,
-.aui-dropdown2.aui-style-default.aui-dropdown2-in-buttons {
-  margin-top: -1px;
-  border-top-color: #DFE1E6;
-}
-/* Header integration. */
-.aui-dropdown2.aui-style-default.aui-dropdown2-in-header {
-  margin-top: 1px;
-}
-.aui-dropdown2.aui-style-default.aui-dropdown2-in-header.aui-dropdown2-in-buttons {
-  margin-top: 0;
-}
-.aui-dropdown2.aui-style-default.aui-dropdown2-in-header.aui-dropdown2-tailed {
-  margin-top: 4px;
-}
 /* Arrow for sub menus */
 .aui-dropdown2-sub-trigger {
   position: relative;
 }
-.aui-dropdown2-sub-trigger::after {
-  border: 5px solid transparent;
-  border-left-color: #172B4D;
-  content: "";
-  height: 0;
-  margin-left: -16px;
-  margin-top: -5px;
-  left: 100%;
-  /* "left" + "margin-left" required because of webkit not working properly with "right" */
+.aui-dropdown2-sub-trigger::before {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-stroke-width: 0;
+  font-family: "Adgs Icons";
+  font-weight: normal;
+  font-style: normal;
+  speak: none;
+  color: inherit;
+  content: "\f11c";
+  font-size: 16px;
+  height: 16px;
+  left: 0;
+  line-height: 1;
+  margin-top: -8px;
   position: absolute;
+  text-indent: 0;
   top: 50%;
-  width: 0;
-}
-.aui-dropdown2-sub-trigger.active::after,
-.aui-dropdown2-sub-trigger.aui-dropdown2-active::after {
-  border-left-color: #fff;
-}
-.aui-dropdown2-sub-trigger[disabled]::after,
-.aui-dropdown2-sub-trigger.disabled::after,
-.aui-dropdown2-sub-trigger.aui-dropdown2-disabled::after {
-  border-left-color: #999;
-}
-.aui-dropdown2.aui-dropdown2-sub-menu,
-.aui-dropdown2.aui-dropdown2-in-header.aui-dropdown2-sub-menu {
-  margin-top: -3px;
-}
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox,
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio,
-.aui-dropdown2.aui-style-default:hover a {
-  background-color: #fff;
-  color: #172B4D;
-}
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox.aui-dropdown2-disabled,
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio.aui-dropdown2-disabled,
-.aui-dropdown2.aui-style-default:hover a.aui-dropdown2-disabled {
-  color: #999;
-}
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-checkbox:not(.aui-dropdown2-disabled):hover,
-.aui-dropdown2.aui-style-default:hover .aui-dropdown2-radio:not(.aui-dropdown2-disabled):hover,
-.aui-dropdown2.aui-style-default:hover a:not(.aui-dropdown2-disabled):hover {
-  background-color: #0052CC;
-  color: #fff;
-}
-.aui-dropdown2.aui-style-default .active,
-.aui-dropdown2.aui-style-default .aui-dropdown2-active {
-  background-color: #0052CC;
-  color: #fff;
-}
-.aui-dropdown2.aui-style-default .active.aui-dropdown2-disabled,
-.aui-dropdown2.aui-style-default .aui-dropdown2-active.aui-dropdown2-disabled {
-  background-color: #f5f5f5;
-  color: #999;
+  width: 16px;
+  left: 100%;
+  margin-left: -24px;
 }
 .aui-dropdown2-trigger:not(.aui-dropdown2-trigger-arrowless) {
   padding-right: 24px !important;
@@ -2955,12 +3067,6 @@ div.shim {
 }
 /* Dropdown2 button integration
 ---------- */
-.aui-button.aui-dropdown2-trigger.active:first-child,
-.aui-button.aui-dropdown2-trigger.active {
-  /* square off bottom corners */
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
-}
 .aui-button-link.aui-dropdown2-trigger.active:first-child,
 .aui-button-link.aui-dropdown2-trigger.active,
 .aui-button-text.aui-dropdown2-trigger.active:first-child,
@@ -3027,13 +3133,18 @@ input.aui-button.aui-dropdown2-trigger::after,
 }
 /* Dropdown2-only / Split Button
 ---------- */
-.aui-buttons .aui-button.aui-dropdown2-trigger.aui-button-split-more,
-.aui-buttons .aui-button.aui-dropdown2-trigger.aui-button-split-more.active {
+.aui-buttons .aui-button.aui-button-split-more.aui-dropdown2-trigger,
+.aui-buttons .aui-button.aui-button-split-more.aui-dropdown2-trigger.active {
   /* don't touch vertical padding or things jump around, jump around, jump up jump up and get down */
   padding-left: 0;
   padding-right: 0;
   width: 24px;
   text-indent: -9999em;
+  overflow: hidden;
+}
+.aui-buttons .aui-button.aui-button-split-more.aui-dropdown2-trigger::after,
+.aui-buttons .aui-button.aui-button-split-more.aui-dropdown2-trigger.active::after {
+  content: "\f17f";
 }
 /**
  * Dropdown2 triggers in header
@@ -3069,11 +3180,29 @@ input.aui-button.aui-dropdown2-trigger::after,
   text-indent: 0;
   width: 16px;
 }
+/* Dropdown2 layer integration */
+.aui-dropdown2.aui-layer {
+  -webkit-height: auto;
+  height: auto;
+}
+.aui-dropdown2.aui-layer.aui-style-default.aui-alignment-element-attached-top {
+  margin-top: 3px;
+}
+.aui-dropdown2.aui-layer.aui-style-default.aui-alignment-element-attached-top.aui-dropdown2-tailed {
+  margin-top: 11px;
+}
+.aui-dropdown2.aui-layer.aui-style-default.aui-alignment-side-submenu {
+  margin-top: -3px;
+}
 /**
  * Dropdown2 web components
  */
+aui-dropdown-menu,
 aui-dropdown-group,
-aui-section {
+aui-section,
+aui-item-checkbox,
+aui-item-radio,
+aui-item-link {
   display: block;
 }
 aui-dropdown-menu.aui-dropdown2 .aui-dropdown2-heading:empty,
@@ -3087,9 +3216,9 @@ aui-dropdown-menu:not([resolved]) {
 aui-dropdown-menu .aui-dropdown-loading {
   padding: 5px;
 }
-aui-dropdown-menu .aui-dropdown-loading .spinner {
+aui-dropdown-menu .aui-dropdown-loading aui-spinner {
   display: inline-block;
-  margin: 5px;
+  vertical-align: bottom;
 }
 /* Storing these styles in a CSS file until LESS is upgraded to handle "2-" in a data attribute */
 .aui-dropdown2-tailed[data-dropdown2-alignment="left"]:before,
@@ -3119,7 +3248,7 @@ form.aui .textarea,
 form.aui .select,
 form.aui .multi-select,
 form.aui .aui-select2-container {
-  background: #fff;
+  background: #FFFFFF;
   color: #172B4D;
   font-family: inherit;
   font-size: 14px;
@@ -3130,7 +3259,7 @@ form.aui .textarea,
 form.aui .select,
 form.aui .multi-select,
 form.aui .aui-select2-container .select2-choices {
-  border: 1px solid #ccc;
+  border: 1px solid #C1C7D0;
   border-radius: 3.01px;
   box-sizing: border-box;
   font-size: inherit;
@@ -3185,14 +3314,14 @@ form.aui .upfile {
   padding: 0;
 }
 form.aui optgroup {
-  background-color: #f5f5f5;
-  color: #707070;
+  background-color: #F4F5F7;
+  color: #6B778C;
   font-style: normal;
   font-weight: normal;
 }
 form.aui option,
 form.aui optgroup option {
-  background-color: #fff;
+  background-color: #FFFFFF;
   color: #172B4D;
 }
 /* Disabled form element styles */
@@ -3205,15 +3334,15 @@ form.aui .select[disabled] option,
 form.aui .select[disabled] optgroup,
 form.aui .multi-select[disabled] option,
 form.aui .multi-select[disabled] optgroup {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: #F4F5F7;
+  color: #97A0AF;
 }
 form.aui .text[disabled],
 form.aui .password[disabled],
 form.aui .textarea[disabled],
 form.aui .select[disabled],
 form.aui .multi-select[disabled] {
-  color: #999;
+  color: #97A0AF;
 }
 form.aui .text[disabled],
 form.aui .password[disabled],
@@ -3227,13 +3356,24 @@ form.aui .checkbox[disabled] {
 form.aui .text::-webkit-input-placeholder,
 form.aui .password::-webkit-input-placeholder,
 form.aui .textarea::-webkit-input-placeholder {
-  color: #999;
+  color: #97A0AF;
   opacity: 1;
 }
 form.aui .text::-moz-placeholder,
 form.aui .password::-moz-placeholder,
 form.aui .textarea::-moz-placeholder {
-  color: #999;
+  color: #97A0AF;
+  opacity: 1;
+}
+form.aui .text:-ms-input-placeholder,
+form.aui .password:-ms-input-placeholder,
+form.aui .textarea:-ms-input-placeholder {
+  color: #97A0AF;
+}
+form.aui .text::placeholder,
+form.aui .password::placeholder,
+form.aui .textarea::placeholder {
+  color: #97A0AF;
 }
 form.aui .text.aui-placeholder-shown,
 form.aui .password.aui-placeholder-shown,
@@ -3241,7 +3381,7 @@ form.aui .textarea.aui-placeholder-shown,
 form.aui .text.placeholder-shown,
 form.aui .password.placeholder-shown,
 form.aui .textarea.placeholder-shown {
-  color: #999;
+  color: #97A0AF;
 }
 form.aui .text[type=search] {
   -webkit-appearance: textfield;
@@ -3280,7 +3420,7 @@ form.aui fieldset {
 }
 form.aui legend,
 form.aui label {
-  color: #707070;
+  color: #6B778C;
 }
 form.aui .icon-required {
   left: 100%;
@@ -3298,7 +3438,7 @@ form.aui .icon-required::before {
   font-size: 12px;
 }
 form.aui div.description {
-  color: #707070;
+  color: #6B778C;
   font-size: 12px;
   line-height: 1.66666666666667;
   margin: 5px 0 0 0;
@@ -3359,7 +3499,7 @@ form.aui .radio > label {
 }
 form.aui div.checkbox > .checkbox[disabled] + label,
 form.aui div.radio > .radio[disabled] + label {
-  color: #999;
+  color: #97A0AF;
   cursor: not-allowed;
 }
 form.aui .field-group .error,
@@ -3499,11 +3639,11 @@ form.aui .button {
   font-family: inherit;
   font-size: 14px;
   font-variant: normal;
-  font-weight: normal;
+  font-weight: 400;
   background-image: none;
-  background-color: rgba(9, 30, 66, 0.04);
+  background-color: rgba(9, 30, 66, 0.08);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   height: 2.14285714em;
   line-height: 1.4285714285714;
   margin: 0;
@@ -3514,9 +3654,9 @@ form.aui .button {
 }
 form.aui .button:focus,
 form.aui .button:hover {
-  background-color: rgba(9, 30, 66, 0.08);
+  background-color: rgba(9, 30, 66, 0.13);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
 }
 form.aui .button:active,
@@ -3575,12 +3715,11 @@ form.aui span.content {
   top: -9999px;
 }
 form.aui pre.aui-form {
-  background-color: #f5f5f5;
+  background-color: #F4F5F7;
   border: 1px solid #DFE1E6;
-  font-family: monospace;
+  font-family: "SFMono-Medium", "SF Mono", "Segoe UI Mono", "Roboto Mono", "Ubuntu Mono", Menlo, Courier, monospace;
   font-size: 12px;
-  line-height: 1.66666666666667;
-  /* 20px */
+  line-height: 1.66666667;
   overflow-x: auto;
   overflow-y: visible;
   padding: 15px;
@@ -3982,7 +4121,7 @@ aui-inline-dialog:before,
 aui-inline-dialog:after {
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-bottom: 8px solid #fff;
+  border-bottom: 8px solid #FFFFFF;
   border-top: 0px;
   content: "";
   display: inline-block;
@@ -4008,12 +4147,20 @@ aui-inline-dialog .aui-inline-dialog-contents,
 .aui-inline-dialog .aui-inline-dialog-contents,
 aui-inline-dialog .contents,
 .aui-inline-dialog .contents {
-  background: #fff;
-  border: 1px solid #DFE1E6;
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  background: #FFFFFF;
+  border: 0 solid #DFE1E6;
   border-radius: 3px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   padding: 20px;
+}
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  aui-inline-dialog .aui-inline-dialog-contents,
+  .aui-inline-dialog .aui-inline-dialog-contents,
+  aui-inline-dialog .contents,
+  .aui-inline-dialog .contents {
+    box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 aui-inline-dialog .aui-inline-dialog-contents.aui-inline-dialog-no-shadow,
 .aui-inline-dialog .aui-inline-dialog-contents.aui-inline-dialog-no-shadow,
@@ -4086,7 +4233,7 @@ aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow:after,
 .aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow:after,
 aui-inline-dialog .arrow.aui-css-arrow:after,
 .aui-inline-dialog .arrow.aui-css-arrow:after {
-  border-bottom-color: #fff;
+  border-bottom-color: #FFFFFF;
   top: 1px;
 }
 aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-bottom-arrow:after,
@@ -4103,7 +4250,7 @@ aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-bottom-arrow:after,
 .aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-bottom-arrow:after,
 aui-inline-dialog .arrow.aui-css-arrow.aui-bottom-arrow:after,
 .aui-inline-dialog .arrow.aui-css-arrow.aui-bottom-arrow:after {
-  border-top-color: #fff;
+  border-top-color: #FFFFFF;
   top: -1px;
 }
 aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-right-arrow,
@@ -4121,13 +4268,13 @@ aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow:before,
 aui-inline-dialog .arrow.aui-css-arrow.aui-left-arrow:before,
 .aui-inline-dialog .arrow.aui-css-arrow.aui-left-arrow:before {
   border-width: 8px 8px 8px 0;
-  border-color: transparent #ccc;
+  border-color: transparent #DFE1E6;
 }
 aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow:after,
 .aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow:after,
 aui-inline-dialog .arrow.aui-css-arrow.aui-left-arrow:after,
 .aui-inline-dialog .arrow.aui-css-arrow.aui-left-arrow:after {
-  border-color: transparent #ffffff transparent transparent;
+  border-color: transparent #FFFFFF transparent transparent;
   top: 0;
   right: 0;
 }
@@ -4140,12 +4287,12 @@ aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-right-arrow:before,
 aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
 .aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before {
   border-width: 8px 0 8px 8px;
-  border-color: transparent #ccc;
+  border-color: transparent #DFE1E6;
   left: -7px;
 }
 .aui-inline-dialog .aui-inline-dialog-arrow.aui-css-arrow.aui-right-arrow:after,
 .aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:after {
-  border-color: transparent transparent transparent #ffffff;
+  border-color: transparent transparent transparent #FFFFFF;
   top: 0;
   right: 0;
   left: -8px;
@@ -4170,9 +4317,9 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
  * jQuery UI themes are not meant to be loaded, but we can't prevent the scenario.
  */
 .aui-datepicker-dialog .aui-datepicker-hint {
-  background: #f5f5f5;
-  border-bottom: 1px solid #ccc;
-  color: #707070;
+  background: #F4F5F7;
+  border-bottom: 1px solid #DFE1E6;
+  color: #505F79;
   font-size: 14px;
   padding: 2px 5px;
 }
@@ -4182,7 +4329,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
 }
 .aui-datepicker-dialog .aui-inline-dialog-arrow.aui-css-arrow:not(.aui-bottom-arrow):after,
 .aui-datepicker-dialog .arrow.aui-css-arrow:not(.aui-bottom-arrow):after {
-  border-bottom-color: #f5f5f5;
+  border-bottom-color: #F4F5F7;
   top: 2px;
 }
 .aui-datepicker-dialog .ui-datepicker {
@@ -4194,7 +4341,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   width: 100%;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-header {
-  background: #f5f5f5;
+  background: #F4F5F7;
   height: 14px;
   margin: 0;
   padding: 10px;
@@ -4231,7 +4378,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   margin: 0;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-title {
-  color: #333;
+  color: #172B4D;
   font-size: 14px;
   font-weight: bold;
   height: 14px;
@@ -4248,10 +4395,10 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   width: 100%;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar thead {
-  background: #f5f5f5;
+  background: #F4F5F7;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar tbody {
-  background-color: #fff;
+  background-color: #FFFFFF;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar th {
   line-height: 15px;
@@ -4262,7 +4409,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   line-height: 25px;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar th {
-  color: #707070;
+  color: #7A869A;
   font-size: 10px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   font-weight: bold;
@@ -4278,7 +4425,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   text-align: right;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar td a {
-  background: #fff;
+  background: #FFFFFF;
   color: #0052CC;
   text-decoration: none;
   text-align: center;
@@ -4294,7 +4441,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar .ui-datepicker-current-day a {
   background: #0052CC;
   border-radius: 3px;
-  color: #fff;
+  color: #FFFFFF;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar .ui-datepicker-current-day a:hover {
   background: #0052CC;
@@ -4303,11 +4450,11 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
   font-weight: bold;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-unselectable {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: #F4F5F7;
+  color: #7A869A;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-other-month.ui-datepicker-unselectable {
-  background-color: #fff;
+  background-color: #FFFFFF;
 }
 /* jQuery UI Overides (defaul theme) */
 .aui-datepicker-dialog .ui-widget-header {
@@ -4345,7 +4492,7 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar td a:hover,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar td a:active,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar td a:focus {
-  background-color: #f5f5f5;
+  background-color: #F4F5F7;
   border-radius: 3px;
   box-shadow: 0px 0px 0pt 1pt #ccc;
 }
@@ -4357,11 +4504,11 @@ aui-inline-dialog .arrow.aui-css-arrow.aui-right-arrow:before,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-header .ui-datepicker-next.ui-state-disabled:hover,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-header .ui-datepicker-next.ui-state-disabled:active,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-header .ui-datepicker-next.ui-state-disabled:focus {
-  color: #707070;
+  color: #7A869A;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar > thead > tr > th {
   padding-bottom: 5px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #DFE1E6;
 }
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar > thead > tr > th:first-child,
 .aui-datepicker-dialog .ui-datepicker .ui-datepicker-calendar > tbody > tr > td:first-child {
@@ -4389,7 +4536,7 @@ aui-message {
   margin: 20px 0 0 0;
 }
 .aui-message {
-  background: #fff;
+  background: #FFFFFF;
   border: 1px solid #0052CC;
   border-radius: 3px;
   color: #172B4D;
@@ -4413,7 +4560,7 @@ aui-message {
   font-weight: normal;
   font-style: normal;
   speak: none;
-  color: #fff;
+  color: #FFFFFF;
   font-size: 16px;
   left: 20px;
   line-height: 20px;
@@ -4424,7 +4571,7 @@ aui-message {
   display: none;
 }
 .aui-message::after {
-  content: "\f16f";
+  content: "\f234";
   color: #0052CC;
 }
 .aui-message .aui-icon.icon-close {
@@ -4503,7 +4650,7 @@ aui-message:first-child,
 .aui-message-hint::after,
 .aui-message.info::after,
 .aui-message-info::after {
-  content: "\f16f";
+  content: "\f234";
   color: #0052CC;
 }
 .aui-message.success,
@@ -4514,7 +4661,7 @@ aui-message:first-child,
 }
 .aui-message.success::after,
 .aui-message-success::after {
-  content: "\f194";
+  content: "\f104";
   color: #36B37E;
 }
 /* Message titles */
@@ -4566,36 +4713,27 @@ aui-message:first-child,
 #header .aui-message.closeable .icon-close {
   top: 10px;
 }
+/*! AUI Tables */
+/*! Note child combinator are used to ensure nested non-AUI tables don't receive any AUI styles. */
 table.aui {
   border-collapse: collapse;
   width: 100%;
-  /* Interactive Tables */
-  /* End Interactive Tables */
   /* stripes - deprecated */
 }
 table.aui table.aui {
   margin: 0;
 }
 table.aui > caption {
-  color: #707070;
-  background: #f5f5f5;
+  color: #7A869A;
+  background: #F4F5F7;
   border-bottom: 1px solid #DFE1E6;
   caption-side: top;
   padding: 7px 10px;
   text-align: left;
 }
-table.aui > tbody > tr,
-table.aui > tfoot > tr {
-  background: #fff;
-  border-bottom: 1px solid #DFE1E6;
-  color: #172B4D;
-}
-table.aui > tbody > tr > th {
-  background: #fff;
-  color: #172B4D;
-}
 table.aui > thead > tr > th,
 table.aui > tbody > tr > th,
+table.aui > tfoot > tr > th,
 table.aui > thead > tr > td,
 table.aui > tbody > tr > td,
 table.aui > tfoot > tr > td {
@@ -4603,16 +4741,10 @@ table.aui > tfoot > tr > td {
   text-align: left;
   vertical-align: top;
 }
-table.aui > thead {
-  border-bottom: 1px solid #DFE1E6;
-}
-table.aui > tbody > tr:first-child > td,
-table.aui > tbody > tr:first-child > th,
-table.aui > tfoot > tr:first-child > td {
-  border-top: 1px solid #DFE1E6;
-}
 table.aui > thead > tr > th > ul.menu,
 table.aui > tbody > tr > th > ul.menu,
+table.aui > tfoot > tr > th > ul.menu,
+table.aui > thead > tr > td > ul.menu,
 table.aui > tbody > tr > td > ul.menu,
 table.aui > tfoot > tr > td > ul.menu {
   list-style-type: none;
@@ -4621,14 +4753,45 @@ table.aui > tfoot > tr > td > ul.menu {
 }
 table.aui > thead > tr > th > ul.menu > li,
 table.aui > tbody > tr > th > ul.menu > li,
+table.aui > tfoot > tr > th > ul.menu > li,
+table.aui > thead > tr > td > ul.menu > li,
 table.aui > tbody > tr > td > ul.menu > li,
 table.aui > tfoot > tr > td > ul.menu > li {
   float: left;
   margin: 0 10px 0 0;
   width: auto;
 }
-table.aui.aui-table-interactive > tbody > tr:hover {
-  background: #f5f5f5;
+table.aui > tbody > tr,
+table.aui > tfoot > tr {
+  background: #FFFFFF;
+  color: #172B4D;
+}
+table.aui > tbody > tr:first-child > td,
+table.aui > tfoot > tr:first-child > td,
+table.aui > tbody > tr:first-child > th,
+table.aui > tfoot > tr:first-child > th {
+  border-top: 1px solid #DFE1E6;
+}
+table.aui > thead {
+  border-bottom: 2px solid #DFE1E6;
+}
+table.aui > thead > tr > th {
+  color: #7A869A;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.66666667;
+  letter-spacing: 0;
+  text-transform: none;
+}
+table.aui > tbody > tr > th {
+  color: #7A869A;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.66666667;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: inherit;
+  background: #FFFFFF;
 }
 table.aui.aui-zebra tr {
   border-bottom: 0;
@@ -4637,7 +4800,7 @@ table.aui.aui-zebra > thead > tr:nth-child(even),
 table.aui.aui-zebra > tbody > tr:nth-child(even),
 table.aui.aui-zebra > tfoot > tr:nth-child(even),
 table.aui.aui-zebra > tbody > tr:nth-child(even) > th {
-  background: #f5f5f5;
+  background: #F4F5F7;
   color: #172B4D;
 }
 table.aui .aui-button-link {
@@ -4646,6 +4809,31 @@ table.aui .aui-button-link {
   line-height: inherit;
   height: auto;
   border: 0;
+}
+table.aui:not(.aui-table-list) > tbody > tr > th,
+table.aui:not(.aui-table-list) > tfoot > tr > th,
+table.aui:not(.aui-table-list) > tbody > tr > td,
+table.aui:not(.aui-table-list) > tfoot > tr > td {
+  border-bottom: 1px solid #DFE1E6;
+}
+/* Tables for lists of data */
+table.aui.aui-table-list > tbody > tr:hover,
+table.aui.aui-table-interactive > tbody > tr:hover,
+table.aui.aui-table-list > tbody > tr:focus-within,
+table.aui.aui-table-interactive > tbody > tr:focus-within {
+  background: rgba(9, 30, 66, 0.08);
+}
+table.aui.aui-table-list > tbody > tr.aui-row-subtle *,
+table.aui.aui-table-interactive > tbody > tr.aui-row-subtle * {
+  color: #B3BAC5;
+}
+table.aui.aui-table-list > tbody > tr.aui-row-subtle * .aui-avatar,
+table.aui.aui-table-interactive > tbody > tr.aui-row-subtle * .aui-avatar,
+table.aui.aui-table-list > tbody > tr.aui-row-subtle * .aui-icon,
+table.aui.aui-table-interactive > tbody > tr.aui-row-subtle * .aui-icon,
+table.aui.aui-table-list > tbody > tr.aui-row-subtle * .aui-button,
+table.aui.aui-table-interactive > tbody > tr.aui-row-subtle * .aui-button {
+  opacity: .8;
 }
 aui-tabs {
   display: block;
@@ -4809,9 +4997,6 @@ aui-tabs {
 .aui-tabs.horizontal-tabs > .tabs-menu > .menu-item.active-tab a:active {
   color: #0052CC;
 }
-.aui-tabs.aui-tabs-disabled > .tabs-menu > .menu-item > a {
-  cursor: default;
-}
 .aui-tabs.vertical-tabs.aui-legacystyle2011 > .tabs-menu .menu-item strong {
   text-overflow: clip;
 }
@@ -4891,11 +5076,11 @@ aui-tabs {
   font-family: inherit;
   font-size: 14px;
   font-variant: normal;
-  font-weight: normal;
+  font-weight: 400;
   background-image: none;
-  background-color: rgba(9, 30, 66, 0.04);
+  background-color: rgba(9, 30, 66, 0.08);
   border-color: transparent;
-  color: #42526E;
+  color: #344563;
   text-decoration: none;
   border-radius: 0;
   display: inline-block;
@@ -4910,7 +5095,8 @@ aui-tabs {
   float: left;
 }
 .aui-toolbar .toolbar-group button.toolbar-trigger,
-.aui-toolbar .toolbar-group input.toolbar-trigger {
+.aui-toolbar .toolbar-group input.toolbar-trigger,
+.aui-toolbar .toolbar-group a.toolbar-trigger {
   font-size: inherit;
   font-family: inherit;
   line-height: inherit;
@@ -4965,7 +5151,7 @@ aui-tabs {
   /* prevent disabled split buttons jumping if dropdown clicked */
 }
 .aui-toolbar .toolbar-group .aui-dropdown {
-  border: 1px solid #999;
+  border: 1px solid #97A0AF;
 }
 .aui-toolbar .toolbar-group .aui-dropdown a {
   border: 0;
@@ -4981,19 +5167,19 @@ aui-tabs {
   border-width: 1px;
   position: relative;
   text-decoration: none;
-  color: #42526E;
+  color: #344563;
   border-color: transparent;
 }
 .aui-toolbar .toolbar-group button:focus,
 .aui-toolbar .toolbar-group .toolbar-trigger:focus,
 .aui-toolbar .aui-dd-parent .aui-dd-trigger:focus {
-  background: rgba(9, 30, 66, 0.08);
+  background: rgba(9, 30, 66, 0.13);
 }
 .aui-toolbar .toolbar-splitbutton:hover .toolbar-trigger,
 .aui-toolbar .toolbar-group button:hover,
 .aui-toolbar .toolbar-group .toolbar-trigger:hover,
 .aui-toolbar .aui-dd-parent .aui-dd-trigger:hover {
-  background: rgba(9, 30, 66, 0.08);
+  background: rgba(9, 30, 66, 0.13);
 }
 .aui-toolbar .toolbar-item:first-child .toolbar-trigger:hover,
 .aui-toolbar .toolbar-item:first-child .aui-dropdown2-trigger.toolbar-trigger.active,
@@ -5122,15 +5308,22 @@ aui-tabs {
 .aui-toolbar .toolbar-group .toolbar-item .disabled.aui-dd-trigger {
   border-left-width: 0;
 }
-.aui-optionlist {
-  background-color: #fff;
-}
 .aui-popover {
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  background: #FFFFFF;
+  border: 0 solid #DFE1E6;
+  border-radius: 3px;
+  color: #344563;
   box-sizing: border-box;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
   max-width: 300px;
   min-width: 160px;
+  padding: 3px 0;
   position: absolute;
+}
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  .aui-popover {
+    box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.13), 1px 0 1px rgba(9, 30, 66, 0.13), -1px 0 1px rgba(9, 30, 66, 0.13), 0 -1px 1px rgba(9, 30, 66, 0.13);
+  }
 }
 .aui-popover [role="option"] {
   color: inherit;
@@ -5152,23 +5345,39 @@ aui-tabs {
 }
 .aui-popover ul {
   list-style: none;
-  margin: 2px 0;
+  margin: 0;
   padding-left: 0;
 }
 .aui-popover ul [role="option"] {
-  background-color: #fff;
-  color: #172B4D;
+  box-sizing: content-box;
+  display: block;
+  line-height: 1.14285714;
+  padding: 7px 10px;
+  background-color: transparent;
+  color: #344563;
+  text-decoration: none;
+  cursor: pointer;
 }
 .aui-popover ul [role="option"]:not(.aui-select-no-suggestions):hover {
-  background-color: #0052CC;
-  color: #fff;
+  background-color: #EBECF0;
+  color: #344563;
+}
+.aui-popover ul [role="option"]:not(.aui-select-no-suggestions):active {
+  background-color: #DEEBFF;
+  color: #0052CC;
 }
 .aui-popover ul:not(:hover) [role="option"].aui-select-active {
-  background-color: #0052CC;
-  color: #fff;
+  background-color: #EBECF0;
+  color: #344563;
 }
 .aui-popover.aui-layer {
   height: auto;
+}
+.aui-popover.aui-layer.aui-alignment-element-attached-top {
+  margin-top: 3px;
+}
+.aui-popover.aui-layer.aui-alignment-element-attached-bottom {
+  margin-bottom: 3px;
 }
 form.aui aui-select,
 aui-select {
@@ -5210,7 +5419,7 @@ aui-select input.text {
 form.aui aui-select button.aui-button,
 aui-select button.aui-button {
   background-clip: padding-box;
-  border-color: #ccc;
+  border-color: #C1C7D0;
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
   bottom: 0;
@@ -5444,42 +5653,31 @@ form.aui aui-select[data-aui-notification-success] .text {
   background-image: url("images/logos/aui-header-logo-cloud.png");
   width: 126px;
 }
-#footer .footer-body,
-#footer-logo a {
-  background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTE0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMTE0IDI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9IiM3MDcwNzAiPjxnPjxwYXRoIGQ9Ik0yNy4yMDYuMjY1Yy0uMTEyLS4xNTQtLjI5Mi0uMjQ3LS40OC0uMjQ3LS4wOTcgMC0uMTkyLjAyNS0uMjc2LjA3Mi0zLjUxNyAxLjk3Ni03LjU5NCAzLjAyLTExLjc5IDMuMDIyLTQuMTk2IDAtOC4yNzItMS4wNDYtMTEuNzktMy4wMi0uMDgzLS4wNS0uMTc4LS4wNzQtLjI3NS0uMDc0LS4xODggMC0uMzY4LjA5My0uNDguMjQ3LS4xNjYuMjI3LS4xNy42MDguMTEyLjgzNSAxLjc2IDEuMzQ4IDMuNzAzIDIuNCA1Ljc3IDMuMTIgMi4xNDQuNzQ2IDQuMzg2IDEuMTI1IDYuNjYzIDEuMTI2IDIuMjc4IDAgNC41Mi0uMzggNi42NjMtMS4xMjYgMi4wNjgtLjcyIDQuMDEtMS43NzIgNS43NzMtMy4xMi4yOC0uMjI3LjI3Ni0uNjA4LjExLS44MzUiLz48cGF0aCBkPSJNMTQuNjYzIDcuMzM2Yy45IDAgMS40Mi0uMDU1IDEuNjA0LS4wNTUuMjIyIDAgLjQzNC4xODguNDM0LjQ1IDAgLjA3NS0uMDE2LjEzLS4wMzQuMTc4LS4xMi4zMjctLjY2MyAxLjUwNC0xLjY3NCAyLjUxNC0uMTE0LjExMy0uMjQyLjEzNS0uMzMuMTM1aC0uMDAyYy0uMDg4IDAtLjIxNy0uMDIyLS4zMy0uMTM1LTEuMDEyLTEuMDEtMS41NTYtMi4xODctMS42NzUtMi41MTQtLjAxOC0uMDQ4LS4wMzUtLjEwMy0uMDM1LS4xOCAwLS4yNi4yMTItLjQ0Ny40MzQtLjQ0Ny4xODMgMCAuNzA1LjA1NiAxLjYwMy4wNTZoLjAwNiIvPjxwYXRoIGQ9Ik0yMy4xNjQgNS44OTRjLS4wODQtLjA2Ni0uMTg0LS4xLS4yODYtLjEtLjA1NyAwLS4xMTQuMDEtLjE3LjAzMi0xLjAxOC40LTIuMDUzLjcwNC0yLjk5OC45My0uMTkyLjA0Ni0uMzQ4LjE5My0uNDEzLjM3LS42ODggMS45MzUtMi40NDYgMy43NzctNC4yOSA1LjcwOC0uMDc0LjA3Mi0uMTc4LjE2Ny0uMzQ2LjE2Ny0uMTY4IDAtLjI3LS4wOS0uMzQ2LS4xNjYtMS44NDQtMS45My0zLjYtMy43NjctNC4yOS01LjcwMi0uMDY0LS4xNzYtLjIyLS4zMjMtLjQxMy0uMzctLjk0NC0uMjI1LTEuOTgyLS41NC0zLS45NC0uMDU0LS4wMi0uMTEtLjAzLS4xNjgtLjAzLS4xMDIgMC0uMi4wMzItLjI4NS4wOTgtLjEzLjEwMi0uMTk4LjI2OC0uMTgzLjQyNy4xNTYgMS42MS43NzYgMy4xODMgMS44OTQgNC44MyAxLjA1IDEuNTUgMi40MjIgMi45ODYgMy43NDcgNC4zNzMgMi40NDMgMi41NTcgNC43NSA0Ljk3MiA0Ljk1MiA3Ljc3Mi4wMTguMjUyLjIyMy40NDguNDcuNDQ4aDIuODdjLjEzIDAgLjI1Mi0uMDU1LjM0Mi0uMTUuMDg3LS4wOTcuMTM0LS4yMjYuMTI4LS4zNTgtLjA5LTEuODcyLS43NzctMy43NDctMi4wOTgtNS43My0uMjc3LS40MTctLjU3NC0uODIyLS44ODQtMS4yMTgtLjEyNi0uMTYtLjA3NC0uMzYuMDIzLS40NjJsLjI4Ni0uMzAyYzEuMzI2LTEuMzg3IDIuNjk2LTIuODIyIDMuNzQ4LTQuMzcyIDEuMTE4LTEuNjQ4IDEuNzM3LTMuMjEyIDEuODkzLTQuODIuMDE2LS4xNjMtLjA1Ni0uMzM1LS4xODMtLjQzNCIvPjxwYXRoIGQ9Ik0xMS41ODIgMTcuNjk4Yy0uMDY4LS4wNzItLjE2OC0uMTQ3LS4zMzUtLjE0Ny0uMjE0IDAtLjM0LjE1My0uMzkuMjI4LTEuMjA2IDEuODg1LTEuODMgMy42NjQtMS45MTYgNS40NTItLjAwNS4xMzIuMDQyLjI2My4xMy4zNi4wOS4wOTUuMjE1LjE1LjM0NC4xNWgyLjg2NWMuMjQ1IDAgLjQ1My0uMTk4LjQ3LS40NS4wNjMtLjg2Mi4zMjUtMS43MjYuOC0yLjYzMy4xNjUtLjMxNC4wMzctLjYxLS4wNTgtLjczNS0uNDcyLS42My0xLjA1LTEuMzAyLTEuOTEtMi4yMjQiLz48L2c+PGc+PHBhdGggZD0iTTM0LjA3IDYuNDU3Yy0uMDU3LS4xODYtLjIyNS0uMzEzLS40MTUtLjMxM2gtNC4wNjhjLS4xOSAwLS4zNTguMTI3LS40MTUuMzEzTDI0LjA0IDIzLjE2Yy0uMDQuMTM2LS4wMTguMjg0LjA2NS40LjA4Mi4xMTQuMjEyLjE4Mi4zNS4xODJoMi44Yy4xOTQgMCAuMzY0LS4xMy40Mi0uMzJsMy41MzMtMTIuMjg1cy4wOTItLjMwNy40MTItLjMwN2MuMzI2IDAgLjQwNS4zMi40MDUuMzJsMS42NCA1LjgyNEgzMS40NmMtLjE5NSAwLS4zNjcuMTMzLS40Mi4zMjZsLS42MzIgMi4zMDdjLS4wMzcuMTM1LS4wMS4yOC4wNzMuMzkuMDgyLjExMi4yMS4xNzguMzQ3LjE3OGgzLjc1bC45OSAzLjI1M2MuMDU1LjE4Ni4yMjQuMzE0LjQxNS4zMTRoMi44Yy4xNCAwIC4yNy0uMDY4LjM1My0uMTgzLjA4Mi0uMTE2LjEwNS0uMjY0LjA2NC0uNEwzNC4wNyA2LjQ1NyIvPjxwYXRoIGQ9Ik00Ni4yNyAyMS4xNjhjLS4wMi0uMTI1LS4wODctLjIzNi0uMTktLjMwNi0uMTAyLS4wNy0uMjI3LS4wOTItLjM0Ny0uMDYyLS40NTQuMTE2LS44OS4xOC0xLjIyNi4xOC0uNjM3IDAtLjkyLS4yODMtLjkyLS45MnYtNi40aDIuNWMuMjQgMCAuNDM1LS4yLjQzNS0uNDQ2di0xLjk5NmMwLS4yNDctLjE5NS0uNDQ3LS40MzYtLjQ0N2gtMi41VjcuNjljMC0uMTMtLjA1NS0uMjUzLS4xNS0uMzM4LS4wOTUtLjA4NS0uMjIyLS4xMjQtLjM0Ni0uMTA2bC0yLjU3NC4zNjhjLS4yMTYuMDMtLjM3Ni4yMi0uMzc2LjQ0M3YyLjcxNGgtMS40MDJjLS4yNCAwLS40MzYuMi0uNDM2LjQ0OHYxLjk5NmMwIC4yNDcuMTk1LjQ0Ny40MzYuNDQ3aDEuNDAydjYuODE0YzAgMi4zNCAxLjE5OCAzLjUyNiAzLjU2IDMuNTI2LjY3NCAwIDEuODE2LS4xNiAyLjU2My0uNDI1LjE5OC0uMDcuMzItLjI3Ny4yODgtLjQ5bC0uMjgtMS45MTciLz48cGF0aCBkPSJNNTEuMDM2IDUuODE4SDQ4LjQ2Yy0uMjQgMC0uNDM1LjItLjQzNS40NDh2MTcuMDI4YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzZjLjI0IDAgLjQzNS0uMi40MzUtLjQ0OFY2LjI2NmMwLS4yNDgtLjE5NC0uNDQ4LS40MzQtLjQ0OCIvPjxwYXRoIGQ9Ik01OS4zODMgMTguOTg2djEuNTU2Yy0uNDI3LjIzMy0xLjIuNTY4LTIuMTMuNTY4LS44MDMgMC0xLjA0Ny0uMjUtMS4wNDctMS4wNzUgMC0uOC4xNS0xLjA1IDEuMDk3LTEuMDVoMi4wOHptLTEuNzI4LTguNDc0Yy0xLjMwMyAwLTIuODkuMjEtNC4wNC41MzgtLjIxNS4wNi0uMzUuMjc3LS4zMTQuNTAybC4zMDIgMS45MThjLjAyLjEyLjA4NC4yMjYuMTguMjk2LjA5Ny4wNy4yMTcuMDk1LjMzNC4wNzIgMS4wNy0uMjE0IDIuMTc1LS4zMzIgMy4xMS0uMzMyIDEuODYgMCAyLjE1Ny40MDMgMi4xNTcgMS42OTV2MS4xMjhoLTIuNzZjLTIuNjM3IDAtMy43NjMgMS4xMTYtMy43NjMgMy43MzMgMCAyLjUwNCAxLjIzNCAzLjk0IDMuMzg1IDMuOTQgMS4yNDUgMCAyLjQ5LS4zNTQgMy41MzgtMS4wMDNsLjExLjQxNWMuMDUyLjE5NS4yMjQuMzMuNDIuMzNoMi4wOGMuMjQgMCAuNDM2LS4yLjQzNi0uNDQ4di04LjA0YzAtMy40NTctMS40MDMtNC43NDItNS4xNzUtNC43NDJ6Ii8+PHBhdGggZD0iTTY5LjI4IDE1LjcxNGMtMS41OTgtLjQyMy0xLjU5OC0uNDQtMS41OTgtMS4zNCAwLS42MDQuMDYtLjg5NCAxLjM3NS0uODk0LjkwMiAwIDIuMjMyLjE2MiAzLjA4Ni4zMTIuMTE4LjAyLjIzOC0uMDEuMzM0LS4wODIuMDk1LS4wNzMuMTU4LS4xODMuMTcyLS4zMDRsLjI0Mi0yLjAxNGMuMDI3LS4yMjctLjExNi0uNDQtLjMzNC0uNDktLjk4OC0uMjM3LTIuMzYyLS4zOS0zLjUtLjM5LTMuOTYgMC00Ljc3IDEuNTM0LTQuNzcgMy44MzYgMCAyLjUzMi40NTcgMy4zODMgMy40OSA0LjE0IDIgLjQ5NSAyIC44NiAyIDEuNDcgMCAuNzk4LS4wNjggMS4wNzQtMS4zNzYgMS4wNzQtMS4wNTMgMC0yLjI3LS4xNjgtMy4zNDMtLjQ2Mi0uMTItLjAzMi0uMjQ0LS4wMTItLjM0Ny4wNTUtLjEwMy4wNjYtLjE3My4xNzQtLjE5NS4yOTdsLS4zNCAxLjkxYy0uMDQuMjIyLjA4Ni40MzguMjk0LjUwNyAxLjE3LjM4OCAyLjg0Ny42NiA0LjA4LjY2IDMuODM1IDAgNC42Mi0xLjY0NyA0LjYyLTQuMTIgMC0yLjczLS40NzItMy4yMzctMy44OTItNC4xNjYiLz48cGF0aCBkPSJNNzkuMjI3IDE1LjcxNGMtMS41OTctLjQyMy0xLjU5Ny0uNDQtMS41OTctMS4zNCAwLS42MDQuMDU4LS44OTQgMS4zNzQtLjg5NC45MDIgMCAyLjIzMi4xNjIgMy4wODcuMzEyLjExOC4wMi4yNC0uMDEuMzM0LS4wODIuMDk2LS4wNzMuMTU4LS4xODMuMTczLS4zMDRsLjI0Mi0yLjAxNGMuMDI3LS4yMjctLjExNy0uNDQtLjMzNC0uNDktLjk4OC0uMjM3LTIuMzYzLS4zOS0zLjUwMi0uMzktMy45NiAwLTQuNzcgMS41MzQtNC43NyAzLjgzNiAwIDIuNTMyLjQ1OCAzLjM4MyAzLjQ5MyA0LjE0IDEuOTk3LjQ5NSAxLjk5Ny44NiAxLjk5NyAxLjQ3IDAgLjc5OC0uMDY2IDEuMDc0LTEuMzc0IDEuMDc0LTEuMDUzIDAtMi4yNzItLjE2OC0zLjM0NC0uNDYyLS4xMTctLjAzMi0uMjQzLS4wMTItLjM0NS4wNTUtLjEwMi4wNjYtLjE3My4xNzQtLjE5NS4yOTdsLS4zNCAxLjkxYy0uMDQuMjIyLjA4Ni40MzguMjk0LjUwNyAxLjE2OC4zODggMi44NDcuNjYgNC4wOC42NiAzLjgzNCAwIDQuNjItMS42NDcgNC42Mi00LjEyIDAtMi43My0uNDczLTMuMjM3LTMuODkzLTQuMTY2Ii8+PHBhdGggZD0iTTg3LjU2IDUuODE4aC0yLjU3NmMtLjI0IDAtLjQzNi4yLS40MzYuNDQ3VjguNmMwIC4yNDguMTk2LjQ0OC40MzYuNDQ4aDIuNTc1Yy4yNCAwIC40MzUtLjIuNDM1LS40NDdWNi4yNjZjMC0uMjQ3LS4xOTYtLjQ0Ny0uNDM2LS40NDciLz48cGF0aCBkPSJNODcuNTYgMTAuNzdoLTIuNTc2Yy0uMjQgMC0uNDM2LjItLjQzNi40NDh2MTIuMDc2YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzVjLjI0IDAgLjQzNS0uMi40MzUtLjQ0OFYxMS4yMThjMC0uMjQ3LS4xOTYtLjQ0Ny0uNDM2LS40NDciLz48cGF0aCBkPSJNOTUuOTcgMTguOTg2djEuNTU2Yy0uNDI2LjIzMy0xLjIuNTY4LTIuMTMuNTY4LS44MDIgMC0xLjA0Ny0uMjUtMS4wNDctMS4wNzUgMC0uOC4xNTItMS4wNSAxLjA5OC0xLjA1aDIuMDh6bS0xLjcyNy04LjQ3NGMtMS4zMDMgMC0yLjg5LjIxLTQuMDQuNTM4LS4yMTUuMDYtLjM1LjI3Ny0uMzE1LjUwMmwuMzAyIDEuOTE4Yy4wMi4xMi4wODQuMjI2LjE4LjI5Ni4wOTcuMDcuMjE3LjA5NS4zMzMuMDcyIDEuMDctLjIxNCAyLjE3Ni0uMzMyIDMuMTEyLS4zMzIgMS44NTggMCAyLjE1NS40MDMgMi4xNTUgMS42OTV2MS4xMjhoLTIuNzZjLTIuNjM3IDAtMy43NjIgMS4xMTYtMy43NjIgMy43MzMgMCAyLjUwNCAxLjIzNCAzLjk0IDMuMzg1IDMuOTQgMS4yNDQgMCAyLjQ5LS4zNTQgMy41MzgtMS4wMDNsLjExLjQxNWMuMDUzLjE5NS4yMjUuMzMuNDIuMzNoMi4wOGMuMjQgMCAuNDM3LS4yLjQzNy0uNDQ4di04LjA0YzAtMy40NTctMS40MDMtNC43NDItNS4xNzQtNC43NDJ6Ii8+PHBhdGggZD0iTTEwOC45MzggMTAuNTEyYy0xLjM2NCAwLTMuMjIzLjQ4My00Ljc5MyAxLjI0bC0uMTg4LS42NmMtLjA1NC0uMTktLjIyNS0uMzItLjQxOC0uMzJoLTEuOTA4Yy0uMjQgMC0uNDM2LjItLjQzNi40NDZ2MTIuMDc2YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzVjLjI0IDAgLjQzNi0uMi40MzYtLjQ0OFYxNC45M2MuOTI3LS40ODQgMi4yMy0uOTg0IDMuMDEtLjk4NC41OCAwIC43OTYuMjIuNzk2LjgxNnY4LjUzMmMwIC4yNDguMTk1LjQ0OC40MzUuNDQ4aDIuNTc1Yy4yNCAwIC40MzUtLjIuNDM1LS40NDh2LTguODY4YzAtMi41OTctLjk5NC0zLjkxNC0yLjk1Ny0zLjkxNCIvPjwvZz48L2c+PC9zdmc+) center bottom no-repeat;
-  background-size: 114px 24px;
-}
 #footer-logo {
-  background: #f5f5f5;
-  /* screen out the background image on the footer when the logo is present, so it doesn't mess up transparent areas */
-  position: relative;
-  bottom: -21px;
-  /* margin plus 1 px to tweak for image */
+  margin-top: 20px;
 }
 #footer-logo a {
+  background: url('images/logos/atlassian/atlassian-horizontal-neutral.svg') center center no-repeat;
+  background-size: 127px 24px;
   display: block;
   height: 24px;
-  /* match image height */
   margin: 0 auto;
+  overflow: hidden;
   text-align: left;
   text-indent: -9999em;
-  width: 114px;
-  /* match image width */
+  width: 127px;
 }
 #footer-logo a:focus,
 #footer-logo a:hover,
 #footer-logo a:active {
-  background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTE0IiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMTE0IDI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnPjxnIGZpbGw9IiM1QkE1Q0UiPjxwYXRoIGQ9Ik0yNy4yMDYuMjY1Yy0uMTEyLS4xNTQtLjI5Mi0uMjQ3LS40OC0uMjQ3LS4wOTcgMC0uMTkyLjAyNS0uMjc2LjA3Mi0zLjUxNyAxLjk3Ni03LjU5NCAzLjAyLTExLjc5IDMuMDIyLTQuMTk2IDAtOC4yNzItMS4wNDYtMTEuNzktMy4wMi0uMDgzLS4wNS0uMTc4LS4wNzQtLjI3NS0uMDc0LS4xODggMC0uMzY4LjA5My0uNDguMjQ3LS4xNjYuMjI3LS4xNy42MDguMTEyLjgzNSAxLjc2IDEuMzQ4IDMuNzAzIDIuNCA1Ljc3IDMuMTIgMi4xNDQuNzQ2IDQuMzg2IDEuMTI1IDYuNjYzIDEuMTI2IDIuMjc4IDAgNC41Mi0uMzggNi42NjMtMS4xMjYgMi4wNjgtLjcyIDQuMDEtMS43NzIgNS43NzMtMy4xMi4yOC0uMjI3LjI3Ni0uNjA4LjExLS44MzUiLz48cGF0aCBkPSJNMTQuNjYzIDcuMzM2Yy45IDAgMS40Mi0uMDU1IDEuNjA0LS4wNTUuMjIyIDAgLjQzNC4xODguNDM0LjQ1IDAgLjA3NS0uMDE2LjEzLS4wMzQuMTc4LS4xMi4zMjctLjY2MyAxLjUwNC0xLjY3NCAyLjUxNC0uMTE0LjExMy0uMjQyLjEzNS0uMzMuMTM1aC0uMDAyYy0uMDg4IDAtLjIxNy0uMDIyLS4zMy0uMTM1LTEuMDEyLTEuMDEtMS41NTYtMi4xODctMS42NzUtMi41MTQtLjAxOC0uMDQ4LS4wMzUtLjEwMy0uMDM1LS4xOCAwLS4yNi4yMTItLjQ0Ny40MzQtLjQ0Ny4xODMgMCAuNzA1LjA1NiAxLjYwMy4wNTZoLjAwNiIvPjxwYXRoIGQ9Ik0yMy4xNjQgNS44OTRjLS4wODQtLjA2Ni0uMTg0LS4xLS4yODYtLjEtLjA1NyAwLS4xMTQuMDEtLjE3LjAzMi0xLjAxOC40LTIuMDUzLjcwNC0yLjk5OC45My0uMTkyLjA0Ni0uMzQ4LjE5My0uNDEzLjM3LS42ODggMS45MzUtMi40NDYgMy43NzctNC4yOSA1LjcwOC0uMDc0LjA3Mi0uMTc4LjE2Ny0uMzQ2LjE2Ny0uMTY4IDAtLjI3LS4wOS0uMzQ2LS4xNjYtMS44NDQtMS45My0zLjYtMy43NjctNC4yOS01LjcwMi0uMDY0LS4xNzYtLjIyLS4zMjMtLjQxMy0uMzctLjk0NC0uMjI1LTEuOTgyLS41NC0zLS45NC0uMDU0LS4wMi0uMTEtLjAzLS4xNjgtLjAzLS4xMDIgMC0uMi4wMzItLjI4NS4wOTgtLjEzLjEwMi0uMTk4LjI2OC0uMTgzLjQyNy4xNTYgMS42MS43NzYgMy4xODMgMS44OTQgNC44MyAxLjA1IDEuNTUgMi40MjIgMi45ODYgMy43NDcgNC4zNzMgMi40NDMgMi41NTcgNC43NSA0Ljk3MiA0Ljk1MiA3Ljc3Mi4wMTguMjUyLjIyMy40NDguNDcuNDQ4aDIuODdjLjEzIDAgLjI1Mi0uMDU1LjM0Mi0uMTUuMDg3LS4wOTcuMTM0LS4yMjYuMTI4LS4zNTgtLjA5LTEuODcyLS43NzctMy43NDctMi4wOTgtNS43My0uMjc3LS40MTctLjU3NC0uODIyLS44ODQtMS4yMTgtLjEyNi0uMTYtLjA3NC0uMzYuMDIzLS40NjJsLjI4Ni0uMzAyYzEuMzI2LTEuMzg3IDIuNjk2LTIuODIyIDMuNzQ4LTQuMzcyIDEuMTE4LTEuNjQ4IDEuNzM3LTMuMjEyIDEuODkzLTQuODIuMDE2LS4xNjMtLjA1Ni0uMzM1LS4xODMtLjQzNCIvPjxwYXRoIGQ9Ik0xMS41ODIgMTcuNjk4Yy0uMDY4LS4wNzItLjE2OC0uMTQ3LS4zMzUtLjE0Ny0uMjE0IDAtLjM0LjE1My0uMzkuMjI4LTEuMjA2IDEuODg1LTEuODMgMy42NjQtMS45MTYgNS40NTItLjAwNS4xMzIuMDQyLjI2My4xMy4zNi4wOS4wOTUuMjE1LjE1LjM0NC4xNWgyLjg2NWMuMjQ1IDAgLjQ1My0uMTk4LjQ3LS40NS4wNjMtLjg2Mi4zMjUtMS43MjYuOC0yLjYzMy4xNjUtLjMxNC4wMzctLjYxLS4wNTgtLjczNS0uNDcyLS42My0xLjA1LTEuMzAyLTEuOTEtMi4yMjQiLz48L2c+PGcgZmlsbD0iIzI3NDk3MCI+PHBhdGggZD0iTTM0LjA3IDYuNDU3Yy0uMDU3LS4xODYtLjIyNS0uMzEzLS40MTUtLjMxM2gtNC4wNjhjLS4xOSAwLS4zNTguMTI3LS40MTUuMzEzTDI0LjA0IDIzLjE2Yy0uMDQuMTM2LS4wMTguMjg0LjA2NS40LjA4Mi4xMTQuMjEyLjE4Mi4zNS4xODJoMi44Yy4xOTQgMCAuMzY0LS4xMy40Mi0uMzJsMy41MzMtMTIuMjg1cy4wOTItLjMwNy40MTItLjMwN2MuMzI2IDAgLjQwNS4zMi40MDUuMzJsMS42NCA1LjgyNEgzMS40NmMtLjE5NSAwLS4zNjcuMTMzLS40Mi4zMjZsLS42MzIgMi4zMDdjLS4wMzcuMTM1LS4wMS4yOC4wNzMuMzkuMDgyLjExMi4yMS4xNzguMzQ3LjE3OGgzLjc1bC45OSAzLjI1M2MuMDU1LjE4Ni4yMjQuMzE0LjQxNS4zMTRoMi44Yy4xNCAwIC4yNy0uMDY4LjM1My0uMTgzLjA4Mi0uMTE2LjEwNS0uMjY0LjA2NC0uNEwzNC4wNyA2LjQ1NyIvPjxwYXRoIGQ9Ik00Ni4yNyAyMS4xNjhjLS4wMi0uMTI1LS4wODctLjIzNi0uMTktLjMwNi0uMTAyLS4wNy0uMjI3LS4wOTItLjM0Ny0uMDYyLS40NTQuMTE2LS44OS4xOC0xLjIyNi4xOC0uNjM3IDAtLjkyLS4yODMtLjkyLS45MnYtNi40aDIuNWMuMjQgMCAuNDM1LS4yLjQzNS0uNDQ2di0xLjk5NmMwLS4yNDctLjE5NS0uNDQ3LS40MzYtLjQ0N2gtMi41VjcuNjljMC0uMTMtLjA1NS0uMjUzLS4xNS0uMzM4LS4wOTUtLjA4NS0uMjIyLS4xMjQtLjM0Ni0uMTA2bC0yLjU3NC4zNjhjLS4yMTYuMDMtLjM3Ni4yMi0uMzc2LjQ0M3YyLjcxNGgtMS40MDJjLS4yNCAwLS40MzYuMi0uNDM2LjQ0OHYxLjk5NmMwIC4yNDcuMTk1LjQ0Ny40MzYuNDQ3aDEuNDAydjYuODE0YzAgMi4zNCAxLjE5OCAzLjUyNiAzLjU2IDMuNTI2LjY3NCAwIDEuODE2LS4xNiAyLjU2My0uNDI1LjE5OC0uMDcuMzItLjI3Ny4yODgtLjQ5bC0uMjgtMS45MTciLz48cGF0aCBkPSJNNTEuMDM2IDUuODE4SDQ4LjQ2Yy0uMjQgMC0uNDM1LjItLjQzNS40NDh2MTcuMDI4YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzZjLjI0IDAgLjQzNS0uMi40MzUtLjQ0OFY2LjI2NmMwLS4yNDgtLjE5NC0uNDQ4LS40MzQtLjQ0OCIvPjxwYXRoIGQ9Ik01OS4zODMgMTguOTg2djEuNTU2Yy0uNDI3LjIzMy0xLjIuNTY4LTIuMTMuNTY4LS44MDMgMC0xLjA0Ny0uMjUtMS4wNDctMS4wNzUgMC0uOC4xNS0xLjA1IDEuMDk3LTEuMDVoMi4wOHptLTEuNzI4LTguNDc0Yy0xLjMwMyAwLTIuODkuMjEtNC4wNC41MzgtLjIxNS4wNi0uMzUuMjc3LS4zMTQuNTAybC4zMDIgMS45MThjLjAyLjEyLjA4NC4yMjYuMTguMjk2LjA5Ny4wNy4yMTcuMDk1LjMzNC4wNzIgMS4wNy0uMjE0IDIuMTc1LS4zMzIgMy4xMS0uMzMyIDEuODYgMCAyLjE1Ny40MDMgMi4xNTcgMS42OTV2MS4xMjhoLTIuNzZjLTIuNjM3IDAtMy43NjMgMS4xMTYtMy43NjMgMy43MzMgMCAyLjUwNCAxLjIzNCAzLjk0IDMuMzg1IDMuOTQgMS4yNDUgMCAyLjQ5LS4zNTQgMy41MzgtMS4wMDNsLjExLjQxNWMuMDUyLjE5NS4yMjQuMzMuNDIuMzNoMi4wOGMuMjQgMCAuNDM2LS4yLjQzNi0uNDQ4di04LjA0YzAtMy40NTctMS40MDMtNC43NDItNS4xNzUtNC43NDJ6Ii8+PHBhdGggZD0iTTY5LjI4IDE1LjcxNGMtMS41OTgtLjQyMy0xLjU5OC0uNDQtMS41OTgtMS4zNCAwLS42MDQuMDYtLjg5NCAxLjM3NS0uODk0LjkwMiAwIDIuMjMyLjE2MiAzLjA4Ni4zMTIuMTE4LjAyLjIzOC0uMDEuMzM0LS4wODIuMDk1LS4wNzMuMTU4LS4xODMuMTcyLS4zMDRsLjI0Mi0yLjAxNGMuMDI3LS4yMjctLjExNi0uNDQtLjMzNC0uNDktLjk4OC0uMjM3LTIuMzYyLS4zOS0zLjUtLjM5LTMuOTYgMC00Ljc3IDEuNTM0LTQuNzcgMy44MzYgMCAyLjUzMi40NTcgMy4zODMgMy40OSA0LjE0IDIgLjQ5NSAyIC44NiAyIDEuNDcgMCAuNzk4LS4wNjggMS4wNzQtMS4zNzYgMS4wNzQtMS4wNTMgMC0yLjI3LS4xNjgtMy4zNDMtLjQ2Mi0uMTItLjAzMi0uMjQ0LS4wMTItLjM0Ny4wNTUtLjEwMy4wNjYtLjE3My4xNzQtLjE5NS4yOTdsLS4zNCAxLjkxYy0uMDQuMjIyLjA4Ni40MzguMjk0LjUwNyAxLjE3LjM4OCAyLjg0Ny42NiA0LjA4LjY2IDMuODM1IDAgNC42Mi0xLjY0NyA0LjYyLTQuMTIgMC0yLjczLS40NzItMy4yMzctMy44OTItNC4xNjYiLz48cGF0aCBkPSJNNzkuMjI3IDE1LjcxNGMtMS41OTctLjQyMy0xLjU5Ny0uNDQtMS41OTctMS4zNCAwLS42MDQuMDU4LS44OTQgMS4zNzQtLjg5NC45MDIgMCAyLjIzMi4xNjIgMy4wODcuMzEyLjExOC4wMi4yNC0uMDEuMzM0LS4wODIuMDk2LS4wNzMuMTU4LS4xODMuMTczLS4zMDRsLjI0Mi0yLjAxNGMuMDI3LS4yMjctLjExNy0uNDQtLjMzNC0uNDktLjk4OC0uMjM3LTIuMzYzLS4zOS0zLjUwMi0uMzktMy45NiAwLTQuNzcgMS41MzQtNC43NyAzLjgzNiAwIDIuNTMyLjQ1OCAzLjM4MyAzLjQ5MyA0LjE0IDEuOTk3LjQ5NSAxLjk5Ny44NiAxLjk5NyAxLjQ3IDAgLjc5OC0uMDY2IDEuMDc0LTEuMzc0IDEuMDc0LTEuMDUzIDAtMi4yNzItLjE2OC0zLjM0NC0uNDYyLS4xMTctLjAzMi0uMjQzLS4wMTItLjM0NS4wNTUtLjEwMi4wNjYtLjE3My4xNzQtLjE5NS4yOTdsLS4zNCAxLjkxYy0uMDQuMjIyLjA4Ni40MzguMjk0LjUwNyAxLjE2OC4zODggMi44NDcuNjYgNC4wOC42NiAzLjgzNCAwIDQuNjItMS42NDcgNC42Mi00LjEyIDAtMi43My0uNDczLTMuMjM3LTMuODkzLTQuMTY2Ii8+PHBhdGggZD0iTTg3LjU2IDUuODE4aC0yLjU3NmMtLjI0IDAtLjQzNi4yLS40MzYuNDQ3VjguNmMwIC4yNDguMTk2LjQ0OC40MzYuNDQ4aDIuNTc1Yy4yNCAwIC40MzUtLjIuNDM1LS40NDdWNi4yNjZjMC0uMjQ3LS4xOTYtLjQ0Ny0uNDM2LS40NDciLz48cGF0aCBkPSJNODcuNTYgMTAuNzdoLTIuNTc2Yy0uMjQgMC0uNDM2LjItLjQzNi40NDh2MTIuMDc2YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzVjLjI0IDAgLjQzNS0uMi40MzUtLjQ0OFYxMS4yMThjMC0uMjQ3LS4xOTYtLjQ0Ny0uNDM2LS40NDciLz48cGF0aCBkPSJNOTUuOTcgMTguOTg2djEuNTU2Yy0uNDI2LjIzMy0xLjIuNTY4LTIuMTMuNTY4LS44MDIgMC0xLjA0Ny0uMjUtMS4wNDctMS4wNzUgMC0uOC4xNTItMS4wNSAxLjA5OC0xLjA1aDIuMDh6bS0xLjcyNy04LjQ3NGMtMS4zMDMgMC0yLjg5LjIxLTQuMDQuNTM4LS4yMTUuMDYtLjM1LjI3Ny0uMzE1LjUwMmwuMzAyIDEuOTE4Yy4wMi4xMi4wODQuMjI2LjE4LjI5Ni4wOTcuMDcuMjE3LjA5NS4zMzMuMDcyIDEuMDctLjIxNCAyLjE3Ni0uMzMyIDMuMTEyLS4zMzIgMS44NTggMCAyLjE1NS40MDMgMi4xNTUgMS42OTV2MS4xMjhoLTIuNzZjLTIuNjM3IDAtMy43NjIgMS4xMTYtMy43NjIgMy43MzMgMCAyLjUwNCAxLjIzNCAzLjk0IDMuMzg1IDMuOTQgMS4yNDQgMCAyLjQ5LS4zNTQgMy41MzgtMS4wMDNsLjExLjQxNWMuMDUzLjE5NS4yMjUuMzMuNDIuMzNoMi4wOGMuMjQgMCAuNDM3LS4yLjQzNy0uNDQ4di04LjA0YzAtMy40NTctMS40MDMtNC43NDItNS4xNzQtNC43NDJ6Ii8+PHBhdGggZD0iTTEwOC45MzggMTAuNTEyYy0xLjM2NCAwLTMuMjIzLjQ4My00Ljc5MyAxLjI0bC0uMTg4LS42NmMtLjA1NC0uMTktLjIyNS0uMzItLjQxOC0uMzJoLTEuOTA4Yy0uMjQgMC0uNDM2LjItLjQzNi40NDZ2MTIuMDc2YzAgLjI0OC4xOTYuNDQ4LjQzNi40NDhoMi41NzVjLjI0IDAgLjQzNi0uMi40MzYtLjQ0OFYxNC45M2MuOTI3LS40ODQgMi4yMy0uOTg0IDMuMDEtLjk4NC41OCAwIC43OTYuMjIuNzk2LjgxNnY4LjUzMmMwIC4yNDguMTk1LjQ0OC40MzUuNDQ4aDIuNTc1Yy4yNCAwIC40MzUtLjIuNDM1LS40NDh2LTguODY4YzAtMi41OTctLjk5NC0zLjkxNC0yLjk1Ny0zLjkxNCIvPjwvZz48L2c+PC9zdmc+);
-  background-size: 114px 24px;
+  background-image: url('images/logos/atlassian/atlassian-horizontal-blue.svg');
 }
 /* Simple spinner icon for wait/loading time */
 .aui-icon-wait {
   background-image: url(data:image/gif;base64,R0lGODlhEAAQAPMPALu7u5mZmTMzM93d3REREQAAAHd3d1VVVWZmZqqqqoiIiO7u7kRERCIiIgARAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFBwAPACwAAAAAEAAQAEAEcPDJtyg6dUrFetDTIopMoSyFcxxD1krD8AwCkASDIlPaUDQLR6G1Cy0SgqIkE1IQGMrFAKCcGWSBzwPAnAwarcKQ15MpTMJYd1ZyUDXSDGelBY0qIoBh/ZoYGgELCjoxCRRvIQcGD1kzgSAgAACQDxEAIfkEBQcADwAsAAAAAA8AEAAABF3wyfkMkotOJpscRKJJwtI4Q1MAoxQ0RFBw0xEvhGAVRZZJh4JgMAEQW7TWI4EwGFjKR+CAQECjn8DoN0kwDtvBT8FILAKJgfoo1iAGAPNVY9DGJXNMIHN/HJVqIxEAIfkEBQcADwAsAAAAABAADwAABFrwyfmColgiydpaQiY5x9Ith7hURdIl0wBIhpCAjKIIxaAUPQ0hFQsAC7MJALFSFi4SgC4wyHyuCYNWxH3AuhSEotkNGAALAPqqkigG8MWAjAnM4A8594vPUyIAIfkEBQcADwAsAAAAABAAEAAABF3wySkDvdKsddg+APYIWrcg2DIRQAcU6DJICjIsjBEETLEEBYLqYSDdJoCGiHgZwG4LQCCRECEIBAdoF5hdEIWwgBJqDs7DgcKyRHZl3uUwuhm2AbNNW+LV7yd+FxEAIfkEBQcACAAsAAAAABAADgAABEYQyYmMoVgeWQrP3NYhBCgZBdAFRUkdBIAUguVVo1ZsWFcEGB5GMBkEjiCBL2a5ZAi+m2SAURExwKqPiuCafBkvBSCcmiYRACH5BAUHAA4ALAAAAAAQABAAAARs0MnpAKDYrbSWMp0xZIvBKYrXjNmADOhAKBiQDF5gGcICNAyJTwFYTBaDQ0HAkgwSmAUj0OkMrkZM4HBgKK7YTKDRICAo2clAEIheKc9CISjEVTuEQrJASGcSBQcSUFEUDQUXJBgDBW0Zj34RACH5BAUHAA8ALAAAAAAQABAAAARf8Mn5xqBYgrVC4EEmBcOSfAEjSopJMglmcQlgBYjE5NJgZwjCAbO4YBAJjpIjSiAQh5ayyRAIDKvJIbnIagoFRFdkQDQKC0RBsCIUFAWsT7RwG410R8HiiK0WBwJjFBEAIfkEBQcADgAsAQABAA8ADwAABFrQybEWADXJLUHHAMJxIDAgnrOo2+AOibEMh1LN62gIxphzitRoCDAYNcNN6FBLShao4WzwHDQKvVGhoFAwGgtFgQHENhoB7nCwHRAIC0EyUcC8Zw1ha3NIRgAAIfkEBQcADwAsAAAAABAAEAAABGDwyfnWoljaNYYFV+Zx3hCEGEcuypBtMJBISpClAWLfWODymIFiCJwMDMiZBNAAYFqUAaNQ2E0YBIXGURAMCo1AAsFYBBoIScBJEwgSVcmP0li4FwcHz+FpCCQMPCFINxEAIfkEBQcADgAsAAABABAADwAABFzQyemWXYNqaSXY2vVtw3UNmROM4JQowKKlFOsgRI6ASQ8IhSADFAjAMIMAgSYJtByxyQIhcEoaBcSiwegpDgvAwSBJ0AIHBoCQqIAEi/TCIAABGhLG8MbcKBQgEQAh+QQFBwAPACwAAAEAEAAPAAAEXfDJSd+qeK5RB8fDRRWFspyotAAfQBbfNLCVUSSdKDV89gDAwcFBIBgywMRnkWBgcJUDKSZRIKAPQcGwYByAAYTEEJAAJIGbATEQ+B4ExmK9CDhBd8ThdHw/AmUYEQAh+QQFBwAPACwAAAEADwAPAAAEXvBJQIa8+ILSspdHkXxS9wxF4Q3L2aTBeC0sFjhAtuyLIjAMhYc2GBgaSKGuyNoBDp7czFAgeBIKwC6kWCAMxUSAFjtNCAAFGGF5tCQLAaJnWCTqHoREvQuQJAkyGBEAOw==);
 }
 .aui-dropdown2 .active .aui-icon-wait,
-.aui-button-primary .aui-icon-wait {
-  background-image: url(data:image/gif;base64,R0lGODlhEAAQAPMPAKC72NTg7e7z97rN4oaozWyWwlKDuP///5Sy08jX6OLq8q7F3XmfyEV6s/r7/AAAACH/C05FVFNDQVBFMi4wAwEAAAAh/wtYTVAgRGF0YVhNUAI/eAAh+QQFBwAPACwAAAAAEAAQAEAEcPDJ1+gadUqUOtFTI4rJgTSHMwxG1kqG8RhBwRAGIlOacSgNx6G1CzUYgaIkE0IIEsqGoaCcAWSEz6PAnBgUrcOQ15MhTMJYd1ZyUDXSDGelBY0qogJg/ZoAFAQNCDoxDBRvIQMAD1kzgSAgBQWQDxEAIfkEBQcADwAsAAAAAA8AEAAABF3wyfnAko3OJJU0AqNJQaM4hnIUo0QoAnFw0xA3QmAdR5ZJg0PAMCkQW7TWg7EAAFjKB2GwWECjH8LoN2EkBlvDD5FgNAgMg/oo1iwMBfNVA9DGJXMMIXN/HJVqIxEAIfkEBQcADwAsAAAAABAADwAABFrwyfkIolgumVRrQSY5Q9M1g9hUB9Mxk1FIQMCACYIEh4EcPY0gFSMAD7NJYbFSHi6Sgo5gyHyuDIBWxH3AupQFotklAAqNAvqqkiAM8IaBjCHM4A8594vPUyIAIfkEBQcADwAsAAAAABAAEAAABFzwySkJvRK0N5IcBfYEAOct2CYJRReijSEhi5wABOE1lqACpIfqUVCIHiWKrNbYEBgM0UIgcIByBNllcegGKKGLYWxQGRCW46SQfYzVQkmj0BweC7Im3C23w/UYEQAh+QQFBwAIACwAAAAAEAAOAAAERRDJiQCgWA55Ds/c1iECKAFeR5DYIBTIEVheFU/DsWH1Su2YwMSAIPiCnUPJcsmUPkNMQZY5TqYdIkJrSma4lAJQAgZFAAAh+QQFBwAOACwAAAAAEAAQAAAEa9DJ6Uqh2DUmEZCAkTUAhyAOooiZsRinIaBUwYgIYQFBpSSSRgFRaEwahoEjwJIYOJRGgmDUGK5VCmEwSCCu2AxBoRAsohhDgIBBNh1PCTBoMDaqgkPSIchmGAdKDlBoEwoHFyNpB2wZjn4RACH5BAUHAA8ALAAAAAAQABAAAARb8Mn5jKFYFkkIz9zFeEQCSkgzPgmDWc3DFBaxSMktGXS2CANM44JZuCaNJIixWASTygwjEQgATpMBI4rdPBYxEGCheDRugZPggHhceaDGmkiMOw4XxzE+CIQpEQAh+QQFBwAOACwBAAEADwAPAAAEVtBJI0uRTOpab1nb5l3L5TSnZlAOAzjGgEiNgYZA8G73hpihYAFAzAQ1n4HsSCsFa6yawrHbHA4IRGI6S/gOAIWC4JiFDFeKoBE4Mg4XwdqhAKo0g2MEACH5BAUHAA8ALAAAAAAQABAAAARd8Mn5WqNY3meMLBtmXB1HhFTjdQ3iYZtlFYyEEBlMLHiOES8fxYAoCicGgLL2URQwrmHicOhNEgKExnEIeBQExiLxICgWEsLTFgjUesGJotF+DBw+xzcgIec2SjkRACH5BAUHAA4ALAAAAQAQAA8AAARa0MnpWpOGamll2Vr3bZlmlMQITgxSXFRJqc4i3AvI7EVw/AkQgeBqnAgCmYSwcrwmjUWAKVHUGooEw4EYOAcACUNGGCQKgi1ME3CYHYD2pmB1JII15QaBAEUAACH5BAUHAA8ALAAAAQAQAA8AAARY8MlJX6t4NlMNx8ZFHQdSiU3xFeTxTYZaAQfTiZKiZ0/hGwOHQADI+BifBiOBsVUGkpcEsXA+Ao9iYuAjLCQAgqQgETMACwOWJ2CiHwQmSL6ANoq8shgTAQAh+QQFBwAPACwAAAEADwAPAAAEWvDJIoy8+JajspfDwXxS9xjH4RnNaRLj1bAY4RRZKyFBkiCemcEAUBiBuaGlVRh4cDLAQ+BhIKBO4AIwZBBOsNNEUEBIF5aHTh1YPMwPBmB9cb+ljy8pHsNEAAA7);
-}
+.aui-button-primary .aui-icon-wait,
 .aui-button-primary[aria-disabled="true"] .aui-icon-wait {
   background-image: url(data:image/gif;base64,R0lGODlhEAAQAPMPAKC72NTg7e7z97rN4oaozWyWwlKDuP///5Sy08jX6OLq8q7F3XmfyEV6s/r7/AAAACH/C05FVFNDQVBFMi4wAwEAAAAh/wtYTVAgRGF0YVhNUAI/eAAh+QQFBwAPACwAAAAAEAAQAEAEcPDJ1+gadUqUOtFTI4rJgTSHMwxG1kqG8RhBwRAGIlOacSgNx6G1CzUYgaIkE0IIEsqGoaCcAWSEz6PAnBgUrcOQ15MhTMJYd1ZyUDXSDGelBY0qogJg/ZoAFAQNCDoxDBRvIQMAD1kzgSAgBQWQDxEAIfkEBQcADwAsAAAAAA8AEAAABF3wyfnAko3OJJU0AqNJQaM4hnIUo0QoAnFw0xA3QmAdR5ZJg0PAMCkQW7TWg7EAAFjKB2GwWECjH8LoN2EkBlvDD5FgNAgMg/oo1iwMBfNVA9DGJXMMIXN/HJVqIxEAIfkEBQcADwAsAAAAABAADwAABFrwyfkIolgumVRrQSY5Q9M1g9hUB9Mxk1FIQMCACYIEh4EcPY0gFSMAD7NJYbFSHi6Sgo5gyHyuDIBWxH3AupQFotklAAqNAvqqkiAM8IaBjCHM4A8594vPUyIAIfkEBQcADwAsAAAAABAAEAAABFzwySkJvRK0N5IcBfYEAOct2CYJRReijSEhi5wABOE1lqACpIfqUVCIHiWKrNbYEBgM0UIgcIByBNllcegGKKGLYWxQGRCW46SQfYzVQkmj0BweC7Im3C23w/UYEQAh+QQFBwAIACwAAAAAEAAOAAAERRDJiQCgWA55Ds/c1iECKAFeR5DYIBTIEVheFU/DsWH1Su2YwMSAIPiCnUPJcsmUPkNMQZY5TqYdIkJrSma4lAJQAgZFAAAh+QQFBwAOACwAAAAAEAAQAAAEa9DJ6Uqh2DUmEZCAkTUAhyAOooiZsRinIaBUwYgIYQFBpSSSRgFRaEwahoEjwJIYOJRGgmDUGK5VCmEwSCCu2AxBoRAsohhDgIBBNh1PCTBoMDaqgkPSIchmGAdKDlBoEwoHFyNpB2wZjn4RACH5BAUHAA8ALAAAAAAQABAAAARb8Mn5jKFYFkkIz9zFeEQCSkgzPgmDWc3DFBaxSMktGXS2CANM44JZuCaNJIixWASTygwjEQgATpMBI4rdPBYxEGCheDRugZPggHhceaDGmkiMOw4XxzE+CIQpEQAh+QQFBwAOACwBAAEADwAPAAAEVtBJI0uRTOpab1nb5l3L5TSnZlAOAzjGgEiNgYZA8G73hpihYAFAzAQ1n4HsSCsFa6yawrHbHA4IRGI6S/gOAIWC4JiFDFeKoBE4Mg4XwdqhAKo0g2MEACH5BAUHAA8ALAAAAAAQABAAAARd8Mn5WqNY3meMLBtmXB1HhFTjdQ3iYZtlFYyEEBlMLHiOES8fxYAoCicGgLL2URQwrmHicOhNEgKExnEIeBQExiLxICgWEsLTFgjUesGJotF+DBw+xzcgIec2SjkRACH5BAUHAA4ALAAAAQAQAA8AAARa0MnpWpOGamll2Vr3bZlmlMQITgxSXFRJqc4i3AvI7EVw/AkQgeBqnAgCmYSwcrwmjUWAKVHUGooEw4EYOAcACUNGGCQKgi1ME3CYHYD2pmB1JII15QaBAEUAACH5BAUHAA8ALAAAAQAQAA8AAARY8MlJX6t4NlMNx8ZFHQdSiU3xFeTxTYZaAQfTiZKiZ0/hGwOHQADI+BifBiOBsVUGkpcEsXA+Ao9iYuAjLCQAgqQgETMACwOWJ2CiHwQmSL6ANoq8shgTAQAh+QQFBwAPACwAAAEADwAPAAAEWvDJIoy8+JajspfDwXxS9xjH4RnNaRLj1bAY4RRZKyFBkiCemcEAUBiBuaGlVRh4cDLAQ+BhIKBO4AIwZBBOsNNEUEBIF5aHTh1YPMwPBmB9cb+ljy8pHsNEAAA7);
 }
@@ -5507,8 +5705,8 @@ form.aui aui-select[data-aui-notification-success] .text {
   font-weight: normal;
   font-style: normal;
   speak: none;
-  color: #707070;
-  content: "\f16f";
+  color: #7A869A;
+  content: "\f234";
   font-size: 16px;
   left: 0;
   line-height: 1;
@@ -5519,24 +5717,24 @@ form.aui aui-select[data-aui-notification-success] .text {
 }
 /* Message icons */
 .aui-icon-generic:before {
-  color: #707070;
-  content: "\f23d";
+  color: #0052CC;
+  content: "\f234";
 }
 .aui-icon-error:before {
-  color: #d04437;
+  color: #FF5630;
   content: "\f15a";
 }
 .aui-icon-hint:before,
 .aui-icon-info:before {
-  color: #707070;
-  content: "\f23d";
+  color: #0052CC;
+  content: "\f234";
 }
 .aui-icon-success:before {
-  color: #14892c;
-  content: "\f194";
+  color: #36B37E;
+  content: "\f104";
 }
 .aui-icon-warning:before {
-  color: #f6c342;
+  color: #FFAB00;
   content: "\f1b3";
 }
 /*
@@ -7264,8 +7462,8 @@ form.aui aui-select[data-aui-notification-success] .text {
   }
 }
 .ffi {
-  background-color: #fff;
-  border-color: #DFE1E6;
+  background-color: #FFFFFF;
+  border-color: #C1C7D0;
   border-radius: 3.01px;
   box-shadow: none;
   color: #172B4D;
@@ -7298,14 +7496,14 @@ form.aui.long-label .field-group .ffi {
   padding: 0 5px;
 }
 .ffi:before {
-  background: rgba(9, 30, 66, 0.04);
+  background: rgba(9, 30, 66, 0.08);
   border-left-color: #DFE1E6;
-  color: #42526E;
+  color: #344563;
   padding: 0 10px;
 }
 .ffi:hover:before {
-  background: rgba(9, 30, 66, 0.08);
-  color: #42526E;
+  background: rgba(9, 30, 66, 0.13);
+  color: #344563;
 }
 .ffi:active:before,
 .ffi:active:hover:before {
@@ -7316,11 +7514,11 @@ form.aui.long-label .field-group .ffi {
   text-shadow: none;
 }
 .ffi.is-focused {
-  border-color: #707070;
+  border-color: #C1C7D0;
 }
 .ffi.is-disabled {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: #F4F5F7;
+  color: #97A0AF;
 }
 .ffi.is-disabled:before,
 .ffi.is-disabled:hover:before,
@@ -7333,7 +7531,7 @@ form.aui.long-label .field-group .ffi {
   text-shadow: none;
 }
 .ffi.is-disabled:after {
-  color: #999;
+  color: #97A0AF;
 }
 /* The clear field button */
 .ffi-clear {
@@ -7353,7 +7551,7 @@ form.aui.long-label .field-group .ffi {
   font-weight: normal;
   font-style: normal;
   speak: none;
-  color: #707070;
+  color: #7A869A;
   content: "\f188";
   font-size: 16px;
   left: 0;
@@ -7369,7 +7567,7 @@ form.aui.long-label .field-group .ffi {
 .aui-banner.aui-banner-error {
   background-color: #DE350B;
   box-shadow: none;
-  color: #fff;
+  color: #FFFFFF;
 }
 .aui-banner.aui-banner-error::after {
   -moz-osx-font-smoothing: grayscale;
@@ -7379,7 +7577,7 @@ form.aui.long-label .field-group .ffi {
   font-weight: normal;
   font-style: normal;
   speak: none;
-  color: #fff;
+  color: #FFFFFF;
   font-size: 16px;
   left: 20px;
   line-height: 20px;
@@ -7391,20 +7589,18 @@ form.aui.long-label .field-group .ffi {
 }
 .aui-banner.aui-banner-error::after {
   content: "\f15a";
-  color: #fff;
+  color: #FFFFFF;
 }
 .aui-banner.aui-banner-error a,
 .aui-banner.aui-banner-error a:link,
 .aui-banner.aui-banner-error a:visited {
-  color: #fff;
+  color: #FFFFFF;
   text-decoration: underline;
 }
 .aui-banner.aui-banner-error::after {
   left: 12px;
   top: 10px;
 }
-/* Inline Dialog Theme */
-/* Help block */
 .aui-help.aui-help-text,
 .aui-help.aui-help-empty-state {
   margin: 10px 0 0 0;
@@ -7413,7 +7609,7 @@ form.aui.long-label .field-group .ffi {
   width: 720px;
 }
 .aui-help .aui-help-content {
-  border-left: 4px solid #FF8B00;
+  border-left: 4px solid #5243AA;
   font-size: 16px;
   line-height: 1.5;
   padding-left: 20px;
@@ -7424,9 +7620,11 @@ form.aui.long-label .field-group .ffi {
 .aui-help .aui-help-content > h4,
 .aui-help .aui-help-content > h5,
 .aui-help .aui-help-content > h6 {
-  color: #5E6C84;
+  color: #6B778C;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1.45454545;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 .aui-help .aui-help-illustration + .aui-help-content {
@@ -7441,18 +7639,20 @@ form.aui.long-label .field-group .ffi {
 }
 aui-inline-dialog.aui-help .aui-inline-dialog-contents,
 .aui-inline-dialog.aui-help .aui-inline-dialog-contents {
-  border: 2px solid #f79232;
+  border: 2px solid #5243AA;
 }
 aui-inline-dialog.aui-help .aui-inline-dialog-contents h2:first-child,
 .aui-inline-dialog.aui-help .aui-inline-dialog-contents h2:first-child {
-  color: #707070;
+  color: #7A869A;
   font-size: 11px;
-  font-weight: bold;
+  font-weight: 600;
+  line-height: 1.45454545;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 aui-inline-dialog.aui-help::before,
 .aui-inline-dialog.aui-help::before {
-  border-bottom-color: #f79232;
+  border-bottom-color: #5243AA;
 }
 aui-inline-dialog.aui-help.aui-alignment-side-top::after,
 .aui-inline-dialog.aui-help.aui-alignment-side-top::after {
@@ -7488,24 +7688,22 @@ aui-inline-dialog.aui-help.aui-alignment-side-right.aui-alignment-element-attach
 }
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow::after,
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow::before {
-  border-color: #f79232 transparent;
+  border-color: #5243AA transparent;
 }
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow::after {
-  border-bottom-color: #fff;
+  border-bottom-color: #FFFFFF;
   top: 2px;
 }
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow.aui-bottom-arrow::after {
-  border-top-color: #fff;
+  border-top-color: #FFFFFF;
   top: -2px;
 }
-.aui-help .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow::after,
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow::before {
-  border-color: transparent #f79232;
+  border-color: transparent #5243AA;
 }
 .aui-help .aui-inline-dialog-arrow.aui-css-arrow.aui-left-arrow::after {
-  border-color: transparent #ffffff transparent transparent;
+  border-right-color: #FFFFFF;
   right: -2px;
-  top: 0px;
 }
 
 /*# sourceMappingURL=aui.css.map */
