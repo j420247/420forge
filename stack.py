@@ -9,6 +9,7 @@ from pathlib import Path
 from lib import log
 import os
 import shutil
+from lib import forge_const
 
 
 class Stack:
@@ -103,7 +104,7 @@ class Stack:
             InstanceIds=[instance],
             DocumentName='AWS-RunShellScript',
             Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
-            OutputS3BucketName='wpe-logs',
+            OutputS3BucketName=forge_const.S3_BUCKETS['stacklogs'],
             OutputS3KeyPrefix='run-command-logs'
         )
         self.state.logaction(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
