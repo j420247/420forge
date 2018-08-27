@@ -1,6 +1,5 @@
 /* Overrides */
 /*Keep region highlighted when selected*/
 .region-selected {
-    color:#deebff;
-    background-color:rgba(9,30,66,.48)
+    background-color: rgba(9,30,66,.48);
 }

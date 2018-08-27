@@ -176,8 +176,7 @@ function updateStats(stack_name) {
             $("#serviceStatus").html("Service status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
-    $("#serviceStatus").html("Service status: <span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" filled style=\"display: inline-block; margin-left: 16px;\"></aui-spinner>");
 
     var stackStateRequest = new XMLHttpRequest();
     stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
@@ -244,8 +243,7 @@ function updateStats(stack_name) {
             }
         }
     };
-    $("#nodes").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 10px; width: 20px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#nodes").html("<aui-spinner size=\"small\"></aui-spinner>");
     getNodesRequest.send();
 }
 
