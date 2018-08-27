@@ -9,6 +9,7 @@ Metadata:
           Parameters:
             - VPC
             - PrivateSubnets
+
         - Label:
             default: EC2 Config
           Parameters:
@@ -94,7 +95,7 @@ Mappings:
     us-east-1:
       "64": "ami-0ff8a91507f77f867"
     us-west-2:
-      "64": "ami-51537029"
+      "64": "ami-a0cfeed8"
     ap-southeast-2:
       "64": "ami-059b78064586da1b7"
 
@@ -317,6 +318,11 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          CidrIp: 10.81.8.0/21
+          Description: 'VTM edge-vpc-stg - euwest1'
+          FromPort: 80
+          ToPort: 80
+        - IpProtocol: tcp
           FromPort: 8000
           ToPort: 8000
           CidrIp: 0.0.0.0/0
@@ -327,3 +333,57 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ForgeNode-SG
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ForgeNodeSecurityGroup
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId: !Ref ForgeNodeSecurityGroup
+# S3 Buckets
+  TemplateBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+  DiagnosticsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+# Loadbalancer
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      CrossZone: true
+      Listeners:
+        - LoadBalancerPort: 80
+          Protocol: HTTP
+          InstancePort: 8000
+          InstanceProtocol: HTTP
+      HealthCheck:
+        Target: 'HTTP:8000/'
+        Timeout: 29
+        Interval: 30
+        UnhealthyThreshold: 2
+        HealthyThreshold: 2
+      Scheme: 'internal'
+      SecurityGroups: [!Ref ForgeNodeSecurityGroup]
+      Subnets: !Ref PrivateSubnets
+      Tags:
+        - Key: Name
+          Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
+  LoadBalancerCname:
+    Condition: UseHostedZone
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Ref HostedZone
+      Comment: Route53 cname for the ELB
+      Name: !Join ['.', [!Ref "AWS::StackName", !Ref 'HostedZone']]
+      Type: CNAME
+      TTL: 900
+      ResourceRecords:
+        - !GetAtt LoadBalancer.DNSName
