@@ -589,7 +589,7 @@ class Stack:
     def update(self, stack_parms, instance_type, deploy_type):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
-        template= f'wpe-aws/{self.app_type}/{template_filename}'
+        template= f'atlassian-aws-deployment/templates/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -638,7 +638,7 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        template = f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
+        template = f'atlassian-aws-deployment/templates/{template_filename}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
