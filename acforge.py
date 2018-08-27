@@ -66,9 +66,9 @@ db = SQLAlchemy(app)
 session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
-config = configparser.ConfigParser()
-config.read('forge.properties')
-if config.items('analytics')[0][1] == 'true':
+config_props = configparser.ConfigParser()
+config_props.read('forge.properties')
+if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
 # load permissions file
@@ -388,12 +388,7 @@ class stackState(Resource):
 
 class templateParams(Resource):
     def get(self, template_name):
-        app_type = 'confluence' # default for lab
-        for product in PRODUCTS:
-            if product.lower() in template_name.lower():
-                app_type = product.lower()
-                break
-        template_file = open(f'wpe-aws/{app_type}/{template_name}', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{template_name}', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -434,7 +429,7 @@ class templateParamsForStack(Resource):
         instance_type = 'DataCenter' # TODO support server
         deploy_type = '' if env == 'prod' else 'Clone'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -586,9 +581,9 @@ class getRdsSnapshots(Resource):
 class getTemplates(Resource):
     def get(self, product):
         templates = []
-        template_folder = Path(f'wpe-aws/{product.lower()}')
-        for file in list(template_folder.glob('**/*.yaml')):
-            # TODO support Server
+        template_folder = Path('atlassian-aws-deployment/templates')
+        for file in list(template_folder.glob(f'**/{product}*.yaml')):
+            # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
             templates.extend([file.name])

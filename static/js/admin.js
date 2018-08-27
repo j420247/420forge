@@ -84,9 +84,10 @@ function getStackActionInProgress(locked_stack) {
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            $("#lock-state").html("Action in progress: " + getStatusLozenge(getStackActionInProgressRequest.responseText, "moved"));
+            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
+            $("#lock-state").html("Action in progress: " + getStatusLozenge(actionInProgress, "moved"));
             $("#lock-state").show();
-            if (countOccurences(getStackActionInProgressRequest.responseText, 'None') === 0) {
+            if (countOccurences(actionInProgress.toLowerCase(), 'none') === 0) {
                 $("#unlock-warning").show();
                 $("#action-button").attr("aria-disabled", false);
             }

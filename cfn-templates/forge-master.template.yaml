@@ -1,0 +1,363 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Atlassian CFN Forge
+
+Metadata:
+  AWS::CloudFormation::Interface:
+      ParameterGroups:
+        - Label:
+            default: Network Config
+          Parameters:
+            - VPC
+            - PrivateSubnets
+        - Label:
+            default: EC2 Config
+          Parameters:
+            - NodeInstanceType
+            - NodeVolumeSize
+            - KeyName
+        - Label:
+            default: DNS Config
+          Parameters:
+            - HostedZone
+        - Label:
+            default: Forge config
+          Parameters:
+            - Analytics
+            - Regions
+            - CreateS3
+      ParameterLabels:
+        VPC:
+          default: VPC Id
+        PrivateSubnets:
+          default: Private Subnet Ids
+        NodeInstanceType:
+          default: Node Type
+        NodeVolumeSize:
+          default: Node Volume Size
+        KeyName:
+          default: Key Pair
+        HostedZone:
+          default: Route 53 Hosted Zone
+        Analytics:
+          default: Enable analytics
+        Regions:
+          default: Regions to operate in
+        CreateS3:
+          default: Create S3 buckets
+
+Parameters:
+  VPC:
+    Default: vpc-dd8dc7ba
+    ConstraintDescription: Must be the ID of a VPC.
+    Description: Virtual Private Cloud (VPC)
+    Type: AWS::EC2::VPC::Id
+  PrivateSubnets:
+    ConstraintDescription: Must be a list of two or more Subnet IDs within the selected VPC
+    Description: Private subnets where your nodes and database will be deployed
+    Type: List<AWS::EC2::Subnet::Id>
+  NodeInstanceType:
+    Default: t2.medium
+    AllowedValues:
+      - t2.medium
+      - t2.large
+      - m5.large
+      - m5.xlarge
+    ConstraintDescription: Must be an EC2 instance type from the selection list
+    Description: Instance type for the application nodes
+    Type: String
+  NodeVolumeSize:
+    Default: 50
+    Description: Size of the root EBS volume on application nodes
+    Type: Number
+  KeyName:
+    Default: WPE-GenericKeyPair-20161102
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+  HostedZone:
+    Default: 'wpt.atlassian.com.'
+    ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
+    Description: The domain name of the Route53 Hosted Zone in which to create cnames
+    Type: String
+  Analytics:
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be true or false
+    Description: Enable analytics to be sent back to Atlassian
+    Type: String
+  Regions:
+    Default: 'us-east-1: N.Virginia, us-west-2: Oregon'
+    ConstraintDescription: Must be a list of AWS regions
+    Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'.
+    Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
+    Type: CommaDelimitedList
+  CreateS3:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be true or false
+    Description: "Create S3 buckets for diagnostics and templates. Must be true if this is the first creation of a Forge stack in your account. Must be false if buckets already exist.
+    Buckets will be named 'atl-forge-templates-<youraccountid>'."
+    Type: String
+
+Mappings:
+  RegionAmiMap:
+    us-east-1:
+      "64": "ami-0ff8a91507f77f867"
+    us-west-2:
+      "64": "ami-51537029"
+    ap-southeast-2:
+      "64": "ami-059b78064586da1b7"
+
+Conditions:
+  CreateS3Buckets: !Equals [ !Ref CreateS3, true ]
+
+Resources:
+  ForgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+      Path: /
+      Policies:
+        - PolicyName: ForgeNodePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                - autoscaling:*
+                - cloudformation:*
+                - cloudwatch:DeleteAlarms
+                - cloudwatch:PutMetricAlarm
+                - ec2:*
+                - elasticfilesystem:CreateFileSystem
+                - elasticfilesystem:CreateMountTarget
+                - elasticfilesystem:CreateTags
+                - elasticfilesystem:DeleteFileSystem
+                - elasticfilesystem:DeleteMountTarget
+                - elasticfilesystem:DescribeFileSystems
+                - elasticfilesystem:DescribeMountTargets
+                - elasticloadbalancing:*
+                - iam:CreateInstanceProfile
+                - iam:CreateRole
+                - iam:AddRoleToInstanceProfile
+                - iam:AttachRolePolicy
+                - iam:DeleteInstanceProfile
+                - iam:DeleteRole
+                - iam:DeleteRolePolicy
+                - iam:DetachRolePolicy
+                - iam:PassRole
+                - iam:PutRolePolicy
+                - iam:RemoveRoleFromInstanceProfile
+                - iam:DeleteInstanceProfile
+                - rds:CreateDBInstance
+                - rds:CreateDBSubnetGroup
+                - rds:DeleteDBInstance
+                - rds:DeleteDBSubnetGroup
+                - rds:RestoreDBInstanceFromDBSnapshot
+                - rds:DescribeDBInstances
+                - rds:DescribeDBSnapshots
+                - rds:DescribeDBSubnetGroups
+                - rds:ModifyDBInstance
+                - rds:ModifyDBSubnetGroup
+                - route53:ChangeResourceRecordSets
+                - route53:GetChange
+                - route53:ListHostedZones
+                - ssm:ListCommands
+                - ssm:SendCommand
+                Effect: Allow
+                Resource: ['*']
+              - Action:
+                - s3:ListBucketByTags
+                - s3:GetBucketTagging
+                - s3:ListBucket
+                - s3:GetBucketVersioning
+                - s3:GetBucketAcl
+                Effect: Allow
+                Resource: arn:aws:s3:::wpe*
+              - Action:
+                - s3:PutObject
+                - s3:GetObjectAcl
+                - s3:GetObject
+                - s3:PutObjectVersionTagging
+                - s3:GetObjectTagging
+                - s3:PutObjectTagging
+                - s3:PutObjectAcl
+                Effect: Allow
+                Resource:
+                  - !Sub ["arn:aws:s3:::atl-forge-templates-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+                  - !Sub ["arn:aws:s3:::atl-forge-diagnostics-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+                  - arn:aws:s3:::wpe-diagnostics/*
+                  - arn:aws:s3:::wpe-public-software/*
+                  - arn:aws:s3:::wpe-storage-us-east-1/*
+                  - arn:aws:s3:::wpe-storage-us-west-2/*
+  ForgeNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref ForgeRole]
+  # Forge instance config
+  ForgeNodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: 1
+      LaunchConfigurationName: !Ref ForgeNodeLaunchConfig
+      MaxSize: 1
+      MinSize: 1
+      VPCZoneIdentifier: !Ref PrivateSubnets
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName} Atlassian Cfn Forge Server"
+          PropagateAtLaunch: true
+  ForgeNodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              python36: []
+              python36-pip: []
+              amazon-ssm-agent: []
+              xmlstarlet: []
+              jq: []
+              git: []
+          files:
+            /root/setup_forge.sh:
+              content: !Sub |
+                #!/usr/bin/env bash
+
+                forgepath=/home/forge/atl-cfn-forge
+                gitkeylocation=/root/.ssh/gitkey
+
+                gitkey=$(aws --region=us-west-2 ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                echo -e $gitkey > $gitkeylocation
+                chmod 600 $gitkeylocation
+
+                export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+
+                if [ -d $forgepath ]; then
+                    cd $forgepath
+                    git pull
+                else
+                    useradd -d /home/forge forge
+                    cd /home/forge
+                    git clone -b ITOPS-665/link-public-repo ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    cd $forgepath
+                fi
+                ./update
+                /usr/bin/pip-3.6 install -r requirements.txt
+                mv /tmp/forge.properties $forgepath/forge.properties --force
+                chown -R forge:forge $forgepath
+              mode: "000700"
+              owner: root
+              group: root
+            /etc/init/forge.conf:
+              content: !Sub |
+                #!upstart
+                description "Atlassian CFN Forge"
+
+                start on started mountall
+                stop on shutdown
+
+                # Automatically Respawn:
+                respawn
+                respawn limit 99 5
+
+                script
+                  cd /home/forge/atl-cfn-forge
+                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --nosaml >> /var/log/forge.log 2>&1
+                end script
+              mode: "000600"
+              owner: root
+              group: root
+            /tmp/forge.properties:
+              content:
+                'Fn::Join':
+                  - "\n"
+                  -
+                    - "# Regions in format 'aws_region: region_name'"
+                    - "# Names are for reference only, so can be AWS region names or Staging/Production etc"
+                    - "# Enter default region first"
+                    - "[regions]"
+                    - !Sub ["${Regions}", Regions: !Join ["\n", !Ref Regions]]
+                    - ""
+                    - "[analytics]"
+                    - !Sub ["enabled: ${Analytics}", Analytics: !Ref Analytics]
+                    - ""
+                    - "[s3]"
+                    - !Sub ["templates: atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["diagnostics: atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+              mode: "000750"
+              owner: root
+              group: root
+          commands:
+            001_enable_epel:
+              command: yum-config-manager --enable epel
+            002_setup_forge:
+              cwd: /root/
+              command: ./setup_forge.sh
+            003_run_forge:
+              command:
+                start forge
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref NodeVolumeSize
+            DeleteOnTermination: true
+      InstanceType: !Ref NodeInstanceType
+      IamInstanceProfile: !Ref ForgeNodeInstanceProfile
+      ImageId: !FindInMap [RegionAmiMap, !Ref "AWS::Region", 64]
+      SecurityGroups: [!Ref ForgeNodeSecurityGroup]
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ForgeNodeLaunchConfig --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ForgeNodeGroup --region ${AWS::Region}
+  ForgeNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP, SSH and ICMP to Forge node
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ForgeNode-SG
+  # S3 Buckets
+  TemplateBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+  DiagnosticsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Buckets
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub ["atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
