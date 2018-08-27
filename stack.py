@@ -9,8 +9,6 @@ from pathlib import Path
 from lib import log
 import os
 import shutil
-import configparser
-
 
 
 class Stack:
@@ -642,9 +640,6 @@ class Stack:
         template = f'wpe-aws/{app_type if app_type else self.app_type}/{template_filename}'
         self.upload_template(template, templates_bucket, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
-        config = configparser.ConfigParser()
-        config.read('forge.properties')
-        template_bucket = config['s3']['templates']
         try:
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
