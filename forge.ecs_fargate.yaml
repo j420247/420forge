@@ -368,8 +368,7 @@ Resources:
               Service: [ecs-tasks.amazonaws.com]
             Action: ["sts:AssumeRole"]
       ManagedPolicyArns:
-        - arn:aws:iam::515798882395:policy/osquery
-        - arn:aws:iam::515798882395:policy/CfnStackR53NodesSelfupdater
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
       Path: /
       Policies:
         - PolicyName: ForgePolicy
@@ -377,10 +376,38 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Action:
-                  - cloudformation:*
-                  - cloudwatch:*
+                  - autoscaling:CreateAutoScalingGroup
+                  - autoscaling:CreateLaunchConfiguration
+                  - autoscaling:CreateOrUpdateTags
+                  - autoscaling:DeleteAutoScalingGroup
+                  - autoscaling:DeleteLaunchConfiguration
+                  - autoscaling:DeletePolicy
+                  - autoscaling:DeleteTags
+                  - autoscaling:DescribeAutoScalingGroups
+                  - autoscaling:DescribeLaunchConfigurations
+                  - autoscaling:DescribeScalingActivities
+                  - autoscaling:PutScalingPolicy
+                  - autoscaling:UpdateAutoScalingGroup
+                  - cloudformation:CreateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResource
+                  - cloudformation:DescribeStacks
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ListStacks
+                  - cloudformation:UpdateStack
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:PutMetricAlarm
                   - ec2:*
-                  - elasticfilesystem:*
+                  - elasticfilesystem:CreateFileSystem
+                  - elasticfilesystem:CreateMountTarget
+                  - elasticfilesystem:CreateTags
+                  - elasticfilesystem:DeleteFileSystem
+                  - elasticfilesystem:DeleteMountTarget
+                  - elasticfilesystem:DeleteTags
+                  - elasticfilesystem:DescribeFileSystems
+                  - elasticfilesystem:DescribeMountTargets
                   - elasticloadbalancing:*
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
@@ -404,13 +431,13 @@ Resources:
                   - rds:DescribeDBInstances
                   - rds:DescribeDBSnapshots
                   - rds:DescribeDBSubnetGroups
+                  - rds:ModifyDBInstance
                   - rds:ListTagsForResource
                   - rds:ModifyDBSubnetGroup
+                  - rds:RemoveTagsFromResource
+                  - rds:RestoreDBInstanceFromDBSnapshot
                   - route53:ChangeResourceRecordSets
                   - route53:GetChange
-                  - route53:ListHostedZones
-                  - s3:CreateBucket
-                  - s3:DeleteBucket
                   - ssm:ListCommands
                   - ssm:SendCommand
                 Effect: Allow
