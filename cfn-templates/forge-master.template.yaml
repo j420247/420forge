@@ -26,10 +26,14 @@ Metadata:
           Parameters:
             - Analytics
             - Nodes
+            - FlaskSecretKey
             - Regions
+            - SamlMetadataUrl
       ParameterLabels:
         Analytics:
           default: Enable analytics
+        FlaskSecretKey:
+          default: Flask secret key
         InternetAccessible:
           default: ELB accessible from the internet
         CidrBlock:
@@ -46,6 +50,8 @@ Metadata:
           default: Node Volume Size
         Regions:
           default: Regions to operate in
+        SamlMetadataUrl:
+          default: SAML metadata URL
         Subnet:
           default: Subnet Id
         VPC:
@@ -69,9 +75,12 @@ Parameters:
     MinLength: 9
     MaxLength: 18
   HostedZone:
-    Default: 'wpt.atlassian.com.'
+    Default: 'myteam.example.com.'
     ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
+    Type: String
+  FlaskSecretKey:
+    Description: Secret key passed to Flask app
     Type: String
   InternetAccessible:
     AllowedValues:
@@ -82,7 +91,6 @@ Parameters:
     Description: Whether the ELB can be accessed from the internet
     Type: String
   KeyName:
-    Default: WPE-GenericKeyPair-20161102
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
@@ -110,6 +118,9 @@ Parameters:
     ConstraintDescription: Must be a list of AWS regions
     Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'. Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
     Type: CommaDelimitedList
+  SamlMetadataUrl:
+    Description: Metadata URL for your SAML provider
+    Type: String
   Subnet:
     ConstraintDescription: Select one Subnet ID within the selected VPC
     Description: Subnet where your node will be deployed
@@ -158,6 +169,8 @@ Conditions:
     !Equals [!Ref InternetAccessible, true]
   UseHostedZone:
     !Not [!Equals [!Ref HostedZone, '']]
+  NoSamlMetadata:
+    !Equals [!Ref SamlMetadataUrl, '']
 
 Resources:
   ForgeRole:
@@ -306,13 +319,14 @@ Resources:
                   chown -R forge:forge $forgepath
 
                   # create s3 bucket for forge objects
-                  aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1
+                  if aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
                 - AccountId: !Ref AWS::AccountId
               mode: "000700"
               owner: root
               group: root
             /etc/init/forge.conf:
-              content: !Sub |
+              content: !Sub
+              - |
                 #!upstart
                 description "Atlassian Cloudformation Forge"
 
@@ -321,12 +335,15 @@ Resources:
 
                 # Automatically Respawn:
                 respawn
-                respawn limit 99 5
+                respawn limit 3 5
 
                 script
                   cd /home/forge/atl-cfn-forge
-                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --nosaml >> /var/log/forge.log 2>&1
+                  export ATL_FORGE_SECRET_KEY="${FlaskSecretKey}"
+                  export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
+                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py "${noSaml}" >> /var/log/forge.log 2>&1
                 end script
+              - noSaml: !If [NoSamlMetadata, "--nosaml", ""]
               mode: "000600"
               owner: root
               group: root
@@ -345,8 +362,7 @@ Resources:
                     - !Sub ["enabled: ${Analytics}", Analytics: !Ref Analytics]
                     - ""
                     - "[s3]"
-                    - !Sub ["templates: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
-                    - !Sub ["diagnostics: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["bucket: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
               mode: "000750"
               owner: root
               group: root

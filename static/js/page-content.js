@@ -74,9 +74,8 @@ function selectStack(stack_name) {
             $("#action-button").attr("aria-disabled", false);
 
             // Version checking not currently working
-            // // currently only works for Confluence
-            // if (stack_name.indexOf("eac") !== -1 && stack_name.indexOf("eacj") === -1)
-            //     $("#versionCheckButton").removeAttr("disabled");
+            // currently only works for Confluence
+            // $("#versionCheckButton").removeAttr("disabled");
             break;
         case "update":
         case "clone":
