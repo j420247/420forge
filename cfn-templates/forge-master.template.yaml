@@ -282,7 +282,7 @@ Resources:
                   chown -R forge:forge $forgepath
 
                   # create s3 bucket for forge objects
-                  aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1
+                  aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1
                 - AccountId: !Ref AWS::AccountId
               mode: "000700"
               owner: root
