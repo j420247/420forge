@@ -429,5 +429,5 @@ Outputs:
         - "http://${LBCName}"
         - LBCName: !Ref LoadBalancerCname
       - !Sub
-        - "hgttp://${LoadBalancerDNSName}"
+        - "http://${LoadBalancerDNSName}"
         - LoadBalancerDNSName: !GetAtt LoadBalancer.DNSName
