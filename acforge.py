@@ -59,6 +59,8 @@ if not args.nosaml:
        print("SAML auth set to dev")
        app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
     flask_saml.FlaskSAML(app)
+else:
+    print("SAML auth is not configured")
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages

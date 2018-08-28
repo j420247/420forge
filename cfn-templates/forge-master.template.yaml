@@ -145,6 +145,8 @@ Conditions:
     !Equals [!Ref InternetAccessible, true]
   UseHostedZone:
     !Not [!Equals [!Ref HostedZone, '']]
+  NoSamlMetadata:
+    !Equals [!Ref SamlMetadataUrl, '']
 
 Resources:
   ForgeRole:
@@ -317,7 +319,7 @@ Resources:
                   export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
                   exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py "${noSaml}" >> /var/log/forge.log 2>&1
                 end script
-              - noSaml: !If [!Equals[!Ref SamlMetadataUrl, ""]], "--nosaml", ""]
+              - noSaml: !If [NoSamlMetadata, "--nosaml", ""]
               mode: "000600"
               owner: root
               group: root
@@ -444,5 +446,5 @@ Outputs:
         - "http://${LBCName}"
         - LBCName: !Ref LoadBalancerCname
       - !Sub
-        - "hgttp://${LoadBalancerDNSName}"
+        - "http://${LoadBalancerDNSName}"
         - LoadBalancerDNSName: !GetAtt LoadBalancer.DNSName
