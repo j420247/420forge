@@ -131,7 +131,7 @@ Mappings:
 
 Conditions:
   CreateS3Buckets:
-    !Equals [ !Ref CreateS3, true ]
+    !Equals [!Ref CreateS3, true]
   UseHostedZone:
     !Not [!Equals [!Ref HostedZone, '']]
 
@@ -271,7 +271,7 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                    git clone -b public-scrub ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
@@ -282,7 +282,8 @@ Resources:
               owner: root
               group: root
             /etc/init/forge.conf:
-              content: !Sub |
+              content: !Sub
+              - |
                 #!upstart
                 description "Atlassian Cloudformation Forge"
 
@@ -291,14 +292,15 @@ Resources:
 
                 # Automatically Respawn:
                 respawn
-                respawn limit 99 5
+                respawn limit 3 5
 
                 script
                   cd /home/forge/atl-cfn-forge
                   export ATL_FORGE_SECRET_KEY="${FlaskSecretKey}"
                   export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
-                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --nosaml >> /var/log/forge.log 2>&1
+                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py "${noSaml}" >> /var/log/forge.log 2>&1
                 end script
+              - noSaml: !If [!Equals[!Ref SamlMetadataUrl, ""]], "--nosaml", ""]
               mode: "000600"
               owner: root
               group: root

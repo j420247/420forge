@@ -49,14 +49,16 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = os.environ.get('ATL_FORGE_SECRET_KEY', 'REPLACE_ME')
-if args.prod:
-   app.wsgi_app = ProxyFix(app.wsgi_app)
-   print("SAML auth set to production")
-   app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
-else:
-   print("SAML auth set to dev")
-   app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
-flask_saml.FlaskSAML(app)
+# create SAML URL if saml enabled
+if not args.nosaml:
+    if args.prod:
+       app.wsgi_app = ProxyFix(app.wsgi_app)
+       print("SAML auth set to production")
+       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
+    else:
+       print("SAML auth set to dev")
+       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
+    flask_saml.FlaskSAML(app)
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
