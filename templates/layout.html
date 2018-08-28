@@ -115,9 +115,9 @@
                                     <strong>Application Actions</strong>
                                 </div>
                                 <ul class="aui-nav">
-                                    <li {% if session['nice_action_name'] == 'Backup' %} class="aui-nav-selected" {% endif %} >
+                                    <!-- <li {% if session['nice_action_name'] == 'Backup' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
-                                    </li>
+                                    </li> -->
                                     <li {% if session['nice_action_name'] == 'Upgrade' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='upgrade') }}" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
                                     </li>
@@ -176,8 +176,8 @@
                 <section class="footer-body">
                     <ul id="aui-footer-list">
                         <li>Copyright &#169; 2009-<script>document.write(new Date().getUTCFullYear());</script> Atlassian</li>
-                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li>
-                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li>
+                        <!-- <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li> -->
+                        <!-- <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li> -->
                         <li>{{ session['forge_version'] }}</li>
                     </ul>
                     <div id="footer-logo"><a href="https://www.atlassian.com/">Atlassian</a></div>
