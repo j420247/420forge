@@ -7,15 +7,16 @@ Metadata:
         - Label:
             default: Network Config
           Parameters:
+            - CidrBlock
+            - InternetAccessible
+            - Subnet
             - VPC
-            - PrivateSubnets
-
         - Label:
             default: EC2 Config
           Parameters:
+            - KeyName
             - NodeInstanceType
             - NodeVolumeSize
-            - KeyName
         - Label:
             default: DNS Config
           Parameters:
@@ -24,41 +25,72 @@ Metadata:
             default: Forge config
           Parameters:
             - Analytics
-            - CreateS3
-            - Regions
             - Nodes
+            - Regions
       ParameterLabels:
-        VPC:
-          default: VPC Id
-        PrivateSubnets:
-          default: Private Subnet Ids
+        Analytics:
+          default: Enable analytics
+        InternetAccessible:
+          default: ELB accessible from the internet
+        CidrBlock:
+          default: IP range permitted to access forge
+        HostedZone:
+          default: Route 53 Hosted Zone
+        KeyName:
+          default: Key Pair
+        Nodes:
+          default: Number of nodes
         NodeInstanceType:
           default: Node Type
         NodeVolumeSize:
           default: Node Volume Size
-        KeyName:
-          default: Key Pair
-        HostedZone:
-          default: Route 53 Hosted Zone
-        Analytics:
-          default: Enable analytics
-        CreateS3:
-          default: Create S3 buckets
         Regions:
           default: Regions to operate in
-        Nodes:
-          default: Number of nodes
+        Subnet:
+          default: Subnet Id
+        VPC:
+          default: VPC Id
 
 Parameters:
-  VPC:
-    Default: vpc-dd8dc7ba
-    ConstraintDescription: Must be the ID of a VPC.
-    Description: Virtual Private Cloud (VPC)
-    Type: AWS::EC2::VPC::Id
-  PrivateSubnets:
-    ConstraintDescription: Must be a list of two or more Subnet IDs within the selected VPC
-    Description: Private subnets where your nodes and database will be deployed
-    Type: List<AWS::EC2::Subnet::Id>
+  Analytics:
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be true or false
+    Description: Enable analytics to be sent back to Atlassian
+    Type: String
+  CidrBlock:
+    Default: '0.0.0.0/0'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+    Description: The CIDR IP range that is permitted to access the Service URL. Use 0.0.0.0/0 if you want public access from ALL places in the internet.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+  HostedZone:
+    Default: 'wpt.atlassian.com.'
+    ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
+    Description: The domain name of the Route53 Hosted Zone in which to create cnames
+    Type: String
+  InternetAccessible:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be 'true' or 'false'.
+    Default: false
+    Description: Whether the ELB can be accessed from the internet
+    Type: String
+  KeyName:
+    Default: WPE-GenericKeyPair-20161102
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+  Nodes:
+    Default: 1
+    ConstraintDescription: Must be a number
+    Description: Number of Forge nodes. We recommend 1 as stack locking and action logs are not cluster aware.
+    Type: Number
   NodeInstanceType:
     Default: t2.medium
     AllowedValues:
@@ -73,56 +105,33 @@ Parameters:
     Default: 50
     Description: Size of the root EBS volume on application nodes
     Type: Number
-  KeyName:
-    Default: WPE-GenericKeyPair-20161102
-    ConstraintDescription: must be the name of an existing EC2 KeyPair.
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
-    Type: AWS::EC2::KeyPair::KeyName
-  HostedZone:
-    Default: 'wpt.atlassian.com.'
-    ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
-    Description: The domain name of the Route53 Hosted Zone in which to create cnames
-    Type: String
-  Analytics:
-    Default: true
-    AllowedValues:
-      - true
-      - false
-    ConstraintDescription: Must be true or false
-    Description: Enable analytics to be sent back to Atlassian
-    Type: String
-  CreateS3:
-    AllowedValues:
-      - true
-      - false
-    ConstraintDescription: Must be true or false
-    Description: "Create S3 buckets for diagnostics and templates. Must be true if this is the first creation of a Forge stack in your account. Must be false if buckets already exist.
-    Buckets will be named 'atl-forge-templates-<youraccountid>'."
-    Type: String
   Regions:
     Default: 'us-east-1: N.Virginia, us-west-2: Oregon'
     ConstraintDescription: Must be a list of AWS regions
-    Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'.
-    Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
+    Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'. Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
     Type: CommaDelimitedList
-  Nodes:
-    Default: 1
-    ConstraintDescription: Must be a number
-    Description: Number of Forge nodes. We recommend 1 as stack locking and action logs are not cluster aware.
-    Type: Number
+  Subnet:
+    ConstraintDescription: Select one Subnet ID within the selected VPC
+    Description: Subnet where your node will be deployed
+    Type: List<AWS::EC2::Subnet::Id>
+  VPC:
+    Default: vpc-dd8dc7ba
+    ConstraintDescription: Must be the ID of a VPC.
+    Description: Virtual Private Cloud (VPC)
+    Type: AWS::EC2::VPC::Id
 
 Mappings:
   RegionAmiMap:
     us-east-1:
-      "64": "ami-0ff8a91507f77f867"
+      "ami": "ami-0ff8a91507f77f867"
     us-west-2:
-      "64": "ami-a0cfeed8"
+      "ami": "ami-a0cfeed8"
     ap-southeast-2:
-      "64": "ami-059b78064586da1b7"
+      "ami": "ami-059b78064586da1b7"
 
 Conditions:
-  CreateS3Buckets:
-    !Equals [ !Ref CreateS3, true ]
+  InternetAccessible:
+    !Equals [!Ref InternetAccessible, true]
   UseHostedZone:
     !Not [!Equals [!Ref HostedZone, '']]
 
@@ -159,10 +168,11 @@ Resources:
                 - elasticfilesystem:DescribeFileSystems
                 - elasticfilesystem:DescribeMountTargets
                 - elasticloadbalancing:*
-                - iam:CreateInstanceProfile
-                - iam:CreateRole
                 - iam:AddRoleToInstanceProfile
                 - iam:AttachRolePolicy
+                - iam:CreateInstanceProfile
+                - iam:CreateRole
+                - iam:DeleteInstanceProfile
                 - iam:DeleteInstanceProfile
                 - iam:DeleteRole
                 - iam:DeleteRolePolicy
@@ -170,17 +180,16 @@ Resources:
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
-                - iam:DeleteInstanceProfile
                 - rds:CreateDBInstance
                 - rds:CreateDBSubnetGroup
                 - rds:DeleteDBInstance
                 - rds:DeleteDBSubnetGroup
-                - rds:RestoreDBInstanceFromDBSnapshot
                 - rds:DescribeDBInstances
                 - rds:DescribeDBSnapshots
                 - rds:DescribeDBSubnetGroups
                 - rds:ModifyDBInstance
                 - rds:ModifyDBSubnetGroup
+                - rds:RestoreDBInstanceFromDBSnapshot
                 - route53:ChangeResourceRecordSets
                 - route53:GetChange
                 - route53:ListHostedZones
@@ -189,29 +198,27 @@ Resources:
                 Effect: Allow
                 Resource: ['*']
               - Action:
-                - s3:ListBucketByTags
-                - s3:GetBucketTagging
-                - s3:ListBucket
-                - s3:GetBucketVersioning
+                - s3:CreateBucket
                 - s3:GetBucketAcl
-                Effect: Allow
-                Resource: arn:aws:s3:::wpe*
-              - Action:
-                - s3:PutObject
-                - s3:GetObjectAcl
-                - s3:GetObject
-                - s3:PutObjectVersionTagging
-                - s3:GetObjectTagging
-                - s3:PutObjectTagging
-                - s3:PutObjectAcl
+                - s3:GetBucketTagging
+                - s3:GetBucketVersioning
+                - s3:ListBucket
+                - s3:ListBucketByTags
                 Effect: Allow
                 Resource:
-                  - !Sub ["arn:aws:s3:::atl-forge-templates-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
-                  - !Sub ["arn:aws:s3:::atl-forge-diagnostics-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
-                  - arn:aws:s3:::wpe-diagnostics/*
-                  - arn:aws:s3:::wpe-public-software/*
-                  - arn:aws:s3:::wpe-storage-us-east-1/*
-                  - arn:aws:s3:::wpe-storage-us-west-2/*
+                  - !Sub ["arn:aws:s3:::atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+              - Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:PutObjectTagging
+                - s3:PutObjectVersionTagging
+                Effect: Allow
+                Resource:
+                  - !Sub ["arn:aws:s3:::atl-forge-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+
   ForgeNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -227,7 +234,7 @@ Resources:
       MinSize: !Ref Nodes
       LoadBalancerNames:
         - !Ref LoadBalancer
-      VPCZoneIdentifier: !Ref PrivateSubnets
+      VPCZoneIdentifier: !Ref Subnet
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName} Forge Node"
@@ -247,31 +254,36 @@ Resources:
               git: []
           files:
             /root/setup_forge.sh:
-              content: !Sub |
-                #!/usr/bin/env bash
+              content: !Sub
+                - |
+                  #!/usr/bin/env bash
 
-                forgepath=/home/forge/atl-cfn-forge
-                gitkeylocation=/root/.ssh/gitkey
+                  forgepath=/home/forge/atl-cfn-forge
+                  gitkeylocation=/root/.ssh/gitkey
 
-                gitkey=$(aws --region=us-west-2 ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
-                echo -e $gitkey > $gitkeylocation
-                chmod 600 $gitkeylocation
+                  gitkey=$(aws --region=us-west-2 ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                  echo -e $gitkey > $gitkeylocation
+                  chmod 600 $gitkeylocation
 
-                export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                  export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
 
-                if [ -d $forgepath ]; then
-                    cd $forgepath
-                    git pull
-                else
-                    useradd -d /home/forge forge
-                    cd /home/forge
-                    git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
-                    cd $forgepath
-                fi
-                ./update
-                /usr/bin/pip-3.6 install -r requirements.txt
-                mv /tmp/forge.properties $forgepath/forge.properties --force
-                chown -R forge:forge $forgepath
+                  if [ -d $forgepath ]; then
+                      cd $forgepath
+                      git pull
+                  else
+                      useradd -d /home/forge forge
+                      cd /home/forge
+                      git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                      cd $forgepath
+                  fi
+                  ./update
+                  /usr/bin/pip-3.6 install -r requirements.txt
+                  mv /tmp/forge.properties $forgepath/forge.properties --force
+                  chown -R forge:forge $forgepath
+
+                  # create s3 bucket for forge objects
+                  aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1
+                - AccountId: !Ref AWS::AccountId
               mode: "000700"
               owner: root
               group: root
@@ -309,8 +321,8 @@ Resources:
                     - !Sub ["enabled: ${Analytics}", Analytics: !Ref Analytics]
                     - ""
                     - "[s3]"
-                    - !Sub ["templates: atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
-                    - !Sub ["diagnostics: atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["templates: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["diagnostics: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
               mode: "000750"
               owner: root
               group: root
@@ -331,7 +343,7 @@ Resources:
             VolumeSize: !Ref NodeVolumeSize
             DeleteOnTermination: true
       IamInstanceProfile: !Ref ForgeNodeInstanceProfile
-      ImageId: !FindInMap [RegionAmiMap, !Ref "AWS::Region", 64]
+      ImageId: !FindInMap [RegionAmiMap, !Ref "AWS::Region", "ami"]
       InstanceType: !Ref NodeInstanceType
       KeyName: !Ref KeyName
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
@@ -348,49 +360,33 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
+          CidrIp: !Ref CidrBlock
           FromPort: 22
           ToPort: 22
-          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          CidrIp: 10.81.8.0/21
+          CidrIp: !Ref CidrBlock
           Description: 'VTM edge-vpc-stg - euwest1'
           FromPort: 80
           ToPort: 80
         - IpProtocol: tcp
           FromPort: 8000
           ToPort: 8000
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref CidrBlock
         - IpProtocol: icmp
           FromPort: -1
           ToPort: -1
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref CidrBlock
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-ForgeNode-SG
-<<<<<<< HEAD
   SecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref ForgeNodeSecurityGroup
-      IpProtocol: -1
       FromPort: -1
+      IpProtocol: -1
       ToPort: -1
       SourceSecurityGroupId: !Ref ForgeNodeSecurityGroup
-=======
->>>>>>> origin/public
-# S3 Buckets
-  TemplateBucket:
-    Type: AWS::S3::Bucket
-    Condition: CreateS3Buckets
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub ["atl-forge-templates-${AccountId}", AccountId: !Ref "AWS::AccountId"]
-  DiagnosticsBucket:
-    Type: AWS::S3::Bucket
-    Condition: CreateS3Buckets
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub ["atl-forge-diagnostics-${AccountId}", AccountId: !Ref "AWS::AccountId"]
 # Loadbalancer
   LoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
@@ -407,9 +403,9 @@ Resources:
         Interval: 30
         UnhealthyThreshold: 2
         HealthyThreshold: 2
-      Scheme: 'internal'
+      Scheme: !If [InternetAccessible, 'internet-facing', 'internal']
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
-      Subnets: !Ref PrivateSubnets
+      Subnets: !Ref Subnet
       Tags:
         - Key: Name
           Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
@@ -423,8 +419,15 @@ Resources:
       Type: CNAME
       TTL: 900
       ResourceRecords:
-<<<<<<< HEAD
         - !GetAtt LoadBalancer.DNSName
-=======
-        - !GetAtt LoadBalancer.DNSName
->>>>>>> origin/public
+Outputs:
+  ServiceURL:
+    Description: The URL to access this Atlassian service
+    Value: !If
+      - UseHostedZone
+      - !Sub
+        - "http://${LBCName}"
+        - LBCName: !Ref LoadBalancerCname
+      - !Sub
+        - "hgttp://${LoadBalancerDNSName}"
+        - LoadBalancerDNSName: !GetAtt LoadBalancer.DNSName
