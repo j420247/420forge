@@ -3,3 +3,31 @@
 .region-selected {
     background-color: rgba(9,30,66,.48);
 }
+
+#main-content img.forge-logo-hero {
+    opacity: 0.3;
+    height: 200px;
+    position: absolute;
+    top: 140px;
+    left: 330px;
+}
+
+#stackInformation {
+    margin-top: 10px;
+}
+
+#serviceStatus aui-spinner,
+#stackState aui-spinner,
+#currentVersion aui-spinner {
+    display: inline-block;
+    margin-left: 16px;
+    vertical-align: bottom;
+}
+
+#paramsList {
+    min-height: 70px;
+}
+
+#paramsList aui-spinner {
+    z-index: initial;
+}

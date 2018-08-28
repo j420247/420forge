@@ -48,7 +48,7 @@ function getTemplates(product) {
 }
 
 function getTemplate(template) {
-    $("#paramsList").html("<aui-spinner size=\"medium\"></aui-spinner>");
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
     $("#stack-name-input").hide();
 
     var templateParamsRequest = new XMLHttpRequest();

@@ -176,7 +176,7 @@ function updateStats(stack_name) {
             $("#serviceStatus").html("Service status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
-    $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" filled style=\"display: inline-block; margin-left: 16px;\"></aui-spinner>");
+    $("#serviceStatus").html("Service status: <aui-spinner size=\"small\"></aui-spinner>");
 
     var stackStateRequest = new XMLHttpRequest();
     stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
@@ -184,7 +184,7 @@ function updateStats(stack_name) {
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
             if (!$("#stackState").children().hasClass("aui-lozenge"))
-                $("#stackState").append(getStatusLozenge(stackStateRequest.responseText));
+                $("#stackState").html("Stack status: " + getStatusLozenge(stackStateRequest.responseText));
             if (stackStateRequest.responseText.trim() === "\"CREATE_COMPLETE\"" ||
                 stackStateRequest.responseText.trim() === "\"UPDATE_COMPLETE\"" ||
                 stackStateRequest.responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
@@ -192,6 +192,7 @@ function updateStats(stack_name) {
                 serviceStatusRequest.send();
         }
     };
+    $("#stackState").html("Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
     stackStateRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
@@ -201,8 +202,7 @@ function updateStats(stack_name) {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
             var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
             if (!$("#currentAction").children().hasClass("aui-lozenge")) {
-                $("#currentAction").html("Action in progress: ");
-                $("#currentAction").append(getStatusLozenge(actionInProgress, "moved"));
+                $("#currentAction").html("Action in progress: " + getStatusLozenge(actionInProgress, "moved"));
                 if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf("/admin/") === -1) {
                     $("#currentAction").append("&nbsp;<span class=\"aui-icon aui-icon-small aui-iconfont-unlock aui-button\" id=\"unlockIcon\">Unlock this stack</span>");
                     document.getElementById("unlockIcon").addEventListener("click", function (data) {
@@ -223,6 +223,7 @@ function updateStats(stack_name) {
             $("#currentVersion").html("Current version: " + version);
         }
     };
+    $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
     getVersionRequest.send();
 
     var getNodesRequest = new XMLHttpRequest();

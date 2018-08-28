@@ -412,12 +412,7 @@ class stackState(Resource):
 
 class templateParams(Resource):
     def get(self, template_name):
-        app_type = 'confluence' # default for lab
-        for product in forge_const.PRODUCTS:
-            if product.lower() in template_name.lower():
-                app_type = product.lower()
-                break
-        template_file = open(f'wpe-aws/{app_type}/{template_name}', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{template_name}', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -428,6 +423,7 @@ class templateParams(Resource):
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
+        print(params_to_send)
         return params_to_send
 
 
@@ -458,7 +454,7 @@ class templateParamsForStack(Resource):
         instance_type = 'DataCenter' # TODO support server
         deploy_type = '' if env == 'prod' else 'Clone'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -610,9 +606,9 @@ class getRdsSnapshots(Resource):
 class getTemplates(Resource):
     def get(self, product):
         templates = []
-        template_folder = Path(f'wpe-aws/{product.lower()}')
-        for file in list(template_folder.glob('**/*.yaml')):
-            # TODO support Server
+        template_folder = Path('atlassian-aws-deployment/templates')
+        for file in list(template_folder.glob(f'**/{product}*.yaml')):
+            # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
             templates.extend([file.name])

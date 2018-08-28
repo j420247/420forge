@@ -9,9 +9,10 @@
         {#    AUI    #}
         <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
+        <link rel="stylesheet" href="/static/aui/css/aui-iconfonts.min.css" media="all">
 
         <script src="/static/jquery-3.3.1.min.js"></script>
-        <script src="/static/aui/js/aui.js"></script>
+        <script src="/static/aui/js/aui.min.js"></script>
         <script src="/static/aui/js/aui-experimental.min.js"></script>
         <script src="/static/aui/js/aui-soy.min.js"></script>
 
@@ -158,8 +159,10 @@
                             {% endwith %}
                         </div>
                         <!--Content-->
-                        {% block content %}
-                        {% endblock content %}
+                        <div id="main-content">
+                            {% block content %}
+                            {% endblock content %}
+                        </div>
                     </section>
                 </div>
             </div>
