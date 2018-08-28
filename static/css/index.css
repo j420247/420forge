@@ -4,7 +4,7 @@
     background-color: rgba(9,30,66,.48);
 }
 
-#main-content img.forge-logo-hero {
+.aui-page-panel-content img.forge-logo-hero {
     opacity: 0.3;
     height: 200px;
     position: absolute;
