@@ -133,12 +133,36 @@ Parameters:
 
 Mappings:
   RegionAmiMap:
+    ap-northeast-1:
+      "ami": "ami-06cd52961ce9f0d85"
+    ap-northeast-2:
+      "ami": "ami-0a10b2721688ce9d2"
+    ap-south-1:
+      "ami": "ami-0912f71e06545ad88"
+    ap-southeast-1:
+      "ami": "ami-08569b978cc4dfa10"
+    ap-southeast-2:
+      "ami": "ami-09b42976632b27e9b"
+    ca-central-1:
+      "ami": "ami-0b18956f"
+    eu-central-1:
+      "ami": "ami-0233214e13e500f77"
+    eu-west-1:
+      "ami": "ami-047bb4163c506cd98"
+    eu-west-2:
+      "ami": "ami-f976839e"
+    eu-west-3:
+      "ami": "ami-0ebc281c20e89ba4b"
+    sa-east-1:
+      "ami": "ami-07b14488da8ea02a0"
     us-east-1:
       "ami": "ami-0ff8a91507f77f867"
+    us-east-2:
+      "ami": "ami-0b59bfac6be064b78"
+    us-west-1:
+      "ami": "ami-0bdb828fd58c52235"
     us-west-2:
       "ami": "ami-a0cfeed8"
-    ap-southeast-2:
-      "ami": "ami-059b78064586da1b7"
 
 Conditions:
   InternetAccessible:
