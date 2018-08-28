@@ -82,6 +82,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
   HostedZone:
+    Default: 'myteam.example.com.'
     ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
@@ -270,14 +271,13 @@ Resources:
                 else
                     useradd -d /home/forge forge
                     cd /home/forge
-                    git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                    git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
                     cd $forgepath
                 fi
                 ./update
                 /usr/bin/pip-3.6 install -r requirements.txt
                 mv /tmp/forge.properties $forgepath/forge.properties --force
                 chown -R forge:forge $forgepath
-
               mode: "000700"
               owner: root
               group: root
