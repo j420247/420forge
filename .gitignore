@@ -1,7 +1,6 @@
 .idea
 forge.iml
 atl-cfn-forge.iml
-*.json
 stacks/**/*.json
 __pycache__*
 *.db
