@@ -31,8 +31,7 @@ function onReady() {
 function selectTemplateForStack(stackToRetrieve) {
     if (document.getElementById("clone-params"))
         $("#clone-params").hide();
-    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
 
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
@@ -124,10 +123,19 @@ function createInputParameter(param, fieldset) {
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
 
-        if ((action === 'clone' || action === 'create') && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+        if ((action === 'clone' || action === 'create')
+            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
             input.type="password";
             input.value = "";
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName") {
+            input.setAttribute("data-aui-validation-field","");
+            input.value = ssh_key_name;
+            input.required = true;
+        } else if (param.ParameterKey === "HostedZone") {
+            input.setAttribute("data-aui-validation-field","");
+            input.value = hosted_zone;
             input.required = true;
         }
         div.appendChild(input);
