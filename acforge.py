@@ -423,7 +423,6 @@ class templateParams(Resource):
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
-        print(params_to_send)
         return params_to_send
 
 
