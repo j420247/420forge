@@ -50,13 +50,14 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
 # get current region and create SSM client to read parameter store params
-ssm_client = boto3.client('ssm', args.region)
+ssm_client = boto3.client('ssm', region_name=args.region)
 app.config['SECRET_KEY'] = 'REPLACE_ME'
 try:
-    app.config['SECRET_KEY'] = ssm_client.get_parameter(
+    key = ssm_client.get_parameter(
         Name='atl_forge_secret_key',
         WithDecryption=True
     )
+    app.config['SECRET_KEY'] = key['Parameter']['Value']
 except botocore.exceptions.NoCredentialsError as e:
     print('No credentials - please authenticate with Cloudtoken')
     raise
@@ -67,10 +68,15 @@ if not args.nosaml:
     app.wsgi_app = ProxyFix(app.wsgi_app)
     print('SAML auth configured')
     try:
-        app.config['SAML_METADATA_URL'] = ssm_client.get_parameter(
-            Name='atl_forge_secret_key',
+        saml_protocol = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_protocol',
             WithDecryption=True
         )
+        saml_url = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_url',
+            WithDecryption=True
+        )
+        app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
     except Exception:
         print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
         raise

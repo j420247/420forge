@@ -231,6 +231,7 @@ Resources:
                 - route53:GetChange
                 - route53:ListHostedZones
                 - ssm:ListCommands
+                - ssm:PutParameter
                 - ssm:SendCommand
                 Effect: Allow
                 Resource: ['*']
@@ -340,12 +341,15 @@ Resources:
 
                 script
                   cd /home/forge/atl-cfn-forge
-                  aws --region=${region} ssm put-parameter --names "atl_forge_secret_key" --type=SecureString --value=${FlaskSecretKey}
-                  aws --region=${region} ssm put-parameter --names "atl_forge_saml_metadata_url" --type=SecureString --value=${SamlMetadataUrl}
+                  aws --region=${region} ssm put-parameter --names "atl_forge_secret_key" --type=SecureString --value=${FlaskSecretKey} --overwrite
+                  aws --region=${region} ssm put-parameter --names "atl_forge_saml_metadata_protocol" --type=SecureString --value=${SamlProtocol} --overwrite
+                  aws --region=${region} ssm put-parameter --names "atl_forge_saml_metadata_url" --type=SecureString --value=${SamlUrl} --overwrite
                   exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                 end script
               - noSaml: !If [NoSamlMetadata, "--nosaml", '']
                 region: !Ref AWS::Region
+                SamlProtocol: !Select [ 0, !Split ['://', !Ref SamlMetadataUrl] ]
+                SamlUrl: !Select [ 1, !Split ['://', !Ref SamlMetadataUrl] ]
               mode: "000600"
               owner: root
               group: root
