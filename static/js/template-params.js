@@ -236,8 +236,6 @@ function getVPCs(region, div) {
 }
 
 function setSubnets(region) {
-    document.getElementById("ExternalSubnetsVal").setAttribute('disabled', '');
-    document.getElementById("InternalSubnetsVal").setAttribute('disabled', '');
     if (region === 'us-west-2') { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
