@@ -32,9 +32,10 @@ parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
                         action='store_true',
                         help='Start with --nosaml to bypass SAML for local testing')
-parser.add_argument('--prod',
-                        action='store_true',
-                        help='Start with --prod for SAML production auth. Default (no args) is dev auth')
+parser.add_argument('--region',
+                        nargs='?',
+                        default='us-east-1',
+                        help='The AWS region that Forge is operating in')
 args = parser.parse_args()
 
 # using dict of dicts called stackstate to track state of a stack's actions
@@ -48,16 +49,31 @@ print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = os.environ.get('ATL_FORGE_SECRET_KEY', 'REPLACE_ME')
+# get current region and create SSM client to read parameter store params
+ssm_client = boto3.client('ssm', args.region)
+app.config['SECRET_KEY'] = 'REPLACE_ME'
+try:
+    app.config['SECRET_KEY'] = ssm_client.get_parameter(
+        Name='atl_forge_secret_key',
+        WithDecryption=True
+    )
+except botocore.exceptions.NoCredentialsError as e:
+    print('No credentials - please authenticate with Cloudtoken')
+    raise
+except Exception:
+    print('No secret key in parameter store')
 # create SAML URL if saml enabled
 if not args.nosaml:
-    if args.prod:
-       app.wsgi_app = ProxyFix(app.wsgi_app)
-       print("SAML auth set to production")
-       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
-    else:
-       print("SAML auth set to dev")
-       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+    print('SAML auth configured')
+    try:
+        app.config['SAML_METADATA_URL'] = ssm_client.get_parameter(
+            Name='atl_forge_secret_key',
+            WithDecryption=True
+        )
+    except Exception:
+        print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+        raise
     flask_saml.FlaskSAML(app)
 else:
     print("SAML auth is not configured")

@@ -298,7 +298,7 @@ Resources:
                   forgepath=/home/forge/atl-cfn-forge
                   gitkeylocation=/root/.ssh/gitkey
 
-                  gitkey=$(aws --region=us-west-2 ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                  gitkey=$(aws --region=${region} ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
                   echo -e $gitkey > $gitkeylocation
                   chmod 600 $gitkeylocation
 
@@ -321,6 +321,7 @@ Resources:
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
                 - AccountId: !Ref AWS::AccountId
+                  region: !Ref AWS::Region
               mode: "000700"
               owner: root
               group: root
@@ -339,11 +340,12 @@ Resources:
 
                 script
                   cd /home/forge/atl-cfn-forge
-                  export ATL_FORGE_SECRET_KEY="${FlaskSecretKey}"
-                  export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
-                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py "${noSaml}" >> /var/log/forge.log 2>&1
+                  aws --region=${region} ssm put-parameter --names "atl_forge_secret_key" --type=SecureString --value=${FlaskSecretKey}
+                  aws --region=${region} ssm put-parameter --names "atl_forge_saml_metadata_url" --type=SecureString --value=${SamlMetadataUrl}
+                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                 end script
-              - noSaml: !If [NoSamlMetadata, "--nosaml", ""]
+              - noSaml: !If [NoSamlMetadata, "--nosaml", '']
+                region: !Ref AWS::Region
               mode: "000600"
               owner: root
               group: root
