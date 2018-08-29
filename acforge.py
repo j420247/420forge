@@ -92,7 +92,7 @@ session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
 config_props = configparser.ConfigParser()
-config_props.read('forge.properties')
+config_props.read(os.path.join(os.path.dirname(__file__), 'forge.properties'))
 if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
