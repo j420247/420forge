@@ -82,7 +82,7 @@ if not args.nosaml:
         raise
     flask_saml.FlaskSAML(app)
 else:
-    print("SAML auth is not configured")
+    print('SAML auth is not configured')
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
@@ -92,7 +92,7 @@ session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
 config_props = configparser.ConfigParser()
-config_props.read(os.path.join(os.path.dirname(__file__), 'forge.properties'))
+config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
 if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
