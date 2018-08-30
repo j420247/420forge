@@ -649,6 +649,9 @@ class setStackLocking(Resource):
             session['stack_locking'] = lock
             return lock
 
+class forgeStatus(Resource):
+    def get(self):
+        return {'state': 'RUNNING'}
 
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
@@ -738,6 +741,9 @@ api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 
+# Status endpoint
+api.add_resource(forgeStatus, '/status')
+
 
 ##
 #### Common functions
@@ -776,7 +782,7 @@ def check_loggedin():
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
         return
-    if not request.path.startswith("/saml") and not session.get('saml'):
+    if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
 
