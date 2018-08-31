@@ -316,7 +316,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                      git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
