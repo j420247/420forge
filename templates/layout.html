@@ -118,9 +118,11 @@
                                     <li {% if session['nice_action_name'] == 'Run SQL' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
                                     </li>
+                                    <!-- commenting backup out until it works
                                     <li {% if session['nice_action_name'] == 'Backup' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
                                     </li>
+                                    -->
                                     <li {% if session['nice_action_name'] == 'Stack logs' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
                                     </li>
