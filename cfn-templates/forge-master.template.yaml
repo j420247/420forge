@@ -28,10 +28,13 @@ Metadata:
             - Nodes
             - FlaskSecretKey
             - Regions
+            - DRRegion
             - SamlMetadataUrl
       ParameterLabels:
         Analytics:
           default: Enable analytics
+        DRRegion:
+          default: Disaster recovery region
         FlaskSecretKey:
           default: Flask secret key
         InternetAccessible:
@@ -74,6 +77,28 @@ Parameters:
     Type: String
     MinLength: 9
     MaxLength: 18
+  DRRegion:
+    Default: not-using-backupmachine
+    AllowedValues:
+      - not-using-backupmachine
+      - ap-northeast-1
+      - ap-northeast-2
+      - ap-south-1
+      - ap-southeast-1
+      - ap-southeast-2
+      - ca-central-1
+      - eu-central-1
+      - eu-west-1
+      - eu-west-2
+      - eu-west-3
+      - sa-east-1
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+    ConstraintDescription: Must be an AWS Region
+    Description: "If using the Backup Machine (https://bit.ly/2PRfJRk), select the region it pushes your DR snapshots to. This region must also be listed in the Regions field."
+    Type: String
   HostedZone:
     Default: 'myteam.example.com.'
     ConstraintDescription: Must be the name of an existing Route53 Hosted Zone.
@@ -174,6 +199,8 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, '']]
   NoSamlMetadata:
     !Equals [!Ref SamlMetadataUrl, '']
+  DRRegionExists:
+    !Not [!Equals [!Ref DRRegion, '']]
 
 Resources:
   ForgeRole:
@@ -316,7 +343,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                      git clone -b public git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
@@ -325,7 +352,7 @@ Resources:
                   chown -R forge:forge $forgepath
 
                   # create s3 bucket for forge objects
-                  if aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
+                  if aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
                 - AccountId: !Ref AWS::AccountId
                   region: !Ref AWS::Region
               mode: "000700"
@@ -370,6 +397,9 @@ Resources:
                     - "# Enter default region first"
                     - "[regions]"
                     - !Sub ["${Regions}", Regions: !Join ["\n", !Ref Regions]]
+                    - ""
+                    - "[dr]"
+                    - !Sub ["dr-region: ${DRRegion}", DRRegion: !If [DRRegionExists, !Ref DRRegion, '']]
                     - ""
                     - "[analytics]"
                     - !Sub ["enabled: ${Analytics}", Analytics: !Ref Analytics]

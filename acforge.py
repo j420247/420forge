@@ -568,7 +568,7 @@ class getEbsSnapshots(Resource):
     def get(self, region, stack_name):
         ec2 = boto3.client('ec2', region_name=region)
         snap_name_format = f'{stack_name}_ebs_snap_*'
-        if region == 'us-east-1':
+        if region == get_dr_region():
             snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
@@ -792,9 +792,19 @@ def general_constructor(loader, tag_suffix, node):
 
 
 def get_regions():
-    config = configparser.ConfigParser()
-    config.read('forge.properties')
+    config = get_config_properties()
     return config.items('regions')
+
+
+def get_dr_region():
+    config = get_config_properties()
+    return config['dr']['dr-region']
+
+
+def get_config_properties():
+    config_props = configparser.ConfigParser()
+    config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
+    return config_props
 
 
 def get_nice_action_name(action):
