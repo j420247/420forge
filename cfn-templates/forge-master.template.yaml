@@ -343,7 +343,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                      git clone git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
