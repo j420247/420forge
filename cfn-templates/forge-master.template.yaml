@@ -337,13 +337,8 @@ Resources:
                   #!/usr/bin/env bash
 
                   forgepath=/home/forge/atl-cfn-forge
-                  gitkeylocation=/root/.ssh/gitkey
 
-                  gitkey=$(aws --region=${region} ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
-                  echo -e $gitkey > $gitkeylocation
-                  chmod 600 $gitkeylocation
-
-                  export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                  export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no "
 
                   if [ -d $forgepath ]; then
                       cd $forgepath
@@ -351,7 +346,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
