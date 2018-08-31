@@ -108,7 +108,8 @@ Parameters:
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
   FlaskSecretKey:
-    Description: 'Secret key passed to Flask app to enable sessions, which are required to run. For more info: https://bit.ly/2PRfJRk'
+    Description: 'Override the default secret key passed to Flask app to enable sessions, which are required to run. For more info: https://bit.ly/2PRfJRk'
+    NoEcho: True
     Type: String
   ExternalSubnet:
     ConstraintDescription: Select one Subnet ID within the selected VPC
@@ -494,7 +495,7 @@ Resources:
         HealthyThreshold: 2
       Scheme: !If [InternetAccessible, 'internet-facing', 'internal']
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
-      Subnets: !If [InternetAccessible, !Ref ExternalSubnet, !Ref InternalSubnet]
+      Subnets: !Ref ExternalSubnet
       Tags:
         - Key: Name
           Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
