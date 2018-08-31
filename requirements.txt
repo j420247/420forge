@@ -1,10 +1,10 @@
 behave
-flask
-flask_restful
 boto3
+flask
+flask_saml
+flask_sessionstore
+flask_sqlalchemy
+flask_restful
 requests
 # pinned temporarily due to YAML parsing errors; see ITOPS-620
 ruamel.yaml==0.15.53
-flask_saml
-flask_sqlalchemy
-flask_sessionstore

@@ -32,9 +32,10 @@ parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
                         action='store_true',
                         help='Start with --nosaml to bypass SAML for local testing')
-parser.add_argument('--prod',
-                        action='store_true',
-                        help='Start with --prod for SAML production auth. Default (no args) is dev auth')
+parser.add_argument('--region',
+                        nargs='?',
+                        default='us-east-1',
+                        help='The AWS region that Forge is operating in')
 args = parser.parse_args()
 
 # using dict of dicts called stackstate to track state of a stack's actions
@@ -48,19 +49,40 @@ print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = os.environ.get('ATL_FORGE_SECRET_KEY', 'REPLACE_ME')
+# get current region and create SSM client to read parameter store params
+ssm_client = boto3.client('ssm', region_name=args.region)
+app.config['SECRET_KEY'] = 'REPLACE_ME'
+try:
+    key = ssm_client.get_parameter(
+        Name='atl_forge_secret_key',
+        WithDecryption=True
+    )
+    app.config['SECRET_KEY'] = key['Parameter']['Value']
+except botocore.exceptions.NoCredentialsError as e:
+    print('No credentials - please authenticate with Cloudtoken')
+    raise
+except Exception:
+    print('No secret key in parameter store')
 # create SAML URL if saml enabled
 if not args.nosaml:
-    if args.prod:
-       app.wsgi_app = ProxyFix(app.wsgi_app)
-       print("SAML auth set to production")
-       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
-    else:
-       print("SAML auth set to dev")
-       app.config['SAML_METADATA_URL'] = os.environ.get('ATL_FORGE_SAML_METADATA_URL')
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+    print('SAML auth configured')
+    try:
+        saml_protocol = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_protocol',
+            WithDecryption=True
+        )
+        saml_url = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_url',
+            WithDecryption=True
+        )
+        app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
+    except Exception:
+        print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+        raise
     flask_saml.FlaskSAML(app)
 else:
-    print("SAML auth is not configured")
+    print('SAML auth is not configured')
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
@@ -70,7 +92,7 @@ session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
 config_props = configparser.ConfigParser()
-config_props.read('forge.properties')
+config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
 if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
@@ -627,6 +649,9 @@ class setStackLocking(Resource):
             session['stack_locking'] = lock
             return lock
 
+class forgeStatus(Resource):
+    def get(self):
+        return {'state': 'RUNNING'}
 
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
@@ -716,6 +741,9 @@ api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 
+# Status endpoint
+api.add_resource(forgeStatus, '/status')
+
 
 ##
 #### Common functions
@@ -754,7 +782,7 @@ def check_loggedin():
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
         return
-    if not request.path.startswith("/saml") and not session.get('saml'):
+    if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
 

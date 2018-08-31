@@ -80,7 +80,7 @@ Parameters:
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
   FlaskSecretKey:
-    Description: Secret key passed to Flask app
+    Description: 'Secret key passed to Flask app to enable sessions, which are required to run. For more info: https://bit.ly/2PRfJRk'
     Type: String
   InternetAccessible:
     AllowedValues:
@@ -96,8 +96,11 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
   Nodes:
     Default: 1
+    AllowedValues:
+      - 1
+      - 0
     ConstraintDescription: Must be a number
-    Description: Number of Forge nodes. We recommend 1 as stack locking and action logs are not cluster aware.
+    Description: Number of Forge nodes. Set 0 to destroy the existing Forge node, eg when you need to roll out configuration changes.
     Type: Number
   NodeInstanceType:
     Default: t2.medium
@@ -231,6 +234,7 @@ Resources:
                 - route53:GetChange
                 - route53:ListHostedZones
                 - ssm:ListCommands
+                - ssm:PutParameter
                 - ssm:SendCommand
                 Effect: Allow
                 Resource: ['*']
@@ -289,6 +293,8 @@ Resources:
               xmlstarlet: []
               jq: []
               git: []
+              xmlsec1: []
+              xmlsec1-openssl: []
           files:
             /root/setup_forge.sh:
               content: !Sub
@@ -298,7 +304,7 @@ Resources:
                   forgepath=/home/forge/atl-cfn-forge
                   gitkeylocation=/root/.ssh/gitkey
 
-                  gitkey=$(aws --region=us-west-2 ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                  gitkey=$(aws --region=${region} ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
                   echo -e $gitkey > $gitkeylocation
                   chmod 600 $gitkeylocation
 
@@ -310,7 +316,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public ssh://git@stash.atlassian.com:7997/wpt/atl-cfn-forge.git $forgepath
+                      git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
@@ -321,6 +327,7 @@ Resources:
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
                 - AccountId: !Ref AWS::AccountId
+                  region: !Ref AWS::Region
               mode: "000700"
               owner: root
               group: root
@@ -339,11 +346,17 @@ Resources:
 
                 script
                   cd /home/forge/atl-cfn-forge
-                  export ATL_FORGE_SECRET_KEY="${FlaskSecretKey}"
-                  export ATL_FORGE_SAML_METADATA_URL="${SamlMetadataUrl}"
-                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py "${noSaml}" >> /var/log/forge.log 2>&1
+                  if [[ -n "${SamlMetadataUrl}" ]]; then
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_secret_key" --type=SecureString --value="${FlaskSecretKey}"
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_protocol" --type=SecureString --value="${SamlProtocol}"
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_url" --type=SecureString --value="${SamlUrl}"
+                  fi
+                  exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                 end script
-              - noSaml: !If [NoSamlMetadata, "--nosaml", ""]
+              - noSaml: !If [NoSamlMetadata, "--nosaml", '']
+                region: !Ref AWS::Region
+                SamlProtocol: !If [NoSamlMetadata, '', !Select [0, !Split ['://', !Ref SamlMetadataUrl]]]
+                SamlUrl: !If [NoSamlMetadata, '', !Select [1, !Split ['://', !Ref SamlMetadataUrl]]]
               mode: "000600"
               owner: root
               group: root
@@ -405,7 +418,6 @@ Resources:
           ToPort: 22
         - IpProtocol: tcp
           CidrIp: !Ref CidrBlock
-          Description: 'VTM edge-vpc-stg - euwest1'
           FromPort: 80
           ToPort: 80
         - IpProtocol: tcp
@@ -438,7 +450,7 @@ Resources:
           InstancePort: 8000
           InstanceProtocol: HTTP
       HealthCheck:
-        Target: 'HTTP:8000/'
+        Target: 'HTTP:8000/status'
         Timeout: 29
         Interval: 30
         UnhealthyThreshold: 2
