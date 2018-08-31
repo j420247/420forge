@@ -343,7 +343,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone -b public ssh://git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                      git clone -b public git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
@@ -352,7 +352,7 @@ Resources:
                   chown -R forge:forge $forgepath
 
                   # create s3 bucket for forge objects
-                  if aws s3api create-bucket --bucket alt-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
+                  if aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
                 - AccountId: !Ref AWS::AccountId
                   region: !Ref AWS::Region
               mode: "000700"
