@@ -568,7 +568,7 @@ class getEbsSnapshots(Resource):
     def get(self, region, stack_name):
         ec2 = boto3.client('ec2', region_name=region)
         snap_name_format = f'{stack_name}_ebs_snap_*'
-        if region == get_dr_region():
+        if region != session['region']:
             snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
