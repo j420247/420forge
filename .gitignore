@@ -1,8 +1,10 @@
 .idea
 forge.iml
 atl-cfn-forge.iml
-*.json
 stacks/**/*.json
 __pycache__*
 *.db
 .DS_Store
+permissions.json
+forge.properties
+static/js/global-variables.js

@@ -1,12 +1,12 @@
-/*!
+/*!!
  * @atlassian/aui - Atlassian User Interface Framework
- * @version v7.6.3
+ * @version v7.9.7
  * @link https://docs.atlassian.com/aui/latest/
  * @license SEE LICENSE IN LICENSE.md
  * @author Atlassian Pty Ltd.
  */
 // src/js/aui/internal/deprecation/deprecated-adg2-icons.js
-(typeof window === 'undefined' ? global : window).__18ae227f677acb905d63a940f86daae7 = (function () {
+(typeof window === 'undefined' ? global : window).__af1a4667f2e6a7121d5ea46bdf9bd702 = (function () {
   var module = {
     exports: {}
   };
@@ -27,7 +27,7 @@
       newName: 'cross',
       oldName: 'close-dialog'
   }, {
-      newName: 'chevron-down',
+      newName: 'chevron-right',
       oldName: 'collapsed'
   }, {
       newName: 'settings',
@@ -421,7 +421,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui-css-deprecations.js
-(typeof window === 'undefined' ? global : window).__29b7dfe7af9123bed5e9dac86351d06c = (function () {
+(typeof window === 'undefined' ? global : window).__7e864afb58ef5a3c65d95f5638a78c87 = (function () {
   var module = {
     exports: {}
   };
@@ -429,13 +429,13 @@
   
   'use strict';
   
-  var _deprecation = __4ddcc788b1704f76a51559fc0e0d2968;
+  var _deprecation = __921ad9514d56376fef992861d9ec0f51;
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _deprecatedAdg2Icons = __18ae227f677acb905d63a940f86daae7;
+  var _deprecatedAdg2Icons = __af1a4667f2e6a7121d5ea46bdf9bd702;
   
   var _deprecatedAdg2Icons2 = _interopRequireDefault(_deprecatedAdg2Icons);
   
@@ -477,8 +477,9 @@
       displayName: 'Unprefixed dropdown2 css AUI-2150'
   });
   
-  (0, _deprecation.css)(['aui-page-header-marketing', 'aui-page-header-hero'], {
-      displayName: 'Marketing style headings'
+  (0, _deprecation.css)(['.aui-page-header-marketing', '.aui-page-header-hero'], {
+      displayName: 'Marketing style headings',
+      removeVersion: '8.0.0'
   });
   
   // 5.9.0
@@ -555,6 +556,22 @@
       });
   });
   
+  // 7.8.0
+  (0, _deprecation.css)('.aui-table-interactive', {
+      alternativeName: '.aui-table-list',
+      sinceVersion: '7.8.0',
+      removeInVersion: '8.0.0',
+      extraInfo: 'The "interactive" suffix caused some confusion when contrasted with sortable tables.' + 'The name has been updated to reflect its intended purpose: displaying lists of data in a tabular format.'
+  });
+  
+  // 7.9.4
+  (0, _deprecation.css)('aui-spinner[filled]', {
+      sinceVersion: '7.9.4',
+      removeInVersion: '9',
+      extraInfo: 'Add CSS to the parent element of the <aui-spinner>.\nUse CSS flexbox or grid to vertically align it.\nSee https://css-tricks.com/centering-css-complete-guide/ for techniques.'
+  });
+  
+  // Export the warnings
   (0, _amdify2.default)('aui/css-deprecation-warnings');
   
   return module.exports;

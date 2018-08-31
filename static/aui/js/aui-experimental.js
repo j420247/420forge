@@ -1,12 +1,12 @@
-/*!
+/*!!
  * @atlassian/aui - Atlassian User Interface Framework
- * @version v7.6.3
+ * @version v7.9.7
  * @link https://docs.atlassian.com/aui/latest/
  * @license SEE LICENSE IN LICENSE.md
  * @author Atlassian Pty Ltd.
  */
 // src/js/aui/polyfills/placeholder.js
-(typeof window === 'undefined' ? global : window).__452d3f8e5d643ab60faf3f564b8276d8 = (function () {
+(typeof window === 'undefined' ? global : window).__cf0b3df2c677eb2f0864bd7dbf5cb857 = (function () {
   var module = {
     exports: {}
   };
@@ -14,11 +14,11 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
@@ -55,7 +55,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/banner.js
-(typeof window === 'undefined' ? global : window).__e7296db63088f504f190097510a8efb3 = (function () {
+(typeof window === 'undefined' ? global : window).__43174540fe92a0d9aeac77ff3a236665 = (function () {
   var module = {
     exports: {}
   };
@@ -67,21 +67,21 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _animation = __57bb8e7218df9c12a4337e92d4c02bd5;
+  var _animation = __6debdf74a4da8ac8391a98223e1bae21;
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _template = __916a0948cf0486bc703577fb47b747c1;
+  var _template = __43d4585c6a21591b4ceac1b326c09405;
   
   var _template2 = _interopRequireDefault(_template);
   
@@ -144,7 +144,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/button.js
-(typeof window === 'undefined' ? global : window).__133851082a1337b5710e5a2aa98258e9 = (function () {
+(typeof window === 'undefined' ? global : window).__eaacbdad8b92ceca9114dc3be870abe7 = (function () {
   var module = {
     exports: {}
   };
@@ -152,25 +152,25 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
-  
-  var _jquery2 = _interopRequireDefault(_jquery);
-  
-  var _log = __bbcdfae479e60b56b982bbcdcc7a0191;
+  var _log = __c1e961001275c079e48525ad3a48c8c2;
   
   var logger = _interopRequireWildcard(_log);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+  var _spinner = __6c1bd26c14066cf537a86a0966c2d4fc;
+  
+  var _spinner2 = _interopRequireDefault(_spinner);
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+  
+  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
   
   function _isBusy(button) {
       return button.hasAttribute('aria-busy') && button.getAttribute('aria-busy') === 'true';
@@ -182,6 +182,10 @@
   
   (0, _skate2.default)('aui-button', {
       type: _skate2.default.type.CLASSNAME,
+      created: function created(element) {
+          element._spinner = new _spinner2.default();
+          element._spinner.setAttribute('size', _spinner.SIZE.SMALL.name);
+      },
       prototype: {
           /**
            * Adds a spinner to the button and hides the text
@@ -194,7 +198,7 @@
                   return this;
               }
   
-              (0, _jquery2.default)(this).spin();
+              this.appendChild(this._spinner);
               this.setAttribute('aria-busy', true);
               this.setAttribute('busy', '');
   
@@ -212,7 +216,7 @@
                   return this;
               }
   
-              (0, _jquery2.default)(this).spinStop();
+              this.removeChild(this._spinner);
               this.removeAttribute('aria-busy');
               this.removeAttribute('busy');
   
@@ -240,7 +244,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/jquery/jquery.tipsy.js
-(typeof window === 'undefined' ? global : window).__dbb945ae8033589d400f8c63e7d01524 = (function () {
+(typeof window === 'undefined' ? global : window).__8c05d85e3d7fb791ad5071fea16ddb09 = (function () {
   var module = {
     exports: {}
   };
@@ -590,7 +594,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/tooltip.js
-(typeof window === 'undefined' ? global : window).__6999efc8461cc8bcf32a985dbca81aa1 = (function () {
+(typeof window === 'undefined' ? global : window).__e8e9fc435c352b74c65e5f8d64ed692c = (function () {
   var module = {
     exports: {}
   };
@@ -598,11 +602,11 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __dbb945ae8033589d400f8c63e7d01524;
+  __8c05d85e3d7fb791ad5071fea16ddb09;
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
   
@@ -675,7 +679,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/checkbox-multiselect.js
-(typeof window === 'undefined' ? global : window).__bf3c38e4a0e7481b849a297fccf30258 = (function () {
+(typeof window === 'undefined' ? global : window).__44b5db0744691769a2b746c10f14a9a9 = (function () {
   var module = {
     exports: {}
   };
@@ -687,25 +691,25 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __66a09fadeaffb2f1300bfa557f5294cd;
+  __63997c0b88d4f299b5d69bd1c1668c63;
   
-  __6999efc8461cc8bcf32a985dbca81aa1;
+  __e8e9fc435c352b74c65e5f8d64ed692c;
   
-  __be3e01199078cdf5ded88dda6a8fbec9;
+  __fa714f1b12d7502957e4e0b6196321bf;
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _uniqueId = __6a8d9be203374eb86b4b050d0244b6f1;
+  var _uniqueId = __a0ab588de7b0759818853425dc8ad2f2;
   
   var _uniqueId2 = _interopRequireDefault(_uniqueId);
   
@@ -1022,7 +1026,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/dialog2.js
-(typeof window === 'undefined' ? global : window).__3ac567a4ab4b829d5c6e6c81df33cbe8 = (function () {
+(typeof window === 'undefined' ? global : window).__df7047d25e7ae0c2f22a17f939177597 = (function () {
   var module = {
     exports: {}
   };
@@ -1034,23 +1038,23 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _layer = __06224e18e744dc8a44794ab29f247385;
+  var _layer = __3ada4a8272640e5242be87f12c7e0fdf;
   
   var _layer2 = _interopRequireDefault(_layer);
   
-  var _widget = __2d1b5481970dd1547e294d829464e03f;
+  var _widget = __d2e8fc66dac2ecebdc205fcab991f687;
   
   var _widget2 = _interopRequireDefault(_widget);
   
@@ -1153,7 +1157,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/expander.js
-(typeof window === 'undefined' ? global : window).__f165ad68f415362651d0d7f733fcdcea = (function () {
+(typeof window === 'undefined' ? global : window).__0477e1bf0caf4e570768f66b495137e7 = (function () {
   var module = {
     exports: {}
   };
@@ -1161,7 +1165,7 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
@@ -1274,7 +1278,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/flag.js
-(typeof window === 'undefined' ? global : window).__7c68b94bd1e7e5a2f72d197f55d1d459 = (function () {
+(typeof window === 'undefined' ? global : window).__fdc0359427714432468af96b460aa252 = (function () {
   var module = {
     exports: {}
   };
@@ -1286,29 +1290,29 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _animation = __57bb8e7218df9c12a4337e92d4c02bd5;
+  var _animation = __6debdf74a4da8ac8391a98223e1bae21;
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _keyCode = __b925764b9e17cff61f648a86f18e6e25;
+  var _keyCode = __e246bf93af36eb4453f35afeb1c302d9;
   
   var _keyCode2 = _interopRequireDefault(_keyCode);
   
-  var _template = __916a0948cf0486bc703577fb47b747c1;
+  var _template = __43d4585c6a21591b4ceac1b326c09405;
   
   var _template2 = _interopRequireDefault(_template);
   
-  var _customEvent = __16bf5f1d761138a726209288b7afb338;
+  var _customEvent = __f7a5e0d2ea8865b104efc9b94861591e;
   
   var _customEvent2 = _interopRequireDefault(_customEvent);
   
@@ -1433,7 +1437,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/form-notification.js
-(typeof window === 'undefined' ? global : window).__223d4ffbfb11c7b1196e30d8f0783cb8 = (function () {
+(typeof window === 'undefined' ? global : window).__4e3ec9eab102d61251e1822630f72c09 = (function () {
   var module = {
     exports: {}
   };
@@ -1441,25 +1445,25 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __dbb945ae8033589d400f8c63e7d01524;
+  __8c05d85e3d7fb791ad5071fea16ddb09;
   
-  var _log = __bbcdfae479e60b56b982bbcdcc7a0191;
+  var _log = __c1e961001275c079e48525ad3a48c8c2;
   
   var logger = _interopRequireWildcard(_log);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _keyCode = __b925764b9e17cff61f648a86f18e6e25;
+  var _keyCode = __e246bf93af36eb4453f35afeb1c302d9;
   
   var _keyCode2 = _interopRequireDefault(_keyCode);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
@@ -1814,7 +1818,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/form-validation/validator-register.js
-(typeof window === 'undefined' ? global : window).__d1c8e25e9e01e4d366088e44abd86cd0 = (function () {
+(typeof window === 'undefined' ? global : window).__5746c3dc0d9d4c30df5b0c1dc2a92a90 = (function () {
   var module = {
     exports: {}
   };
@@ -1826,15 +1830,15 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _log = __bbcdfae479e60b56b982bbcdcc7a0191;
+  var _log = __c1e961001275c079e48525ad3a48c8c2;
   
   var logger = _interopRequireWildcard(_log);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
@@ -1909,7 +1913,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/form-validation/basic-validators.js
-(typeof window === 'undefined' ? global : window).__22130538f5919f6e261036684b13c6f2 = (function () {
+(typeof window === 'undefined' ? global : window).__bd17153ec513fce3d14cee034d5c4bee = (function () {
   var module = {
     exports: {}
   };
@@ -1917,23 +1921,23 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _format = __a0d4f23ad4f9b40c6f8c8e4e6922c981;
+  var _format = __d31562b45156ec0db003c1af006240d5;
   
   var _format2 = _interopRequireDefault(_format);
   
-  var _i18n = __be3e01199078cdf5ded88dda6a8fbec9;
+  var _i18n = __fa714f1b12d7502957e4e0b6196321bf;
   
   var _i18n2 = _interopRequireDefault(_i18n);
   
-  var _validatorRegister = __d1c8e25e9e01e4d366088e44abd86cd0;
+  var _validatorRegister = __5746c3dc0d9d4c30df5b0c1dc2a92a90;
   
   var _validatorRegister2 = _interopRequireDefault(_validatorRegister);
   
@@ -2171,7 +2175,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/form-validation.js
-(typeof window === 'undefined' ? global : window).__bd4ecc7f267c4325495affa1d72b9196 = (function () {
+(typeof window === 'undefined' ? global : window).__276ead0c2b803a087db4ce7a0d05053e = (function () {
   var module = {
     exports: {}
   };
@@ -2183,31 +2187,31 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __223d4ffbfb11c7b1196e30d8f0783cb8;
+  __4e3ec9eab102d61251e1822630f72c09;
   
-  __22130538f5919f6e261036684b13c6f2;
+  __bd17153ec513fce3d14cee034d5c4bee;
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _deprecation = __4ddcc788b1704f76a51559fc0e0d2968;
+  var _deprecation = __921ad9514d56376fef992861d9ec0f51;
   
   var deprecate = _interopRequireWildcard(_deprecation);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _validatorRegister = __d1c8e25e9e01e4d366088e44abd86cd0;
+  var _validatorRegister = __5746c3dc0d9d4c30df5b0c1dc2a92a90;
   
   var _validatorRegister2 = _interopRequireDefault(_validatorRegister);
   
@@ -2587,7 +2591,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/constants.js
-(typeof window === 'undefined' ? global : window).__e378fd259e8cc11973d9809608fe9a5e = (function () {
+(typeof window === 'undefined' ? global : window).__584af8690b0248d0ffcba682ccaa70ba = (function () {
   var module = {
     exports: {}
   };
@@ -2600,15 +2604,12 @@
   });
   var INPUT_SUFFIX = '-input';
   
-  exports.default = {
-      INPUT_SUFFIX: INPUT_SUFFIX
-  };
-  module.exports = exports['default'];
+  exports.INPUT_SUFFIX = INPUT_SUFFIX;
   
   return module.exports;
 }).call(this);
 // src/js/aui/label.js
-(typeof window === 'undefined' ? global : window).__7904d2f802801befa81e22aff0bd1fb6 = (function () {
+(typeof window === 'undefined' ? global : window).__4686fdb214d2270ff96c190b2bd6bd2d = (function () {
   var module = {
     exports: {}
   };
@@ -2620,19 +2621,19 @@
       value: true
   });
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _skatejsTemplateHtml = __9b18ba0583cb54ca87cfee562f9dc62a;
+  var _skatejsTemplateHtml = __c6b5725916d210b9653318d2ea2472cb;
   
   var _skatejsTemplateHtml2 = _interopRequireDefault(_skatejsTemplateHtml);
   
-  var _enforcer = __65a8b3ca1b55232381cf1e189f6e2c47;
+  var _enforcer = __2512e2cfb8f46670d5cb777690a28c72;
   
   var _enforcer2 = _interopRequireDefault(_enforcer);
   
-  var _constants = __e378fd259e8cc11973d9809608fe9a5e;
+  var _constants = __584af8690b0248d0ffcba682ccaa70ba;
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
   
@@ -2695,7 +2696,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/progress-indicator.js
-(typeof window === 'undefined' ? global : window).__ef3494fdb79b0ce378f14c1810d48a68 = (function () {
+(typeof window === 'undefined' ? global : window).__6e7c4718c7a654752224497662064b97 = (function () {
   var module = {
     exports: {}
   };
@@ -2707,17 +2708,37 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _animation = __57bb8e7218df9c12a4337e92d4c02bd5;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _underscore2 = _interopRequireDefault(_underscore);
+  
+  var _skatejs = __8548ccf5d6767d1d4e6633309de41309;
+  
+  var _skatejs2 = _interopRequireDefault(_skatejs);
+  
+  var _animation = __6debdf74a4da8ac8391a98223e1bae21;
+  
+  var _browser = __7a2976c482edfafd9b5879a49ffe0535;
+  
+  var _deprecation = __921ad9514d56376fef992861d9ec0f51;
+  
+  var deprecate = _interopRequireWildcard(_deprecation);
+  
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
+  function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+  
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+  
+  var afterTransitionEvent = 'aui-progress-indicator-after-update';
+  var beforeTransitionEvent = 'aui-progress-indicator-before-update';
+  var transitionEnd = 'transitionend webkitTransitionEnd';
   
   function updateProgress($progressBar, $progressBarContainer, progressValue) {
       (0, _animation.recomputeStyle)($progressBar);
@@ -2725,59 +2746,254 @@
       $progressBarContainer.attr('data-value', progressValue);
   }
   
-  var progressBars = {
-      update: function update(element, value) {
-          var $progressBarContainer = (0, _jquery2.default)(element).first();
-          var $progressBar = $progressBarContainer.children('.aui-progress-indicator-value');
-          var valueAttribute = $progressBarContainer.attr('data-value');
-          var currentProgress = parseFloat(valueAttribute) || 0;
-          var isProgressNotChanged = valueAttribute && currentProgress === value;
-  
-          if (isProgressNotChanged) {
-              return;
+  function updateProgressElement(element, value) {
+      if (typeof element === 'string') {
+          var el = document.getElementById(element);
+          if (el) {
+              element = el;
           }
+      }
+      var $progressBarContainer = (0, _jquery2.default)(element).first();
+      var $progressBar = $progressBarContainer.children('.aui-progress-indicator-value');
+      var valueAttribute = $progressBarContainer.attr('data-value');
+      var isIndeterminate = !valueAttribute;
+      var currentProgress = parseFloat(valueAttribute) || 0;
+      var isProgressNotChanged = valueAttribute && currentProgress === value;
   
-          var afterTransitionEvent = 'aui-progress-indicator-after-update';
-          var beforeTransitionEvent = 'aui-progress-indicator-before-update';
-          var transitionEnd = 'transitionend webkitTransitionEnd';
+      // AUI-4771 - check for mis-configured legacy progress bar HTML.
+      if (isProgressNotChanged) {
+          var currentDemonstratedValue = parseFloat($progressBar.get(0).style.width) || 0;
+          isProgressNotChanged = currentProgress === currentDemonstratedValue * 100;
+      }
   
-          var isIndeterminate = !valueAttribute;
+      if (isProgressNotChanged) {
+          return;
+      }
   
-          //if the progress bar is indeterminate switch it.
-          if (isIndeterminate) {
-              $progressBar.css('width', 0);
-          }
+      //if the progress bar is indeterminate switch it.
+      if (isIndeterminate) {
+          $progressBar.css('width', 0);
+      }
   
-          if (typeof value === 'number' && value <= 1 && value >= 0) {
-              $progressBarContainer.trigger(beforeTransitionEvent, [currentProgress, value]);
+      transitionProgress($progressBar, $progressBarContainer, { currentProgress: currentProgress, value: value });
   
-              //detect whether transitions are supported
-              var documentBody = document.body || document.documentElement;
-              var style = documentBody.style;
-              var isTransitionSupported = typeof style.transition === 'string' || typeof style.WebkitTransition === 'string';
+      return $progressBarContainer;
+  }
   
-              //trigger the event after transition end if supported, otherwise just trigger it
-              if (isTransitionSupported) {
-                  $progressBar.one(transitionEnd, function () {
-                      $progressBarContainer.trigger(afterTransitionEvent, [currentProgress, value]);
-                  });
-                  updateProgress($progressBar, $progressBarContainer, value);
-              } else {
-                  updateProgress($progressBar, $progressBarContainer, value);
+  function transitionProgress(progressBar, progressBarContainer, _ref) {
+      var currentProgress = _ref.currentProgress,
+          value = _ref.value;
+  
+      var $progressBar = (0, _jquery2.default)(progressBar);
+      var $progressBarContainer = (0, _jquery2.default)(progressBarContainer);
+  
+      if (typeof value === 'number' && value <= 1 && value >= 0) {
+          $progressBarContainer.trigger(beforeTransitionEvent, [currentProgress, value]);
+  
+          //trigger the event after transition end if supported, otherwise just trigger it
+          if ((0, _browser.supportsCssTransition)()) {
+              $progressBar.one(transitionEnd, function () {
                   $progressBarContainer.trigger(afterTransitionEvent, [currentProgress, value]);
-              }
+              });
+              updateProgress($progressBar, $progressBarContainer, value);
+          } else {
+              updateProgress($progressBar, $progressBarContainer, value);
+              $progressBarContainer.trigger(afterTransitionEvent, [currentProgress, value]);
           }
-          return $progressBarContainer;
+      }
+  }
+  
+  function setIndeterminateOnProgressElement(element) {
+      var $progressBarContainer = (0, _jquery2.default)(element).first();
+      var $progressBar = $progressBarContainer.children('.aui-progress-indicator-value');
+  
+      $progressBarContainer.removeAttr('data-value');
+      (0, _animation.recomputeStyle)($progressBarContainer);
+      $progressBar.css('width', '');
+  }
+  
+  var DEFAULTS = {
+      indeterminate: false,
+      max: 1,
+      val: 0
+  };
+  
+  function validNumeric(val) {
+      return _underscore2.default.isNumber(val) && _underscore2.default.isFinite(val) && !_underscore2.default.isNaN(val);
+  }
+  
+  function parseNumeric(val) {
+      var defaultVal = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+  
+      var num = parseFloat(val);
+      return validNumeric(num) ? num : Number(defaultVal);
+  }
+  
+  function parseDecimal(num) {
+      var precision = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+  
+      return Number(parseFloat(num).toFixed(precision));
+  }
+  
+  function safeValue(val, max) {
+      return Math.max(0, Math.min(val, max));
+  }
+  
+  function safeMax(max) {
+      return max > 0 ? max : DEFAULTS.max;
+  }
+  
+  /**
+   * @param data the state
+   * @returns {{max: number, val: number, valAsFraction: number, valAsPercent: number}}
+   */
+  function calc(data) {
+      var val = data.val,
+          max = data.max;
+  
+      var parsedMax = safeMax(max);
+      var parsedVal = safeValue(val, parsedMax);
+      var valAsFraction = parseDecimal(parsedVal / parsedMax, 6);
+      var valAsPercent = parseDecimal(valAsFraction * 100, 2);
+      return { max: parsedMax, val: parsedVal, valAsFraction: valAsFraction, valAsPercent: valAsPercent };
+  }
+  
+  function refresh(el) {
+      var _calc = calc(el._data),
+          val = _calc.val,
+          valAsFraction = _calc.valAsFraction,
+          max = _calc.max;
+  
+      var bar = el.querySelector('.aui-progress-indicator');
+      var oldVal = bar.getAttribute('data-value');
+  
+      if (el.indeterminate) {
+          bar.removeAttribute('aria-valuenow');
+          setIndeterminateOnProgressElement(bar);
+      } else {
+          bar.setAttribute('aria-valuenow', val);
+          bar.setAttribute('aria-valuemax', max);
+          transitionProgress(bar.querySelector('.aui-progress-indicator-value'), bar, {
+              currentProgress: oldVal,
+              value: valAsFraction
+          });
+      }
+  }
+  
+  function setValue(el, data) {
+      el._data.val = parseNumeric(data.newValue, data.oldValue || DEFAULTS.val);
+      refresh(el);
+  }
+  
+  function setMax(el, data) {
+      el._data.max = parseNumeric(data.newValue, data.oldValue || DEFAULTS.max);
+      refresh(el);
+  }
+  
+  (0, _skatejs2.default)('aui-progressbar', {
+      template: function template(el) {
+          // Ensure max is set before value upon element creation and before rendering.
+          // Why is this happening in 'template' and not 'created'? Because it gets called before 'created'!
+          el._data.max = parseNumeric(el.getAttribute('max'), DEFAULTS.max);
+          el._data.val = parseNumeric(el.getAttribute('value'), DEFAULTS.val);
+          el._data.indeterminate = el.hasAttribute('indeterminate');
+  
+          var _calc2 = calc(el._data),
+              val = _calc2.val,
+              max = _calc2.max,
+              valAsFraction = _calc2.valAsFraction,
+              valAsPercent = _calc2.valAsPercent;
+  
+          var legacyValue = el._data.indeterminate ? '' : 'data-value="' + valAsFraction + '"';
+  
+          el.innerHTML = '<div class="aui-progress-indicator"\n         ' + legacyValue + '\n         role="progressbar"\n         aria-valuemin="0"\n         aria-valuenow="' + val + '"\n         aria-valuemax="' + max + '"\n         tabindex="0"\n     >\n        <span class="aui-progress-indicator-value" style="width: ' + valAsPercent + '%"></span>\n    </div>';
+      },
+      attached: function attached(el) {
+          refresh(el);
       },
   
-      setIndeterminate: function setIndeterminate(element) {
-          var $progressBarContainer = (0, _jquery2.default)(element).first();
-          var $progressBar = $progressBarContainer.children('.aui-progress-indicator-value');
   
-          $progressBarContainer.removeAttr('data-value');
-          (0, _animation.recomputeStyle)($progressBarContainer);
-          $progressBar.css('width', '100%');
+      attributes: {
+          indeterminate: {
+              created: function created(el) {
+                  el.indeterminate = true;
+              },
+              removed: function removed(el) {
+                  el.indeterminate = false;
+              }
+          },
+          value: {
+              value: DEFAULTS.val,
+              fallback: function fallback(el, data) {
+                  if (el._updating) return false;
+                  setValue(el, data);
+              }
+          },
+          max: {
+              value: DEFAULTS.max,
+              fallback: function fallback(el, data) {
+                  if (el._updating) return false;
+                  setMax(el, data);
+              }
+          }
+      },
+  
+      prototype: {
+          get _data() {
+              return this.__data || (this._data = _underscore2.default.defaults({}, DEFAULTS));
+          },
+          set _data(d) {
+              return this.__data = d;
+          },
+          get indeterminate() {
+              return this._data.indeterminate;
+          },
+          set indeterminate(val) {
+              this._data.indeterminate = !!val;
+              refresh(this);
+          },
+          get value() {
+              var _calc3 = calc(this._data),
+                  val = _calc3.val;
+  
+              return val;
+          },
+          set value(num) {
+              if (!validNumeric(num)) return false;
+              var data = { newValue: parseDecimal(num, 6) };
+              this._updating = true;
+              // Reflect whatever value is set in the attributes.
+              this.setAttribute('value', data.newValue);
+              this._updating = false;
+              setValue(this, data);
+          },
+          get max() {
+              var _calc4 = calc(this._data),
+                  max = _calc4.max;
+  
+              return max;
+          },
+          set max(num) {
+              if (!validNumeric(num)) return false;
+              var data = { newValue: parseDecimal(num, 6) };
+              this._updating = true;
+              // Reflect whatever value is set in the attributes.
+              this.setAttribute('max', data.newValue);
+              this._updating = false;
+              setMax(this, data);
+          }
       }
+  });
+  
+  var progressBars = {
+      update: deprecate.fn(updateProgressElement, 'AJS.progressBars.update', {
+          sinceVersion: '7.7.0',
+          extraInfo: 'Use the <aui-progressbar> web component instead'
+      }),
+      setIndeterminate: deprecate.fn(setIndeterminateOnProgressElement, 'AJS.progressBars.setIndeterminate', {
+          sinceVersion: '7.7.0',
+          extraInfo: 'Use the <aui-progressbar> web component instead'
+      })
   };
   
   (0, _globalize2.default)('progressBars', progressBars);
@@ -2788,7 +3004,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/backbone/backbone.js
-(typeof window === 'undefined' ? global : window).__754d6596329027c6beeb095ab86facf5 = (function () {
+(typeof window === 'undefined' ? global : window).__b6ce661a78f7af3f026ea6e982ba4efe = (function () {
   var module = {
     exports: {}
   };
@@ -2796,10 +3012,10 @@
   var defineDependencies = {
     "module": module,
     "exports": exports,
-    "underscore": __b3f4465251fd1fb4828e20c3f041f71e,
-    "jquery": __77629c8e853846530dfdc3ccd3393ab6,
-    "underscore": __b3f4465251fd1fb4828e20c3f041f71e,
-    "jquery": __77629c8e853846530dfdc3ccd3393ab6
+    "underscore": __81a34191ad3e61fcf21096871eebec4b,
+    "jquery": __700a145ba3db9966cc95664c892049f8,
+    "underscore": __81a34191ad3e61fcf21096871eebec4b,
+    "jquery": __700a145ba3db9966cc95664c892049f8
   };
   var define = function defineReplacementWrapper(generatedModuleName) {
     return function defineReplacement(name, deps, func) {
@@ -2842,7 +3058,7 @@
         exports = module.exports = rval;
       }
     };
-  }("__754d6596329027c6beeb095ab86facf5");
+  }("__b6ce661a78f7af3f026ea6e982ba4efe");
   define.amd = true;
   
   /*! THIS FILE HAS BEEN MODIFIED BY ATLASSIAN. Modified lines are marked below, search "ATLASSIAN" */
@@ -2869,8 +3085,8 @@
   
           // Next for Node.js or CommonJS. jQuery may not be needed as a module.
       } else if (typeof exports !== 'undefined') {
-          var _ = __b3f4465251fd1fb4828e20c3f041f71e, $;
-          try { $ = __77629c8e853846530dfdc3ccd3393ab6; } catch(e) {}
+          var _ = __81a34191ad3e61fcf21096871eebec4b, $;
+          try { $ = __700a145ba3db9966cc95664c892049f8; } catch(e) {}
           factory(root, exports, _, $);
   
           // Finally, as a browser global.
@@ -2926,7 +3142,7 @@
     * // Require Underscore, if we're on the server, and it's not already present.
     * var _ = root._;
     *
-    * if (!_ && (typeof require !== 'undefined')) _ = __b3f4465251fd1fb4828e20c3f041f71e;
+    * if (!_ && (typeof require !== 'undefined')) _ = __81a34191ad3e61fcf21096871eebec4b;
     *
     /** END ATLASSIAN */
   
@@ -4483,7 +4699,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/backbone.js
-(typeof window === 'undefined' ? global : window).__07cdfb826f754040b351a0110fde6536 = (function () {
+(typeof window === 'undefined' ? global : window).__320e4ec293ac29d49b959aa9d46df68f = (function () {
   var module = {
     exports: {}
   };
@@ -4495,11 +4711,11 @@
       value: true
   });
   
-  var _underscore = __e622bd457fe11fb15e9fb452ca3772d0;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
   var _underscore2 = _interopRequireDefault(_underscore);
   
-  var _backbone = __754d6596329027c6beeb095ab86facf5;
+  var _backbone = __b6ce661a78f7af3f026ea6e982ba4efe;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
@@ -4515,7 +4731,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/progressive-data-set.js
-(typeof window === 'undefined' ? global : window).__bc3aa98a1624c420c64de6459784d4cc = (function () {
+(typeof window === 'undefined' ? global : window).__4f7eb6cf60845d0cd685bf4d782df3ea = (function () {
   var module = {
     exports: {}
   };
@@ -4527,15 +4743,15 @@
       value: true
   });
   
-  var _underscore = __e622bd457fe11fb15e9fb452ca3772d0;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
   var _underscore2 = _interopRequireDefault(_underscore);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
@@ -4779,7 +4995,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/query-input.js
-(typeof window === 'undefined' ? global : window).__b12fa1032568f0d561e20a44ba70067a = (function () {
+(typeof window === 'undefined' ? global : window).__db4bee34c60bbc169d83f2674d47aa48 = (function () {
   var module = {
     exports: {}
   };
@@ -4791,15 +5007,15 @@
       value: true
   });
   
-  var _underscore = __e622bd457fe11fb15e9fb452ca3772d0;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
   var _underscore2 = _interopRequireDefault(_underscore);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
@@ -4832,7 +5048,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/class-names.js
-(typeof window === 'undefined' ? global : window).__118527544b71a67b452649071c2ae422 = (function () {
+(typeof window === 'undefined' ? global : window).__80eabeead1490f859f6a708858b1dc25 = (function () {
   var module = {
     exports: {}
   };
@@ -4870,7 +5086,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/custom-create-view.js
-(typeof window === 'undefined' ? global : window).__8d19d0bdd704aa4d4cdc512b60f140de = (function () {
+(typeof window === 'undefined' ? global : window).__0d34270c41fe2d547efed0ce03f668c0 = (function () {
   var module = {
     exports: {}
   };
@@ -4882,7 +5098,7 @@
     value: true
   });
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
@@ -4894,7 +5110,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/custom-edit-view.js
-(typeof window === 'undefined' ? global : window).__12a9dc86ab66cc22f78cf62feba9dd64 = (function () {
+(typeof window === 'undefined' ? global : window).__15ac66f9a1559266d249b098cf180f35 = (function () {
   var module = {
     exports: {}
   };
@@ -4906,7 +5122,7 @@
     value: true
   });
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
@@ -4918,7 +5134,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/custom-read-view.js
-(typeof window === 'undefined' ? global : window).__dcca2723b4c5fed4e65377ddb5d32682 = (function () {
+(typeof window === 'undefined' ? global : window).__ce5d8a803e1fd58153b33f9bb2fe0bff = (function () {
   var module = {
     exports: {}
   };
@@ -4930,7 +5146,7 @@
     value: true
   });
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
@@ -4942,7 +5158,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/data-keys.js
-(typeof window === 'undefined' ? global : window).__b1c52d9d29b34f181b3d58c504dec0ce = (function () {
+(typeof window === 'undefined' ? global : window).__40ea873dae0b909ba7e1b6d5b37fd259 = (function () {
   var module = {
     exports: {}
   };
@@ -4962,7 +5178,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/jquery/serializetoobject.js
-(typeof window === 'undefined' ? global : window).__aa7c1770abfd4c15bea861f799ad2035 = (function () {
+(typeof window === 'undefined' ? global : window).__a66ae57438a6301a66d32681106ab1de = (function () {
   var module = {
     exports: {}
   };
@@ -5026,7 +5242,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/events.js
-(typeof window === 'undefined' ? global : window).__229915fcac0b1d518ba82b8dccf17af7 = (function () {
+(typeof window === 'undefined' ? global : window).__b912ac75391ff799576d1dfdc1dc3c70 = (function () {
   var module = {
     exports: {}
   };
@@ -5070,7 +5286,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/throbber.js
-(typeof window === 'undefined' ? global : window).__491c5885a1dc4d2077d5e87e221aa590 = (function () {
+(typeof window === 'undefined' ? global : window).__09339e7cdcdecdedab4ce02aa86100f2 = (function () {
   var module = {
     exports: {}
   };
@@ -5091,7 +5307,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/edit-row.js
-(typeof window === 'undefined' ? global : window).__ea66711b82bb656ccc7223576cc606c7 = (function () {
+(typeof window === 'undefined' ? global : window).__fa98b6b6842afadeca33f835f6fd852f = (function () {
   var module = {
     exports: {}
   };
@@ -5105,33 +5321,33 @@
   
   var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __aa7c1770abfd4c15bea861f799ad2035;
+  __a66ae57438a6301a66d32681106ab1de;
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _classNames = __118527544b71a67b452649071c2ae422;
+  var _classNames = __80eabeead1490f859f6a708858b1dc25;
   
   var _classNames2 = _interopRequireDefault(_classNames);
   
-  var _dataKeys = __b1c52d9d29b34f181b3d58c504dec0ce;
+  var _dataKeys = __40ea873dae0b909ba7e1b6d5b37fd259;
   
   var _dataKeys2 = _interopRequireDefault(_dataKeys);
   
-  var _events = __229915fcac0b1d518ba82b8dccf17af7;
+  var _events = __b912ac75391ff799576d1dfdc1dc3c70;
   
   var _events2 = _interopRequireDefault(_events);
   
-  var _i18n = __be3e01199078cdf5ded88dda6a8fbec9;
+  var _i18n = __fa714f1b12d7502957e4e0b6196321bf;
   
   var _i18n2 = _interopRequireDefault(_i18n);
   
-  var _throbber = __491c5885a1dc4d2077d5e87e221aa590;
+  var _throbber = __09339e7cdcdecdedab4ce02aa86100f2;
   
   var _throbber2 = _interopRequireDefault(_throbber);
   
@@ -5607,7 +5823,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/entry-model.js
-(typeof window === 'undefined' ? global : window).__085efe8598a83df67ac0ec7155e156ad = (function () {
+(typeof window === 'undefined' ? global : window).__8050ba61a386ff790f31b0634ce1c858 = (function () {
   var module = {
     exports: {}
   };
@@ -5621,21 +5837,21 @@
   
   var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _events = __a8a2a7bb852460b812b29dc7b998d456;
+  var _events = __f3ccb1e110c37fc6c95e5fa43d2c3f4f;
   
-  var _underscore = __e622bd457fe11fb15e9fb452ca3772d0;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
   var _underscore2 = _interopRequireDefault(_underscore);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _events2 = __229915fcac0b1d518ba82b8dccf17af7;
+  var _events2 = __b912ac75391ff799576d1dfdc1dc3c70;
   
   var _events3 = _interopRequireDefault(_events2);
   
@@ -5746,7 +5962,7 @@
               data = _jquery2.default.param(options.data);
           }
   
-          if (data !== '') {
+          if (data && data.length) {
               // we need to add to the url as the data param does not work for jQuery DELETE requests
               url = url + '?' + data;
           }
@@ -5859,7 +6075,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table/row.js
-(typeof window === 'undefined' ? global : window).__8da0d4434ee98ffecf6e34940b133dfd = (function () {
+(typeof window === 'undefined' ? global : window).__8ac1973494a53eee4a578e7b0d48a1b6 = (function () {
   var module = {
     exports: {}
   };
@@ -5871,35 +6087,35 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _dialog = __8d4634fbee21b3e51cb6c1e2a1adb5ff;
+  var _dialog = __bc50e12d2af94e34822ae0035ae0e67f;
   
   var dialog = _interopRequireWildcard(_dialog);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _classNames = __118527544b71a67b452649071c2ae422;
+  var _classNames = __80eabeead1490f859f6a708858b1dc25;
   
   var _classNames2 = _interopRequireDefault(_classNames);
   
-  var _dataKeys = __b1c52d9d29b34f181b3d58c504dec0ce;
+  var _dataKeys = __40ea873dae0b909ba7e1b6d5b37fd259;
   
   var _dataKeys2 = _interopRequireDefault(_dataKeys);
   
-  var _events = __229915fcac0b1d518ba82b8dccf17af7;
+  var _events = __b912ac75391ff799576d1dfdc1dc3c70;
   
   var _events2 = _interopRequireDefault(_events);
   
-  var _i18n = __be3e01199078cdf5ded88dda6a8fbec9;
+  var _i18n = __fa714f1b12d7502957e4e0b6196321bf;
   
   var _i18n2 = _interopRequireDefault(_i18n);
   
-  var _throbber = __491c5885a1dc4d2077d5e87e221aa590;
+  var _throbber = __09339e7cdcdecdedab4ce02aa86100f2;
   
   var _throbber2 = _interopRequireDefault(_throbber);
   
@@ -6201,7 +6417,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/restful-table.js
-(typeof window === 'undefined' ? global : window).__d9778e9495b7a4889d0567cf2b8e1182 = (function () {
+(typeof window === 'undefined' ? global : window).__9d6bbe6056be3ba99a06a04900676ca7 = (function () {
   var module = {
     exports: {}
   };
@@ -6213,63 +6429,63 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _log = __bbcdfae479e60b56b982bbcdcc7a0191;
+  var _log = __c1e961001275c079e48525ad3a48c8c2;
   
   var logger = _interopRequireWildcard(_log);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _classNames = __118527544b71a67b452649071c2ae422;
+  var _classNames = __80eabeead1490f859f6a708858b1dc25;
   
   var _classNames2 = _interopRequireDefault(_classNames);
   
-  var _customCreateView = __8d19d0bdd704aa4d4cdc512b60f140de;
+  var _customCreateView = __0d34270c41fe2d547efed0ce03f668c0;
   
   var _customCreateView2 = _interopRequireDefault(_customCreateView);
   
-  var _customEditView = __12a9dc86ab66cc22f78cf62feba9dd64;
+  var _customEditView = __15ac66f9a1559266d249b098cf180f35;
   
   var _customEditView2 = _interopRequireDefault(_customEditView);
   
-  var _customReadView = __dcca2723b4c5fed4e65377ddb5d32682;
+  var _customReadView = __ce5d8a803e1fd58153b33f9bb2fe0bff;
   
   var _customReadView2 = _interopRequireDefault(_customReadView);
   
-  var _dataKeys = __b1c52d9d29b34f181b3d58c504dec0ce;
+  var _dataKeys = __40ea873dae0b909ba7e1b6d5b37fd259;
   
   var _dataKeys2 = _interopRequireDefault(_dataKeys);
   
-  var _editRow = __ea66711b82bb656ccc7223576cc606c7;
+  var _editRow = __fa98b6b6842afadeca33f835f6fd852f;
   
   var _editRow2 = _interopRequireDefault(_editRow);
   
-  var _entryModel = __085efe8598a83df67ac0ec7155e156ad;
+  var _entryModel = __8050ba61a386ff790f31b0634ce1c858;
   
   var _entryModel2 = _interopRequireDefault(_entryModel);
   
-  var _events = __229915fcac0b1d518ba82b8dccf17af7;
+  var _events = __b912ac75391ff799576d1dfdc1dc3c70;
   
   var _events2 = _interopRequireDefault(_events);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _i18n = __be3e01199078cdf5ded88dda6a8fbec9;
+  var _i18n = __fa714f1b12d7502957e4e0b6196321bf;
   
   var _i18n2 = _interopRequireDefault(_i18n);
   
-  var _row = __8da0d4434ee98ffecf6e34940b133dfd;
+  var _row = __8ac1973494a53eee4a578e7b0d48a1b6;
   
   var _row2 = _interopRequireDefault(_row);
   
-  var _throbber = __491c5885a1dc4d2077d5e87e221aa590;
+  var _throbber = __09339e7cdcdecdedab4ce02aa86100f2;
   
   var _throbber2 = _interopRequireDefault(_throbber);
   
@@ -6608,7 +6824,7 @@
                       throw new Error('Cannot sort a set without a comparator');
                   }
                   this.tableRows = instance.getRows();
-                  this.models = this.sortBy(this.comparator);
+                  this.models = this.sortBy(this.comparator, this);
                   this.tableRows = undefined;
                   if (!options.silent) {
                       this.trigger('refresh', this, options);
@@ -6628,7 +6844,7 @@
                   // sort models in collection based on dom ordering
                   var index;
   
-                  var currentTableRows = this.tableRows !== undefined ? this.tableRows : instance.getRows();
+                  var currentTableRows = this && this.tableRows !== undefined ? this.tableRows : instance.getRows();
                   currentTableRows.some(function (item, i) {
                       if (item.model.id === row.id) {
                           index = i;
@@ -7189,7 +7405,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/result-set.js
-(typeof window === 'undefined' ? global : window).__e9e07e92893b0b7f9f3e6e2ffe018c96 = (function () {
+(typeof window === 'undefined' ? global : window).__b46ec20932fb7348b9b897055f211dc7 = (function () {
   var module = {
     exports: {}
   };
@@ -7201,11 +7417,11 @@
       value: true
   });
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
@@ -7263,7 +7479,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/results-list.js
-(typeof window === 'undefined' ? global : window).__1e2a7fafeebd870fc623ea9cf84e84eb = (function () {
+(typeof window === 'undefined' ? global : window).__93ae7363c623fd2012753bbaae65af05 = (function () {
   var module = {
     exports: {}
   };
@@ -7275,19 +7491,19 @@
       value: true
   });
   
-  var _underscore = __e622bd457fe11fb15e9fb452ca3772d0;
+  var _underscore = __59c1c30030f41c99b6757d449d9a3a7b;
   
   var _underscore2 = _interopRequireDefault(_underscore);
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _resultSet = __e9e07e92893b0b7f9f3e6e2ffe018c96;
+  var _resultSet = __b46ec20932fb7348b9b897055f211dc7;
   
   var _resultSet2 = _interopRequireDefault(_resultSet);
   
@@ -7370,8 +7586,110 @@
   
   return module.exports;
 }).call(this);
+// src/js/aui/spin.js
+(typeof window === 'undefined' ? global : window).__7662207c0e706b4f9b15584a7f7253f9 = (function () {
+  var module = {
+    exports: {}
+  };
+  var exports = module.exports;
+  
+  'use strict';
+  
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+  
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
+  
+  var _jquery2 = _interopRequireDefault(_jquery);
+  
+  __6c1bd26c14066cf537a86a0966c2d4fc;
+  
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
+  
+  var _skate2 = _interopRequireDefault(_skate);
+  
+  var _deprecation = __921ad9514d56376fef992861d9ec0f51;
+  
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+  
+  /**
+   * @typedef {Object} jQuerySpinnerConfig
+   * @property {SpinnerSize} size - the size of the spinner.
+   */
+  
+  /**
+   * @param {jQuerySpinnerConfig|String|Boolean} [firstArgs]
+   * - when an object, it is a {jQuerySpinnerConfig}
+   * - when a string, it represents the `size` the spinner should take.
+   * - when boolean, the argument can take only FALSE, in this case, the spinner will be stopped.
+   * @param {jQuerySpinnerConfig} [maybeArgs]
+   * @deprecated since AUI 7.9.4. Use the `<aui-spinner>` web component directly.
+   */
+  _jquery2.default.fn.spin = (0, _deprecation.fn)(function spinStart(firstArgs, maybeArgs) {
+      var args = { size: 'small' };
+      if ((typeof maybeArgs === 'undefined' ? 'undefined' : _typeof(maybeArgs)) === 'object') {
+          args = Object.assign(args, maybeArgs);
+      }
+      if ((typeof firstArgs === 'undefined' ? 'undefined' : _typeof(firstArgs)) === 'object') {
+          args = Object.assign(args, firstArgs);
+      }
+      if (typeof firstArgs === 'string') {
+          args.size = firstArgs;
+      }
+      if (typeof firstArgs === 'boolean' && firstArgs === false) {
+          return this.spinStop();
+      }
+  
+      return this.each(function () {
+          if (!this || !this.nodeType) {
+              return;
+          }
+          var $this = (0, _jquery2.default)(this);
+          var data = $this.data();
+          if (data) {
+              var $spinnerDom = (0, _jquery2.default)('<aui-spinner filled></aui-spinner>');
+              $spinnerDom.attr('size', args.size); // the web component handles validation
+              $spinnerDom.css('color', args.color);
+  
+              $this.spinStop();
+              $this.append($spinnerDom);
+              // AUI-4819 - ensure web component is initialised synchronously.
+              _skate2.default.init(this);
+  
+              data.spinner = $spinnerDom;
+          }
+      });
+  }, 'jQuery.fn.spin', {
+      sinceVersion: '7.9.4',
+      removeInVersion: '9',
+      alternativeName: '<aui-spinner>'
+  });
+  
+  /**
+   * @deprecated since AUI 7.9.4. Use the `<aui-spinner>` web component directly.
+   */
+  _jquery2.default.fn.spinStop = (0, _deprecation.fn)(function spinStop() {
+      return this.each(function () {
+          if (!this || !this.nodeType) {
+              return;
+          }
+          var $this = (0, _jquery2.default)(this);
+          var data = $this.data();
+          if (data && data.spinner) {
+              data.spinner.remove();
+  
+              delete data.spinner;
+          }
+      });
+  }, 'jQuery.fn.spinStop', {
+      sinceVersion: '7.9.4',
+      removeInVersion: '9',
+      alternativeName: '<aui-spinner>'
+  });
+  
+  return module.exports;
+}).call(this);
 // src/js/aui/internal/select/option.js
-(typeof window === 'undefined' ? global : window).__9635740841d5de6fc1070a95b24a5161 = (function () {
+(typeof window === 'undefined' ? global : window).__fe251e1f4080cfe4e163e9b243bb0491 = (function () {
   var module = {
     exports: {}
   };
@@ -7383,11 +7701,11 @@
       value: true
   });
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _escapeHtml = __8106a911fd0030e07f16b2767ac9f548;
+  var _escapeHtml = __48697fd7ae587e40e44fef53ab10460c;
   
   var _escapeHtml2 = _interopRequireDefault(_escapeHtml);
   
@@ -7422,7 +7740,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/select/suggestion-model.js
-(typeof window === 'undefined' ? global : window).__2b6275390f681ad9cb41cbbc6712cb3a = (function () {
+(typeof window === 'undefined' ? global : window).__3612acbfe60f9cd2a88e38733670f664 = (function () {
   var module = {
     exports: {}
   };
@@ -7434,7 +7752,7 @@
       value: true
   });
   
-  var _backbone = __07cdfb826f754040b351a0110fde6536;
+  var _backbone = __320e4ec293ac29d49b959aa9d46df68f;
   
   var _backbone2 = _interopRequireDefault(_backbone);
   
@@ -7451,7 +7769,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/select/suggestions-model.js
-(typeof window === 'undefined' ? global : window).__1288846ede15fbf7e700f826a71a60c0 = (function () {
+(typeof window === 'undefined' ? global : window).__b227fe541363e13797e40f0e86a3a5b6 = (function () {
   var module = {
     exports: {}
   };
@@ -7534,7 +7852,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/select/suggestions-view.js
-(typeof window === 'undefined' ? global : window).__93aa20046b4aad30a18c95a624221d6b = (function () {
+(typeof window === 'undefined' ? global : window).__9e2e7d5836591eb38f141c77fb1c9982 = (function () {
   var module = {
     exports: {}
   };
@@ -7546,17 +7864,17 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __be3e01199078cdf5ded88dda6a8fbec9;
+  __fa714f1b12d7502957e4e0b6196321bf;
   
-  var _alignment = __640a50a417a578824aa17827db8c9d2f;
+  var _alignment = __81deba69899d0f1851f2c511b87bbbae;
   
   var _alignment2 = _interopRequireDefault(_alignment);
   
-  var _layer = __06224e18e744dc8a44794ab29f247385;
+  var _layer = __3ada4a8272640e5242be87f12c7e0fdf;
   
   var _layer2 = _interopRequireDefault(_layer);
   
@@ -7656,7 +7974,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/select/template.js
-(typeof window === 'undefined' ? global : window).__e2c1f657d183d1b538d81a87ba0b4760 = (function () {
+(typeof window === 'undefined' ? global : window).__7865c6da767e205eeac86fc044ce472b = (function () {
   var module = {
     exports: {}
   };
@@ -7668,7 +7986,7 @@
       value: true
   });
   
-  var _skatejsTemplateHtml = __9b18ba0583cb54ca87cfee562f9dc62a;
+  var _skatejsTemplateHtml = __c6b5725916d210b9653318d2ea2472cb;
   
   var _skatejsTemplateHtml2 = _interopRequireDefault(_skatejsTemplateHtml);
   
@@ -7680,7 +7998,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/select.js
-(typeof window === 'undefined' ? global : window).__c7e0d50b6a65bf58a28e1b310881043e = (function () {
+(typeof window === 'undefined' ? global : window).__67239d8727b67748b2105d3faf199585 = (function () {
   var module = {
     exports: {}
   };
@@ -7692,69 +8010,69 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __133851082a1337b5710e5a2aa98258e9;
+  __eaacbdad8b92ceca9114dc3be870abe7;
   
-  __be3e01199078cdf5ded88dda6a8fbec9;
+  __fa714f1b12d7502957e4e0b6196321bf;
   
-  __313e15322266d7b6cc6ffb039891d9ce;
+  __7662207c0e706b4f9b15584a7f7253f9;
   
-  var _option = __9635740841d5de6fc1070a95b24a5161;
+  var _option = __fe251e1f4080cfe4e163e9b243bb0491;
   
   var _option2 = _interopRequireDefault(_option);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _customEvent = __16bf5f1d761138a726209288b7afb338;
+  var _customEvent = __f7a5e0d2ea8865b104efc9b94861591e;
   
   var _customEvent2 = _interopRequireDefault(_customEvent);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _keyCode = __b925764b9e17cff61f648a86f18e6e25;
+  var _keyCode = __e246bf93af36eb4453f35afeb1c302d9;
   
   var _keyCode2 = _interopRequireDefault(_keyCode);
   
-  var _progressiveDataSet = __bc3aa98a1624c420c64de6459784d4cc;
+  var _progressiveDataSet = __4f7eb6cf60845d0cd685bf4d782df3ea;
   
   var _progressiveDataSet2 = _interopRequireDefault(_progressiveDataSet);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _state = __6b822d4c87bd59d8adf46df64b0f24c7;
+  var _state = __3f2c7809aecfe899611b77461a9218ac;
   
   var _state2 = _interopRequireDefault(_state);
   
-  var _suggestionModel = __2b6275390f681ad9cb41cbbc6712cb3a;
+  var _suggestionModel = __3612acbfe60f9cd2a88e38733670f664;
   
   var _suggestionModel2 = _interopRequireDefault(_suggestionModel);
   
-  var _suggestionsModel = __1288846ede15fbf7e700f826a71a60c0;
+  var _suggestionsModel = __b227fe541363e13797e40f0e86a3a5b6;
   
   var _suggestionsModel2 = _interopRequireDefault(_suggestionsModel);
   
-  var _suggestionsView = __93aa20046b4aad30a18c95a624221d6b;
+  var _suggestionsView = __9e2e7d5836591eb38f141c77fb1c9982;
   
   var _suggestionsView2 = _interopRequireDefault(_suggestionsView);
   
-  var _template = __e2c1f657d183d1b538d81a87ba0b4760;
+  var _template = __7865c6da767e205eeac86fc044ce472b;
   
   var _template2 = _interopRequireDefault(_template);
   
-  var _uniqueId = __6a8d9be203374eb86b4b050d0244b6f1;
+  var _uniqueId = __a0ab588de7b0759818853425dc8ad2f2;
   
   var _uniqueId2 = _interopRequireDefault(_uniqueId);
   
-  var _constants = __e378fd259e8cc11973d9809608fe9a5e;
+  var _constants = __584af8690b0248d0ffcba682ccaa70ba;
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
   
@@ -8183,13 +8501,18 @@
               if (data.get('prevent-open-on-button-click')) {
                   data.set('prevent-open-on-button-click', false);
               } else {
+                  (0, _state2.default)(element).set('button-clicked-prevent-dropdown-hide', true);
                   element.focus();
               }
           },
   
           input: function input(element) {
               if (!element._input.value) {
-                  hideDropdown(element);
+                  if ((0, _state2.default)(element).get('button-clicked-prevent-dropdown-hide')) {
+                      (0, _state2.default)(element).set('button-clicked-prevent-dropdown-hide', false);
+                  } else {
+                      hideDropdown(element);
+                  }
               } else {
                   (0, _state2.default)(element).set('should-include-selected', true);
                   suggest(element, true);
@@ -8290,7 +8613,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/jquery/plugins/jquery.select2.js
-(typeof window === 'undefined' ? global : window).__b2190710f2822b5d7286528d3eaff37f = (function () {
+(typeof window === 'undefined' ? global : window).__63e2d0d906dfc9cc19eb6e8389c4f5a3 = (function () {
   var module = {
     exports: {}
   };
@@ -8300,6 +8623,7 @@
    Copyright 2012 Igor Vaynberg
   
    Version: 3.4.5 Timestamp: Mon Nov  4 08:22:42 PST 2013
+   (with cherry-picked https://github.com/select2/select2/commit/60359f9d43d0fd0bd93e2cb861d677dbb04d3d79)
   
    This software is licensed under the Apache License, Version 2.0 (the "Apache License") or the GNU
    General Public License version 2 (the "GPL License"). You may choose either license to govern your
@@ -10104,7 +10428,7 @@
               var container = $(document.createElement("div")).attr({
                   "class": "select2-container"
               }).html([
-                      "<a href='javascript:void(0)' onclick='return false;' class='select2-choice' tabindex='-1'>",
+                      "<a href='javascript:void(0)' class='select2-choice' tabindex='-1'>",
                       "   <span class='select2-chosen'>&nbsp;</span><abbr class='select2-search-choice-close'></abbr>",
                       "   <span class='select2-arrow'><b></b></span>",
                       "</a>",
@@ -11104,7 +11428,7 @@
                   enabledItem = $(
                       "<li class='select2-search-choice'>" +
                           "    <div></div>" +
-                          "    <a href='#' onclick='return false;' class='select2-search-choice-close' tabindex='-1'></a>" +
+                          "    <a href='#' class='select2-search-choice-close' tabindex='-1'></a>" +
                           "</li>"),
                   disabledItem = $(
                       "<li class='select2-search-choice select2-locked'>" +
@@ -11555,7 +11879,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/select2.js
-(typeof window === 'undefined' ? global : window).__dfd5f5c723e08e5f95e38718fe4f73eb = (function () {
+(typeof window === 'undefined' ? global : window).__7dc2a1c33ff678de05f5aa1a9414d108 = (function () {
   var module = {
     exports: {}
   };
@@ -11563,11 +11887,11 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __b2190710f2822b5d7286528d3eaff37f;
+  __63e2d0d906dfc9cc19eb6e8389c4f5a3;
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
   
@@ -11615,7 +11939,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/raf/raf.js
-(typeof window === 'undefined' ? global : window).__c814de1f9f57536916ee97e53618b317 = (function () {
+(typeof window === 'undefined' ? global : window).__bf59f74063d342eb3fddf114cbed6239 = (function () {
   var module = {
     exports: {}
   };
@@ -11666,7 +11990,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/has-touch.js
-(typeof window === 'undefined' ? global : window).__2bddeae7bba6bcfe91954e333e4fbeb4 = (function () {
+(typeof window === 'undefined' ? global : window).__6c4fb3940d6fd500a61aec90cc3f93dc = (function () {
   var module = {
     exports: {}
   };
@@ -11685,7 +12009,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/is-input.js
-(typeof window === 'undefined' ? global : window).__5440f08d566da1cac4a925f4a02d99bd = (function () {
+(typeof window === 'undefined' ? global : window).__dff830f45baf5eb0b8447c97bbcc4699 = (function () {
   var module = {
     exports: {}
   };
@@ -11706,7 +12030,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/internal/mediaQuery.js
-(typeof window === 'undefined' ? global : window).__2f005a42739e074aa33083fd59d18ccb = (function () {
+(typeof window === 'undefined' ? global : window).__682859fc5d8be5d41dbacb89678092a4 = (function () {
   var module = {
     exports: {}
   };
@@ -11742,7 +12066,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/sidebar.js
-(typeof window === 'undefined' ? global : window).__810b6deefd6627f937e4a4d2fae0520a = (function () {
+(typeof window === 'undefined' ? global : window).__794d61e50f5e0ebf599ea9f132cd243e = (function () {
   var module = {
     exports: {}
   };
@@ -11754,53 +12078,53 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __dbb945ae8033589d400f8c63e7d01524;
+  __8c05d85e3d7fb791ad5071fea16ddb09;
   
-  __c814de1f9f57536916ee97e53618b317;
+  __bf59f74063d342eb3fddf114cbed6239;
   
-  __be3e01199078cdf5ded88dda6a8fbec9;
+  __fa714f1b12d7502957e4e0b6196321bf;
   
-  var _clone = __dcc3fd3e77e47fb48e5c0c44ee208201;
+  var _clone = __e7d0e8462b4386c30e9bcd3ad0a49ad3;
   
   var _clone2 = _interopRequireDefault(_clone);
   
-  var _deprecation = __4ddcc788b1704f76a51559fc0e0d2968;
+  var _deprecation = __921ad9514d56376fef992861d9ec0f51;
   
   var deprecate = _interopRequireWildcard(_deprecation);
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _hasTouch = __2bddeae7bba6bcfe91954e333e4fbeb4;
+  var _hasTouch = __6c4fb3940d6fd500a61aec90cc3f93dc;
   
   var _hasTouch2 = _interopRequireDefault(_hasTouch);
   
-  var _isInput = __5440f08d566da1cac4a925f4a02d99bd;
+  var _isInput = __dff830f45baf5eb0b8447c97bbcc4699;
   
   var _isInput2 = _interopRequireDefault(_isInput);
   
-  var _keyCode = __b925764b9e17cff61f648a86f18e6e25;
+  var _keyCode = __e246bf93af36eb4453f35afeb1c302d9;
   
   var _keyCode2 = _interopRequireDefault(_keyCode);
   
-  var _mediaQuery = __2f005a42739e074aa33083fd59d18ccb;
+  var _mediaQuery = __682859fc5d8be5d41dbacb89678092a4;
   
   var _mediaQuery2 = _interopRequireDefault(_mediaQuery);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _uniqueId = __6a8d9be203374eb86b4b050d0244b6f1;
+  var _uniqueId = __a0ab588de7b0759818853425dc8ad2f2;
   
   var _uniqueId2 = _interopRequireDefault(_uniqueId);
   
-  var _widget = __2d1b5481970dd1547e294d829464e03f;
+  var _widget = __d2e8fc66dac2ecebdc205fcab991f687;
   
   var _widget2 = _interopRequireDefault(_widget);
   
@@ -12327,11 +12651,14 @@
               // "In the case where a transition is removed before completion,
               // such as if the transition-property is removed, then the event will not fire."
               setTimeout(function () {
-                  $trigger.tipsy('hide');
+                  if ($tip.hasClass('tooltip-shown')) {
+                      $trigger.tipsy('hide');
+                      $tip.removeClass('tooltip-shown');
+                  }
               }, timeoutMs);
+          } else {
+              $tip.removeClass('tooltip-shown');
           }
-  
-          $tip.removeClass('tooltip-shown');
       }
   }
   
@@ -12366,7 +12693,7 @@
       };
   
       (0, _jquery2.default)(window).on('scroll resize', onScrollResizeReflow);
-      sidebar.reflow();
+      onScrollResizeReflow();
   
       if (sidebar.isAnimated()) {
           sidebar.$el.on('transitionend webkitTransitionEnd', function () {
@@ -12527,7 +12854,7 @@
   return module.exports;
 }).call(this);
 // src/js-vendor/jquery/jquery.tablesorter.js
-(typeof window === 'undefined' ? global : window).__f1a3fa76609e6d40a55157a38f5d9723 = (function () {
+(typeof window === 'undefined' ? global : window).__bcb3bf48343222097ceddcaac01ec182 = (function () {
   var module = {
     exports: {}
   };
@@ -14432,7 +14759,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/tables-sortable.js
-(typeof window === 'undefined' ? global : window).__118945205868b7541cf0a75d6522abd5 = (function () {
+(typeof window === 'undefined' ? global : window).__b4d73a0bb8c261fa890c4807671fd8d1 = (function () {
   var module = {
     exports: {}
   };
@@ -14444,13 +14771,13 @@
       value: true
   });
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  __f1a3fa76609e6d40a55157a38f5d9723;
+  __bcb3bf48343222097ceddcaac01ec182;
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
@@ -14565,7 +14892,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/tipsy.js
-(typeof window === 'undefined' ? global : window).__4887de1a729bad7b23da6129072d68ee = (function () {
+(typeof window === 'undefined' ? global : window).__45a1cc98c2b204afcd7c4d672ec4ec09 = (function () {
   var module = {
     exports: {}
   };
@@ -14573,12 +14900,12 @@
   
   'use strict';
   
-  __dbb945ae8033589d400f8c63e7d01524;
+  __8c05d85e3d7fb791ad5071fea16ddb09;
   
   return module.exports;
 }).call(this);
 // src/js/aui/toggle.js
-(typeof window === 'undefined' ? global : window).__f243ae302e1f6512eaf4fb7ada716add = (function () {
+(typeof window === 'undefined' ? global : window).__07a2f092bc69049991d58167c8791201 = (function () {
   var module = {
     exports: {}
   };
@@ -14586,35 +14913,49 @@
   
   'use strict';
   
-  __313e15322266d7b6cc6ffb039891d9ce;
+  __7662207c0e706b4f9b15584a7f7253f9;
   
-  __6999efc8461cc8bcf32a985dbca81aa1;
+  __e8e9fc435c352b74c65e5f8d64ed692c;
   
-  var _attributes = __8f74d35e1223c8eb9f34b79717e74706;
+  var _attributes = __ab489eda548cad099ce93b60faa6a3d5;
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _enforcer = __65a8b3ca1b55232381cf1e189f6e2c47;
+  var _enforcer = __2512e2cfb8f46670d5cb777690a28c72;
   
   var _enforcer2 = _interopRequireDefault(_enforcer);
   
-  var _keyCode = __b925764b9e17cff61f648a86f18e6e25;
+  var _keyCode = __e246bf93af36eb4453f35afeb1c302d9;
   
   var _keyCode2 = _interopRequireDefault(_keyCode);
   
-  var _skatejsTemplateHtml = __9b18ba0583cb54ca87cfee562f9dc62a;
+  var _skatejsTemplateHtml = __c6b5725916d210b9653318d2ea2472cb;
   
   var _skatejsTemplateHtml2 = _interopRequireDefault(_skatejsTemplateHtml);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
-  var _constants = __e378fd259e8cc11973d9809608fe9a5e;
+  var _constants = __584af8690b0248d0ffcba682ccaa70ba;
+  
+  var _customEvent = __f7a5e0d2ea8865b104efc9b94861591e;
+  
+  var _customEvent2 = _interopRequireDefault(_customEvent);
+  
+  var _spinner = __6c1bd26c14066cf537a86a0966c2d4fc;
+  
+  var _spinner2 = _interopRequireDefault(_spinner);
   
   function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+  
+  function fireChangeEvent(element) {
+      if (element._canFireEventsNow) {
+          element.dispatchEvent(new _customEvent2.default('change', { bubbles: true }));
+      }
+  }
   
   function getInput(element) {
       return element._input || (element._input = element.querySelector('input'));
@@ -14655,12 +14996,12 @@
   
   var checkedAttributeHandler = {
       removed: function removed(element) {
-          removedAttributeHandler.call(this, 'checked', element);
           getInput(element).checked = false;
+          fireChangeEvent(element);
       },
-      fallback: function fallback(element, change) {
-          fallbackAttributeHandler.call(this, 'checked', element, change);
+      fallback: function fallback(element) {
           getInput(element).checked = true;
+          fireChangeEvent(element);
       }
   };
   
@@ -14675,8 +15016,9 @@
   
   function clickHandler(element, e) {
       if (!element.disabled && !element.busy && e.target !== element._input) {
-          element._input.click();
+          element._input.checked = !element._input.checked;
       }
+  
       (0, _attributes.setBooleanAttribute)(element, 'checked', getInput(element).checked);
   }
   
@@ -14711,11 +15053,16 @@
   }
   
   (0, _skate2.default)('aui-toggle', {
-      template: (0, _skatejsTemplateHtml2.default)('<input type="checkbox" class="aui-toggle-input">', '<span class="aui-toggle-view">', '<span class="aui-toggle-tick aui-icon aui-icon-small aui-iconfont-success"></span>', '<span class="aui-toggle-cross aui-icon aui-icon-small aui-iconfont-close-dialog"></span>', '</span>'),
+      // "assistive" class avoids direct interaction with the <input> element
+      // (which prevents our click handler from being called),
+      // while allow the element to still participate in the form.
+      template: (0, _skatejsTemplateHtml2.default)('<input type="checkbox" class="aui-toggle-input assistive">', '<span class="aui-toggle-view">', '<span class="aui-toggle-tick aui-icon aui-icon-small aui-iconfont-success"></span>', '<span class="aui-toggle-cross aui-icon aui-icon-small aui-iconfont-close-dialog"></span>', '</span>'),
       created: function created(element) {
           element._input = getInput(element); // avoid using _input in attribute handlers
           element._tick = element.querySelector('.aui-toggle-tick');
           element._cross = element.querySelector('.aui-toggle-cross');
+          element._spinner = new _spinner2.default();
+          element._spinner.setAttribute('size', _spinner.SIZE.SMALL.name);
   
           (0, _jquery2.default)(element._input).tooltip({
               title: function title() {
@@ -14725,6 +15072,10 @@
               hoverable: false
           });
           bindEventsToInput(element);
+          if (element.hasAttribute('checked')) {
+              getInput(element).setAttribute('checked', '');
+          }
+          element._canFireEventsNow = true;
       },
       attached: function attached(element) {
           (0, _enforcer2.default)(element).attributeExists('label');
@@ -14765,8 +15116,10 @@
               // Need to explicitly set the property on the checkbox because the
               // checkbox's property doesn't change with it's attribute after it
               // is clicked.
-              this._input.checked = value;
-              return (0, _attributes.setBooleanAttribute)(this, 'checked', value);
+              if (this._input.checked !== value) {
+                  this._input.checked = value;
+                  (0, _attributes.setBooleanAttribute)(this, 'checked', value);
+              }
           },
           get disabled() {
               return this._input.disabled;
@@ -14806,16 +15159,17 @@
                   this._input.indeterminate = true;
                   if (this.checked) {
                       (0, _jquery2.default)(this._input).addClass('indeterminate-checked');
-                      (0, _jquery2.default)(this._tick).spin({ zIndex: null });
+                      (0, _jquery2.default)(this._tick).append(this._spinner);
                   } else {
-                      (0, _jquery2.default)(this._cross).spin({ zIndex: null, color: 'black' });
+                      (0, _jquery2.default)(this._cross).append(this._spinner);
                   }
               } else {
                   (0, _jquery2.default)(this._input).removeClass('indeterminate-checked');
                   this._input.indeterminate = false;
                   this._input.removeAttribute('aria-busy');
-                  (0, _jquery2.default)(this._cross).spinStop();
-                  (0, _jquery2.default)(this._tick).spinStop();
+                  if (this._spinner.parentNode) {
+                      this._spinner.parentNode.removeChild(this._spinner);
+                  }
               }
               setDisabledForLabels(this, !!value);
               return value;
@@ -14826,7 +15180,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/trigger.js
-(typeof window === 'undefined' ? global : window).__6575f5dae6f74a5f7933cb7c2b4fcebb = (function () {
+(typeof window === 'undefined' ? global : window).__30cf7e8f2431e5458a101ad849353fcd = (function () {
   var module = {
     exports: {}
   };
@@ -14834,15 +15188,15 @@
   
   'use strict';
   
-  var _jquery = __77629c8e853846530dfdc3ccd3393ab6;
+  var _jquery = __700a145ba3db9966cc95664c892049f8;
   
   var _jquery2 = _interopRequireDefault(_jquery);
   
-  var _amdify = __a94c70e97545519793c3abf603e0b37c;
+  var _amdify = __65ca28a9d6b0f244027266ff8e6a6d1c;
   
   var _amdify2 = _interopRequireDefault(_amdify);
   
-  var _skate = __bb6ec7268c91759bbe10bd46d924551e;
+  var _skate = __0ac9a2c09f995a9c0a478af8742f59b7;
   
   var _skate2 = _interopRequireDefault(_skate);
   
@@ -14906,7 +15260,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui/truncating-progressive-data-set.js
-(typeof window === 'undefined' ? global : window).__ca2b25ca788dc66f3403f1141687f275 = (function () {
+(typeof window === 'undefined' ? global : window).__b7e5361a4558fb1fdb441a3762d29b73 = (function () {
   var module = {
     exports: {}
   };
@@ -14918,11 +15272,11 @@
       value: true
   });
   
-  var _globalize = __77af00e80ac034b223816679459a4692;
+  var _globalize = __28c84e7bb75f6c3b0ba124d57bd69571;
   
   var _globalize2 = _interopRequireDefault(_globalize);
   
-  var _progressiveDataSet = __bc3aa98a1624c420c64de6459784d4cc;
+  var _progressiveDataSet = __4f7eb6cf60845d0cd685bf4d782df3ea;
   
   var _progressiveDataSet2 = _interopRequireDefault(_progressiveDataSet);
   
@@ -14992,7 +15346,7 @@
   return module.exports;
 }).call(this);
 // src/js/aui-experimental.js
-(typeof window === 'undefined' ? global : window).__150b2bcd52fe83736fc6bc2287e90b75 = (function () {
+(typeof window === 'undefined' ? global : window).__9a7b184b39e064dd8841859a6fc08e10 = (function () {
   var module = {
     exports: {}
   };
@@ -15004,55 +15358,57 @@
     value: true
   });
   
-  __452d3f8e5d643ab60faf3f564b8276d8;
+  __cf0b3df2c677eb2f0864bd7dbf5cb857;
   
-  __e7296db63088f504f190097510a8efb3;
+  __43174540fe92a0d9aeac77ff3a236665;
   
-  __133851082a1337b5710e5a2aa98258e9;
+  __eaacbdad8b92ceca9114dc3be870abe7;
   
-  __bf3c38e4a0e7481b849a297fccf30258;
+  __44b5db0744691769a2b746c10f14a9a9;
   
-  __3ac567a4ab4b829d5c6e6c81df33cbe8;
+  __df7047d25e7ae0c2f22a17f939177597;
   
-  __f165ad68f415362651d0d7f733fcdcea;
+  __0477e1bf0caf4e570768f66b495137e7;
   
-  __7c68b94bd1e7e5a2f72d197f55d1d459;
+  __fdc0359427714432468af96b460aa252;
   
-  __bd4ecc7f267c4325495affa1d72b9196;
+  __276ead0c2b803a087db4ce7a0d05053e;
   
-  __7904d2f802801befa81e22aff0bd1fb6;
+  __4686fdb214d2270ff96c190b2bd6bd2d;
   
-  __ef3494fdb79b0ce378f14c1810d48a68;
+  __6e7c4718c7a654752224497662064b97;
   
-  __bc3aa98a1624c420c64de6459784d4cc;
+  __4f7eb6cf60845d0cd685bf4d782df3ea;
   
-  __b12fa1032568f0d561e20a44ba70067a;
+  __db4bee34c60bbc169d83f2674d47aa48;
   
-  __d9778e9495b7a4889d0567cf2b8e1182;
+  __9d6bbe6056be3ba99a06a04900676ca7;
   
-  __e9e07e92893b0b7f9f3e6e2ffe018c96;
+  __b46ec20932fb7348b9b897055f211dc7;
   
-  __1e2a7fafeebd870fc623ea9cf84e84eb;
+  __93ae7363c623fd2012753bbaae65af05;
   
-  __c7e0d50b6a65bf58a28e1b310881043e;
+  __67239d8727b67748b2105d3faf199585;
   
-  __dfd5f5c723e08e5f95e38718fe4f73eb;
+  __7dc2a1c33ff678de05f5aa1a9414d108;
   
-  __810b6deefd6627f937e4a4d2fae0520a;
+  __794d61e50f5e0ebf599ea9f132cd243e;
   
-  __313e15322266d7b6cc6ffb039891d9ce;
+  __6c1bd26c14066cf537a86a0966c2d4fc;
   
-  __118945205868b7541cf0a75d6522abd5;
+  __7662207c0e706b4f9b15584a7f7253f9;
   
-  __4887de1a729bad7b23da6129072d68ee;
+  __b4d73a0bb8c261fa890c4807671fd8d1;
   
-  __f243ae302e1f6512eaf4fb7ada716add;
+  __45a1cc98c2b204afcd7c4d672ec4ec09;
   
-  __6999efc8461cc8bcf32a985dbca81aa1;
+  __07a2f092bc69049991d58167c8791201;
   
-  __6575f5dae6f74a5f7933cb7c2b4fcebb;
+  __e8e9fc435c352b74c65e5f8d64ed692c;
   
-  __ca2b25ca788dc66f3403f1141687f275;
+  __30cf7e8f2431e5458a101ad849353fcd;
+  
+  __b7e5361a4558fb1fdb441a3762d29b73;
   
   exports.default = window.AJS;
   module.exports = exports['default'];

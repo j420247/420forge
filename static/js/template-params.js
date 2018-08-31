@@ -31,8 +31,7 @@ function onReady() {
 function selectTemplateForStack(stackToRetrieve) {
     if (document.getElementById("clone-params"))
         $("#clone-params").hide();
-    $("#paramsList").html("<span class=\"button-spinner\" style=\"display: inline-block; height: 100px; width: 150px\"></span>");
-    AJS.$('.button-spinner').spin();
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
 
     $("#stackSelector").text(stackToRetrieve);
     $("#stackName").text(stackToRetrieve);
@@ -124,10 +123,19 @@ function createInputParameter(param, fieldset) {
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
 
-        if ((action === 'clone' || action === 'create') && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+        if ((action === 'clone' || action === 'create')
+            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field","");
             input.type="password";
             input.value = "";
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName") {
+            input.setAttribute("data-aui-validation-field","");
+            input.value = ssh_key_name;
+            input.required = true;
+        } else if (param.ParameterKey === "HostedZone") {
+            input.setAttribute("data-aui-validation-field","");
+            input.value = hosted_zone;
             input.required = true;
         }
         div.appendChild(input);
@@ -216,9 +224,7 @@ function getVPCs(region, div) {
 
             // Set default VPC and subnets for region
             var defaultVpc = "";
-            if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml")
-                defaultVpc = lab_default_vpc;
-            else if (region === 'us-west-2')
+            if (region === 'us-west-2')
                 defaultVpc = us_west_2_default_vpc;
             else
                 defaultVpc = us_east_1_default_vpc;
@@ -230,12 +236,7 @@ function getVPCs(region, div) {
 }
 
 function setSubnets(region) {
-    document.getElementById("ExternalSubnetsVal").setAttribute('disabled', '');
-    document.getElementById("InternalSubnetsVal").setAttribute('disabled', '');
-    if (action === "create" && document.getElementById("templateSelector").text === "extlab.yaml") {
-        document.getElementById("ExternalSubnetsVal").value = lab_dmz_default_subnets;
-        document.getElementById("InternalSubnetsVal").value = lab_private_default_subnets;
-    } else if (region === 'us-west-2') { //TODO get default subnets betterer
+    if (region === 'us-west-2') { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
     } else {

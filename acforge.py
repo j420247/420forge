@@ -23,7 +23,6 @@ import os
 from version import __version__
 
 # global configuration
-SECRET_KEY = 'key_to_the_forge'
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
@@ -33,9 +32,10 @@ parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
                         action='store_true',
                         help='Start with --nosaml to bypass SAML for local testing')
-parser.add_argument('--prod',
-                        action='store_true',
-                        help='Start with --prod for SAML production auth. Default (no args) is dev auth')
+parser.add_argument('--region',
+                        nargs='?',
+                        default='us-east-1',
+                        help='The AWS region that Forge is operating in')
 args = parser.parse_args()
 
 # using dict of dicts called stackstate to track state of a stack's actions
@@ -49,15 +49,40 @@ print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
-app.config['SECRET_KEY'] = SECRET_KEY
-if args.prod:
-   app.wsgi_app = ProxyFix(app.wsgi_app)
-   print("SAML auth set to production - the app can be accessed on https://forge.internal.atlassian.com")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=e17b1c79-2510-4865-bc02-fed7fe9e04bc&customerid=AAS0641'
+# get current region and create SSM client to read parameter store params
+ssm_client = boto3.client('ssm', region_name=args.region)
+app.config['SECRET_KEY'] = 'REPLACE_ME'
+try:
+    key = ssm_client.get_parameter(
+        Name='atl_forge_secret_key',
+        WithDecryption=True
+    )
+    app.config['SECRET_KEY'] = key['Parameter']['Value']
+except botocore.exceptions.NoCredentialsError as e:
+    print('No credentials - please authenticate with Cloudtoken')
+    raise
+except Exception:
+    print('No secret key in parameter store')
+# create SAML URL if saml enabled
+if not args.nosaml:
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+    print('SAML auth configured')
+    try:
+        saml_protocol = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_protocol',
+            WithDecryption=True
+        )
+        saml_url = ssm_client.get_parameter(
+            Name='atl_forge_saml_metadata_url',
+            WithDecryption=True
+        )
+        app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
+    except Exception:
+        print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+        raise
+    flask_saml.FlaskSAML(app)
 else:
-   print("SAML auth set to dev - the app can be accessed on http://127.0.0.1:8000")
-   app.config['SAML_METADATA_URL'] = 'https://aas0641.my.centrify.com/saasManage/DownloadSAMLMetadataForApp?appkey=0752aaf3-897c-489c-acbc-5a233ccad705&customerid=AAS0641'
-flask_saml.FlaskSAML(app)
+    print('SAML auth is not configured')
 # Create a SQLalchemy db for session and permission storge.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
@@ -67,14 +92,17 @@ session_store = Session(app)
 session_store.app.session_interface.db.create_all()
 # is analytics enabled
 config_props = configparser.ConfigParser()
-config_props.read('forge.properties')
+config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
 if config_props['analytics']['enabled'] == 'true':
     app.config['ANALYTICS'] = 'true'
 
 # load permissions file
 #TODO think about whether we want to restrict based on environment tags or regions
-with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
-    json_perms = json.load(json_data)
+try:
+    with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
+        json_perms = json.load(json_data)
+except Exception:
+    print('could not open permissions.json; SAML auth will not work!')
 
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -
@@ -388,12 +416,7 @@ class stackState(Resource):
 
 class templateParams(Resource):
     def get(self, template_name):
-        app_type = 'confluence' # default for lab
-        for product in PRODUCTS:
-            if product.lower() in template_name.lower():
-                app_type = product.lower()
-                break
-        template_file = open(f'wpe-aws/{app_type}/{template_name}', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{template_name}', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -434,7 +457,7 @@ class templateParamsForStack(Resource):
         instance_type = 'DataCenter' # TODO support server
         deploy_type = '' if env == 'prod' else 'Clone'
 
-        template_file = open(f'wpe-aws/{app_type.lower()}/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
+        template_file = open(f'atlassian-aws-deployment/templates/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -545,7 +568,7 @@ class getEbsSnapshots(Resource):
     def get(self, region, stack_name):
         ec2 = boto3.client('ec2', region_name=region)
         snap_name_format = f'{stack_name}_ebs_snap_*'
-        if region == 'us-east-1':
+        if region == get_dr_region():
             snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[
@@ -586,9 +609,9 @@ class getRdsSnapshots(Resource):
 class getTemplates(Resource):
     def get(self, product):
         templates = []
-        template_folder = Path(f'wpe-aws/{product.lower()}')
-        for file in list(template_folder.glob('**/*.yaml')):
-            # TODO support Server
+        template_folder = Path('atlassian-aws-deployment/templates')
+        for file in list(template_folder.glob(f'**/{product}*.yaml')):
+            # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
             templates.extend([file.name])
@@ -626,6 +649,9 @@ class setStackLocking(Resource):
             session['stack_locking'] = lock
             return lock
 
+class forgeStatus(Resource):
+    def get(self):
+        return {'state': 'RUNNING'}
 
 # Action UI pages
 @app.route('/upgrade', methods = ['GET'])
@@ -715,6 +741,9 @@ api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 
+# Status endpoint
+api.add_resource(forgeStatus, '/status')
+
 
 ##
 #### Common functions
@@ -753,7 +782,7 @@ def check_loggedin():
     app.permanent_session_lifetime = timedelta(minutes=60)
     if args.nosaml:
         return
-    if not request.path.startswith("/saml") and not session.get('saml'):
+    if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
 
@@ -763,9 +792,19 @@ def general_constructor(loader, tag_suffix, node):
 
 
 def get_regions():
-    config = configparser.ConfigParser()
-    config.read('forge.properties')
+    config = get_config_properties()
     return config.items('regions')
+
+
+def get_dr_region():
+    config = get_config_properties()
+    return config['dr']['dr-region']
+
+
+def get_config_properties():
+    config_props = configparser.ConfigParser()
+    config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
+    return config_props
 
 
 def get_nice_action_name(action):

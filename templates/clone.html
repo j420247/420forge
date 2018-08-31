@@ -21,13 +21,14 @@ Select stack to clone
         <label for="regionSelector">Region</label>
         <a id="regionSelector" href="#regionSelection" aria-owns="regionSelection" aria-haspopup="true"
            class="aui-button aui-style-default aui-dropdown2-trigger">
-            us-east-1
+            {{ session['regions'][0][0] }}
         </a>
         <!-- Dropdown -->
         <div id="regionSelection" class="aui-style-default aui-dropdown2">
             <ul class="aui-list-truncate" id="region">
-                <li><a class="selectRegionOption">us-east-1</a></li>
-                <li><a class="selectRegionOption">us-west-2</a></li>
+                {% for region in session['regions'] %}
+                <li><a class="selectRegionOption">{{ region[0] }}</a></li>
+                {% endfor %}
             </ul>
         </div>
     </div>
