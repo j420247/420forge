@@ -9,7 +9,8 @@ Metadata:
           Parameters:
             - CidrBlock
             - InternetAccessible
-            - Subnet
+            - ExternalSubnet
+            - InternalSubnet
             - VPC
         - Label:
             default: EC2 Config
@@ -37,6 +38,10 @@ Metadata:
           default: Disaster recovery region
         FlaskSecretKey:
           default: Flask secret key
+        ExternalSubnet:
+          default: External subnet Id
+        InternalSubnet:
+          default: Internal subnet Id
         InternetAccessible:
           default: Load balancer accessible from the internet
         CidrBlock:
@@ -55,8 +60,6 @@ Metadata:
           default: Regions to operate in
         SamlMetadataUrl:
           default: SAML metadata URL
-        Subnet:
-          default: Subnet Id
         VPC:
           default: VPC Id
 
@@ -105,8 +108,17 @@ Parameters:
     Description: The domain name of the Route53 Hosted Zone in which to create cnames
     Type: String
   FlaskSecretKey:
-    Description: 'Secret key passed to Flask app to enable sessions, which are required to run. For more info: https://bit.ly/2PRfJRk'
+    Description: 'Override the default secret key passed to Flask app to enable sessions, which are required to run. For more info: https://bit.ly/2PRfJRk'
+    NoEcho: True
     Type: String
+  ExternalSubnet:
+    ConstraintDescription: Select one Subnet ID within the selected VPC
+    Description: Subnet where your user-facing load balancer will be deployed. MUST be within the selected VPC.
+    Type: List<AWS::EC2::Subnet::Id>
+  InternalSubnet:
+    ConstraintDescription: Select one Subnet ID within the selected VPC
+    Description: Subnet where your cluster nodes and other internal infrastructure will be deployed. MUST be within the selected VPC. Specify the ExternalSubnet again here if you wish to deploy the whole stack into the same subnet.
+    Type: List<AWS::EC2::Subnet::Id>
   InternetAccessible:
     AllowedValues:
       - true
@@ -149,10 +161,6 @@ Parameters:
   SamlMetadataUrl:
     Description: Metadata URL for your SAML provider
     Type: String
-  Subnet:
-    ConstraintDescription: Select one Subnet ID within the selected VPC
-    Description: Subnet where your node will be deployed
-    Type: List<AWS::EC2::Subnet::Id>
   VPC:
     Default: vpc-dd8dc7ba
     ConstraintDescription: Must be the ID of a VPC.
@@ -302,7 +310,7 @@ Resources:
       MinSize: !Ref Nodes
       LoadBalancerNames:
         - !Ref LoadBalancer
-      VPCZoneIdentifier: !Ref Subnet
+      VPCZoneIdentifier: !Ref InternalSubnet
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName} Forge Node"
@@ -329,13 +337,6 @@ Resources:
                   #!/usr/bin/env bash
 
                   forgepath=/home/forge/atl-cfn-forge
-                  gitkeylocation=/root/.ssh/gitkey
-
-                  gitkey=$(aws --region=${region} ssm get-parameters --names "gitkey" --with-decryption | jq --raw-output '.Parameters[0] .Value')
-                  echo -e $gitkey > $gitkeylocation
-                  chmod 600 $gitkeylocation
-
-                  export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
 
                   if [ -d $forgepath ]; then
                       cd $forgepath
@@ -343,7 +344,7 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone git@bitbucket.org:atlassian/atl-cfn-forge.git $forgepath
+                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
                   ./update
@@ -487,7 +488,7 @@ Resources:
         HealthyThreshold: 2
       Scheme: !If [InternetAccessible, 'internet-facing', 'internal']
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
-      Subnets: !Ref Subnet
+      Subnets: !Ref ExternalSubnet
       Tags:
         - Key: Name
           Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
