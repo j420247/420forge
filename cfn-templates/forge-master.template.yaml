@@ -338,8 +338,6 @@ Resources:
 
                   forgepath=/home/forge/atl-cfn-forge
 
-                  export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no "
-
                   if [ -d $forgepath ]; then
                       cd $forgepath
                       git pull
