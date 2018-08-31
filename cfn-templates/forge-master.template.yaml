@@ -43,7 +43,7 @@ Metadata:
         InternalSubnet:
           default: Internal subnet Id
         InternetAccessible:
-          default: ELB accessible from the internet
+          default: Load balancer accessible from the internet
         CidrBlock:
           default: IP range permitted to access forge
         HostedZone:
@@ -125,7 +125,7 @@ Parameters:
       - false
     ConstraintDescription: Must be 'true' or 'false'.
     Default: false
-    Description: Whether the ELB can be accessed from the internet
+    Description: Whether the load balancer can be accessed from the internet
     Type: String
   KeyName:
     ConstraintDescription: must be the name of an existing EC2 KeyPair.

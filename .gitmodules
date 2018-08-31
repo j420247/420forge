@@ -1,4 +1,4 @@
 [submodule "atlassian-aws-deployment"]
 	path = atlassian-aws-deployment
-	url = git@bitbucket.org:atlassian/atlassian-aws-deployment.git
+	url = https://bitbucket.org/atlassian/atlassian-aws-deployment.git
     ignore = all
