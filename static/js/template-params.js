@@ -158,7 +158,7 @@ function getEbsSnapshots(region, stackToRetrieve) {
                 var anchor = document.createElement("A");
                 anchor.className = "selectEbsSnapshotOption";
                 var text = document.createTextNode(ebsSnaps[snap]);
-                anchor.appendChild(text)
+                anchor.appendChild(text);
                 li.appendChild(anchor);
                 ebsSnapDropdown.appendChild(li);
             }
@@ -237,7 +237,7 @@ function setSubnets(region) {
     if (region === 'us-west-2') { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-    } else {
+    } else if (region === 'us-west-2') {
         document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
     }
