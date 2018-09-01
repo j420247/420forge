@@ -189,12 +189,12 @@ def cloneJson():
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
 
     # remove any params that are not in the Clone template
-    template_file = open(f'atlassian-aws-deployment/templates/{app_type}Clone.template.yaml', "r")
+    template_file = open(f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml', "r")
     yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
     template_params = yaml.safe_load(template_file)['Parameters']
     params_to_send = []
     for param in content:
-        if next((template_param for template_param in template_params if template_param['ParameterKey'] == param['ParameterKey']), None):
+        if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
             params_to_send.append(param)
 
     mystack = get_or_create_stack_obj(region, stack_name)
