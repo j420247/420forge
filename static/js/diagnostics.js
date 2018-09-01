@@ -46,4 +46,19 @@ function heapDumps() {
 function dlThreadDumps(s3Bucket) {
     var stack_name = $("#stackName").text();
     // s3Bucket/diagnostics/stack_name/
+    var dlThreadDumpLinksRequest = new XMLHttpRequest();
+    dlThreadDumpLinksRequest.open("GET", baseUrl + "/dogetthreaddumplinks/" + stack_name, true);
+    dlThreadDumpLinksRequest.setRequestHeader("Content-Type", "text/xml");
+    dlThreadDumpLinksRequest.onreadystatechange = function () {
+        if (dlThreadDumpLinksRequest.readyState === XMLHttpRequest.DONE && dlThreadDumpLinksRequest.status === 200) {
+            for (url in json.parse(dlThreadDumpLinksRequest.responseText)) {
+                $.ajax({
+                    success: function (url) {
+                        $('<iframe>', {id: 'idown', src: url}).hide().appendTo('body').click();
+                    }
+                })
+            }
+        }
+    };
+    dlThreadDumpLinksRequest.send();
 }

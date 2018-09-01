@@ -265,6 +265,37 @@ class dothreaddumps(RestrictedResource):
         return
 
 
+class dogetthreaddumplinks(RestrictedResource):
+    def get(self, stack_name):
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        s3_bucket = config['s3']['bucket']
+        urls = []
+        try:
+            client = boto3.client('cloudformation', region_name=session['region'])
+            list_objects = client.list_objects_v2(
+                Bucket=s3_bucket,
+                Delimiter='string',
+                EncodingType='url',
+                MaxKeys=123,
+                StartAfter=f'diagnostics/{stack_name}'
+            )
+
+            for thread_dump in list_objects:
+                url = client.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params={
+                        'Bucket': s3_bucket,
+                        'Key': thread_dump
+                    }
+                )
+                urls.append(url)
+        except Exception as e:
+            print(e.args[0])
+            return [e]
+        return urls
+
+
 class doheapdumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = get_or_create_stack_obj(region, stack_name)
@@ -715,6 +746,7 @@ api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<thr
 api.add_resource(docreate, '/docreate')
 api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
+api.add_resource(dogetthreaddumplinks, '/dogetthreaddumplinks/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
 api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(dotag, '/dotag/<region>/<stack_name>')
