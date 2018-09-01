@@ -5,7 +5,11 @@ function onReady() {
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
             $("#threadDumpBtn").attr("aria-disabled", false);
+            $("#threadDumpBtn").removeAttr("disabled");
+            $("#dlThreadDumpBtn").attr("aria-disabled", false);
+            $("#dlThreadDumpBtn").removeAttr("disabled");
             $("#heapDumpBtn").attr("aria-disabled", false);
+            $("#heapDumpBtn").removeAttr("disabled");
             selectStack(data.target.text);
         }, false);
     }
@@ -37,4 +41,9 @@ function heapDumps() {
         // Redirect to action progress screen
         window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
+}
+
+function dlThreadDumps(s3Bucket) {
+    var stack_name = $("#stackName").text();
+    // s3Bucket/diagnostics/stack_name/
 }

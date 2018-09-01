@@ -6,10 +6,11 @@
 
 {% block extraInput %}
 <div class="aui-panel">
-    {#  Thread dumps #}
-    <button class="aui-button" id="threadDumpBtn" aria-disabled="true" onclick="threadDumps()"><span class="aui-icon aui-icon-small aui-iconfont-location"></span> Thread dumps</button>
-    {#  Heap dumps #}
-    <button class="aui-button" id="heapDumpBtn"  aria-disabled="true" onclick="heapDumps()"><span class="aui-icon aui-icon-small aui-iconfont-clone-small"></span> Heap dumps</button>
+    <button class="aui-button" id="threadDumpBtn" aria-disabled="true" onclick="threadDumps()" disabled><span class="aui-icon aui-icon-small aui-iconfont-location"></span> Take thread dumps</button>
+    <button class="aui-button" id="dlThreadDumpBtn" aria-disabled="true" onclick="dlThreadDumps({{ session['s3_bucket'] }})" disabled><span class="aui-icon aui-icon-small aui-iconfont-download"></span> Download thread dumps</button>
+</div>
+<div class="aui-panel">
+    <button class="aui-button" id="heapDumpBtn"  aria-disabled="true" onclick="heapDumps()" disabled><span class="aui-icon aui-icon-small aui-iconfont-clone-small"></span> Take heap dumps</button>
 </div>
 {% endblock extraInput %}
 

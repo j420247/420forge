@@ -5,8 +5,6 @@ function onReady() {
 
     for (var i = 0; i < stacks.length; i ++) {
         stacks[i].addEventListener("click", function (data) {
-            $("#threadDumpBtn").attr("aria-disabled", false);
-            $("#heapDumpBtn").attr("aria-disabled", false);
             $("#log").css("background", "rgba(0,20,70,.08)");
             selectStack(data.target.text);
 
