@@ -162,14 +162,15 @@ function performAction(version) {
     }, 1000);
 }
 
-function updateStats(stack_name) {
+function updateStats(stack_name, stack_region) {
     if (stack_name === 'actionreadytostart') return;
+    if (! stack_region) stack_region = region;
 
     // clean up previous run
     removeElementsByClass("aui-lozenge");
 
     var serviceStatusRequest = new XMLHttpRequest();
-    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
+    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + stack_region + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     serviceStatusRequest.onreadystatechange = function () {
         if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
@@ -179,7 +180,7 @@ function updateStats(stack_name) {
     $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" ></aui-spinner>");
 
     var stackStateRequest = new XMLHttpRequest();
-    stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + stack_region + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
@@ -196,7 +197,7 @@ function updateStats(stack_name) {
     stackStateRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
-    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + stack_region + "/" + stack_name, true);
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
@@ -215,7 +216,7 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.send();
 
     var getVersionRequest = new XMLHttpRequest();
-    getVersionRequest.open("GET", baseUrl + "/getVersion/" + region + "/" + stack_name, true);
+    getVersionRequest.open("GET", baseUrl + "/getVersion/" + stack_region + "/" + stack_name, true);
     getVersionRequest.setRequestHeader("Content-Type", "text/xml");
     getVersionRequest.onreadystatechange = function () {
         if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
@@ -227,7 +228,7 @@ function updateStats(stack_name) {
     getVersionRequest.send();
 
     var getNodesRequest = new XMLHttpRequest();
-    getNodesRequest.open("GET", baseUrl + "/getNodes/" + region + "/" + stack_name, true);
+    getNodesRequest.open("GET", baseUrl + "/getNodes/" + stack_region + "/" + stack_name, true);
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {

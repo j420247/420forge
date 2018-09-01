@@ -307,9 +307,13 @@ function sendParamsAsJson() {
     jsonArray.push(origParams);
     xhr.send(JSON.stringify(jsonArray));
 
+    var appendRegion = "";
+    if (action === 'clone')
+        appendRegion = "&region=" + document.getElementById("regionSelector").innerText;
+
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction + appendRegion;
     }, 1000);
 }
