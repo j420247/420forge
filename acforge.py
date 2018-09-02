@@ -342,7 +342,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator)
+        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator, region=session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome

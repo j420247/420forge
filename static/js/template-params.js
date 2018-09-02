@@ -219,10 +219,10 @@ function getVPCs(region, div) {
             var vpcs = JSON.parse(vpcsRequest.responseText);
 
             // Set default VPC and subnets for region
-            var defaultVpc = "";
-            if (region === 'us-west-2')
+            var defaultVpc;
+            if (region === 'us-west-2' && us_west_2_default_vpc !== "")
                 defaultVpc = us_west_2_default_vpc;
-            else
+            else if (region === 'us-east-1' && us_east_1_default_vpc !== "")
                 defaultVpc = us_east_1_default_vpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
             setSubnets(region);
@@ -281,7 +281,10 @@ function sendParamsAsJson() {
             else
                 value = document.getElementById("DBSnapshotNameVal").value;
         } else if (param == "Region") {
-            value = document.getElementById("regionSelector").innerText;
+            if (action === 'clone')
+                value = document.getElementById("regionSelector").innerText;
+            else
+                value = region;
         } else {
             var element = document.getElementById(param + "Val");
             if (element.tagName.toLowerCase() === "a") {
