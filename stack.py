@@ -236,7 +236,7 @@ class Stack:
         self.state.logaction(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
         while stack_state == in_progress_state:
-            time.sleep(60)
+            time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
             self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
@@ -576,7 +576,7 @@ class Stack:
         deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator):
+            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator, region=region):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -631,9 +631,9 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, template_filename, app_type, creator, like_stack=None, like_region=None):
+    def create(self, parms, template_filename, app_type, creator, region, like_stack=None):
         if like_stack:
-            self.get_current_state(like_stack, like_region)
+            self.get_current_state(like_stack, region)
             stack_parms = self.state.stackstate['stack_parms']
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         elif parms:
@@ -643,7 +643,7 @@ class Stack:
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
         template = f'atlassian-aws-deployment/templates/{template_filename}'
         self.upload_template(template, template_filename)
-        cfn = boto3.client('cloudformation', region_name=self.region)
+        cfn = boto3.client('cloudformation', region_name=region)
         config = configparser.ConfigParser()
         config.read('forge.properties')
         s3_bucket = config['s3']['bucket']

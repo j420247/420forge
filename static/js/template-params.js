@@ -116,7 +116,10 @@ function createInputParameter(param, fieldset) {
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
             region = document.getElementById("regionSelector").innerText.trim();
-        getVPCs(region, div);
+        if (action === 'update')
+            getVPCs(region, div, param.ParameterValue);
+        else
+            getVPCs(region, div);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -125,18 +128,18 @@ function createInputParameter(param, fieldset) {
 
         if ((action === 'clone' || action === 'create')
             && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
-            input.setAttribute("data-aui-validation-field","");
-            input.type="password";
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "password";
             input.value = "";
             input.required = true;
-        } else if (param.ParameterKey === "KeyName") {
+        }
+        else if (param.ParameterKey.indexOf("Subnets") !== -1) {
             input.setAttribute("data-aui-validation-field","");
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
-            input.required = true;
-        } else if (param.ParameterKey === "HostedZone") {
-            input.setAttribute("data-aui-validation-field","");
+        } else if (param.ParameterKey === "HostedZone" && hosted_zone !== "") {
             input.value = hosted_zone;
-            input.required = true;
         }
         div.appendChild(input);
     }
@@ -160,7 +163,7 @@ function getEbsSnapshots(region, stackToRetrieve) {
                 var anchor = document.createElement("A");
                 anchor.className = "selectEbsSnapshotOption";
                 var text = document.createTextNode(ebsSnaps[snap]);
-                anchor.appendChild(text)
+                anchor.appendChild(text);
                 li.appendChild(anchor);
                 ebsSnapDropdown.appendChild(li);
             }
@@ -209,7 +212,7 @@ function getRdsSnapshots(region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function getVPCs(region, div) {
+function  getVPCs(region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
@@ -224,10 +227,12 @@ function getVPCs(region, div) {
 
             // Set default VPC and subnets for region
             var defaultVpc = "";
-            if (region === 'us-west-2')
+            if (region === 'us-west-2' && us_west_2_default_vpc !== "")
                 defaultVpc = us_west_2_default_vpc;
-            else
+            else if (region === 'us-east-1' && us_east_1_default_vpc !== "")
                 defaultVpc = us_east_1_default_vpc;
+            if (existingVpc)
+                defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
             setSubnets(region);
         }
@@ -236,10 +241,10 @@ function getVPCs(region, div) {
 }
 
 function setSubnets(region) {
-    if (region === 'us-west-2') { //TODO get default subnets betterer
+    if (region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-    } else {
+    } else if (region === 'us-east-1' && us_east_1_default_subnets !== "") {
         document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
     }
@@ -285,7 +290,10 @@ function sendParamsAsJson() {
             else
                 value = document.getElementById("DBSnapshotNameVal").value;
         } else if (param == "Region") {
-            value = document.getElementById("regionSelector").innerText;
+            if (action === 'clone')
+                value = document.getElementById("regionSelector").innerText;
+            else
+                value = region;
         } else {
             var element = document.getElementById(param + "Val");
             if (element.tagName.toLowerCase() === "a") {
@@ -309,9 +317,13 @@ function sendParamsAsJson() {
     jsonArray.push(origParams);
     xhr.send(JSON.stringify(jsonArray));
 
+    var appendRegion = "";
+    if (action === 'clone')
+        appendRegion = "&region=" + document.getElementById("regionSelector").innerText;
+
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction + appendRegion;
     }, 1000);
 }

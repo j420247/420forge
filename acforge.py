@@ -175,23 +175,33 @@ def cloneJson():
         if param['ParameterKey'] == 'Region':
             region = param['ParameterValue']
         elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
+            app_type = 'Confluence'
         elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
+            app_type = 'Jira'
         elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'crowd'
+            app_type = 'Crowd'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
 
+    #remove region from params to send
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+
+    # remove any params that are not in the Clone template
+    template_file = open(f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml', "r")
+    yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+    template_params = yaml.safe_load(template_file)['Parameters']
+    params_to_send = []
+    for param in content:
+        if param['ParameterKey'] == 'StackName' or next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
+            params_to_send.append(param)
 
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
     creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region, creator=creator)
+    outcome = mystack.clone(params_to_send, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
     mystack.clear_current_action()
     return outcome
 
@@ -332,7 +342,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator)
+        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator, region=session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
