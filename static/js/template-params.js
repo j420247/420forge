@@ -116,7 +116,10 @@ function createInputParameter(param, fieldset) {
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
             region = document.getElementById("regionSelector").innerText.trim();
-        getVPCs(region, div);
+        if (action === 'update')
+            getVPCs(region, div, param.ParameterValue);
+        else
+            getVPCs(region, div);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -125,9 +128,13 @@ function createInputParameter(param, fieldset) {
 
         if ((action === 'clone' || action === 'create')
             && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
-            input.setAttribute("data-aui-validation-field","");
-            input.type="password";
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "password";
             input.value = "";
+            input.required = true;
+        }
+        else if (param.ParameterKey.indexOf("Subnets") !== -1) {
+            input.setAttribute("data-aui-validation-field","");
             input.required = true;
         } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
@@ -205,7 +212,7 @@ function getRdsSnapshots(region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function getVPCs(region, div) {
+function  getVPCs(region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
@@ -219,11 +226,13 @@ function getVPCs(region, div) {
             var vpcs = JSON.parse(vpcsRequest.responseText);
 
             // Set default VPC and subnets for region
-            var defaultVpc;
+            var defaultVpc = "";
             if (region === 'us-west-2' && us_west_2_default_vpc !== "")
                 defaultVpc = us_west_2_default_vpc;
             else if (region === 'us-east-1' && us_east_1_default_vpc !== "")
                 defaultVpc = us_east_1_default_vpc;
+            if (existingVpc)
+                defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
             setSubnets(region);
         }
