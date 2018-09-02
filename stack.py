@@ -236,7 +236,7 @@ class Stack:
         self.state.logaction(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
         while stack_state == in_progress_state:
-            time.sleep(60)
+            time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
             self.state.logaction(log.ERROR,f'Stack action was rolled back: {stack_state}')
