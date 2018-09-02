@@ -232,10 +232,10 @@ function getVPCs(region, div) {
 }
 
 function setSubnets(region) {
-    if (region === 'us-west-2') { //TODO get default subnets betterer
+    if (region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-    } else if (region === 'us-west-2') {
+    } else if (region === 'us-east-1' && us_east_1_default_subnets !== "") {
         document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
     }
