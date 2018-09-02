@@ -129,11 +129,9 @@ function createInputParameter(param, fieldset) {
             input.type="password";
             input.value = "";
             input.required = true;
-        } else if (param.ParameterKey === "KeyName") {
-            input.setAttribute("data-aui-validation-field","");
+        } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
-            input.required = true;
-        } else if (param.ParameterKey === "HostedZone") {
+        } else if (param.ParameterKey === "HostedZone" && hosted_zone !== "") {
             input.value = hosted_zone;
         }
         div.appendChild(input);
