@@ -241,6 +241,12 @@ function  getVPCs(region, div, existingVpc) {
 }
 
 function setSubnets(region) {
+    // blank subnets if clone
+    if (action === 'clone') {
+        document.getElementById("ExternalSubnetsVal").value = "";
+        document.getElementById("InternalSubnetsVal").value = "";
+    }
+    // get defaults for regions
     if (region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
