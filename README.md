@@ -4,7 +4,7 @@ Atlassian CloudFormation Forge is a tool which enables the creation and manageme
 
 We (the IT Operations team at Atlassian) built this tool internally to unlock product teams to allow them to manage their own instances of Confluence, Jira, and Crowd without having access to AWS itself (which is managed by our team).
 
-This README outlines how to deploy Forge to AWS and how to run locally for testing and development.
+This README outlines how to deploy Forge to AWS and how to run locally for testing and development. For an overview of Forge itself, including a list of actions possible through Forge, see [the public announcement](https://community.atlassian.com/t5/Data-Center-articles/Introducing-Atlassian-CloudFormation-Forge/ba-p/881551).
 
 ## Deploying to AWS
 
@@ -103,6 +103,8 @@ Mac OS:
 `brew install libxml2 libxmlsec1`
 
 You'll also need to have already deployed the CloudFormation template or configured the metadata protocol and URL for your SAML provider as keys in AWS Systems Manager Parameter Store (`atl_forge_saml_metadata_protocol` and `atl_forge_saml_metadata_url`, respectively).
+
+For information about enabling SAML auth, see [Forge: enabling SAML](https://confluence.atlassian.com/kb/forge-enabling-saml-957138587.html).
 
 ### Run
 
