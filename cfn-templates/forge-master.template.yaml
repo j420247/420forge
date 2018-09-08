@@ -255,6 +255,7 @@ Resources:
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
+                - kms:*
                 - rds:CreateDBInstance
                 - rds:CreateDBSubnetGroup
                 - rds:DeleteDBInstance
