@@ -106,7 +106,7 @@ class Stack:
         config.read('forge.properties')
         logs_bucket = f"{config['s3']['bucket']}/logs"
         ssm = boto3.client('ssm', region_name=self.region)
-        sudo_cmd = f'sudo -u {app_type} {cmd}' if self.app_type else f'sudo {cmd}'
+        sudo_cmd = f'sudo -u {self.app_type} {cmd}' if self.app_type else f'sudo {cmd}'
         ssm_command = ssm.send_command(
             InstanceIds=[instance],
             DocumentName='AWS-RunShellScript',
@@ -648,6 +648,7 @@ class Stack:
         config = configparser.ConfigParser()
         config.read('forge.properties')
         s3_bucket = config['s3']['bucket']
+        self.app_type = app_type
         try:
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
