@@ -26,6 +26,8 @@ Metadata:
             default: Forge config
           Parameters:
             - Analytics
+            - CustomTemplateRepo
+            - CustomTemplateGitKey
             - Nodes
             - FlaskSecretKey
             - Regions
@@ -34,6 +36,10 @@ Metadata:
       ParameterLabels:
         Analytics:
           default: Enable analytics
+        CustomTemplateRepo:
+          default: Custom Cloudformation template repository
+        CustomTemplateGitKey:
+          default: Git key for custom template repository
         DRRegion:
           default: Disaster recovery region
         FlaskSecretKey:
@@ -80,6 +86,12 @@ Parameters:
     Type: String
     MinLength: 9
     MaxLength: 18
+  CustomTemplateRepo:
+    Description: To make additional Cloudformation templates available in Forge, provide repo location to git clone (ie git@bitbucket.org:atlassian/custom-templates.git)
+    Type: String
+  CustomTemplateGitKey:
+    Description: If your custom template repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
+    Type: String
   DRRegion:
     Default: not-using-backupmachine
     AllowedValues:
@@ -354,7 +366,26 @@ Resources:
 
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
+
+                  # apply git key if entered
+                  if [[ -n "${CustomTemplateGitKey}" ]]
+                    gitkeylocation=/root/.ssh/gitkey
+                    gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                    echo -e $gitkey > $gitkeylocation
+                    chmod 600 $gitkeylocation
+                    export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                  fi
+
+                  # clone custom template repo
+                  if [[ -n "${CustomTemplateRepo}" ]]
+                    mkdir /home/forge/custom-templates
+                    cd /home/forge/custom-templates
+                    git clone "${CustomTemplateRepo}"
+                  fi
+
                 - AccountId: !Ref AWS::AccountId
+                  CustomTemplateRepo: !Ref CustomTemplateRepo
+                  CustomTemplateGitKey: !Ref CustomTemplateGitKey
                   region: !Ref AWS::Region
               mode: "000700"
               owner: root

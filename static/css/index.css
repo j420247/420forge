@@ -24,3 +24,7 @@ img {
 #paramsList {
     min-height: 100px;
 }
+
+#templateSelection, #templates {
+    min-width: 500px;
+}

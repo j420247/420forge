@@ -642,12 +642,12 @@ class Stack:
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
         template = f'atlassian-aws-deployment/templates/{template_filename}'
-        self.upload_template(template, template_filename)
-        cfn = boto3.client('cloudformation', region_name=region)
-        config = configparser.ConfigParser()
-        config.read('forge.properties')
-        s3_bucket = config['s3']['bucket']
         try:
+            self.upload_template(template, template_filename)
+            cfn = boto3.client('cloudformation', region_name=region)
+            config = configparser.ConfigParser()
+            config.read('forge.properties')
+            s3_bucket = config['s3']['bucket']
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,

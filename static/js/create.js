@@ -28,7 +28,7 @@ function getTemplates(product) {
                 var li = document.createElement("LI");
                 var anchor = document.createElement("A");
                 anchor.className = "selectTemplateOption";
-                var text = document.createTextNode(templates[template]);
+                var text = document.createTextNode(templates[template][0] + ": " + templates[template][1]);
                 anchor.appendChild(text);
                 li.appendChild(anchor);
                 templateDropdown.appendChild(li);
@@ -51,8 +51,11 @@ function getTemplate(template) {
     $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
     $("#stack-name-input").hide();
 
+    var repo = template.split(": ")[0];
+    var template_name = template.split(": ")[1];
+
     var templateParamsRequest = new XMLHttpRequest();
-    templateParamsRequest.open("GET", baseUrl + "/templateParams/" + template, true);
+    templateParamsRequest.open("GET", baseUrl + "/templateParams/" + repo + "/" + template_name, true);
     templateParamsRequest.setRequestHeader("Content-Type", "text/xml");
     templateParamsRequest.onreadystatechange = function () {
         if (templateParamsRequest.readyState === XMLHttpRequest.DONE && templateParamsRequest.status === 200) {

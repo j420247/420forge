@@ -425,8 +425,13 @@ class stackState(Resource):
         return stack_state['Stacks'][0]['StackStatus']
 
 class templateParams(Resource):
-    def get(self, template_name):
-        template_file = open(f'atlassian-aws-deployment/templates/{template_name}', "r")
+    def get(self, repo_name, template_name):
+        if 'atlassian-aws-deployment' in repo_name:
+            template_file = open(f"atlassian-aws-deployment/templates/{template_name}", "r")
+        else:
+            for file in list(Path(f'../custom-templates/{repo_name}').glob(f'**/*.yaml')):
+                if file.name in template_name:
+                    template_file = open(file._str, "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -620,11 +625,17 @@ class getTemplates(Resource):
     def get(self, product):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
+        custom_template_folder = Path('../custom-templates')
         for file in list(template_folder.glob(f'**/{product}*.yaml')):
             # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
-            templates.extend([file.name])
+            templates.append(('atlassian-aws-deployment', file.name))
+        if custom_template_folder.exists():
+            for file in list(custom_template_folder.glob(f'**/*/{product}/{product}*.yaml')):
+                if 'Server' in file.name:
+                    continue
+                templates.append((file.parent.parent.name, file.name))
         templates.sort()
         return templates
 
@@ -734,7 +745,7 @@ api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(stackState, '/stackState/<region>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>')
-api.add_resource(templateParams, '/templateParams/<template_name>')
+api.add_resource(templateParams, '/templateParams/<repo_name>/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
