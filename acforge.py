@@ -622,17 +622,29 @@ class getRdsSnapshots(Resource):
 
 
 class getTemplates(Resource):
-    def get(self, product):
+    def get(self, template_type):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
         custom_template_folder = Path('../custom-templates')
-        for file in list(template_folder.glob(f"**/{product if product != 'all' else ''}*.yaml")):
+        # get default templates
+        if template_type == 'all':
+            default_templates = list(template_folder.glob(f"**/*.yaml"))
+        else:
+            default_templates = list(template_folder.glob(f"**/*{template_type}*.yaml"))
+        for file in default_templates:
             # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
             templates.append(('atlassian-aws-deployment', file.name))
+        # get custom templates
         if custom_template_folder.exists():
-            for file in list(custom_template_folder.glob(f"**/*/{product if product != 'all' else '*'}/{product if product != 'all' else ''}*.yaml")):
+            if template_type == 'all':
+                custom_templates = list(custom_template_folder.glob(f"**/*/*/*.yaml"))
+            elif template_type == 'Clone':
+                custom_templates = list(custom_template_folder.glob(f"**/*/*/*{template_type}*.yaml"))
+            else:
+                custom_templates = list(custom_template_folder.glob(f"**/*/{template_type}/*{template_type}*.yaml"))
+            for file in custom_templates:
                 if 'Server' in file.name:
                     continue
                 templates.append((file.parent.parent.name, file.name))
@@ -757,7 +769,7 @@ api.add_resource(getTags, '/getTags/<region>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
-api.add_resource(getTemplates, '/getTemplates/<product>')
+api.add_resource(getTemplates, '/getTemplates/<template_type>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')

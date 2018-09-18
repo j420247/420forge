@@ -1,5 +1,6 @@
 function onReady() {
     readyTheTemplate();
+    getTemplates("Clone");
     var regions = document.getElementsByClassName("selectRegionOption");
     for (var i = 0; i < regions.length; i++) {
         regions[i].addEventListener("click", function (data) {

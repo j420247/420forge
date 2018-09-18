@@ -22,10 +22,6 @@ function readyTheTemplate() {
         sendParamsAsJson();
         event.preventDefault();
     });
-
-    if (action !== 'create') {
-        getTemplates("all");
-    }
 }
 
 function onReady() {
