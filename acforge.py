@@ -626,13 +626,13 @@ class getTemplates(Resource):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
         custom_template_folder = Path('../custom-templates')
-        for file in list(template_folder.glob(f'**/{product}*.yaml')):
+        for file in list(template_folder.glob(f"**/{product if product != 'all' else ''}*.yaml")):
             # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
             templates.append(('atlassian-aws-deployment', file.name))
         if custom_template_folder.exists():
-            for file in list(custom_template_folder.glob(f'**/*/{product}/{product}*.yaml')):
+            for file in list(custom_template_folder.glob(f"**/*/{product if product != 'all' else '*'}/{product if product != 'all' else ''}*.yaml")):
                 if 'Server' in file.name:
                     continue
                 templates.append((file.parent.parent.name, file.name))
