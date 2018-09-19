@@ -567,7 +567,7 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type, instance_type, region, creator):
+    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
         self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
@@ -576,7 +576,7 @@ class Stack:
         deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator, region=region):
+            if self.create(parms=stack_parms, template_file=template_file, app_type=app_type, creator=creator, region=region):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -589,10 +589,10 @@ class Stack:
         return True
 
 
-    def update(self, stack_parms, instance_type, deploy_type):
+    def update(self, stack_parms, template_file, instance_type, deploy_type):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
-        template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
-        template= f'atlassian-aws-deployment/templates/{template_filename}'
+        template_filename = template_file.name
+        template= f'{template_file.path}/{template_filename.name}'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()

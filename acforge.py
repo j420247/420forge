@@ -194,11 +194,11 @@ def cloneJson():
 
     # remove any params that are not in the Clone template
     if template_name:
-        template_file = open(template_name)
+        template_file = get_template_file(template_name)
     else:
-        template_file = open(f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml', "r")
+        template_file = f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml'
     yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
-    template_params = yaml.safe_load(template_file)['Parameters']
+    template_params = yaml.safe_load(open(template_file, 'r'))['Parameters']
     params_to_send = []
     for param in content:
         if param['ParameterKey'] == 'StackName' or next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
@@ -208,7 +208,7 @@ def cloneJson():
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
     creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-    outcome = mystack.clone(params_to_send, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
+    outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
     mystack.clear_current_action()
     return outcome
 
@@ -377,6 +377,8 @@ def updateJson():
             return f'Stack {stack_name} does not exist'
         print(e.args[0])
 
+    template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
+
     for param in new_params:
         # if param was not in previous template, always pass it in the change set
         if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
@@ -400,7 +402,7 @@ def updateJson():
             params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
         deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, instance_type, deploy_type)
+    outcome = mystack.update(params_for_update, get_template_file(template_name), instance_type, deploy_type)
     mystack.clear_current_action()
     return outcome
 
