@@ -631,7 +631,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, template_filename, app_type, creator, region, like_stack=None):
+    def create(self, parms, template_file, app_type, creator, region, like_stack=None):
         if like_stack:
             self.get_current_state(like_stack, region)
             stack_parms = self.state.stackstate['stack_parms']
@@ -641,9 +641,9 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        template = f'atlassian-aws-deployment/templates/{template_filename}'
+        template = template_file._str
         try:
-            self.upload_template(template, template_filename)
+            self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
             config = configparser.ConfigParser()
             config.read('forge.properties')
@@ -652,7 +652,7 @@ class Stack:
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_filename}',
+                TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_file.name}',
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=[{
                         'Key': 'product',

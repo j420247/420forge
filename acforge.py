@@ -21,6 +21,7 @@ from sys import argv
 import configparser
 import os
 from version import __version__
+import glob
 
 # global configuration
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
@@ -348,7 +349,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator, region=session['region'])
+        outcome = mystack.create(parms=params_for_create, template_file=get_template_file(template_name), app_type=app_type, creator=creator, region=session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
@@ -435,9 +436,9 @@ class templateParams(Resource):
         if 'atlassian-aws-deployment' in repo_name:
             template_file = open(f"atlassian-aws-deployment/templates/{template_name}", "r")
         else:
-            for file in list(Path(f'../custom-templates/{repo_name}').glob(f'**/*.yaml')):
-                if file.name in template_name:
-                    template_file = open(file._str, "r")
+            for file in glob.glob(f'../custom-templates/{repo_name}/**/*.yaml'):
+                if template_name in file:
+                    template_file = open(file, "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -475,13 +476,7 @@ class templateParamsForStack(Resource):
         else:
             return 'tag-error'
 
-        # get template and its parameters
-        if 'atlassian-aws-deployment' in template_name:
-            template_folder = Path('atlassian-aws-deployment/templates')
-        else:
-            template_folder = Path('../custom-templates')
-        templates = list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))
-        template_file = open(templates[0], "r")
+        template_file = open(get_template_file(template_name), "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -831,6 +826,14 @@ def check_loggedin():
 
 def general_constructor(loader, tag_suffix, node):
     return node.value
+
+
+def get_template_file(template_name):
+    if 'atlassian-aws-deployment' in template_name:
+        template_folder = Path('atlassian-aws-deployment/templates')
+    else:
+        template_folder = Path('../custom-templates')
+    return list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))[0]
 
 
 def get_regions():

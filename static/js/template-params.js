@@ -344,7 +344,7 @@ function sendParamsAsJson() {
         stackNameForAction = document.getElementById("StackNameVal").value
     }
 
-    if ($("#templateSelector").isVisible()) {
+    if ($("#templateSelector").is(':visible')) {
         // Add template name to params
         templateNameParam["ParameterKey"] = "TemplateName";
         templateNameParam["ParameterValue"] = $("#templateSelector").text();
