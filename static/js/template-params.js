@@ -8,7 +8,6 @@ function readyTheTemplate() {
             stack_name = data.target.text;
             $("#aui-message-bar").hide();
             selectStack(stack_name);
-            selectTemplateForStack(stack_name);
         }, false);
     }
 
@@ -28,9 +27,9 @@ function onReady() {
     readyTheTemplate();
 }
 
-function getTemplates(product) {
+function getTemplates(template_type) {
     var getTemplatesRequest = new XMLHttpRequest();
-    getTemplatesRequest.open("GET", baseUrl + "/getTemplates/" + product, true);
+    getTemplatesRequest.open("GET", baseUrl + "/getTemplates/" + template_type, true);
     getTemplatesRequest.setRequestHeader("Content-Type", "text/xml");
     getTemplatesRequest.onreadystatechange = function () {
         if (getTemplatesRequest.readyState === XMLHttpRequest.DONE && getTemplatesRequest.status === 200) {
@@ -55,7 +54,10 @@ function getTemplates(product) {
                 templates[i].addEventListener("click", function (data) {
                     var selectedTemplate = data.target.text;
                     $("#templateSelector").text(selectedTemplate);
-                    getTemplateParams(selectedTemplate);
+                    if (action === 'create')
+                        getTemplateParams(selectedTemplate);
+                    else
+                        selectTemplateForStack(stack_name, selectedTemplate);
                 }, false);
             }
         }
@@ -97,7 +99,7 @@ function getTemplateParams(template) {
     templateParamsRequest.send();
 }
 
-function selectTemplateForStack(stackToRetrieve) {
+function selectTemplateForStack(stackToRetrieve, templateName) {
     if (document.getElementById("clone-params"))
         $("#clone-params").hide();
     $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
@@ -111,7 +113,7 @@ function selectTemplateForStack(stackToRetrieve) {
     }
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + region + "/" + stackToRetrieve, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + region + "/" + stackToRetrieve + "/" + templateName, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
@@ -342,7 +344,7 @@ function sendParamsAsJson() {
         stackNameForAction = document.getElementById("StackNameVal").value
     }
 
-    if (action === 'create') {
+    if ($("#templateSelector").isVisible()) {
         // Add template name to params
         templateNameParam["ParameterKey"] = "TemplateName";
         templateNameParam["ParameterValue"] = $("#templateSelector").text();
