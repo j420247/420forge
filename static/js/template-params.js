@@ -186,11 +186,9 @@ function createInputParameter(param, fieldset) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
-            region = document.getElementById("regionSelector").innerText.trim();
-        if (action === 'update')
-            getVPCs(region, div, param.ParameterValue);
+            getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
         else
-            getVPCs(region, div);
+            getVPCs(region, div, param.ParameterValue);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -217,14 +215,14 @@ function createInputParameter(param, fieldset) {
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(region, stackToRetrieve) {
+function getEbsSnapshots(clone_region, stackToRetrieve) {
     var ebsSnapDropdown = document.getElementById("ebsSnapshots");
     while (ebsSnapDropdown.firstChild) {
         ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
     }
 
     var ebsSnapshotRequest = new XMLHttpRequest();
-    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + region + "/" + stackToRetrieve, true);
+    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + clone_region + "/" + stackToRetrieve, true);
     ebsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     ebsSnapshotRequest.onreadystatechange = function () {
         if (ebsSnapshotRequest.readyState === XMLHttpRequest.DONE && ebsSnapshotRequest.status === 200) {
@@ -250,14 +248,14 @@ function getEbsSnapshots(region, stackToRetrieve) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(region, stackToRetrieve) {
+function getRdsSnapshots(clone_region, stackToRetrieve) {
     var rdsSnapDropdown = document.getElementById("rdsSnapshots");
     while (rdsSnapDropdown.firstChild) {
         rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
     }
 
     var rdsSnapshotRequest = new XMLHttpRequest();
-    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + region + "/" + stackToRetrieve, true);
+    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + clone_region + "/" + stackToRetrieve, true);
     rdsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     rdsSnapshotRequest.onreadystatechange = function () {
         if (rdsSnapshotRequest.readyState === XMLHttpRequest.DONE && rdsSnapshotRequest.status === 200) {
@@ -283,14 +281,14 @@ function getRdsSnapshots(region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function  getVPCs(region, div, existingVpc) {
+function  getVPCs(vpc_region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
         div.removeChild(document.getElementById("VPCDropdownDiv"));
 
     var vpcsRequest = new XMLHttpRequest();
-    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + region, true);
+    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + vpc_region, true);
     vpcsRequest.setRequestHeader("Content-Type", "text/xml");
     vpcsRequest.onreadystatechange = function () {
         if (vpcsRequest.readyState === XMLHttpRequest.DONE && vpcsRequest.status === 200) {
@@ -298,30 +296,30 @@ function  getVPCs(region, div, existingVpc) {
 
             // Set default VPC and subnets for region
             var defaultVpc = "";
-            if (region === 'us-west-2' && us_west_2_default_vpc !== "")
+            if (vpc_region === 'us-west-2' && us_west_2_default_vpc !== "")
                 defaultVpc = us_west_2_default_vpc;
-            else if (region === 'us-east-1' && us_east_1_default_vpc !== "")
+            else if (vpc_region === 'us-east-1' && us_east_1_default_vpc !== "")
                 defaultVpc = us_east_1_default_vpc;
             if (existingVpc)
                 defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
-            setSubnets(region);
+            setSubnets(vpc_region);
         }
     };
     vpcsRequest.send();
 }
 
-function setSubnets(region) {
+function setSubnets(subnets_region) {
     // blank subnets if clone
     if (action === 'clone') {
         document.getElementById("ExternalSubnetsVal").value = "";
         document.getElementById("InternalSubnetsVal").value = "";
     }
     // get defaults for regions
-    if (region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
+    if (subnets_region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-    } else if (region === 'us-east-1' && us_east_1_default_subnets !== "") {
+    } else if (subnets_region === 'us-east-1' && us_east_1_default_subnets !== "") {
         document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
     }
