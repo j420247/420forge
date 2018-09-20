@@ -212,6 +212,12 @@ function createInputParameter(param, fieldset) {
         }
         div.appendChild(input);
     }
+    if (param.ParameterDescription) {
+        var description = document.createElement("DIV");
+        description.className = "description";
+        description.innerText = param.ParameterDescription;
+        div.appendChild(description);
+    }
     fieldset.appendChild(div);
 }
 

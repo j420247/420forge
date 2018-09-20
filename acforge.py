@@ -442,7 +442,8 @@ class templateParams(Resource):
         params_to_send = []
         for param in template_params:
             params_to_send.append({'ParameterKey': param,
-                                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else ''})
+                                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
+                                    'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else ''})
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
@@ -497,6 +498,10 @@ class templateParamsForStack(Resource):
                         template_params['Parameters'][param]['AllowedValues']
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = \
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
+            compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
+            if compared_param and 'Description' in template_params['Parameters'][param]:
+                compared_param['ParameterDescription'] = \
+                    template_params['Parameters'][param]['Description']
         return compared_params
 
 
