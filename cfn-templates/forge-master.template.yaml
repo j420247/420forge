@@ -267,6 +267,15 @@ Resources:
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
+                - kms:CreateAlias
+                - kms:CreateGrant
+                - kms:CreateKey
+                - kms:DescribeKey
+                - kms:ListAliases
+                - kms:PutKeyPolicy
+                - kms:ScheduleKeyDeletion
+                - kms:TagResource
+                - kms:UpdateKey
                 - rds:CreateDBInstance
                 - rds:CreateDBSubnetGroup
                 - rds:DeleteDBInstance
