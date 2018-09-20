@@ -175,7 +175,7 @@ function updateStats(stack_name, stack_region) {
         }
     };
 
-    if ($("#serviceStatus").find('span.aui-lozenge').length = 0)
+    if ($("#serviceStatus").find('span.aui-lozenge').length == 0)
         $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" ></aui-spinner>");
 
     var stackStateRequest = new XMLHttpRequest();
@@ -191,7 +191,7 @@ function updateStats(stack_name, stack_region) {
                 serviceStatusRequest.send();
         }
     };
-    if ($("#stackState").find('span.aui-lozenge').length = 0)
+    if ($("#stackState").find('span.aui-lozenge').length == 0)
         $("#stackState").html("Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
     stackStateRequest.send();
 
@@ -223,7 +223,7 @@ function updateStats(stack_name, stack_region) {
             $("#currentVersion").html("Current version: " + version);
         }
     };
-    if ($("#currentVersion").find('span.aui-lozenge').length = 0)
+    if ($("#currentVersion").html().length <= 17)
         $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
     getVersionRequest.send();
 
@@ -245,7 +245,7 @@ function updateStats(stack_name, stack_region) {
             }
         }
     };
-    if ($("#nodes").find('span.aui-lozenge').length = 0)
+    if ($("#nodes").html().length <= 4)
         $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
     getNodesRequest.send();
 }
