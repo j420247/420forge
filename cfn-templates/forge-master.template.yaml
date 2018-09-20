@@ -367,22 +367,21 @@ Resources:
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
 
-                  # apply git key if entered
-                  if [[ -n "${CustomTemplateGitKey}" ]]; then
-                    gitkeylocation=/root/.ssh/gitkey
-                    gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
-                    echo -e $gitkey > $gitkeylocation
-                    chmod 600 $gitkeylocation
-                    export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
-                  fi
-
                   # clone custom template repo
                   if [[ -n "${CustomTemplateRepo}" ]]; then
+                    # apply git key if entered
+                    if [[ -n "${CustomTemplateGitKey}" ]]; then
+                      gitkeylocation=/root/.ssh/gitkey
+                      gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                      echo -e $gitkey > $gitkeylocation
+                      chmod 600 $gitkeylocation
+                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                    fi
+                    # clone the repo
                     mkdir /home/forge/custom-templates
                     cd /home/forge/custom-templates
                     git clone "${CustomTemplateRepo}"
                   fi
-
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
