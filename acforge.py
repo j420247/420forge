@@ -388,11 +388,7 @@ def updateJson():
             del param['ParameterValue']
             param['UsePreviousValue'] = True
 
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-
-    # default to DataCenter and prod/non-clone template
-    instance_type = 'DataCenter'  # TODO support server
-    deploy_type = ''
+    params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
 
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
     if env == 'stg' or env == 'dr':
@@ -400,9 +396,8 @@ def updateJson():
             params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
         if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
             params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, get_template_file(template_name), instance_type, deploy_type)
+    outcome = mystack.update(params_for_update, get_template_file(template_name))
     mystack.clear_current_action()
     return outcome
 

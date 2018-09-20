@@ -589,10 +589,10 @@ class Stack:
         return True
 
 
-    def update(self, stack_parms, template_file, instance_type, deploy_type):
+    def update(self, stack_parms, template_file):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
         template_filename = template_file.name
-        template= f'{template_file.path}/{template_filename.name}'
+        template= str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -641,7 +641,7 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        template = template_file._str
+        template = str(template_file)
         try:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
@@ -649,6 +649,8 @@ class Stack:
             config.read('forge.properties')
             s3_bucket = config['s3']['bucket']
             # TODO spin up to one node first, then spin up remaining nodes
+            # wait for the template to upload to avoid race conditions
+            time.sleep(5)
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
