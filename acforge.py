@@ -641,10 +641,8 @@ class getTemplates(Resource):
         if custom_template_folder.exists():
             if template_type == 'all':
                 custom_templates = list(custom_template_folder.glob(f"**/*/*/*.yaml"))
-            elif template_type == 'Clone':
-                custom_templates = list(custom_template_folder.glob(f"**/*/*/*{template_type}*.yaml"))
             else:
-                custom_templates = list(custom_template_folder.glob(f"**/*/{template_type}/*{template_type}*.yaml"))
+                custom_templates = list(custom_template_folder.glob(f"**/*/*/*{template_type}*.yaml"))
             for file in custom_templates:
                 if 'Server' in file.name:
                     continue
