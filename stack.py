@@ -106,10 +106,11 @@ class Stack:
         config.read('forge.properties')
         logs_bucket = f"{config['s3']['bucket']}/logs"
         ssm = boto3.client('ssm', region_name=self.region)
+        sudo_cmd = f'sudo -u {self.app_type} {cmd}' if self.app_type else f'sudo {cmd}'
         ssm_command = ssm.send_command(
             InstanceIds=[instance],
             DocumentName='AWS-RunShellScript',
-            Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
+            Parameters={'commands': [sudo_cmd], 'executionTimeout': ["900"]},
             OutputS3BucketName=logs_bucket,
             OutputS3KeyPrefix='run-command-logs'
         )
@@ -648,9 +649,10 @@ class Stack:
             config = configparser.ConfigParser()
             config.read('forge.properties')
             s3_bucket = config['s3']['bucket']
-            # TODO spin up to one node first, then spin up remaining nodes
+            self.app_type = app_type
             # wait for the template to upload to avoid race conditions
             time.sleep(5)
+            # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
