@@ -223,7 +223,7 @@ function updateStats(stack_name, stack_region) {
             $("#currentVersion").html("Current version: " + version);
         }
     };
-    if ($("#currentVersion").html().length <= 17)
+    if ($("#currentVersion").html() && $("#currentVersion").html().length <= 17)
         $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
     getVersionRequest.send();
 
@@ -232,8 +232,8 @@ function updateStats(stack_name, stack_region) {
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
-            var nodes = JSON.parse(getNodesRequest.responseText);
             $("#nodes").html("");
+            var nodes = JSON.parse(getNodesRequest.responseText);
             if (!nodes[0]) {
                 $("#nodes").html("None");
                 return;
