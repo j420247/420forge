@@ -188,7 +188,8 @@ def cloneJson():
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
 
-    #remove region and templateName from params to send
+    #remove stackName, region and templateName from params to send
+    content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
     content.remove(next(param for param in content if param['ParameterKey'] == 'TemplateName'))
 
@@ -201,7 +202,7 @@ def cloneJson():
     template_params = yaml.safe_load(open(template_file, 'r'))['Parameters']
     params_to_send = []
     for param in content:
-        if param['ParameterKey'] == 'StackName' or next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
+        if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
             params_to_send.append(param)
 
     mystack = get_or_create_stack_obj(region, stack_name)
