@@ -638,7 +638,6 @@ class Stack:
             stack_parms = self.state.stackstate['stack_parms']
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
         elif parms:
-            parms.remove(parms[0])
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
