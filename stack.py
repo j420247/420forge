@@ -568,7 +568,7 @@ class Stack:
         return True
 
 
-    def clone(self, stack_parms, app_type, instance_type, region, creator):
+    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
         self.state.logaction(log.INFO, 'Initiating clone')
         self.state.update('stack_parms', stack_parms)
         self.state.update('app_type', app_type)
@@ -577,7 +577,7 @@ class Stack:
         deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_filename=f'{app_type.title()}{instance_type}{deploy_type}.template.yaml', app_type=app_type, creator=creator, region=region):
+            if self.create(parms=stack_parms, template_file=template_file, app_type=app_type, creator=creator, region=region):
                 if self.run_post_clone_sql():
                     self.full_restart()
                 else:
@@ -590,10 +590,10 @@ class Stack:
         return True
 
 
-    def update(self, stack_parms, instance_type, deploy_type):
+    def update(self, stack_parms, template_file):
         self.state.logaction(log.INFO, 'Updating stack with params: ' + str([param for param in stack_parms if 'UsePreviousValue' not in param]))
-        template_filename = f'{self.app_type.title()}{instance_type}{deploy_type}.template.yaml'
-        template= f'atlassian-aws-deployment/templates/{template_filename}'
+        template_filename = template_file.name
+        template= str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -632,7 +632,7 @@ class Stack:
     #     create(parms=changedParms)
 
 
-    def create(self, parms, template_filename, app_type, creator, region, like_stack=None):
+    def create(self, parms, template_file, app_type, creator, region, like_stack=None):
         if like_stack:
             self.get_current_state(like_stack, region)
             stack_parms = self.state.stackstate['stack_parms']
@@ -642,19 +642,21 @@ class Stack:
             stack_parms = parms
             self.state.logaction(log.INFO, f'Creating stack: {self.stack_name}')
         self.state.logaction(log.INFO, f'Creation params: {stack_parms}')
-        template = f'atlassian-aws-deployment/templates/{template_filename}'
-        self.upload_template(template, template_filename)
-        cfn = boto3.client('cloudformation', region_name=region)
-        config = configparser.ConfigParser()
-        config.read('forge.properties')
-        s3_bucket = config['s3']['bucket']
-        self.app_type = app_type
+        template = str(template_file)
         try:
+            self.upload_template(template, template_file.name)
+            cfn = boto3.client('cloudformation', region_name=region)
+            config = configparser.ConfigParser()
+            config.read('forge.properties')
+            s3_bucket = config['s3']['bucket']
+            self.app_type = app_type
+            # wait for the template to upload to avoid race conditions
+            time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_filename}',
+                TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_file.name}',
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=[{
                         'Key': 'product',
