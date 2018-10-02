@@ -285,29 +285,29 @@ class dothreaddumps(RestrictedResource):
 
 class dogetthreaddumplinks(RestrictedResource):
     def get(self, stack_name):
-        config = configparser.ConfigParser()
-        config.read('forge.properties')
-        s3_bucket = config['s3']['bucket']
+        accountId = boto3.client('sts').get_caller_identity().get('Account')
+        s3_bucket = f'atl-forge-diagnostics-{accountId}'
         urls = []
         try:
-            client = boto3.client('cloudformation', region_name=session['region'])
+            client = boto3.client('s3', region_name=session['region'])
             list_objects = client.list_objects_v2(
                 Bucket=s3_bucket,
                 Delimiter='string',
                 EncodingType='url',
                 MaxKeys=123,
-                StartAfter=f'diagnostics/{stack_name}'
+                Prefix=f'{stack_name}'
             )
 
-            for thread_dump in list_objects:
-                url = client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params={
-                        'Bucket': s3_bucket,
-                        'Key': thread_dump
-                    }
-                )
-                urls.append(url)
+            if 'Contents' in list_objects:
+                for thread_dump in list_objects['Contents']:
+                    url = client.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params={
+                            'Bucket': s3_bucket,
+                            'Key': thread_dump['Key']
+                        }
+                    )
+                    urls.append(url)
         except Exception as e:
             print(e.args[0])
             return [e]
