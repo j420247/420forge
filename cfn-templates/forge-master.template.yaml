@@ -303,7 +303,7 @@ Resources:
                 - s3:ListBucketByTags
                 Effect: Allow
                 Resource:
-                  - !Sub ["arn:aws:s3:::atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                  - !Sub ["arn:aws:s3:::atl-cfn-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
               - Action:
                 - s3:GetObject
                 - s3:GetObjectAcl
@@ -314,7 +314,7 @@ Resources:
                 - s3:PutObjectVersionTagging
                 Effect: Allow
                 Resource:
-                  - !Sub ["arn:aws:s3:::atl-forge-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+                  - !Sub ["arn:aws:s3:::atl-cfn-forge-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
 
   ForgeNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -374,7 +374,7 @@ Resources:
                   chown -R forge:forge $forgepath
 
                   # create s3 bucket for forge objects
-                  if aws s3api create-bucket --bucket atl-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
+                  if aws s3api create-bucket --bucket atl-cfn-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
 
                   # clone custom template repo
                   if [[ -n "${CustomTemplateRepo}" ]]; then
@@ -445,7 +445,7 @@ Resources:
                     - !Sub ["enabled: ${Analytics}", Analytics: !Ref Analytics]
                     - ""
                     - "[s3]"
-                    - !Sub ["bucket: atl-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                    - !Sub ["bucket: atl-cfn-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
               mode: "000750"
               owner: root
               group: root

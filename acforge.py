@@ -286,7 +286,7 @@ class dothreaddumps(RestrictedResource):
 class dogetthreaddumplinks(RestrictedResource):
     def get(self, stack_name):
         accountId = boto3.client('sts').get_caller_identity().get('Account')
-        s3_bucket = f'atl-forge-diagnostics-{accountId}'
+        s3_bucket = f'atl-cfn-forge-{accountId}'
         urls = []
         try:
             client = boto3.client('s3', region_name=session['region'])
@@ -295,7 +295,7 @@ class dogetthreaddumplinks(RestrictedResource):
                 Delimiter='string',
                 EncodingType='url',
                 MaxKeys=123,
-                Prefix=f'{stack_name}/'
+                Prefix=f'/diagnostics/{stack_name}/'
             )
 
             if 'Contents' in list_objects:
