@@ -295,7 +295,7 @@ class dogetthreaddumplinks(RestrictedResource):
                 Delimiter='string',
                 EncodingType='url',
                 MaxKeys=123,
-                Prefix=f'{stack_name}'
+                Prefix=f'{stack_name}/'
             )
 
             if 'Contents' in list_objects:
