@@ -43,7 +43,7 @@ function heapDumps() {
     }, 1000);
 }
 
-function dlThreadDumps(s3Bucket) {
+function dlThreadDumps() {
     var stack_name = $("#stackName").text();
     var dlThreadDumpLinksRequest = new XMLHttpRequest();
     dlThreadDumpLinksRequest.open("GET", baseUrl + "/dogetthreaddumplinks/" + stack_name, true);
