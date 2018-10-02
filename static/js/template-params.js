@@ -8,7 +8,6 @@ function readyTheTemplate() {
             stack_name = data.target.text;
             $("#aui-message-bar").hide();
             selectStack(stack_name);
-            selectTemplateForStack(stack_name);
         }, false);
     }
 
@@ -28,7 +27,79 @@ function onReady() {
     readyTheTemplate();
 }
 
-function selectTemplateForStack(stackToRetrieve) {
+function getTemplates(template_type) {
+    var getTemplatesRequest = new XMLHttpRequest();
+    getTemplatesRequest.open("GET", baseUrl + "/getTemplates/" + template_type, true);
+    getTemplatesRequest.setRequestHeader("Content-Type", "text/xml");
+    getTemplatesRequest.onreadystatechange = function () {
+        if (getTemplatesRequest.readyState === XMLHttpRequest.DONE && getTemplatesRequest.status === 200) {
+            var templateDropdown = document.getElementById("templates");
+            while (templateDropdown.firstChild) {
+                templateDropdown.removeChild(templateDropdown.firstChild);
+            }
+
+            var templates = JSON.parse(getTemplatesRequest.responseText);
+            for (var template in templates) {
+                var li = document.createElement("LI");
+                var anchor = document.createElement("A");
+                anchor.className = "selectTemplateOption";
+                var text = document.createTextNode(templates[template][0] + ": " + templates[template][1]);
+                anchor.appendChild(text);
+                li.appendChild(anchor);
+                templateDropdown.appendChild(li);
+            }
+
+            var templates = document.getElementsByClassName("selectTemplateOption");
+            for(var i = 0; i < templates.length; i++) {
+                templates[i].addEventListener("click", function (data) {
+                    var selectedTemplate = data.target.text;
+                    $("#templateSelector").text(selectedTemplate);
+                    if (action === 'create')
+                        getTemplateParams(selectedTemplate);
+                    else
+                        selectTemplateForStack(stack_name, selectedTemplate);
+                }, false);
+            }
+        }
+    };
+    getTemplatesRequest.send();
+}
+
+function getTemplateParams(template) {
+    $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
+    $("#stack-name-input").hide();
+
+    var repo = template.split(": ")[0];
+    var template_name = template.split(": ")[1];
+
+    var templateParamsRequest = new XMLHttpRequest();
+    templateParamsRequest.open("GET", baseUrl + "/templateParams/" + repo + "/" + template_name, true);
+    templateParamsRequest.setRequestHeader("Content-Type", "text/xml");
+    templateParamsRequest.onreadystatechange = function () {
+        if (templateParamsRequest.readyState === XMLHttpRequest.DONE && templateParamsRequest.status === 200) {
+            var product;
+            origParams = JSON.parse(templateParamsRequest.responseText);
+            origParams.sort(function (a, b) {
+                return a.ParameterKey.localeCompare(b.ParameterKey)
+            });
+
+            $("#paramsList").html("");
+            var fieldset = document.createElement("FIELDSET");
+            fieldset.id = "fieldSet";
+
+            for (var param in origParams)
+                createInputParameter(origParams[param], fieldset);
+
+            var paramsList = document.getElementById("paramsList");
+            paramsList.appendChild(fieldset);
+            $("#stack-name-input").show();
+            $("#action-button").attr("aria-disabled", false);
+        }
+    };
+    templateParamsRequest.send();
+}
+
+function selectTemplateForStack(stackToRetrieve, templateName) {
     if (document.getElementById("clone-params"))
         $("#clone-params").hide();
     $("#paramsList").html("<aui-spinner size=\"large\"></aui-spinner>");
@@ -42,7 +113,7 @@ function selectTemplateForStack(stackToRetrieve) {
     }
 
     var stackParamsRequest = new XMLHttpRequest();
-    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + region + "/" + stackToRetrieve, true);
+    stackParamsRequest.open("GET", baseUrl  + "/stackParams/" + region + "/" + stackToRetrieve + "/" + templateName, true);
     stackParamsRequest.setRequestHeader("Content-Type", "text/xml");
     stackParamsRequest.onreadystatechange = function () {
         if (stackParamsRequest.readyState === XMLHttpRequest.DONE && stackParamsRequest.status === 200) {
@@ -115,8 +186,9 @@ function createInputParameter(param, fieldset) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
-            region = document.getElementById("regionSelector").innerText.trim();
-        getVPCs(region, div);
+            getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
+        else
+            getVPCs(region, div, param.ParameterValue);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -125,32 +197,38 @@ function createInputParameter(param, fieldset) {
 
         if ((action === 'clone' || action === 'create')
             && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
-            input.setAttribute("data-aui-validation-field","");
-            input.type="password";
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "password";
             input.value = "";
             input.required = true;
-        } else if (param.ParameterKey === "KeyName") {
+        }
+        else if (param.ParameterKey.indexOf("Subnets") !== -1) {
             input.setAttribute("data-aui-validation-field","");
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
-            input.required = true;
-        } else if (param.ParameterKey === "HostedZone") {
-            input.setAttribute("data-aui-validation-field","");
+        } else if (param.ParameterKey === "HostedZone" && hosted_zone !== "") {
             input.value = hosted_zone;
-            input.required = true;
         }
         div.appendChild(input);
+    }
+    if (param.ParameterDescription) {
+        var description = document.createElement("DIV");
+        description.className = "description";
+        description.innerText = param.ParameterDescription;
+        div.appendChild(description);
     }
     fieldset.appendChild(div);
 }
 
-function getEbsSnapshots(region, stackToRetrieve) {
+function getEbsSnapshots(clone_region, stackToRetrieve) {
     var ebsSnapDropdown = document.getElementById("ebsSnapshots");
     while (ebsSnapDropdown.firstChild) {
         ebsSnapDropdown.removeChild(ebsSnapDropdown.firstChild);
     }
 
     var ebsSnapshotRequest = new XMLHttpRequest();
-    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + region + "/" + stackToRetrieve, true);
+    ebsSnapshotRequest.open("GET", baseUrl + "/getEbsSnapshots/" + clone_region + "/" + stackToRetrieve, true);
     ebsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     ebsSnapshotRequest.onreadystatechange = function () {
         if (ebsSnapshotRequest.readyState === XMLHttpRequest.DONE && ebsSnapshotRequest.status === 200) {
@@ -160,7 +238,7 @@ function getEbsSnapshots(region, stackToRetrieve) {
                 var anchor = document.createElement("A");
                 anchor.className = "selectEbsSnapshotOption";
                 var text = document.createTextNode(ebsSnaps[snap]);
-                anchor.appendChild(text)
+                anchor.appendChild(text);
                 li.appendChild(anchor);
                 ebsSnapDropdown.appendChild(li);
             }
@@ -176,14 +254,14 @@ function getEbsSnapshots(region, stackToRetrieve) {
     ebsSnapshotRequest.send();
 }
 
-function getRdsSnapshots(region, stackToRetrieve) {
+function getRdsSnapshots(clone_region, stackToRetrieve) {
     var rdsSnapDropdown = document.getElementById("rdsSnapshots");
     while (rdsSnapDropdown.firstChild) {
         rdsSnapDropdown.removeChild(rdsSnapDropdown.firstChild);
     }
 
     var rdsSnapshotRequest = new XMLHttpRequest();
-    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + region + "/" + stackToRetrieve, true);
+    rdsSnapshotRequest.open("GET", baseUrl + "/getRdsSnapshots/" + clone_region + "/" + stackToRetrieve, true);
     rdsSnapshotRequest.setRequestHeader("Content-Type", "text/xml");
     rdsSnapshotRequest.onreadystatechange = function () {
         if (rdsSnapshotRequest.readyState === XMLHttpRequest.DONE && rdsSnapshotRequest.status === 200) {
@@ -209,14 +287,14 @@ function getRdsSnapshots(region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function getVPCs(region, div) {
+function  getVPCs(vpc_region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
         div.removeChild(document.getElementById("VPCDropdownDiv"));
 
     var vpcsRequest = new XMLHttpRequest();
-    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + region, true);
+    vpcsRequest.open("GET", baseUrl + "/getVpcs/" + vpc_region, true);
     vpcsRequest.setRequestHeader("Content-Type", "text/xml");
     vpcsRequest.onreadystatechange = function () {
         if (vpcsRequest.readyState === XMLHttpRequest.DONE && vpcsRequest.status === 200) {
@@ -224,22 +302,30 @@ function getVPCs(region, div) {
 
             // Set default VPC and subnets for region
             var defaultVpc = "";
-            if (region === 'us-west-2')
+            if (vpc_region === 'us-west-2' && us_west_2_default_vpc !== "")
                 defaultVpc = us_west_2_default_vpc;
-            else
+            else if (vpc_region === 'us-east-1' && us_east_1_default_vpc !== "")
                 defaultVpc = us_east_1_default_vpc;
+            if (existingVpc)
+                defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
-            setSubnets(region);
+            setSubnets(vpc_region);
         }
     };
     vpcsRequest.send();
 }
 
-function setSubnets(region) {
-    if (region === 'us-west-2') { //TODO get default subnets betterer
+function setSubnets(subnets_region) {
+    // blank subnets if clone
+    if (action === 'clone') {
+        document.getElementById("ExternalSubnetsVal").value = "";
+        document.getElementById("InternalSubnetsVal").value = "";
+    }
+    // get defaults for regions
+    if (subnets_region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-    } else {
+    } else if (subnets_region === 'us-east-1' && us_east_1_default_subnets !== "") {
         document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
         document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
     }
@@ -262,7 +348,7 @@ function sendParamsAsJson() {
         stackNameForAction = document.getElementById("StackNameVal").value
     }
 
-    if (action === 'create') {
+    if ($("#templateSelector").is(':visible')) {
         // Add template name to params
         templateNameParam["ParameterKey"] = "TemplateName";
         templateNameParam["ParameterValue"] = $("#templateSelector").text();
@@ -285,7 +371,10 @@ function sendParamsAsJson() {
             else
                 value = document.getElementById("DBSnapshotNameVal").value;
         } else if (param == "Region") {
-            value = document.getElementById("regionSelector").innerText;
+            if (action === 'clone')
+                value = document.getElementById("regionSelector").innerText;
+            else
+                value = region;
         } else {
             var element = document.getElementById(param + "Val");
             if (element.tagName.toLowerCase() === "a") {
@@ -309,9 +398,13 @@ function sendParamsAsJson() {
     jsonArray.push(origParams);
     xhr.send(JSON.stringify(jsonArray));
 
+    var appendRegion = "";
+    if (action === 'clone')
+        appendRegion = "&region=" + document.getElementById("regionSelector").innerText;
+
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction;
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction + appendRegion;
     }, 1000);
 }

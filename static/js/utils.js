@@ -46,10 +46,10 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                if (data.target.text === us_east_1_default_vpc) {
+                if (data.target.text === us_east_1_default_vpc && us_east_1_default_subnets !== "") {
                     document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
                     document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
-                } else if (data.target.text === us_west_2_default_vpc) {
+                } else if (data.target.text === us_west_2_default_vpc && us_west_2_default_subnets !== "") {
                     document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
                     document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
                 }

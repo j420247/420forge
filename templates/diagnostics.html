@@ -5,6 +5,7 @@
 {% endblock head %}
 
 {% block extraInput %}
+<div style="min-height: 50px"></div>
 <div class="aui-panel">
     <button class="aui-button" id="threadDumpBtn" aria-disabled="true" onclick="threadDumps()" disabled><span class="aui-icon aui-icon-small aui-iconfont-location"></span> Take thread dumps</button>
     <button class="aui-button" id="dlThreadDumpBtn" aria-disabled="true" onclick="dlThreadDumps({{ session['s3_bucket'] }})" disabled><span class="aui-icon aui-icon-small aui-iconfont-download"></span> Download thread dumps</button>

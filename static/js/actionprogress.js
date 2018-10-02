@@ -24,13 +24,15 @@ function onReady() {
     // or if we got here from an action, refresh info now,
     // unless it's create in which case wait 2s for the creation to begin
     } else {
-        var stack_name = new URL(window.location).searchParams.values().next().value;
+        var params = new URL(window.location).searchParams;
+        var stack_name = params.get("stack");
+        var region = params.get("region");
         $("#stackSelector").hide();
         selectStack(stack_name);
         if (action !== 'create')
             getStatus(stack_name);
         refreshLogs(stack_name, true, 2000, action);
-        refreshStackInfo(stack_name);
+        refreshStackInfo(stack_name, action, region);
     }
 }
 
@@ -65,7 +67,7 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
     }
 }
 
-function refreshStackInfo(stack_name, this_action) {
+function refreshStackInfo(stack_name, this_action, region) {
     // Only check stack status in EC2 for stack changing actions
     // Refresh every 10s
     //TODO check more frequently until stack_state is IN_PROGRESS
@@ -73,8 +75,8 @@ function refreshStackInfo(stack_name, this_action) {
         this_action !== 'fullrestart' &&
         this_action !== 'rollingrestart') {
         refreshStackInfoTimer = setTimeout(function () {
-            updateStats(stack_name);
-            refreshStackInfo(stack_name, this_action);
+            updateStats(stack_name, region);
+            refreshStackInfo(stack_name, this_action, region);
         }, 10000)
     }
 }

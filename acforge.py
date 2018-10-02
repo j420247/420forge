@@ -21,11 +21,12 @@ from sys import argv
 import configparser
 import os
 from version import __version__
+import glob
 
 # global configuration
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
-                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE',
+                        'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE', 'ROLLBACK_FAILED',
                         'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
 
 parser = argparse.ArgumentParser(description='Forge')
@@ -170,28 +171,45 @@ def cloneJson():
     instance_type = 'DataCenter' #TODO support server
 
     for param in content:
+        if param['ParameterKey'] == 'TemplateName':
+            template_name = param['ParameterValue']
         if param['ParameterKey'] == 'StackName':
             stack_name = param['ParameterValue']
         if param['ParameterKey'] == 'Region':
             region = param['ParameterValue']
         elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'confluence'
+            app_type = 'Confluence'
         elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'jira'
+            app_type = 'Jira'
         elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'crowd'
+            app_type = 'Crowd'
         elif param['ParameterKey'] == 'EBSSnapshotId':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
         elif param['ParameterKey'] == 'DBSnapshotName':
             param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
 
+    #remove stackName, region and templateName from params to send
+    content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
     content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+    content.remove(next(param for param in content if param['ParameterKey'] == 'TemplateName'))
+
+    # remove any params that are not in the Clone template
+    if template_name:
+        template_file = get_template_file(template_name)
+    else:
+        template_file = f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml'
+    yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+    template_params = yaml.safe_load(open(template_file, 'r'))['Parameters']
+    params_to_send = []
+    for param in content:
+        if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
+            params_to_send.append(param)
 
     mystack = get_or_create_stack_obj(region, stack_name)
     if not mystack.store_current_action('clone', stack_locking_enabled()):
         return False
     creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-    outcome = mystack.clone(content, app_type=app_type, instance_type=instance_type, region=region, creator=creator)
+    outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
     mystack.clear_current_action()
     return outcome
 
@@ -363,7 +381,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_filename=template_name, app_type=app_type, creator=creator)
+        outcome = mystack.create(parms=params_for_create, template_file=get_template_file(template_name), app_type=app_type, creator=creator, region=session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
@@ -391,6 +409,8 @@ def updateJson():
             return f'Stack {stack_name} does not exist'
         print(e.args[0])
 
+    template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
+
     for param in new_params:
         # if param was not in previous template, always pass it in the change set
         if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
@@ -400,11 +420,7 @@ def updateJson():
             del param['ParameterValue']
             param['UsePreviousValue'] = True
 
-    params_for_update = [param for param in new_params if param['ParameterKey'] != 'StackName']
-
-    # default to DataCenter and prod/non-clone template
-    instance_type = 'DataCenter'  # TODO support server
-    deploy_type = ''
+    params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
 
     env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
     if env == 'stg' or env == 'dr':
@@ -412,9 +428,8 @@ def updateJson():
             params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
         if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
             params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        deploy_type = 'Clone'
 
-    outcome = mystack.update(params_for_update, instance_type, deploy_type)
+    outcome = mystack.update(params_for_update, get_template_file(template_name))
     mystack.clear_current_action()
     return outcome
 
@@ -446,15 +461,21 @@ class stackState(Resource):
         return stack_state['Stacks'][0]['StackStatus']
 
 class templateParams(Resource):
-    def get(self, template_name):
-        template_file = open(f'atlassian-aws-deployment/templates/{template_name}', "r")
+    def get(self, repo_name, template_name):
+        if 'atlassian-aws-deployment' in repo_name:
+            template_file = open(f"atlassian-aws-deployment/templates/{template_name}", "r")
+        else:
+            for file in glob.glob(f'../custom-templates/{repo_name}/**/*.yaml'):
+                if template_name in file:
+                    template_file = open(file, "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
         params_to_send = []
         for param in template_params:
             params_to_send.append({'ParameterKey': param,
-                                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else ''})
+                                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
+                                    'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else ''})
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
                     template_params[param]['AllowedValues']
@@ -462,7 +483,7 @@ class templateParams(Resource):
 
 
 class templateParamsForStack(Resource):
-    def get(self, region, stack_name):
+    def get(self, region, stack_name, template_name):
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
@@ -485,10 +506,7 @@ class templateParamsForStack(Resource):
         else:
             return 'tag-error'
 
-        instance_type = 'DataCenter' # TODO support server
-        deploy_type = '' if env == 'prod' else 'Clone'
-
-        template_file = open(f'atlassian-aws-deployment/templates/{app_type.title()}{instance_type}{deploy_type}.template.yaml', "r")
+        template_file = open(get_template_file(template_name), "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
 
@@ -512,6 +530,10 @@ class templateParamsForStack(Resource):
                         template_params['Parameters'][param]['AllowedValues']
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = \
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
+            compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
+            if compared_param and 'Description' in template_params['Parameters'][param]:
+                compared_param['ParameterDescription'] = \
+                    template_params['Parameters'][param]['Description']
         return compared_params
 
 
@@ -638,14 +660,30 @@ class getRdsSnapshots(Resource):
 
 
 class getTemplates(Resource):
-    def get(self, product):
+    def get(self, template_type):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
-        for file in list(template_folder.glob(f'**/{product}*.yaml')):
+        custom_template_folder = Path('../custom-templates')
+        # get default templates
+        if template_type == 'all':
+            default_templates = list(template_folder.glob(f"**/*.yaml"))
+        else:
+            default_templates = list(template_folder.glob(f"**/*{template_type}*.yaml"))
+        for file in default_templates:
             # TODO support Server and Bitbucket
             if 'Server' in file.name:
                 continue
-            templates.extend([file.name])
+            templates.append(('atlassian-aws-deployment', file.name))
+        # get custom templates
+        if custom_template_folder.exists():
+            if template_type == 'all':
+                custom_templates = list(custom_template_folder.glob(f"**/*/*/*.yaml"))
+            else:
+                custom_templates = list(custom_template_folder.glob(f"**/*/*/*{template_type}*.yaml"))
+            for file in custom_templates:
+                if 'Server' in file.name:
+                    continue
+                templates.append((file.parent.parent.name, file.name))
         templates.sort()
         return templates
 
@@ -755,8 +793,8 @@ api.add_resource(dotag, '/dotag/<region>/<stack_name>')
 api.add_resource(status, '/status/<stack_name>')
 api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(stackState, '/stackState/<region>/<stack_name>')
-api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>')
-api.add_resource(templateParams, '/templateParams/<template_name>')
+api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')
+api.add_resource(templateParams, '/templateParams/<repo_name>/<template_name>')
 api.add_resource(getSql, '/getsql/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
@@ -768,7 +806,7 @@ api.add_resource(getTags, '/getTags/<region>/<stack_name>')
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
 api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
-api.add_resource(getTemplates, '/getTemplates/<product>')
+api.add_resource(getTemplates, '/getTemplates/<template_type>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
@@ -821,6 +859,14 @@ def check_loggedin():
 
 def general_constructor(loader, tag_suffix, node):
     return node.value
+
+
+def get_template_file(template_name):
+    if 'atlassian-aws-deployment' in template_name:
+        template_folder = Path('atlassian-aws-deployment/templates')
+    else:
+        template_folder = Path('../custom-templates')
+    return list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))[0]
 
 
 def get_regions():

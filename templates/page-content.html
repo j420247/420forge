@@ -7,26 +7,28 @@
     <div class="aui-item">
         {% block stackSelector %}
         {#  Stack selector  #}
-        <div class="aui-panel">
-            <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
-               class="aui-button aui-style-default aui-dropdown2-trigger">
-                {% block stackSelectorDescription %}
-                Select Stack
-                {% endblock stackSelectorDescription %}
-            </a>
+        <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            {% block stackSelectorDescription %}
+            Select Stack
+            {% endblock stackSelectorDescription %}
+        </a>
 
-            <!-- Dropdown -->
-            <div id="stackSelection" class="aui-style-default aui-dropdown2">
-                <ul class="aui-list-truncate">
-                    {% for stack in session['stacks'] %}
-                    <li><a class="selectStackOption">{{ stack }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
+        <!-- Dropdown -->
+        <div id="stackSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate">
+                {% for stack in session['stacks'] %}
+                <li><a class="selectStackOption">{{ stack }}</a></li>
+                {% endfor %}
+            </ul>
         </div>
         {% endblock stackSelector %}
 
         {% block extraInput %}
+            {% block productSelector %}
+            {% endblock productSelector %}
+            {% block templateSelector %}
+            {% endblock templateSelector %}
         {% endblock extraInput %}
 
         {% block Parameters %}

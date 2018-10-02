@@ -162,29 +162,28 @@ function performAction(version) {
     }, 1000);
 }
 
-function updateStats(stack_name) {
+function updateStats(stack_name, stack_region) {
     if (stack_name === 'actionreadytostart') return;
-
-    // clean up previous run
-    removeElementsByClass("aui-lozenge");
+    if (! stack_region) stack_region = region;
 
     var serviceStatusRequest = new XMLHttpRequest();
-    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + region + "/" + stack_name, true);
+    serviceStatusRequest.open("GET", baseUrl  + "/serviceStatus/" + stack_region + "/" + stack_name, true);
     serviceStatusRequest.setRequestHeader("Content-Type", "text/xml");
     serviceStatusRequest.onreadystatechange = function () {
         if (serviceStatusRequest.readyState === XMLHttpRequest.DONE && serviceStatusRequest.status === 200) {
             $("#serviceStatus").html("Service status: " + getStatusLozenge(serviceStatusRequest.responseText));
         }
     };
-    $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" ></aui-spinner>");
+
+    if ($("#serviceStatus").find('span.aui-lozenge').length == 0)
+        $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" ></aui-spinner>");
 
     var stackStateRequest = new XMLHttpRequest();
-    stackStateRequest.open("GET", baseUrl  + "/stackState/" + region + "/" + stack_name, true);
+    stackStateRequest.open("GET", baseUrl  + "/stackState/" + stack_region + "/" + stack_name, true);
     stackStateRequest.setRequestHeader("Content-Type", "text/xml");
     stackStateRequest.onreadystatechange = function () {
         if (stackStateRequest.readyState === XMLHttpRequest.DONE && stackStateRequest.status === 200) {
-            if (!$("#stackState").children().hasClass("aui-lozenge"))
-                $("#stackState").html("Stack status: " + getStatusLozenge(stackStateRequest.responseText));
+            $("#stackState").html("Stack status: " + getStatusLozenge(stackStateRequest.responseText));
             if (stackStateRequest.responseText.trim() === "\"CREATE_COMPLETE\"" ||
                 stackStateRequest.responseText.trim() === "\"UPDATE_COMPLETE\"" ||
                 stackStateRequest.responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
@@ -192,11 +191,12 @@ function updateStats(stack_name) {
                 serviceStatusRequest.send();
         }
     };
-    $("#stackState").html("Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
+    if ($("#stackState").find('span.aui-lozenge').length == 0)
+        $("#stackState").html("Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
     stackStateRequest.send();
 
     var getStackActionInProgressRequest = new XMLHttpRequest();
-    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + stack_name, true);
+    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + stack_region + "/" + stack_name, true);
     getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
     getStackActionInProgressRequest.onreadystatechange = function () {
         if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
@@ -215,7 +215,7 @@ function updateStats(stack_name) {
     getStackActionInProgressRequest.send();
 
     var getVersionRequest = new XMLHttpRequest();
-    getVersionRequest.open("GET", baseUrl + "/getVersion/" + region + "/" + stack_name, true);
+    getVersionRequest.open("GET", baseUrl + "/getVersion/" + stack_region + "/" + stack_name, true);
     getVersionRequest.setRequestHeader("Content-Type", "text/xml");
     getVersionRequest.onreadystatechange = function () {
         if (getVersionRequest.readyState === XMLHttpRequest.DONE && getVersionRequest.status === 200) {
@@ -223,16 +223,17 @@ function updateStats(stack_name) {
             $("#currentVersion").html("Current version: " + version);
         }
     };
-    $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
+    if ($("#currentVersion").html() && $("#currentVersion").html().length <= 17)
+        $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
     getVersionRequest.send();
 
     var getNodesRequest = new XMLHttpRequest();
-    getNodesRequest.open("GET", baseUrl + "/getNodes/" + region + "/" + stack_name, true);
+    getNodesRequest.open("GET", baseUrl + "/getNodes/" + stack_region + "/" + stack_name, true);
     getNodesRequest.setRequestHeader("Content-Type", "text/xml");
     getNodesRequest.onreadystatechange = function () {
         if (getNodesRequest.readyState === XMLHttpRequest.DONE && getNodesRequest.status === 200) {
-            var nodes = JSON.parse(getNodesRequest.responseText);
             $("#nodes").html("");
+            var nodes = JSON.parse(getNodesRequest.responseText);
             if (!nodes[0]) {
                 $("#nodes").html("None");
                 return;
@@ -244,7 +245,8 @@ function updateStats(stack_name) {
             }
         }
     };
-    $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
+    if ($("#nodes").html().length <= 4)
+        $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
     getNodesRequest.send();
 }
 

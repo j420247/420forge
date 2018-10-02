@@ -103,6 +103,9 @@
                                     <li {% if session['nice_action_name'] == 'Destroy stack' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'Clone stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
+                                    </li>
                                     <li {% if session['nice_action_name'] == 'Update stack' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack Configuration</a>
                                     </li>
@@ -111,9 +114,6 @@
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Diagnostics' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
-                                    </li>
-                                    <li {% if session['nice_action_name'] == 'Clone stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Run SQL' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
