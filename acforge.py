@@ -292,10 +292,7 @@ class dogetthreaddumplinks(RestrictedResource):
             client = boto3.client('s3', region_name=session['region'])
             list_objects = client.list_objects_v2(
                 Bucket=s3_bucket,
-                Delimiter='string',
-                EncodingType='url',
-                MaxKeys=123,
-                Prefix=f'/diagnostics/{stack_name}/'
+                Prefix=f'diagnostics/{stack_name}/'
             )
 
             if 'Contents' in list_objects:
@@ -309,8 +306,9 @@ class dogetthreaddumplinks(RestrictedResource):
                     )
                     urls.append(url)
         except Exception as e:
+            if e.response['Error']['Code'] == 'NoSuchBucket':
+                print(f"S3 bucket '{s3_bucket}' has not yet been created")
             print(e.args[0])
-            return [e]
         return urls
 
 
