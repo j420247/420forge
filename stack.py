@@ -721,6 +721,7 @@ class Stack:
         self.get_stacknodes()
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
+        self.state.logaction(log.INFO, "Successful thread dumps can be downloaded from the main Diagnostics page")
         self.state.logaction(log.INFO, "Thread dumps complete")
         return True
 
