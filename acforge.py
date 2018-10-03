@@ -374,7 +374,7 @@ class docreate(RestrictedResource):
             elif param['ParameterKey'] == 'CrowdVersion':
                 app_type = 'crowd'
 
-        mystack = get_or_create_stack_obj(session['region'], stack_name)
+        mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
         if not mystack.store_current_action('create', stack_locking_enabled()):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
@@ -392,7 +392,7 @@ def updateJson():
     orig_params = content[1]
 
     stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
-    mystack = get_or_create_stack_obj(session['region'], stack_name)
+    mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
     if not mystack.store_current_action('update', stack_locking_enabled()):
         return False
 
@@ -604,6 +604,10 @@ def get_or_create_stack_obj(region, stack_name):
         if not mystack:
             mystack = Stack(stack_name, region)
             stacks.append(mystack)
+        elif region == '':
+            error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
+            mystack.state.logaction(log.ERROR, error_string)
+            raise ValueError(error_string)
     else:
         mystack = Stack(stack_name, region)
         stacks.append(mystack)
