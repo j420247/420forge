@@ -189,6 +189,8 @@ function createInputParameter(param, fieldset) {
             getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
         else
             getVPCs(region, div, param.ParameterValue);
+    } else if (param.ParameterKey.indexOf("Subnets") !== -1) {
+        createMultiSelect(param.ParameterKey, '', param.ParameterValue.split(","), div)
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -200,10 +202,6 @@ function createInputParameter(param, fieldset) {
             input.setAttribute("data-aui-validation-field", "");
             input.type = "password";
             input.value = "";
-            input.required = true;
-        }
-        else if (param.ParameterKey.indexOf("Subnets") !== -1) {
-            input.setAttribute("data-aui-validation-field","");
             input.required = true;
         } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
@@ -287,7 +285,7 @@ function getRdsSnapshots(clone_region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function  getVPCs(vpc_region, div, existingVpc) {
+function getVPCs(vpc_region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
@@ -309,13 +307,30 @@ function  getVPCs(vpc_region, div, existingVpc) {
             if (existingVpc)
                 defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
-            setSubnets(vpc_region);
+            getSubnets(vpc_region, defaultVpc);
         }
     };
     vpcsRequest.send();
 }
 
-function setSubnets(subnets_region) {
+function getSubnets(subnets_region, vpc) {
+    var subnetsRequest = new XMLHttpRequest();
+    if (vpc !== "")
+        subnetsRequest.open("GET", baseUrl + "/getSubnetsForVpc/" + subnets_region + "/" + vpc, true);
+    else
+        subnetsRequest.open("GET", baseUrl + "/getAllSubnetsForRegion/" + subnets_region, true);
+    subnetsRequest.setRequestHeader("Content-Type", "text/xml");
+    subnetsRequest.onreadystatechange = function () {
+        if (subnetsRequest.readyState === XMLHttpRequest.DONE && subnetsRequest.status === 200) {
+            var subnets = JSON.parse(subnetsRequest.responseText);
+            createMultiSelect("ExternalSubnets", "", subnets, document.getElementById("ExternalSubnetsDiv"));
+            createMultiSelect("InternalSubnets", "", subnets, document.getElementById("InternalSubnetsDiv"));
+        }
+    };
+    subnetsRequest.send();
+}
+
+function selectDefaultSubnets(subnets_region) {
     // blank subnets if clone
     if (action === 'clone') {
         document.getElementById("ExternalSubnetsVal").value = "";
@@ -381,9 +396,17 @@ function sendParamsAsJson() {
                 value = element.text;
             } else if (element.tagName.toLowerCase() === "input") {
                 value = element.value;
+            } else if (element.tagName.toLowerCase() === "select") {
+                value = "";
+                var selections = $("#" + param + "Val").val();
+                for (var selection in selections) {
+                    value = value + selections[selection];
+                    if (selection < selections.length - 1) {
+                        value = value + ","
+                    }
+                }
             }
         }
-
         jsonParam["ParameterKey"] = param;
         jsonParam["ParameterValue"] = value;
         newParamsArray.push(jsonParam);

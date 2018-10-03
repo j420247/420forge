@@ -46,13 +46,15 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                if (data.target.text === us_east_1_default_vpc && us_east_1_default_subnets !== "") {
-                    document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
-                } else if (data.target.text === us_west_2_default_vpc && us_west_2_default_subnets !== "") {
-                    document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-                }
+                getSubnets(region, data.target.text);
+                // set defaults selected - todo
+                // if (data.target.text === us_east_1_default_vpc && us_east_1_default_subnets !== "") {
+                //     document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
+                //     document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+                // } else if (data.target.text === us_west_2_default_vpc && us_west_2_default_subnets !== "") {
+                //     document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
+                //     document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+                // }
             }
         }, false);
         li.appendChild(liAnchor);
@@ -61,4 +63,24 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownDiv.appendChild(ul);
     div.appendChild(dropdownAnchor);
     div.appendChild(dropdownDiv);
+}
+
+function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) {
+    var multiSelect = document.createElement("SELECT");
+    multiSelect.className = "multi-select";
+    multiSelect.id = parameterKey + "Val";
+    multiSelect.name = parameterKey + "Val";
+    multiSelect.multiple = "multiple";
+    multiSelect.size = "4";
+
+    for (var opt in multiSelectOptions) {
+        var option = document.createElement("OPTION");
+        option.innerText = multiSelectOptions[opt];
+        multiSelect.appendChild(option);
+    }
+
+    while (div.firstChild) {
+        div.removeChild(div.firstChild);
+    }
+    div.appendChild(multiSelect);
 }
