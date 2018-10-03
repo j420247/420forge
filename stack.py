@@ -24,6 +24,10 @@ class Stack:
         self.state = Stackstate(stack_name)
         self.state.logaction(log.INFO, f'Initialising stack object for {stack_name}')
         self.stack_name = stack_name
+        if region == '':
+            error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
+            self.state.logaction(log.ERROR, error_string)
+            raise ValueError(error_string)
         self.region = region
         self.state.update('region', self.region)
         if app_type:
