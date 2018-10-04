@@ -110,8 +110,8 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
-        getEbsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
-        getRdsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getEbsSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
+        getRdsSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
     }
 
     var stackParamsRequest = new XMLHttpRequest();
@@ -196,7 +196,7 @@ function createInputParameter(param, fieldset) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
-            getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
+            getVPCs($("#regionSelector").text().trim(), div);
         else
             getVPCs(region, div, param.ParameterValue);
     } else {
@@ -342,19 +342,17 @@ function getSubnets(subnets_region, vpc, updateList) {
                 $("#ExternalSubnetsVal").val(externalSubnets);
                 $("#InternalSubnetsVal").val(internalSubnets);
             }
-            else
+            else if (action === 'clone') {
+                selectDefaultSubnets($("#regionSelector").text().trim())
+            } else {
                 selectDefaultSubnets(region);
+            }
         }
     };
     subnetsRequest.send();
 }
 
 function selectDefaultSubnets(subnets_region) {
-    // blank subnets if clone
-    if (action === 'clone') {
-        document.getElementById("ExternalSubnetsVal").value = "";
-        document.getElementById("InternalSubnetsVal").value = "";
-    }
     // get defaults for regions
     if (subnets_region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
         $("#ExternalSubnetsVal").val(us_west_2_default_subnets.split(","));
@@ -406,7 +404,7 @@ function sendParamsAsJson() {
                 value = document.getElementById("DBSnapshotNameVal").value;
         } else if (param == "Region") {
             if (action === 'clone')
-                value = document.getElementById("regionSelector").innerText;
+                value = $("#regionSelector").text().trim();
             else
                 value = region;
         } else {
@@ -442,7 +440,7 @@ function sendParamsAsJson() {
 
     var appendRegion = "";
     if (action === 'clone')
-        appendRegion = "&region=" + document.getElementById("regionSelector").innerText;
+        appendRegion = "&region=" + $("#regionSelector").text().trim();
 
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
