@@ -46,15 +46,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                getSubnets(region, data.target.text);
-                // set defaults selected - todo
-                // if (data.target.text === us_east_1_default_vpc && us_east_1_default_subnets !== "") {
-                //     document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-                //     document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
-                // } else if (data.target.text === us_west_2_default_vpc && us_west_2_default_subnets !== "") {
-                //     document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-                //     document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-                // }
+                getSubnets(region, data.target.text, true);
             }
         }, false);
         li.appendChild(liAnchor);
@@ -79,8 +71,19 @@ function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) 
         multiSelect.appendChild(option);
     }
 
-    while (div.firstChild) {
-        div.removeChild(div.firstChild);
+    $("#" + parameterKey + "Val").remove();
+    $(multiSelect).insertBefore($(div).children().last(), null);
+}
+
+function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
+    var multiSelect = document.getElementById(parameterKey + "Val");
+
+    while (multiSelect.firstChild)
+        multiSelect.removeChild(multiSelect.firstChild);
+
+    for (var opt in multiSelectOptions) {
+        var option = document.createElement("OPTION");
+        option.innerText = multiSelectOptions[opt];
+        multiSelect.appendChild(option);
     }
-    div.appendChild(multiSelect);
 }

@@ -1,5 +1,7 @@
 var origParams;
 var stack_name;
+var externalSubnets;
+var internalSubnets;
 
 function readyTheTemplate() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -161,6 +163,14 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
                         document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
                     }
                 }
+            // Store subnets on update
+            } else if (action === 'update') {
+                for (var param in origParams) {
+                    if (origParams[param].ParameterKey === "ExternalSubnets")
+                        externalSubnets = origParams[param].ParameterValue.split(",");
+                    else if (origParams[param].ParameterKey === "InternalSubnets")
+                        internalSubnets = origParams[param].ParameterValue.split(",");
+                }
             }
             if (document.getElementById("clone-params"))
                 $("#clone-params").show();
@@ -189,8 +199,6 @@ function createInputParameter(param, fieldset) {
             getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
         else
             getVPCs(region, div, param.ParameterValue);
-    } else if (param.ParameterKey.indexOf("Subnets") !== -1) {
-        createMultiSelect(param.ParameterKey, '', param.ParameterValue.split(","), div)
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
@@ -307,13 +315,13 @@ function getVPCs(vpc_region, div, existingVpc) {
             if (existingVpc)
                 defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
-            getSubnets(vpc_region, defaultVpc);
+            getSubnets(vpc_region, defaultVpc, false);
         }
     };
     vpcsRequest.send();
 }
 
-function getSubnets(subnets_region, vpc) {
+function getSubnets(subnets_region, vpc, updateList) {
     var subnetsRequest = new XMLHttpRequest();
     if (vpc !== "")
         subnetsRequest.open("GET", baseUrl + "/getSubnetsForVpc/" + subnets_region + "/" + vpc, true);
@@ -323,8 +331,19 @@ function getSubnets(subnets_region, vpc) {
     subnetsRequest.onreadystatechange = function () {
         if (subnetsRequest.readyState === XMLHttpRequest.DONE && subnetsRequest.status === 200) {
             var subnets = JSON.parse(subnetsRequest.responseText);
-            createMultiSelect("ExternalSubnets", "", subnets, document.getElementById("ExternalSubnetsDiv"));
-            createMultiSelect("InternalSubnets", "", subnets, document.getElementById("InternalSubnetsDiv"));
+            if (updateList) {
+                updateMultiSelect("ExternalSubnets", "", subnets);
+                updateMultiSelect("InternalSubnets", "", subnets);
+            } else {
+                createMultiSelect("ExternalSubnets", "", subnets, document.getElementById("ExternalSubnetsDiv"));
+                createMultiSelect("InternalSubnets", "", subnets, document.getElementById("InternalSubnetsDiv"));
+            }
+            if (action === "update") {
+                $("#ExternalSubnetsVal").val(externalSubnets);
+                $("#InternalSubnetsVal").val(internalSubnets);
+            }
+            else
+                selectDefaultSubnets(region);
         }
     };
     subnetsRequest.send();
@@ -338,11 +357,11 @@ function selectDefaultSubnets(subnets_region) {
     }
     // get defaults for regions
     if (subnets_region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
-        document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-        document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+        $("#ExternalSubnetsVal").val(us_west_2_default_subnets.split(","));
+        $("#InternalSubnetsVal").val(us_west_2_default_subnets.split(","));
     } else if (subnets_region === 'us-east-1' && us_east_1_default_subnets !== "") {
-        document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-        document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+        $("#ExternalSubnetsVal").val(us_east_1_default_subnets.split(","));
+        $("#InternalSubnetsVal").val(us_east_1_default_subnets.split(","));
     }
 }
 
