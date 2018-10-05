@@ -46,13 +46,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     document.getElementById("TomcatSecureVal").value = "false";
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                if (data.target.text === us_east_1_default_vpc && us_east_1_default_subnets !== "") {
-                    document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
-                } else if (data.target.text === us_west_2_default_vpc && us_west_2_default_subnets !== "") {
-                    document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-                    document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
-                }
+                getSubnets(region, data.target.text, true);
             }
         }, false);
         li.appendChild(liAnchor);
@@ -61,4 +55,35 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownDiv.appendChild(ul);
     div.appendChild(dropdownAnchor);
     div.appendChild(dropdownDiv);
+}
+
+function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) {
+    var multiSelect = document.createElement("SELECT");
+    multiSelect.className = "multi-select";
+    multiSelect.id = parameterKey + "Val";
+    multiSelect.name = parameterKey + "Val";
+    multiSelect.multiple = "multiple";
+    multiSelect.size = "4";
+
+    for (var opt in multiSelectOptions) {
+        var option = document.createElement("OPTION");
+        option.innerText = multiSelectOptions[opt];
+        multiSelect.appendChild(option);
+    }
+
+    $("#" + parameterKey + "Val").remove();
+    $(multiSelect).insertBefore($(div).children().last(), null);
+}
+
+function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
+    var multiSelect = document.getElementById(parameterKey + "Val");
+
+    while (multiSelect.firstChild)
+        multiSelect.removeChild(multiSelect.firstChild);
+
+    for (var opt in multiSelectOptions) {
+        var option = document.createElement("OPTION");
+        option.innerText = multiSelectOptions[opt];
+        multiSelect.appendChild(option);
+    }
 }

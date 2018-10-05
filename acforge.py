@@ -698,12 +698,47 @@ class getVpcs(Resource):
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
-
         vpc_ids = []
         for vpc in vpcs['Vpcs']:
             vpc_ids.append(vpc['VpcId'])
         return vpc_ids
 
+
+class getSubnetsForVpc(Resource):
+    def get(self, region, vpc):
+        ec2 = boto3.client('ec2', region_name=region)
+        try:
+            subnets = ec2.describe_subnets(
+                Filters=[
+                    {
+                        'Name': 'vpc-id',
+                        'Values': [
+                            vpc,
+                        ]
+                    },
+                ]
+            )
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+        subnet_ids = []
+        for subnet in subnets['Subnets']:
+            subnet_ids.append(subnet['SubnetId'])
+        return subnet_ids
+
+
+class getAllSubnetsForRegion(Resource):
+    def get(self, region):
+        ec2 = boto3.client('ec2', region_name=region)
+        try:
+                subnets = ec2.describe_subnets()
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
+            return
+        subnet_ids = []
+        for subnet in subnets['Subnets']:
+            subnet_ids.append(subnet['SubnetId'])
+        return subnet_ids
 
 class getLockedStacks(Resource):
     def get(self):
@@ -810,6 +845,8 @@ api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(getTemplates, '/getTemplates/<template_type>')
 api.add_resource(getVpcs, '/getVpcs/<region>')
+api.add_resource(getAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
+api.add_resource(getSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
 api.add_resource(getLockedStacks, '/getLockedStacks')
 api.add_resource(setStackLocking, '/setStackLocking/<lock>')
 

@@ -1,5 +1,7 @@
 var origParams;
 var stack_name;
+var externalSubnets;
+var internalSubnets;
 
 function readyTheTemplate() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -108,8 +110,8 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
     $("#stackName").text(stackToRetrieve);
 
     if (action == 'clone') {
-        getEbsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
-        getRdsSnapshots(document.getElementById("regionSelector").innerText.trim(), stackToRetrieve);
+        getEbsSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
+        getRdsSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
     }
 
     var stackParamsRequest = new XMLHttpRequest();
@@ -161,6 +163,14 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
                         document.getElementById("CatalinaOptsVal").value += " " + confluenceMailDisableParams;
                     }
                 }
+            // Store subnets on update
+            } else if (action === 'update') {
+                for (var param in origParams) {
+                    if (origParams[param].ParameterKey === "ExternalSubnets")
+                        externalSubnets = origParams[param].ParameterValue.split(",");
+                    else if (origParams[param].ParameterKey === "InternalSubnets")
+                        internalSubnets = origParams[param].ParameterValue.split(",");
+                }
             }
             if (document.getElementById("clone-params"))
                 $("#clone-params").show();
@@ -186,7 +196,7 @@ function createInputParameter(param, fieldset) {
         createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
-            getVPCs(document.getElementById("regionSelector").innerText.trim(), div);
+            getVPCs($("#regionSelector").text().trim(), div);
         else
             getVPCs(region, div, param.ParameterValue);
     } else {
@@ -200,10 +210,6 @@ function createInputParameter(param, fieldset) {
             input.setAttribute("data-aui-validation-field", "");
             input.type = "password";
             input.value = "";
-            input.required = true;
-        }
-        else if (param.ParameterKey.indexOf("Subnets") !== -1) {
-            input.setAttribute("data-aui-validation-field","");
             input.required = true;
         } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
             input.value = ssh_key_name;
@@ -287,7 +293,7 @@ function getRdsSnapshots(clone_region, stackToRetrieve) {
     rdsSnapshotRequest.send();
 }
 
-function  getVPCs(vpc_region, div, existingVpc) {
+function getVPCs(vpc_region, div, existingVpc) {
     if (document.getElementById("VPCVal"))
         div.removeChild(document.getElementById("VPCVal"));
     if (document.getElementById("VPCDropdownDiv"))
@@ -309,25 +315,51 @@ function  getVPCs(vpc_region, div, existingVpc) {
             if (existingVpc)
                 defaultVpc = existingVpc;
             createDropdown("VPC", defaultVpc, vpcs, div);
-            setSubnets(vpc_region);
+            getSubnets(vpc_region, defaultVpc, false);
         }
     };
     vpcsRequest.send();
 }
 
-function setSubnets(subnets_region) {
-    // blank subnets if clone
-    if (action === 'clone') {
-        document.getElementById("ExternalSubnetsVal").value = "";
-        document.getElementById("InternalSubnetsVal").value = "";
-    }
+function getSubnets(subnets_region, vpc, updateList) {
+    var subnetsRequest = new XMLHttpRequest();
+    if (vpc !== "")
+        subnetsRequest.open("GET", baseUrl + "/getSubnetsForVpc/" + subnets_region + "/" + vpc, true);
+    else
+        subnetsRequest.open("GET", baseUrl + "/getAllSubnetsForRegion/" + subnets_region, true);
+    subnetsRequest.setRequestHeader("Content-Type", "text/xml");
+    subnetsRequest.onreadystatechange = function () {
+        if (subnetsRequest.readyState === XMLHttpRequest.DONE && subnetsRequest.status === 200) {
+            var subnets = JSON.parse(subnetsRequest.responseText);
+            if (updateList) {
+                updateMultiSelect("ExternalSubnets", "", subnets);
+                updateMultiSelect("InternalSubnets", "", subnets);
+            } else {
+                createMultiSelect("ExternalSubnets", "", subnets, document.getElementById("ExternalSubnetsDiv"));
+                createMultiSelect("InternalSubnets", "", subnets, document.getElementById("InternalSubnetsDiv"));
+            }
+            if (action === "update") {
+                $("#ExternalSubnetsVal").val(externalSubnets);
+                $("#InternalSubnetsVal").val(internalSubnets);
+            }
+            else if (action === 'clone') {
+                selectDefaultSubnets($("#regionSelector").text().trim())
+            } else {
+                selectDefaultSubnets(region);
+            }
+        }
+    };
+    subnetsRequest.send();
+}
+
+function selectDefaultSubnets(subnets_region) {
     // get defaults for regions
     if (subnets_region === 'us-west-2' && us_west_2_default_subnets !== "") { //TODO get default subnets betterer
-        document.getElementById("ExternalSubnetsVal").value = us_west_2_default_subnets;
-        document.getElementById("InternalSubnetsVal").value = us_west_2_default_subnets;
+        $("#ExternalSubnetsVal").val(us_west_2_default_subnets.split(","));
+        $("#InternalSubnetsVal").val(us_west_2_default_subnets.split(","));
     } else if (subnets_region === 'us-east-1' && us_east_1_default_subnets !== "") {
-        document.getElementById("ExternalSubnetsVal").value = us_east_1_default_subnets;
-        document.getElementById("InternalSubnetsVal").value = us_east_1_default_subnets;
+        $("#ExternalSubnetsVal").val(us_east_1_default_subnets.split(","));
+        $("#InternalSubnetsVal").val(us_east_1_default_subnets.split(","));
     }
 }
 
@@ -372,7 +404,7 @@ function sendParamsAsJson() {
                 value = document.getElementById("DBSnapshotNameVal").value;
         } else if (param == "Region") {
             if (action === 'clone')
-                value = document.getElementById("regionSelector").innerText;
+                value = $("#regionSelector").text().trim();
             else
                 value = region;
         } else {
@@ -381,9 +413,17 @@ function sendParamsAsJson() {
                 value = element.text;
             } else if (element.tagName.toLowerCase() === "input") {
                 value = element.value;
+            } else if (element.tagName.toLowerCase() === "select") {
+                value = "";
+                var selections = $("#" + param + "Val").val();
+                for (var selection in selections) {
+                    value = value + selections[selection];
+                    if (selection < selections.length - 1) {
+                        value = value + ","
+                    }
+                }
             }
         }
-
         jsonParam["ParameterKey"] = param;
         jsonParam["ParameterValue"] = value;
         newParamsArray.push(jsonParam);
@@ -400,7 +440,7 @@ function sendParamsAsJson() {
 
     var appendRegion = "";
     if (action === 'clone')
-        appendRegion = "&region=" + document.getElementById("regionSelector").innerText;
+        appendRegion = "&region=" + $("#regionSelector").text().trim();
 
     // Wait a mo for action to begin  in backend
     setTimeout(function () {

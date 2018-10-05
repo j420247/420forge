@@ -245,7 +245,7 @@ function updateStats(stack_name, stack_region) {
             }
         }
     };
-    if ($("#nodes").html().length <= 4)
+    if ($("#nodes").html() && $("#nodes").html().length <= 4)
         $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
     getNodesRequest.send();
 }
