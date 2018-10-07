@@ -114,7 +114,7 @@ class Stack:
         ssm_command = ssm.send_command(
             InstanceIds=[instance],
             DocumentName='AWS-RunShellScript',
-            Parameters={'commands': [sudo_cmd], 'executionTimeout': ["900"]},
+            Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
             OutputS3BucketName=logs_bucket,
             OutputS3KeyPrefix='run-command-logs'
         )
