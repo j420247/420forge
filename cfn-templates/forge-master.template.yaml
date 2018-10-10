@@ -29,7 +29,7 @@ Metadata:
             - CustomTemplateRepo
             - CustomTemplateGitKey
             - LocalAnsibleGitRepo
-            - LocalAnsibleGitKey
+            - LocalAnsibleGitSshKeyName
             - Nodes
             - FlaskSecretKey
             - Regions
@@ -60,7 +60,7 @@ Metadata:
           default: Key Pair
         LocalAnsibleGitRepo:
           default: Git repo for local-ansible
-        LocalAnsibleGitKey:
+        LocalAnsibleGitSshKeyName:
           default: Git key for local-ansible
         Nodes:
           default: Number of nodes
@@ -153,7 +153,7 @@ Parameters:
     Default: ''
     Description: For additional node customization, provide repo location to git clone. This must be in format git@bitbucket.org:atlassian/atlassian-local-ansible-example.git if using Bitbucket Cloud, or ssh://git@stash.example.com:7997/my-local-ansible.git (ie protocol included) if using Bitbucket Server.
     Type: String
-  LocalAnsibleGitKey:
+  LocalAnsibleGitSshKeyName:
     Default: ''
     Description: if your git repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
     Type: String
@@ -250,6 +250,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
         - !Sub ["arn:aws:iam::${AccountId}:policy/CfnStackR53NodesSelfupdater", AccountId: !Ref "AWS::AccountId"]
+      Path: /
       Policies:
         - PolicyName: ForgeNodePolicy
           PolicyDocument:
@@ -483,7 +484,7 @@ Resources:
                   localansiblerepopath=/home/localansible
                   gitkeylocation=/root/.ssh/gitkey
 
-                  gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names ${LocalAnsibleGitKey} --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                  gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names ${LocalAnsibleGitSshKeyName} --with-decryption | jq --raw-output '.Parameters[0] .Value')
                   echo -e $gitkey > $gitkeylocation
                   chmod 600 $gitkeylocation
                   export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
@@ -493,8 +494,8 @@ Resources:
                   git clone ${LocalAnsibleGitRepo}
                   cp $localansiblerepopath/*/local-ansible-run /usr/local/bin/local-ansible-run
                   chmod 750 /usr/local/bin/local-ansible-run
-                - LocalAnsibleGitKey: !Ref LocalAnsibleGitKey
-                  LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
+                - LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
+                  LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
               mode: "000750"
               owner: root
               group: root
