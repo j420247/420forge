@@ -12,6 +12,7 @@ Metadata:
             - ExternalSubnet
             - InternalSubnet
             - VPC
+            - SSLCertificateARN
         - Label:
             default: EC2 Config
           Parameters:
@@ -72,6 +73,8 @@ Metadata:
           default: Regions to operate in
         SamlMetadataUrl:
           default: SAML metadata URL
+        SSLCertificateARN:
+          default: SSL Certificate ARN
         VPC:
           default: VPC Id
 
@@ -187,6 +190,12 @@ Parameters:
   SamlMetadataUrl:
     Description: Metadata URL for your SAML provider
     Type: String
+  SSLCertificateARN:
+    Default: ''
+    Description: Amazon Resource Name (ARN) of your SSL certificate. If you want to use your own certificate that you generated outside of Amazon, you need to first import it to AWS Certificate Manager. After a successful import, you'll receive the ARN. If you want to create a certificate with AWS Certificate Manager (ACM certificate), you will receive the ARN after it's successfully created.
+    MinLength: 0
+    MaxLength: 90
+    Type: String
   VPC:
     Default: vpc-dd8dc7ba
     ConstraintDescription: Must be the ID of a VPC.
@@ -233,6 +242,8 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, '']]
   NoSamlMetadata:
     !Equals [!Ref SamlMetadataUrl, '']
+  DoSSL:
+    !Not [!Equals [!Ref SSLCertificateARN, '']]
   DRRegionExists:
     !Not [!Equals [!Ref DRRegion, '']]
 
@@ -547,6 +558,10 @@ Resources:
           FromPort: 80
           ToPort: 80
         - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref CidrBlock
+        - IpProtocol: tcp
           FromPort: 8000
           ToPort: 8000
           CidrIp: !Ref CidrBlock
@@ -571,10 +586,18 @@ Resources:
     Properties:
       CrossZone: true
       Listeners:
-        - LoadBalancerPort: 80
-          Protocol: HTTP
-          InstancePort: 8000
+        - InstancePort: 8000
           InstanceProtocol: HTTP
+          LoadBalancerPort: 80
+          Protocol: HTTP
+        - !If
+          - DoSSL
+          - InstancePort: 8000
+            InstanceProtocol: HTTP
+            LoadBalancerPort: '443'
+            Protocol: HTTPS
+            SSLCertificateId: !Ref SSLCertificateARN
+          - !Ref AWS::NoValue
       HealthCheck:
         Target: 'HTTP:8000/status'
         Timeout: 29
