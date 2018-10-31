@@ -27,7 +27,7 @@ import glob
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
 VALID_STACK_STATUSES = ['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE', 'CREATE_IN_PROGRESS',
                         'DELETE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_COMPLETE', 'ROLLBACK_FAILED',
-                        'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
+                        'DELETE_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_IN_PROGRESS']
 
 parser = argparse.ArgumentParser(description='Forge')
 parser.add_argument('--nosaml',
@@ -417,6 +417,28 @@ def updateJson():
         if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
             del param['ParameterValue']
             param['UsePreviousValue'] = True
+        # if param is subnets and the value has not changed from previous (even if the order has), do not pass in changeset, or pass in correct order if there are additional
+        elif param['ParameterKey'] in ('InternalSubnets', 'ExternalSubnets'):
+            orig_subnets = next((subnet_param for subnet_param in orig_params if param['ParameterKey'] == subnet_param['ParameterKey']), None)
+            if orig_subnets:
+                orig_subnets_list = orig_subnets['ParameterValue'].split(',')
+                new_subnets_list = param['ParameterValue'].split(',')
+                subnets_to_send = []
+                for subnet in orig_subnets_list:
+                    subnets_to_send.append(subnet)
+                # append newly added subnets
+                for new_subnet in new_subnets_list:
+                    if new_subnet not in orig_subnets_list:
+                        subnets_to_send.append(new_subnet)
+                # remove any deleted subnets
+                for orig_subnet in orig_subnets_list:
+                    if orig_subnet not in new_subnets_list:
+                        subnets_to_send.remove(orig_subnet)
+            if subnets_to_send == orig_subnets_list:
+                del param['ParameterValue']
+                param['UsePreviousValue'] = True
+            else:
+                param['ParameterValue'] = ','.join(subnets_to_send)
 
     params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
 
