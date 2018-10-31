@@ -249,7 +249,6 @@ Resources:
             Action: ['sts:AssumeRole']
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
-        - !Sub ["arn:aws:iam::${AccountId}:policy/CfnStackR53NodesSelfupdater", AccountId: !Ref "AWS::AccountId"]
       Path: /
       Policies:
         - PolicyName: ForgeNodePolicy
@@ -304,6 +303,7 @@ Resources:
                 - route53:ChangeResourceRecordSets
                 - route53:GetChange
                 - route53:ListHostedZones
+                - route53:ListResourceRecordSets
                 - ssm:ListCommands
                 - ssm:PutParameter
                 - ssm:SendCommand
