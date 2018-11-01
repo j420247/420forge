@@ -151,7 +151,7 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
   LocalAnsibleGitRepo:
     Default: ''
-    Description: For additional node customization, provide ansible repo location to git clone. This may be in http or ssh format like https://user@bitbucket.org/atlassian/atlassian-local-ansible-example.git or ssh://git@bitbucketserver.example.com:7997/my-local-ansible.git (ssh needs gitkey for read permissions)
+    Description: For additional node customization, provide ansible repo location to git clone. This may be in either http or ssh format, but it must be in the correct format for your git hosting provider (as it is passed directly to a 'git clone' command), eg git@bitbucket.org:atlassian/atlassian-local-ansible-example.git if using Bitbucket Cloud, or ssh://git@bitbucketserver.example.com:7997/my-local-ansible.git (ie protocol included) if using Bitbucket Server.
     Type: String
   LocalAnsibleGitSshKeyName:
     Default: ''
