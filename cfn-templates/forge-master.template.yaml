@@ -382,6 +382,9 @@ Resources:
                 - |
                   #!/usr/bin/env bash
 
+                  # long paths are required for the atlassian-aws-deployment submodule to clone correctly
+                  git config --global core.longpaths true
+
                   forgepath=/home/forge/atl-cfn-forge
 
                   if [ -d $forgepath ]; then
@@ -393,10 +396,11 @@ Resources:
                       git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath
                       cd $forgepath
                   fi
-                  ./update
                   /usr/bin/pip-3.6 install -r requirements.txt
                   mv /tmp/forge.properties $forgepath/forge.properties --force
-                  chown -R forge:forge $forgepath
+                  mv /tmp/update $forgepath/update --force
+                  chown -R forge:forge /home/forge
+                  ./update
 
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket atl-cfn-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
@@ -416,6 +420,9 @@ Resources:
                     cd /home/forge/custom-templates
                     git clone "${CustomTemplateRepo}"
                   fi
+
+                  # final chown for updated files
+                  chown -R forge:forge /home/forge
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
@@ -497,6 +504,41 @@ Resources:
                 - LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
                   LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
               mode: "000750"
+              owner: root
+              group: root
+            /tmp/update:
+              content: !Sub
+                - |
+                  #!/usr/bin/env bash
+
+                  # update the submodules
+                  git pull
+                  git submodule update --init --recursive
+                  git submodule foreach git checkout master
+                  git submodule foreach git pull
+
+                  # update custom template repo
+                  if [[ -n "${CustomTemplateRepo}" ]]; then
+                    # apply git key if entered
+                    if [[ -n "${CustomTemplateGitKey}" ]]; then
+                      sshlocation=/home/forge/.ssh
+                      gitkeylocation=$sshlocation/gitkey
+                      gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                      mkdir $sshlocation
+                      chmod 770 $sshlocation
+                      echo -e $gitkey > $gitkeylocation
+                      chmod 700 $sshlocation
+                      chmod 600 $gitkeylocation
+                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                    fi
+                    # update the repo
+                    cd /home/forge/custom-templates/*/.
+                    git checkout master
+                    git pull
+                  fi
+                - CustomTemplateRepo: !Ref CustomTemplateRepo
+                  CustomTemplateGitKey: !Ref CustomTemplateGitKey
+              mode: "000700"
               owner: root
               group: root
           commands:
