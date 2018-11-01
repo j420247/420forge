@@ -33,7 +33,6 @@ Metadata:
             - Nodes
             - FlaskSecretKey
             - Regions
-            - DRRegion
             - SamlMetadataUrl
       ParameterLabels:
         Analytics:
@@ -42,8 +41,6 @@ Metadata:
           default: Custom Cloudformation template repository
         CustomTemplateGitKey:
           default: Git key for custom template repository
-        DRRegion:
-          default: Disaster recovery region
         FlaskSecretKey:
           default: Flask secret key
         ExternalSubnet:
@@ -97,28 +94,6 @@ Parameters:
     Type: String
   CustomTemplateGitKey:
     Description: If your custom template repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
-    Type: String
-  DRRegion:
-    Default: not-using-backupmachine
-    AllowedValues:
-      - not-using-backupmachine
-      - ap-northeast-1
-      - ap-northeast-2
-      - ap-south-1
-      - ap-southeast-1
-      - ap-southeast-2
-      - ca-central-1
-      - eu-central-1
-      - eu-west-1
-      - eu-west-2
-      - eu-west-3
-      - sa-east-1
-      - us-east-1
-      - us-east-2
-      - us-west-1
-      - us-west-2
-    ConstraintDescription: Must be an AWS Region
-    Description: "If using the Backup Machine (https://bit.ly/2PRfJRk), select the region it pushes your DR snapshots to. This region must also be listed in the Regions field."
     Type: String
   ExternalSubnet:
     ConstraintDescription: Select one Subnet ID within the selected VPC
@@ -233,8 +208,6 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, '']]
   NoSamlMetadata:
     !Equals [!Ref SamlMetadataUrl, '']
-  DRRegionExists:
-    !Not [!Equals [!Ref DRRegion, '']]
 
 Resources:
   ForgeRole:
@@ -461,9 +434,6 @@ Resources:
                   [regions]
                   ${Regions}
 
-                  [dr]
-                  dr-region: "${DRRegion}"
-
                   [analytics]
                   enabled: ${Analytics}
 
@@ -471,7 +441,6 @@ Resources:
                   bucket: atl-cfn-forge-${AWS::AccountId}
                 - Analytics: !Ref Analytics
                   Regions: !Join ["\n", !Ref Regions]
-                  DRRegion: !If [DRRegionExists, !Ref DRRegion, '']
               mode: "000750"
               owner: root
               group: root
