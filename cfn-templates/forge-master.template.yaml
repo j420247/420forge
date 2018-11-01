@@ -151,7 +151,7 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
   LocalAnsibleGitRepo:
     Default: ''
-    Description: For additional node customization, provide repo location to git clone. This must be in format git@bitbucket.org:atlassian/atlassian-local-ansible-example.git if using Bitbucket Cloud, or ssh://git@stash.example.com:7997/my-local-ansible.git (ie protocol included) if using Bitbucket Server.
+    Description: For additional node customization, provide ansible repo location to git clone. This may be in http or ssh format like https://user@bitbucket.org/atlassian/atlassian-local-ansible-example.git or ssh://git@bitbucketserver.example.com:7997/my-local-ansible.git (ssh needs gitkey for read permissions)
     Type: String
   LocalAnsibleGitSshKeyName:
     Default: ''
@@ -249,7 +249,6 @@ Resources:
             Action: ['sts:AssumeRole']
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
-        - !Sub ["arn:aws:iam::${AccountId}:policy/CfnStackR53NodesSelfupdater", AccountId: !Ref "AWS::AccountId"]
       Path: /
       Policies:
         - PolicyName: ForgeNodePolicy
@@ -304,6 +303,7 @@ Resources:
                 - route53:ChangeResourceRecordSets
                 - route53:GetChange
                 - route53:ListHostedZones
+                - route53:ListResourceRecordSets
                 - ssm:ListCommands
                 - ssm:PutParameter
                 - ssm:SendCommand
@@ -491,7 +491,7 @@ Resources:
                   localansiblerepopath=/home/localansible
                   gitkeylocation=/root/.ssh/gitkey
 
-                  gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names ${LocalAnsibleGitSshKeyName} --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                  gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names ${LocalAnsibleGitSshKeyName} --with-decryption 2>/dev/null| jq --raw-output '.Parameters[0] .Value')
                   echo -e $gitkey > $gitkeylocation
                   chmod 600 $gitkeylocation
                   export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
