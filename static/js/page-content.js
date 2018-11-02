@@ -292,4 +292,5 @@ function removeElementsByClass(className){
 document.addEventListener('DOMContentLoaded', function() {
     $("#stackInformation").hide();
     onReady();
+    checkAuthenticated();
 }, false);
