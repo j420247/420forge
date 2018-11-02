@@ -146,11 +146,13 @@
                             {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
                             {% for category, message in messages %}
-                            <div class="aui-message aui-message-{{ category }}{% if category != 'error' %} fadeout{% endif %}" id="aui-message-bar">
-                                <ul style="list-style-type: none;">
-                                    <li>{{ message }}</li>
-                                </ul>
-                            </div>
+                            <script>
+                                 AJS.flag({
+                                     type: '{{ category }}',
+                                     body: '{{ message }}',
+                                     close: "{% if category != 'error' %}auto{% endif %}"
+                                 });
+                             </script>
                             {% endfor %}
                             {% endif %}
                             {% endwith %}
