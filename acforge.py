@@ -147,71 +147,111 @@ class doupgrade(RestrictedResource):
 
 
 class doclone(RestrictedResource):
-    def get(self, region, stack_name, rdssnap, ebssnap, pg_pass, app_pass, app_type):
+    def post(self):
+        content = request.get_json()[0]
+        app_type = '' #TODO is there a better way to do this?
+        instance_type = 'DataCenter' #TODO support server
+        for param in content:
+            if param['ParameterKey'] == 'TemplateName':
+                template_name = param['ParameterValue']
+            if param['ParameterKey'] == 'StackName':
+                stack_name = param['ParameterValue']
+            if param['ParameterKey'] == 'Region':
+                region = param['ParameterValue']
+            elif param['ParameterKey'] == 'ConfluenceVersion':
+                app_type = 'Confluence'
+            elif param['ParameterKey'] == 'JiraVersion':
+                app_type = 'Jira'
+            elif param['ParameterKey'] == 'CrowdVersion':
+                app_type = 'Crowd'
+            elif param['ParameterKey'] == 'EBSSnapshotId':
+                param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+            elif param['ParameterKey'] == 'DBSnapshotName':
+                param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+        #remove stackName, region and templateName from params to send
+        content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
+        content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
+        content.remove(next(param for param in content if param['ParameterKey'] == 'TemplateName'))
+        # remove any params that are not in the Clone template
+        if template_name:
+            template_file = get_template_file(template_name)
+        else:
+            template_file = f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml'
+        yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
+        template_params = yaml.safe_load(open(template_file, 'r'))['Parameters']
+        params_to_send = []
+        for param in content:
+            if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
+                params_to_send.append(param)
         mystack = get_or_create_stack_obj(region, stack_name)
-        creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         if not mystack.store_current_action('clone', stack_locking_enabled()):
             return False
-        try:
-            outcome = mystack.destroy()
-            outcome = mystack.clone(ebssnap, rdssnap, pg_pass, app_pass, app_type, creator)
-        except Exception as e:
-            print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred cloning stack: {e.args[0]}')
-            mystack.clear_current_action()
+        creator = session['saml']['subject'] if 'saml' in session else 'unknown'
+        outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
         mystack.clear_current_action()
-        return
+        return outcome
 
 
-#TODO see if def post() in class doclone() will work here
-@app.route('/doclone', methods = ['POST'])
-def cloneJson():
-    content = request.get_json()[0]
-    app_type = '' #TODO is there a better way to do this?
-    instance_type = 'DataCenter' #TODO support server
-
-    for param in content:
-        if param['ParameterKey'] == 'TemplateName':
-            template_name = param['ParameterValue']
-        if param['ParameterKey'] == 'StackName':
-            stack_name = param['ParameterValue']
-        if param['ParameterKey'] == 'Region':
-            region = param['ParameterValue']
-        elif param['ParameterKey'] == 'ConfluenceVersion':
-            app_type = 'Confluence'
-        elif param['ParameterKey'] == 'JiraVersion':
-            app_type = 'Jira'
-        elif param['ParameterKey'] == 'CrowdVersion':
-            app_type = 'Crowd'
-        elif param['ParameterKey'] == 'EBSSnapshotId':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-        elif param['ParameterKey'] == 'DBSnapshotName':
-            param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
-
-    #remove stackName, region and templateName from params to send
-    content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
-    content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
-    content.remove(next(param for param in content if param['ParameterKey'] == 'TemplateName'))
-
-    # remove any params that are not in the Clone template
-    if template_name:
-        template_file = get_template_file(template_name)
-    else:
-        template_file = f'atlassian-aws-deployment/templates/{app_type}{instance_type}Clone.template.yaml'
-    yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
-    template_params = yaml.safe_load(open(template_file, 'r'))['Parameters']
-    params_to_send = []
-    for param in content:
-        if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
-            params_to_send.append(param)
-
-    mystack = get_or_create_stack_obj(region, stack_name)
-    if not mystack.store_current_action('clone', stack_locking_enabled()):
-        return False
-    creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-    outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
-    mystack.clear_current_action()
-    return outcome
+class doupdate(RestrictedResource):
+    def post(self):
+        content = request.get_json()
+        new_params = content[0]
+        orig_params = content[1]
+        stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
+        mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
+        if not mystack.store_current_action('update', stack_locking_enabled()):
+            return False
+        cfn_client = boto3.client('cloudformation', region_name=session['region'])
+        cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
+        try:
+            stack_details = cfn_client.describe_stacks(StackName=stack_name)
+            existing_template_params = cfn_resource.Stack(stack_name).parameters
+        except Exception as e:
+            if e.response and "does not exist" in e.response['Error']['Message']:
+                print(f'Stack {stack_name} does not exist')
+                return f'Stack {stack_name} does not exist'
+            print(e.args[0])
+        template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
+        for param in new_params:
+            # if param was not in previous template, always pass it in the change set
+            if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
+                continue
+            # if param has not changed from previous, delete the value and set UsePreviousValue to true
+            if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+                del param['ParameterValue']
+                param['UsePreviousValue'] = True
+            # if param is subnets and the value has not changed from previous (even if the order has), do not pass in changeset, or pass in correct order if there are additional
+            elif param['ParameterKey'] in ('InternalSubnets', 'ExternalSubnets'):
+                orig_subnets = next((subnet_param for subnet_param in orig_params if param['ParameterKey'] == subnet_param['ParameterKey']), None)
+                if orig_subnets:
+                    orig_subnets_list = orig_subnets['ParameterValue'].split(',')
+                    new_subnets_list = param['ParameterValue'].split(',')
+                    subnets_to_send = []
+                    for subnet in orig_subnets_list:
+                        subnets_to_send.append(subnet)
+                    # append newly added subnets
+                    for new_subnet in new_subnets_list:
+                        if new_subnet not in orig_subnets_list:
+                            subnets_to_send.append(new_subnet)
+                    # remove any deleted subnets
+                    for orig_subnet in orig_subnets_list:
+                        if orig_subnet not in new_subnets_list:
+                            subnets_to_send.remove(orig_subnet)
+                if subnets_to_send == orig_subnets_list:
+                    del param['ParameterValue']
+                    param['UsePreviousValue'] = True
+                else:
+                    param['ParameterValue'] = ','.join(subnets_to_send)
+        params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
+        env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
+        if env == 'stg' or env == 'dr':
+            if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+                params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+            if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+                params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+        outcome = mystack.update(params_for_update, get_template_file(template_name))
+        mystack.clear_current_action()
+        return outcome
 
 
 class dofullrestart(RestrictedResource):
@@ -383,75 +423,6 @@ class docreate(RestrictedResource):
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
-
-
-@app.route('/doupdate', methods = ['POST'])
-def updateJson():
-    content = request.get_json()
-    new_params = content[0]
-    orig_params = content[1]
-
-    stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
-    mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
-    if not mystack.store_current_action('update', stack_locking_enabled()):
-        return False
-
-    cfn_client = boto3.client('cloudformation', region_name=session['region'])
-    cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
-    try:
-        stack_details = cfn_client.describe_stacks(StackName=stack_name)
-        existing_template_params = cfn_resource.Stack(stack_name).parameters
-    except Exception as e:
-        if e.response and "does not exist" in e.response['Error']['Message']:
-            print(f'Stack {stack_name} does not exist')
-            return f'Stack {stack_name} does not exist'
-        print(e.args[0])
-
-    template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
-
-    for param in new_params:
-        # if param was not in previous template, always pass it in the change set
-        if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
-            continue
-        # if param has not changed from previous, delete the value and set UsePreviousValue to true
-        if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
-            del param['ParameterValue']
-            param['UsePreviousValue'] = True
-        # if param is subnets and the value has not changed from previous (even if the order has), do not pass in changeset, or pass in correct order if there are additional
-        elif param['ParameterKey'] in ('InternalSubnets', 'ExternalSubnets'):
-            orig_subnets = next((subnet_param for subnet_param in orig_params if param['ParameterKey'] == subnet_param['ParameterKey']), None)
-            if orig_subnets:
-                orig_subnets_list = orig_subnets['ParameterValue'].split(',')
-                new_subnets_list = param['ParameterValue'].split(',')
-                subnets_to_send = []
-                for subnet in orig_subnets_list:
-                    subnets_to_send.append(subnet)
-                # append newly added subnets
-                for new_subnet in new_subnets_list:
-                    if new_subnet not in orig_subnets_list:
-                        subnets_to_send.append(new_subnet)
-                # remove any deleted subnets
-                for orig_subnet in orig_subnets_list:
-                    if orig_subnet not in new_subnets_list:
-                        subnets_to_send.remove(orig_subnet)
-            if subnets_to_send == orig_subnets_list:
-                del param['ParameterValue']
-                param['UsePreviousValue'] = True
-            else:
-                param['ParameterValue'] = ','.join(subnets_to_send)
-
-    params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
-
-    env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-    if env == 'stg' or env == 'dr':
-        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
-            params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-        if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
-            params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-
-    outcome = mystack.update(params_for_update, get_template_file(template_name))
-    mystack.clear_current_action()
-    return outcome
 
 
 class status(Resource):
@@ -837,11 +808,12 @@ def admin_stack(stack_name):
 
 # Actions
 api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
-api.add_resource(doclone, '/doclone/<app_type>/<stack_name>/<ebssnap>/<rdssnap>')
+api.add_resource(doclone, '/doclone')
 api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(docreate, '/docreate')
 api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
+api.add_resource(doupdate, '/doupdate')
 api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
 api.add_resource(dogetthreaddumplinks, '/dogetthreaddumplinks/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
