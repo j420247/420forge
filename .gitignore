@@ -7,4 +7,5 @@ __pycache__*
 .DS_Store
 permissions.json
 forge.properties
+locks/locking
 static/js/global-variables.js

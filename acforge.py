@@ -935,11 +935,6 @@ def get_regions():
     return config.items('regions')
 
 
-def get_dr_region():
-    config = get_config_properties()
-    return config['dr']['dr-region']
-
-
 def get_config_properties():
     config_props = configparser.ConfigParser()
     config_props.read(path.join(path.dirname(__file__), 'forge.properties'))
