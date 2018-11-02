@@ -14,3 +14,45 @@ function onReady() {
         }, false);
     }
 }
+
+function getCloneDefaults(){
+    var stack_name = $("#StackNameVal").val();
+    if (!stack_name) {
+        AJS.flag({
+            type: 'error',
+            body: 'Please enter a stack name',
+            close: 'auto'
+        });
+        return;
+    }
+    var getCloneDefaultsRequest = new XMLHttpRequest();
+    getCloneDefaultsRequest.open("GET", baseUrl + "/getCloneDefaults/" + stack_name, true);
+    getCloneDefaultsRequest.setRequestHeader("Content-Type", "text/xml");
+    getCloneDefaultsRequest.onreadystatechange = function () {
+        if (getCloneDefaultsRequest.readyState === XMLHttpRequest.DONE && getCloneDefaultsRequest.status === 200) {
+            var params = JSON.parse(getCloneDefaultsRequest.responseText);
+            if (params.length == 0) {
+                AJS.flag({
+                    type: 'error',
+                    body: 'No defaults exist for ' + stack_name,
+                    close: 'auto'
+                });
+                return;
+            }
+
+            for (var param in params) {
+                var element = $("#" + params[param][0] + "Val");
+                if (element.is("input"))
+                    element.val(params[param][1]);
+                else if (element.is("a"))
+                    element.text(params[param][1]);
+            }
+            AJS.flag({
+                type: 'success',
+                body: 'Defaults for ' + stack_name + ' have been applied',
+                close: 'auto'
+            });
+        }
+    };
+    getCloneDefaultsRequest.send();
+}
