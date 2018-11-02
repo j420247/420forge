@@ -428,7 +428,7 @@ Resources:
                   cd /home/forge/atl-cfn-forge
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/global-variables.js static/js/
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json .
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/eac-stg.post-clone.sql stacks/eac-stg/
+                  aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/locking locks/
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
