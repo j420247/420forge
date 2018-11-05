@@ -394,12 +394,28 @@ Resources:
                     git clone "${CustomTemplateRepo}"
                   fi
 
+                  # upload SAML params for later use
+                  if [[ -n "${SamlMetadataUrl}" ]]; then
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_secret_key" --type=SecureString --value="${FlaskSecretKey}"
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_protocol" --type=SecureString --value="${SamlProtocol}"
+                    aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_url" --type=SecureString --value="${SamlUrl}"
+                  fi
+
+                  # download config files from S3 if they exist
+                  cd /home/forge/atl-cfn-forge
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/global-variables.js static/js/
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json .
+                  aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/locking locks/
+
                   # final chown for updated files
                   chown -R forge:forge /home/forge
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
                   region: !Ref AWS::Region
+                  SamlProtocol: !If [NoSamlMetadata, '', !Select [0, !Split ['://', !Ref SamlMetadataUrl]]]
+                  SamlUrl: !If [NoSamlMetadata, '', !Select [1, !Split ['://', !Ref SamlMetadataUrl]]]
               mode: "000700"
               owner: root
               group: root
@@ -418,17 +434,10 @@ Resources:
 
                   script
                     cd /home/forge/atl-cfn-forge
-                    if [[ -n "${SamlMetadataUrl}" ]]; then
-                      aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_secret_key" --type=SecureString --value="${FlaskSecretKey}"
-                      aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_protocol" --type=SecureString --value="${SamlProtocol}"
-                      aws --region=${region} ssm put-parameter --overwrite --name "atl_forge_saml_metadata_url" --type=SecureString --value="${SamlUrl}"
-                    fi
                     exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "--nosaml", '']
                   region: !Ref AWS::Region
-                  SamlProtocol: !If [NoSamlMetadata, '', !Select [0, !Split ['://', !Ref SamlMetadataUrl]]]
-                  SamlUrl: !If [NoSamlMetadata, '', !Select [1, !Split ['://', !Ref SamlMetadataUrl]]]
               mode: "000600"
               owner: root
               group: root
