@@ -22,6 +22,7 @@ import configparser
 import os
 from version import __version__
 import glob
+import sys
 
 # global configuration
 PRODUCTS = ["Jira", "Confluence", "Crowd"]
@@ -61,7 +62,6 @@ try:
     app.config['SECRET_KEY'] = key['Parameter']['Value']
 except botocore.exceptions.NoCredentialsError as e:
     print('No credentials - please authenticate with Cloudtoken')
-    raise
 except Exception:
     print('No secret key in parameter store')
 # create SAML URL if saml enabled
@@ -80,7 +80,7 @@ if not args.nosaml:
         app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
     except Exception:
         print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
-        raise
+        sys.exit(1)
     flask_saml.FlaskSAML(app)
 else:
     print('SAML auth is not configured')
@@ -285,10 +285,10 @@ class dothreaddumps(RestrictedResource):
 
 class dogetthreaddumplinks(RestrictedResource):
     def get(self, stack_name):
-        accountId = boto3.client('sts').get_caller_identity().get('Account')
-        s3_bucket = f'atl-cfn-forge-{accountId}'
         urls = []
         try:
+            accountId = boto3.client('sts').get_caller_identity().get('Account')
+            s3_bucket = f'atl-cfn-forge-{accountId}'
             client = boto3.client('s3', region_name=session['region'])
             list_objects = client.list_objects_v2(
                 Bucket=s3_bucket,
@@ -670,7 +670,6 @@ class getEbsSnapshots(Resource):
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
-
         snapshotIds = []
         for snap in snapshots['Snapshots']:
             snapshotIds.append(str(snap['StartTime']).split(' ').__getitem__(0) + ": " + snap['SnapshotId'])
@@ -686,7 +685,6 @@ class getRdsSnapshots(Resource):
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
-
         snapshotIds = []
         for snap in snapshots['DBSnapshots']:
             snapshotIds.append(str(snap['SnapshotCreateTime']).split(' ').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
@@ -764,7 +762,7 @@ class getAllSubnetsForRegion(Resource):
     def get(self, region):
         ec2 = boto3.client('ec2', region_name=region)
         try:
-                subnets = ec2.describe_subnets()
+            subnets = ec2.describe_subnets()
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return
@@ -902,7 +900,7 @@ def get_cfn_stacks_for_region(region=None):
         for stack in stack_list['StackSummaries']:
             stack_name_list.append(stack['StackName'])
     except (KeyError, botocore.exceptions.NoCredentialsError):
-        flash(f'Cannot query AWS - please authenticate with Cloudtoken', 'error')
+        stack_name_list.append('No credentials')
     return stack_name_list
 
 
@@ -1042,12 +1040,6 @@ def setaction(action):
 @app.route('/getparms/<action>')
 def getparms(action):
     return sorted(get_cfn_stacks_for_region())
-
-
-@app.route('/show_stacks')
-def show_stacks():
-    stack_name_list = sorted(get_cfn_stacks_for_region())
-    return render_template('stack_selection.html', stack_name_list=stack_name_list)
 
 
 if __name__ == '__main__':
