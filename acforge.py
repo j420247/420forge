@@ -620,6 +620,17 @@ class getTags(Resource):
         return tags
 
 
+class getCloneDefaults(Resource):
+    def get(self, stack_name):
+        properties_file = Path(f'stacks/{stack_name}/{stack_name}.clone-defaults.properties')
+        if properties_file.exists():
+            clone_default_props = configparser.ConfigParser()
+            clone_default_props.optionxform = str
+            clone_default_props.read(path.join(path.dirname(__file__), f'stacks/{stack_name}/{stack_name}.clone-defaults.properties'))
+            return clone_default_props.items('defaults')
+        return []
+
+
 def get_or_create_stack_obj(region, stack_name):
     if len(stacks) > 0:
         mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
@@ -860,6 +871,8 @@ api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<s
 api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
 api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
 api.add_resource(getTags, '/getTags/<region>/<stack_name>')
+api.add_resource(getCloneDefaults, '/getCloneDefaults/<stack_name>')
+
 
 # Helpers
 api.add_resource(actionReadyToStart, '/actionReadyToStart')
