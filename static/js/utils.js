@@ -90,7 +90,6 @@ function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
 
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
-    debugger;
     if (stacks.length == 1 && stacks[0].text == 'No credentials') {
         AJS.flag({
             type: 'error',
