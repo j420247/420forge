@@ -429,7 +429,10 @@ function sendParamsAsJson() {
         newParamsArray.push(jsonParam);
     }
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", baseUrl + "/do" + action, true);
+    if (action === 'update')
+        xhr.open("POST", baseUrl + "/do" + action + "/" + stackNameForAction, true);
+    else
+        xhr.open("POST", baseUrl + "/do" + action, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // send the collected data as JSON

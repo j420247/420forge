@@ -118,8 +118,8 @@ class RestrictedResource(Resource):
             if json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
                 if session['region'] in json_perms[keys]['region'] or '*' in json_perms[keys]['region']:
                     if request.endpoint in json_perms[keys]['action'] or '*' in json_perms[keys]['action']:
-                        if request.endpoint == 'docreate':
-                            # do not check stack_name on stack creation
+                        if request.endpoint in ('docreate', 'doclone'):
+                            # do not check stack_name on stack creation/clone
                             print(f'User is authorised to perform {request.endpoint}')
                             return super().dispatch_request(*args, **kwargs)
                         elif kwargs['stack_name'] in json_perms[keys]['stack'] or '*' in json_perms[keys]['stack']:
@@ -193,11 +193,10 @@ class doclone(RestrictedResource):
 
 
 class doupdate(RestrictedResource):
-    def post(self):
+    def post(self, stack_name):
         content = request.get_json()
         new_params = content[0]
         orig_params = content[1]
-        stack_name = next(param for param in new_params if param['ParameterKey'] == 'StackName')['ParameterValue']
         mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
         if not mystack.store_current_action('update', stack_locking_enabled()):
             return False
@@ -822,7 +821,7 @@ api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/
 api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(docreate, '/docreate')
 api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
-api.add_resource(doupdate, '/doupdate')
+api.add_resource(doupdate, '/doupdate/<stack_name>')
 api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
 api.add_resource(dogetthreaddumplinks, '/dogetthreaddumplinks/<stack_name>')
 api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
