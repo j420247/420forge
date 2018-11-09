@@ -19,7 +19,10 @@ class Stackstate:
 
     def write_state(self):
         if not Path(f'stacks/{self.stack_name}').exists():
-            os.makedirs(f'stacks/{self.stack_name}')
+            try:
+                os.makedirs(f'stacks/{self.stack_name}')
+            except FileExistsError:
+                pass
         with open(f'stacks/{self.stack_name}/{self.stack_name}.json', 'w') as outfile:
             json.dump(self.stackstate, outfile)
         outfile.close()
