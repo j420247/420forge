@@ -709,11 +709,67 @@ class Stack:
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         if self.shutdown_app(self.instancelist):
             for instance in self.instancelist:
-                self.state.logaction(log.INFO, f'starting application on {instance} for {self.stack_name}')
+                self.state.logaction(log.INFO, f'Starting application on {instance} for {self.stack_name}')
                 startup = self.startup_app([instance])
             self.state.logaction(log.INFO, "Full restart complete")
         else:
             self.state.logaction(log.INFO, "Full restart complete - failed")
+        return True
+
+
+    def rolling_rebuild(self, template_name, add_node):
+        self.state.logaction(log.INFO, f'Beginning Rolling Rebuild for {self.stack_name}')
+        self.get_stacknodes()
+        orig_nodes = self.instancelist
+        self.state.logaction(log.INFO, f'{self.stack_name} nodes are {orig_nodes}')
+        if add_node:
+            pass;
+        try:
+            autoscale = boto3.client('autoscaling', region_name=self.region)
+            all_autoscaling_groups = autoscale.describe_auto_scaling_groups()
+            group_name = ''
+            for group in all_autoscaling_groups['AutoScalingGroups']:
+                if group['AutoScalingGroupName'].startswith(self.stack_name + '-ClusterNodeGroup'):
+                    group_name = group['AutoScalingGroupName']
+            processed_nodes = 0
+            current_nodes = []
+            for node in orig_nodes:
+                current_nodes.append(node)
+            for instance in orig_nodes:
+                if processed_nodes < len(orig_nodes):
+                    self.state.logaction(log.INFO, f'Terminating node {instance}')
+                    autoscale.terminate_instance_in_auto_scaling_group(
+                        InstanceId=list(instance.keys())[0],
+                        ShouldDecrementDesiredCapacity=False
+                    )
+
+                    # find the new node and check its state
+                    new_node_ip = ''
+                    new_node_state = ''
+                    while new_node_state != 'running':
+                        stack = autoscale.describe_auto_scaling_groups(
+                            AutoScalingGroupNames=[
+                                group_name
+                            ]
+                        )
+                        for instance in stack['AutoScalingGroups'][0]['Instances']:
+                            if instance['InstanceId']  in {instance_id for instance in current_nodes for instance_id in instance.keys()}: #TODO change to NOT
+                                ec2 = boto3.resource('ec2', region_name=self.region)
+                                instance_details = ec2.instances.filter(InstanceIds=[instance['InstanceId']])
+                                for i in instance_details:
+                                    new_node_ip = i.private_ip_address
+                                new_node_state = ec2.meta.client.describe_instance_status(InstanceIds=[instance['InstanceId']])['InstanceStatuses'][0]['InstanceState']['Name']
+                                if new_node_state != 'running':
+                                    time.sleep(10)
+                    result = ''
+                    while result not in ['RUNNING', 'FIRST_RUN']:
+                        time.sleep(10)
+                        result = self.check_node_status(new_node_ip, False)
+                    self.state.logaction(log.INFO, f'Node {new_node_ip} is: {result}')
+                    processed_nodes += 1
+        except Exception as e:
+            self.state.logaction(log.INFO, "Rolling rebuild complete - failed")
+        self.state.logaction(log.INFO, "Rolling rebuild complete")
         return True
 
 

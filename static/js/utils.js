@@ -1,3 +1,26 @@
+function setupStackSelector() {
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            selectStack(data.target.text);
+        }, false);
+    }
+}
+
+function addDefaultActionButtonListener() {
+    var actionButton = document.getElementById("action-button");
+    if (actionButton)
+        actionButton.addEventListener("click", defaultActionBtnEvent);
+}
+
+var defaultActionBtnEvent = function() {
+    if (action === 'upgrade') {
+        performAction($("#upgradeVersionSelector").val())
+    } else {
+        performAction()
+    }
+};
+
 function countOccurences(stringToSearch, searchTerm) {
     var count = 0;
     var position = stringToSearch.indexOf(searchTerm);

@@ -1,0 +1,26 @@
+{% extends "template-selector.html" %}
+{% block head %}
+{{ super() }}
+<script src="/static/js/rolling-rebuild.js"></script>
+{% endblock head %}
+
+{% block desc %}This will destroy and rebuild all the nodes in your cluster. Useful when you want to apply a configuration change,<br>
+such as a different instance size, or a new AMI.<br>For configuration updates, make the change in Update Stack Configuration first.<br>
+New AMIs will be applied as per the templates in Forge (you may need to run ./update to pull the latest version of the templates).<br><br>
+Do NOT use to perform upgrades.{% endblock desc %}
+
+{% block extraInput%}
+{{ super() }}
+<form class="aui">
+    <fieldset class="group">
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="addNodeCheckBox" id="addNodeCheckBox">
+            <label for="addNodeCheckBox">Add an additional node to the cluster during the rebuild</label>
+            <div class="description">This will perform the change without any loss of capacity, but will incur additional AWS spend.
+                The additional node will be destroyed once the rebuild is complete.</div>
+        </div>
+    </fieldset>
+</form>
+{% endblock extraInput %}
+
+{% block buttonText %}Rolling Rebuild{% endblock buttonText %}

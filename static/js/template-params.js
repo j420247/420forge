@@ -4,14 +4,7 @@ var externalSubnets;
 var internalSubnets;
 
 function readyTheTemplate() {
-    var stacks = document.getElementsByClassName("selectStackOption");
-    for (var i = 0; i < stacks.length; i++) {
-        stacks[i].addEventListener("click", function (data) {
-            stack_name = data.target.text;
-            $("#aui-message-bar").hide();
-            selectStack(stack_name);
-        }, false);
-    }
+    setupStackSelector();
 
     var actionButton = document.getElementById("action-button");
     actionButton.removeEventListener("click", defaultActionBtnEvent);
@@ -58,6 +51,8 @@ function getTemplates(template_type) {
                     $("#templateSelector").text(selectedTemplate);
                     if (action === 'create')
                         getTemplateParams(selectedTemplate);
+                    else if (action === 'rollingrebuild')
+                        return;
                     else
                         selectTemplateForStack(stack_name, selectedTemplate);
                 }, false);

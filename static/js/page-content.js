@@ -3,12 +3,7 @@ var region = $("meta[name=region]").attr("value");
 var action = window.location.pathname.substr(1);
 
 function onReady() {
-    var stacks = document.getElementsByClassName("selectStackOption");
-    for (var i = 0; i < stacks.length; i++) {
-        stacks[i].addEventListener("click", function (data) {
-            selectStack(data.target.text);
-        }, false);
-    }
+    setupStackSelector();
 
     // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
     // if (action === "upgrade") {
@@ -36,20 +31,6 @@ function onReady() {
 
     addDefaultActionButtonListener();
 }
-
-function addDefaultActionButtonListener() {
-    var actionButton = document.getElementById("action-button");
-    if (actionButton)
-        actionButton.addEventListener("click", defaultActionBtnEvent);
-}
-
-var defaultActionBtnEvent = function() {
-    if (action === 'upgrade') {
-        performAction($("#upgradeVersionSelector").val())
-    } else {
-        performAction()
-    }
-};
 
 function selectStack(stack_name) {
     $("#stackSelector").text(stack_name);
@@ -147,7 +128,10 @@ function performAction(version) {
         case "rollingrestart":
         case "fullrestart":
             url += "/" + document.getElementById("takeThreadDumps").checked
-                + "/" + document.getElementById("takeHeapDumps").checked
+                + "/" + document.getElementById("takeHeapDumps").checked;
+        case "rollingrebuild":
+            url += "/" + $("#templateSelector").text();
+            url +="?addNode=" + document.getElementById("addNodeCheckBox").checked
     }
 
     actionRequest.open("GET", url, true);
