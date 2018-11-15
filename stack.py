@@ -135,6 +135,7 @@ class Stack:
         cmd_id = self.ssm_send_command(instance, cmd)
         if not cmd_id:
             self.state.logaction(log.ERROR, f'Command {cmd} on instance {instance} failed to send')
+            return False
         else:
             result = self.wait_for_cmd_result(cmd_id)
         return result
@@ -696,10 +697,14 @@ class Stack:
         for instance in self.instancelist:
             if self.shutdown_app([instance]):
                 self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
-                startup = self.startup_app([instance])
-                self.state.logaction(log.INFO, "Rolling restart complete")
+                if self.startup_app([instance]):
+                    self.state.logaction(log.INFO, "Rolling restart complete")
+                else:
+                    self.state.logaction(log.INFO, "Rolling restart complete - failed")
+                    return False
             else:
                 self.state.logaction(log.INFO, "Rolling restart complete - failed")
+                return False
         return True
 
 
@@ -714,6 +719,7 @@ class Stack:
             self.state.logaction(log.INFO, "Full restart complete")
         else:
             self.state.logaction(log.INFO, "Full restart complete - failed")
+            return False
         return True
 
 
