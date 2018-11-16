@@ -440,6 +440,7 @@ class Stack:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
                 self.state.logaction('ERROR', f'Startup result for {cmd_id}: {result}')
+                return False
             else:
                 result = ""
                 while result not in ['RUNNING', 'FIRST_RUN']:
@@ -696,15 +697,22 @@ class Stack:
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         for instance in self.instancelist:
             if self.shutdown_app([instance]):
+                node_ip = list(instance.values())[0]
                 self.state.logaction(log.INFO, f'Starting application on instance {instance} for {self.stack_name}')
                 if self.startup_app([instance]):
                     self.state.logaction(log.INFO, f'Application started on instance {instance}')
+                    result = ""
+                    while result not in ['RUNNING', 'FIRST_RUN']:
+                        result = self.check_node_status(node_ip, False)
+                        time.sleep(10)
+                    self.state.logaction(log.INFO, f'Startup result for {node_ip}: {result}')
                 else:
                     self.state.logaction(log.INFO, f'Failed to start application on instance {instance}')
-                    self.state.logaction(log.INFO, "Rolling restart complete - failed")
+                    self.state.logaction(log.ERROR, "Rolling restart complete - failed")
                     return False
             else:
-                self.state.logaction(log.INFO, "Rolling restart complete - failed")
+                self.state.logaction(log.INFO, f'Failed to stop application on instance {instance}')
+                self.state.logaction(log.ERROR, "Rolling restart complete - failed")
                 return False
         self.state.logaction(log.INFO, "Rolling restart complete")
         return True
