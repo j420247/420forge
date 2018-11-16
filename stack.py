@@ -696,15 +696,17 @@ class Stack:
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         for instance in self.instancelist:
             if self.shutdown_app([instance]):
-                self.state.logaction(log.INFO, f'starting application on instance {instance} for {self.stack_name}')
+                self.state.logaction(log.INFO, f'Starting application on instance {instance} for {self.stack_name}')
                 if self.startup_app([instance]):
-                    self.state.logaction(log.INFO, "Rolling restart complete")
+                    self.state.logaction(log.INFO, f'Application started on instance {instance}')
                 else:
+                    self.state.logaction(log.INFO, f'Failed to start application on instance {instance}')
                     self.state.logaction(log.INFO, "Rolling restart complete - failed")
                     return False
             else:
                 self.state.logaction(log.INFO, "Rolling restart complete - failed")
                 return False
+        self.state.logaction(log.INFO, "Rolling restart complete")
         return True
 
 
