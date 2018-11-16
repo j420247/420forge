@@ -36,16 +36,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
             dropdownAnchor.text = data.target.text;
 
             // Set some smart defaults based on dropdown selections
-            if (dropdownAnchor.id === "TomcatSchemeVal") {
-                if (data.target.text === "https") {
-                    document.getElementById("TomcatProxyPortVal").value = "443";
-                    document.getElementById("TomcatSecureVal").value = "true";
-                }
-                else if (data.target.text === "http") {
-                    document.getElementById("TomcatProxyPortVal").value = "80";
-                    document.getElementById("TomcatSecureVal").value = "false";
-                }
-            } else if (dropdownAnchor.id === "VPCVal") {
+            if (dropdownAnchor.id === "VPCVal") {
                 getSubnets(region, data.target.text, true);
             }
         }, false);
