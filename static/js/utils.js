@@ -36,14 +36,17 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
             dropdownAnchor.text = data.target.text;
 
             // Set some smart defaults based on dropdown selections
+            // TODO: remove these fields being toggled by TomcatSchemeVal; the fields were
+            //       removed on 2018/11/19, but we don't want to break this functionality
+            //       for older templates (yet), so targeting removal of these for Feb 2019.
             if (dropdownAnchor.id === "TomcatSchemeVal") {
                 if (data.target.text === "https") {
-                    document.getElementById("TomcatProxyPortVal").value = "443";
-                    document.getElementById("TomcatSecureVal").value = "true";
+                    updateTextField("TomcatProxyPort", "443");
+                    updateTextField("TomcatSecure", "true");
                 }
                 else if (data.target.text === "http") {
-                    document.getElementById("TomcatProxyPortVal").value = "80";
-                    document.getElementById("TomcatSecureVal").value = "false";
+                    updateTextField("TomcatProxyPort", "80");
+                    updateTextField("TomcatSecure", "false");
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
                 getSubnets(region, data.target.text, true);
@@ -85,6 +88,14 @@ function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
         var option = document.createElement("OPTION");
         option.innerText = multiSelectOptions[opt];
         multiSelect.appendChild(option);
+    }
+}
+
+function updateTextField(parameterKey, newValue) {
+    var textField = document.getElementById(parameterKey + "Val");
+
+    if (textField) {
+        textField.value = newValue;
     }
 }
 
