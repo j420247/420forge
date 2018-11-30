@@ -868,9 +868,11 @@ def get_cfn_stacks_for_region(region=None):
     try:
         stack_list = cfn.list_stacks(
             StackStatusFilter=VALID_STACK_STATUSES)
+        session['credentials'] = True
         for stack in stack_list['StackSummaries']:
             stack_name_list.append(stack['StackName'])
     except (KeyError, botocore.exceptions.NoCredentialsError):
+        session['credentials'] = False
         stack_name_list.append('No credentials')
     return stack_name_list
 
@@ -888,7 +890,7 @@ def get_current_log(stack_name):
     return False
 
 
-# This checks for SAML auth and sets a session timeout.
+# This checks for SAML auth and sets a session timeout
 @app.before_request
 def check_loggedin():
     session.permanent = True
@@ -898,6 +900,15 @@ def check_loggedin():
     if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
         return redirect(login_url)
+
+
+# This checks for Cloudtoken credentials
+@app.before_request
+def check_cloudtoken():
+    if 'credentials' in session and session['credentials'] == False:
+        flash('No credentials - please authenticate with Cloudtoken', 'error')
+        return
+    return
 
 
 def general_constructor(loader, tag_suffix, node):
