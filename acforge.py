@@ -377,6 +377,7 @@ class dorunsql(RestrictedResource):
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
             mystack.clear_current_action()
+            return False
         mystack.clear_current_action()
         return outcome
 
@@ -392,6 +393,7 @@ class dotag(RestrictedResource):
             print(e.args[0])
             mystack.state.logaction(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
             mystack.clear_current_action()
+            return False
         mystack.clear_current_action()
         return outcome
 
