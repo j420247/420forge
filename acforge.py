@@ -594,11 +594,15 @@ class getTags(Resource):
 
 class getCloneDefaults(Resource):
     def get(self, stack_name):
-        properties_file = Path(f'stacks/{stack_name}/{stack_name}.clone-defaults.properties')
-        if properties_file.exists():
-            clone_default_props = configparser.ConfigParser()
-            clone_default_props.optionxform = str
+        clone_default_props = configparser.ConfigParser()
+        clone_default_props.optionxform = str
+        all_stacks_properties_file = Path('stacks/clone-defaults.properties')
+        if all_stacks_properties_file.exists():
+            clone_default_props.read(path.join(path.dirname(__file__), 'stacks/clone-defaults.properties'))
+        stack_properties_file = Path(f'stacks/{stack_name}/{stack_name}.clone-defaults.properties')
+        if stack_properties_file.exists():
             clone_default_props.read(path.join(path.dirname(__file__), f'stacks/{stack_name}/{stack_name}.clone-defaults.properties'))
+        if clone_default_props.has_section('defaults'):
             return clone_default_props.items('defaults')
         return []
 
