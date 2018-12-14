@@ -735,7 +735,7 @@ class Stack:
 
     def thread_dump(self, alsoHeaps=False):
         heaps_to_come_log_line = ''
-        if alsoHeaps:
+        if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
         self.state.logaction(log.INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}')
         self.get_stacknodes()
