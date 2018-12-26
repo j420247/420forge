@@ -28,3 +28,11 @@ img {
 #templateSelection, #templates {
     min-width: 500px;
 }
+
+#ebsSnapshotSelection {
+    min-width: 350px;
+}
+
+#rdsSnapshotSelection {
+    min-width: 360px;
+}
