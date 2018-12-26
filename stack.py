@@ -10,6 +10,7 @@ import log
 import os
 import shutil
 import configparser
+import itertools
 
 
 class Stack:
@@ -694,8 +695,19 @@ class Stack:
     def rolling_restart(self):
         self.state.logaction(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.get_stacknodes()
+        instance_list = self.instancelist
         self.state.logaction(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        for instance in self.instancelist:
+        # determine if the nodes are running or not
+        running_nodes = []
+        non_running_nodes = []
+        for node in instance_list:
+            node_ip = list(node.values())[0]
+            if self.check_node_status(node_ip, False).lower() == 'running':
+                running_nodes.append(node)
+            else:
+                non_running_nodes.append(node)
+        # restart non running nodes first
+        for instance in itertools.chain(non_running_nodes, running_nodes):
             if self.shutdown_app([instance]):
                 node_ip = list(instance.values())[0]
                 self.state.logaction(log.INFO, f'Starting application on instance {instance} for {self.stack_name}')
