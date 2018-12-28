@@ -42,8 +42,6 @@ class Stackstate:
         return (self)
 
     def update(self, update_key, update_value):
-        if not 'stack_name' in self.stackstate:
-            self.load_state()
         self.stackstate[update_key] = update_value
         self.write_state()
         return (self)

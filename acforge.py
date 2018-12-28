@@ -137,7 +137,7 @@ class doupgrade(RestrictedResource):
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -263,7 +263,7 @@ class dofullrestart(RestrictedResource):
             mystack.full_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -282,7 +282,7 @@ class dorollingrestart(RestrictedResource):
             mystack.rolling_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -297,7 +297,7 @@ class dodestroy(RestrictedResource):
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
@@ -313,7 +313,7 @@ class dothreaddumps(RestrictedResource):
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -357,7 +357,7 @@ class doheapdumps(RestrictedResource):
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -372,7 +372,7 @@ class dorunsql(RestrictedResource):
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -388,7 +388,7 @@ class dotag(RestrictedResource):
             outcome = mystack.tag(tags)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -423,8 +423,8 @@ class docreate(RestrictedResource):
 
 class status(Resource):
     def get(self, stack_name):
-        log_json = get_current_log(stack_name)
-        return log_json if log_json else f'No current status for {stack_name}'
+        log = get_current_log(stack_name)
+        return log if log else f'No current status for {stack_name}'
 
 
 class serviceStatus(Resource):
@@ -867,13 +867,12 @@ def get_cfn_stacks_for_region(region=None):
 
 
 def get_current_log(stack_name):
-    statefile = Path(f'stacks/{stack_name}/{stack_name}.json')
-    if statefile.is_file() and path.getsize(statefile) > 0:
-        with open(statefile, 'r') as stack_state:
+    logs = glob.glob(f'stacks/{stack_name}/{stack_name}_*.log')
+    if len(logs) > 0:
+        logs.sort(key=os.path.getmtime, reverse=True)
+        with open(logs[0], 'r') as logfile:
             try:
-                json_state = json.load(stack_state)
-                if 'action_log' in json_state:
-                    return json_state['action_log']
+                return logfile.read()
             except Exception as e:
                 print(e.args[0])
     return False
