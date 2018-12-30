@@ -43,9 +43,6 @@ args = parser.parse_args()
 # using dict of dicts called stackstate to track state of a stack's actions
 stackstate = defaultdict(dict)
 
-# list to hold stacks that have already been initialised
-stacks = []
-
 # create and initialize app
 print(f'Starting Atlassian CloudFormation Forge v{__version__}')
 app = Flask(__name__)
@@ -133,14 +130,14 @@ class RestrictedResource(Resource):
 ##
 class doupgrade(RestrictedResource):
     def get(self, region, stack_name, new_version):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('upgrade', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -183,7 +180,7 @@ class doclone(RestrictedResource):
         for param in content:
             if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
                 params_to_send.append(param)
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('clone', stack_locking_enabled()):
             return False
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
@@ -197,7 +194,7 @@ class doupdate(RestrictedResource):
         content = request.get_json()
         new_params = content[0]
         orig_params = content[1]
-        mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
+        mystack = Stack(stack_name, session['region'] if 'region' in session else '')
         if not mystack.store_current_action('update', stack_locking_enabled()):
             return False
         cfn_client = boto3.client('cloudformation', region_name=session['region'])
@@ -255,7 +252,7 @@ class doupdate(RestrictedResource):
 
 class dofullrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('fullrestart', stack_locking_enabled()):
             return False
         try:
@@ -266,7 +263,7 @@ class dofullrestart(RestrictedResource):
             mystack.full_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred doing full restart: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -274,7 +271,7 @@ class dofullrestart(RestrictedResource):
 
 class dorollingrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('rollingrestart', stack_locking_enabled()):
             return False
         try:
@@ -285,7 +282,7 @@ class dorollingrestart(RestrictedResource):
             mystack.rolling_restart()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -293,14 +290,14 @@ class dorollingrestart(RestrictedResource):
 
 class dodestroy(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('destroy', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.destroy()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred destroying stack: {e.args[0]}')
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
@@ -309,14 +306,14 @@ class dodestroy(RestrictedResource):
 
 class dothreaddumps(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.thread_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred taking thread dumps: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -353,14 +350,14 @@ class dogetthreaddumplinks(RestrictedResource):
 
 class doheapdumps(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.heap_dump()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred taking heap dumps: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -368,14 +365,14 @@ class doheapdumps(RestrictedResource):
 
 class dorunsql(RestrictedResource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('runsql', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.run_post_clone_sql()
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -384,14 +381,14 @@ class dorunsql(RestrictedResource):
 class dotag(RestrictedResource):
     def post(self, region, stack_name):
         tags = request.get_json()
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         if not mystack.store_current_action('tag', stack_locking_enabled()):
             return False
         try:
             outcome = mystack.tag(tags)
         except Exception as e:
             print(e.args[0])
-            mystack.state.logaction(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
+            mystack.log_msg(log.ERROR, f'Error occurred tagging stack: {e.args[0]}')
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -400,7 +397,6 @@ class dotag(RestrictedResource):
 class docreate(RestrictedResource):
     def post(self):
         content = request.get_json()[0]
-
         for param in content:
             if param['ParameterKey'] == 'StackName':
                 stack_name = param['ParameterValue']
@@ -414,8 +410,7 @@ class docreate(RestrictedResource):
                 app_type = 'jira'
             elif param['ParameterKey'] == 'CrowdVersion':
                 app_type = 'crowd'
-
-        mystack = get_or_create_stack_obj(session['region'] if 'region' in session else '', stack_name)
+        mystack = Stack(stack_name, session['region'] if 'region' in session else '')
         if not mystack.store_current_action('create', stack_locking_enabled()):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
@@ -428,19 +423,19 @@ class docreate(RestrictedResource):
 
 class status(Resource):
     def get(self, stack_name):
-        log_json = get_current_log(stack_name)
-        return log_json if log_json else f'No current status for {stack_name}'
+        log = get_current_log(stack_name)
+        return log if log else f'No current status for {stack_name}'
 
 
 class serviceStatus(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         return mystack.check_service_status(logMsgs=False)
 
 
 class stackState(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
@@ -483,25 +478,24 @@ class templateParamsForStack(Resource):
             print(e.args[0])
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
-
-        if len(stack_details['Stacks'][0]['Tags']) > 0:
-            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-            if product_tag:
-                app_type = product_tag['Value']
-            else:
-                return 'tag-error'
-            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-            if env_tag:
-                env = env_tag['Value']
-            else:
-                return 'tag-error'
-        else:
-            return 'tag-error'
-
+        # # get product and env tags #todo determine if needed
+        # if len(stack_details['Stacks'][0]['Tags']) > 0:
+        #     product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
+        #     if product_tag:
+        #         app_type = product_tag['Value']
+        #     else:
+        #         return 'tag-error'
+        #     env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
+        #     if env_tag:
+        #         env = env_tag['Value']
+        #     else:
+        #         return 'tag-error'
+        # else:
+        #     return 'tag-error'
+        # load the template params
         template_file = open(get_template_file(template_name), "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)
-
         # Remove old stack params that are no longer on the template
         # To do this we need to build a new list
         compared_params = []
@@ -510,7 +504,6 @@ class templateParamsForStack(Resource):
                 compared_params.append(stack_param)
             else:
                 print("Parameter not found: " + stack_param['ParameterKey'])
-
         # Add new params from the template to the stack params
         for param in template_params['Parameters']:
             if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
@@ -541,7 +534,7 @@ class getSql(Resource):
 
 class getStackActionInProgress(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         action = mystack.get_stack_action_in_progress()
         if action:
             return action
@@ -550,7 +543,7 @@ class getStackActionInProgress(Resource):
 
 class clearStackActionInProgress(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
 
@@ -573,7 +566,7 @@ class getVersion(Resource):
 
 class getNodes(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         mystack.get_stacknodes()
         nodes = []
         for instance in mystack.instancelist:
@@ -587,7 +580,7 @@ class getNodes(Resource):
 
 class getTags(Resource):
     def get(self, region, stack_name):
-        mystack = get_or_create_stack_obj(region, stack_name)
+        mystack = Stack(stack_name, region)
         tags = mystack.get_tags()
         return tags
 
@@ -605,22 +598,6 @@ class getCloneDefaults(Resource):
         if clone_default_props.has_section('defaults'):
             return clone_default_props.items('defaults')
         return []
-
-
-def get_or_create_stack_obj(region, stack_name):
-    if len(stacks) > 0:
-        mystack = next((stack for stack in stacks if stack.stack_name == stack_name), None)
-        if not mystack:
-            mystack = Stack(stack_name, region)
-            stacks.append(mystack)
-        elif region == '':
-            error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
-            mystack.state.logaction(log.ERROR, error_string)
-            raise ValueError(error_string)
-    else:
-        mystack = Stack(stack_name, region)
-        stacks.append(mystack)
-    return mystack
 
 
 class actionReadyToStart(Resource):
@@ -890,13 +867,12 @@ def get_cfn_stacks_for_region(region=None):
 
 
 def get_current_log(stack_name):
-    statefile = Path(f'stacks/{stack_name}/{stack_name}.json')
-    if statefile.is_file() and path.getsize(statefile) > 0:
-        with open(statefile, 'r') as stack_state:
+    logs = glob.glob(f'stacks/{stack_name}/{stack_name}_*.log')
+    if len(logs) > 0:
+        logs.sort(key=os.path.getmtime, reverse=True)
+        with open(logs[0], 'r') as logfile:
             try:
-                json_state = json.load(stack_state)
-                if 'action_log' in json_state:
-                    return json_state['action_log']
+                return logfile.read()
             except Exception as e:
                 print(e.args[0])
     return False

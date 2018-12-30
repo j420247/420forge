@@ -117,8 +117,11 @@ function getStatus(stack_name) {
             $("#log").contents().find('body').html(statusRequest.responseText
                 .substr(1, statusRequest.responseText.length - 3)
                 .split('",').join('<br />')
+                .split('\\n').join('<br />')
                 .split('"').join('')
                 .trim());
+
+            $("#log").contents().find('body').scrollTop(9999999999);
         }
     };
     statusRequest.send();
