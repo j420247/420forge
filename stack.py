@@ -12,6 +12,7 @@ import shutil
 import configparser
 from datetime import datetime
 import itertools
+import re
 
 
 class Stack:
@@ -771,7 +772,8 @@ class Stack:
         sqlfile = Path(f'stacks/{self.stack_name}/{self.stack_name}.post-clone.sql')
         if sqlfile.is_file():
             with open(sqlfile, 'r') as outfile:
-                if self.run_command([self.instancelist[0]], f'echo "{outfile.read()}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
+                file_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', outfile.read())
+                if self.run_command([self.instancelist[0]], f'echo "{file_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
                     db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
                     if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
                         self.log_msg(log.ERROR, f'Running SQL script failed')
