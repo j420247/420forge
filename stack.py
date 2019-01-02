@@ -588,7 +588,7 @@ class Stack:
         self.log_msg(log.INFO, 'Destroy complete')
         return True
 
-    def clone(self, stack_parms, template_file, app_type, region, creator):
+    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         self.state.update('stack_parms', stack_parms)
