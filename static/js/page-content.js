@@ -10,6 +10,9 @@ function onReady() {
         }, false);
     }
 
+    if (action.indexOf("/") != -1)
+        action = action.substr(action.indexOf("/") + 1)
+
     // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
     // if (action === "upgrade") {
     //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {

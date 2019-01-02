@@ -1,11 +1,13 @@
 var refreshLogsTimer;
 var refreshStackInfoTimer;
-var actionProgressBegun;
-var actionProgressComplete;
 
 function onReady() {
     var stacks = document.getElementsByClassName("selectStackOption");
     $("#action-button").hide();
+
+    // fix action string
+    if (action.indexOf("/") != -1)
+        action = action.substr(action.indexOf("/") + 1)
 
     // Set up stack selector if we are in viewlog
     if (action === 'viewlog') {
@@ -56,14 +58,20 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                 else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
                     countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
                     refreshLogs(stack_name, true, refresh_interval, this_action);
-                else
+                else {
+                    notify(this_action + " is complete");
                     refreshLogs(stack_name, false, refresh_interval, this_action);
+                }
             }
-            else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1)
+            else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1) {
+                notify(this_action + " is complete");
                 refreshLogs(stack_name, false, refresh_interval, this_action);
+            }
             else
                 refreshLogs(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
+    } else {
+        clearTimeout(refreshLogsTimer);
     }
 }
 
