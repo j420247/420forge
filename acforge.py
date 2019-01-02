@@ -163,9 +163,9 @@ class doclone(RestrictedResource):
             elif param['ParameterKey'] == 'CrowdVersion':
                 app_type = 'Crowd'
             elif param['ParameterKey'] == 'EBSSnapshotId':
-                param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
             elif param['ParameterKey'] == 'DBSnapshotName':
-                param['ParameterValue'] = param['ParameterValue'].split(' ')[1]
+                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
         #remove stackName, region and templateName from params to send
         content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
         content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
