@@ -109,3 +109,18 @@ function checkAuthenticated() {
         });
     }
 }
+
+function notify(message) {
+    if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+            var notification = new Notification("Forge: " + message);
+        }
+        else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(function (permission) {
+                if (permission === "granted") {
+                    var notification = new Notification("Forge: " + message);
+                }
+            });
+        }
+    }
+}
