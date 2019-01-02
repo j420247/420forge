@@ -131,13 +131,14 @@ class RestrictedResource(Resource):
 class doupgrade(RestrictedResource):
     def get(self, region, stack_name, new_version):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('upgrade', stack_locking_enabled()):
+        if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             outcome = mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
+            mystack.log_change('Upgrade failed, see action log for details')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -181,7 +182,7 @@ class doclone(RestrictedResource):
             if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
                 params_to_send.append(param)
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('clone', stack_locking_enabled()):
+        if not mystack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
@@ -195,8 +196,11 @@ class doupdate(RestrictedResource):
         new_params = content[0]
         orig_params = content[1]
         mystack = Stack(stack_name, session['region'] if 'region' in session else '')
-        if not mystack.store_current_action('update', stack_locking_enabled()):
+        if not mystack.store_current_action('update', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
+        mystack.log_change('Original parameters')
+        for param in orig_params:
+            mystack.log_change(f"{param['ParameterKey']}: {param['ParameterValue']}")
         cfn_client = boto3.client('cloudformation', region_name=session['region'])
         cfn_resource = boto3.resource('cloudformation', region_name=session['region'])
         try:
@@ -253,7 +257,7 @@ class doupdate(RestrictedResource):
 class dofullrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('fullrestart', stack_locking_enabled()):
+        if not mystack.store_current_action('fullrestart', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             if threads == 'true':
@@ -272,7 +276,7 @@ class dofullrestart(RestrictedResource):
 class dorollingrestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('rollingrestart', stack_locking_enabled()):
+        if not mystack.store_current_action('rollingrestart', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             if threads == 'true':
@@ -291,7 +295,7 @@ class dorollingrestart(RestrictedResource):
 class dodestroy(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('destroy', stack_locking_enabled()):
+        if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             outcome = mystack.destroy()
@@ -307,7 +311,7 @@ class dodestroy(RestrictedResource):
 class dothreaddumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
+        if not mystack.store_current_action('diagnostics', stack_locking_enabled(), False, False):
             return False
         try:
             outcome = mystack.thread_dump()
@@ -351,7 +355,7 @@ class dogetthreaddumplinks(RestrictedResource):
 class doheapdumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('diagnostics', stack_locking_enabled()):
+        if not mystack.store_current_action('diagnostics', stack_locking_enabled(), False, False):
             return False
         try:
             outcome = mystack.heap_dump()
@@ -366,7 +370,7 @@ class doheapdumps(RestrictedResource):
 class dorunsql(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('runsql', stack_locking_enabled()):
+        if not mystack.store_current_action('runsql', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             outcome = mystack.run_post_clone_sql()
@@ -382,7 +386,7 @@ class dotag(RestrictedResource):
     def post(self, region, stack_name):
         tags = request.get_json()
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('tag', stack_locking_enabled()):
+        if not mystack.store_current_action('tag', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             outcome = mystack.tag(tags)
@@ -411,7 +415,7 @@ class docreate(RestrictedResource):
             elif param['ParameterKey'] == 'CrowdVersion':
                 app_type = 'crowd'
         mystack = Stack(stack_name, session['region'] if 'region' in session else '')
-        if not mystack.store_current_action('create', stack_locking_enabled()):
+        if not mystack.store_current_action('create', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
@@ -867,7 +871,7 @@ def get_cfn_stacks_for_region(region=None):
 
 
 def get_current_log(stack_name):
-    logs = glob.glob(f'stacks/{stack_name}/{stack_name}_*.log')
+    logs = glob.glob(f'stacks/{stack_name}/logs/{stack_name}_*.action.log')
     if len(logs) > 0:
         logs.sort(key=os.path.getmtime, reverse=True)
         with open(logs[0], 'r') as logfile:
