@@ -75,7 +75,7 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                 refreshLogs(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
     } else {
-        clearTimeout(refreshLogsTimer);
+        clearTimeout(refreshLogsTimer); // TODO create function to check action complete and clear all timers
     }
 }
 
