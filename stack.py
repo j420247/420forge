@@ -32,21 +32,6 @@ class Stack:
             raise ValueError(error_string)
         self.region = region
         self.state.update('region', self.region)
-            # try:
-            #     cfn = boto3.client('cloudformation', region_name=self.region)
-            #     stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            #     if len(stack_details['Stacks'][0]['Tags']) > 0:
-            #         product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-            #         if product_tag:
-            #             self.app_type = product_tag['Value']
-            #             self.log_msg(log.INFO, f'{self.stack_name} is a {self.app_type}')
-            #         env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-            #         if env_tag:
-            #             self.state.update('environment', env_tag['Value'])
-            # except Exception as e:
-            #     print(e.args[0])
-            #     self.log_msg(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-
 
 ## Stack - micro function methods
     def debug_stackstate(self):
@@ -163,12 +148,6 @@ class Stack:
                 self.log_msg(log.INFO, f"{self.stack_name} is a {app_type}")
             else:
                 self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
-                return False
-            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-            if env_tag:
-                self.state.update('environment', env_tag['Value'])
-            else:
-                self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged with environment')
                 return False
         else:
             self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged')
@@ -826,10 +805,6 @@ class Stack:
     def tag(self, tags):
         self.log_msg(log.INFO, 'Tagging stack')
         self.log_change('Tagging stack')
-        product = next((tag for tag in tags if tag['Key'] == 'product'), None)
-        environment = next((tag for tag in tags if tag['Key'] == 'environment'), None)
-        if 'environment':
-            self.state.update('environment', environment['Value'])
         params = self.get_parms_for_update()
         self.log_change(f'Parameters for update: {params}')
         try:
