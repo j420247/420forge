@@ -1,10 +1,8 @@
-from stackstate import Stackstate
 import boto3
 import botocore
 import time
 import requests
 import json
-from pprint import pprint
 from pathlib import Path
 import log
 import os
@@ -24,20 +22,18 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, region, app_type=None):
-        self.state = Stackstate(stack_name)
+    def __init__(self, stack_name, region):
         self.stack_name = stack_name
         if region == '':
             error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
             print(f'{datetime.now()} {log.ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
-        self.state.update('region', self.region)
 
 ## Stack - micro function methods
     def getLburl(self, stack_details):
-        if 'lburl' in self.state.stackstate:
-            return self.state.stackstate['lburl'].replace("https", "http")
+        if hasattr(self, 'lburl'):
+            return self.lburl.replace("https", "http")
         else:
             context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
             if context_path_param:
@@ -51,7 +47,6 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return False
@@ -123,70 +118,6 @@ class Stack:
 
 
 ## Stack - helper methods
-
-    def get_current_state(self, like_stack=None, like_region=None):
-        self.log_msg(log.INFO, f'Getting pre-upgrade stack state for {self.stack_name}')
-        # use the "like" stack and parms in preference to self
-        query_stack = like_stack if like_stack else self.stack_name
-        query_region = like_region if like_region else self.region
-        cfn = boto3.client('cloudformation', region_name=query_region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=query_stack)
-            template = cfn.get_template(StackName=query_stack)
-        except botocore.exceptions.ClientError as e:
-            print(e.args[0])
-            return
-        # get tags
-        if len(stack_details['Stacks'][0]['Tags']) > 0:
-            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-            if product_tag:
-                app_type = product_tag['Value']
-                self.log_msg(log.INFO, f"{self.stack_name} is a {app_type}")
-            else:
-                self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
-                return False
-        else:
-            self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged')
-            return False
-        # store the template
-        self.state.update('TemplateBody', template['TemplateBody'])
-        # store the most recent parms (list of dicts)
-        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
-        self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                        p['ParameterKey'] == 'ClusterNodeMax'][0])
-        self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                                p['ParameterKey'] == 'ClusterNodeMin'][0])
-        self.state.update('tomcatcontextpath',
-        [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-         p['ParameterKey'] == 'TomcatContextPath'][0] )
-        # force lburl to always be http as we offoad SSL at the VTM before traffic hits ELB/ALB
-        self.state.update('lburl', self.getLburl(stack_details))
-        # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
-        # versions in different parms relative to products - we should probably abstract the product
-        # connie
-        if app_type.lower() == 'confluence':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'ConfluenceVersion'][0])
-            # synchrony only exists for connie
-            self.state.update('syncnodemax',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'SynchronyClusterNodeMax'][0])
-            self.state.update('syncnodemin',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'SynchronyClusterNodeMin'][0])
-        # jira
-        elif app_type.lower() == 'jira':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'JiraVersion'][0])
-        # crowd
-        elif app_type.lower() == 'crowd':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'CrowdVersion'][0])
-        self.log_msg(log.INFO, f'Finished getting stack_state for {self.stack_name}')
-        return True
 
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
@@ -279,12 +210,12 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
-        self.state.update('lburl', self.getLburl(stack_details)) #TODO remove
+        self.lburl = self.getLburl(stack_details)
         if logMsgs:
             self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.state.stackstate["lburl"]}/status')
+                        f' ==> checking service status at {self.lburl}/status')
         try:
-            service_status = requests.get(self.state.stackstate['lburl'] + '/status', timeout=5)
+            service_status = requests.get(self.lburl + '/status', timeout=5)
             if service_status.status_code == 200:
                 status = service_status.text
                 json_status = json.loads(status)
@@ -500,7 +431,6 @@ class Stack:
 
     def upgrade(self, new_version):
         self.log_msg(log.INFO, f'Beginning upgrade for {self.stack_name}')
-        self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -614,7 +544,7 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.state.update('lburl', self.getLburl(stack_details))
+        self.lburl = self.getLburl(stack_details)
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
@@ -848,12 +778,12 @@ class Stack:
                 if e.errno != errno.EEXIST:
                     raise
         open(filename, 'w').close()
-        self.state.update('logfile', filename)
+        self.logfile =  filename
 
     def log_msg(self, level, message):
         logline = f'{datetime.now()} {level} {message} \n'
         print(logline)
-        logfile = open(self.state.stackstate['logfile'], 'a')
+        logfile = open(self.logfile, 'a')
         logfile.write(logline)
         logfile.close()
 
@@ -861,19 +791,19 @@ class Stack:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f'stacks/{self.stack_name}/logs/{self.stack_name}_{timestamp}_{action}.change.log'
         open(filename, 'w').close()
-        self.state.update('changelogfile', filename)
+        self.changelogfile = filename
 
     def log_change(self, message):
         logline = f'{datetime.now()} {message} \n'
         print(logline)
-        logfile = open(self.state.stackstate['changelogfile'], 'a')
+        logfile = open(self.changelogfile, 'a')
         logfile.write(logline)
         logfile.close()
 
     def save_change_log(self):
-        if 'changelogfile' in self.state.stackstate:
-            changelog = os.path.relpath(self.state.stackstate['changelogfile'])
-            changelog_filename = os.path.basename(self.state.stackstate['changelogfile'])
+        if self.changelogfile:
+            changelog = os.path.relpath(self.changelogfile)
+            changelog_filename = os.path.basename(self.changelogfile)
             config = configparser.ConfigParser()
             config.read('forge.properties')
             s3_bucket = config['s3']['bucket']
