@@ -63,7 +63,11 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                     refreshLogs(stack_name, false, refresh_interval, this_action);
                 }
             }
-            else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1) {
+            else if (countOccurences($("#log").contents().text().toLowerCase()
+                    .replace(/ dumps/g, 'dumps')
+                    .replace(/ restart/g, 'restart')
+                    .replace(/run sql/g, 'runsql'),
+                    (this_action.toLowerCase() + " complete")) >= 1) {
                 notify(this_action + " is complete");
                 refreshLogs(stack_name, false, refresh_interval, this_action);
             }
