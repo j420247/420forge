@@ -113,12 +113,12 @@ function checkAuthenticated() {
 function notify(message) {
     if ("Notification" in window) {
         if (Notification.permission === "granted") {
-            var notification = new Notification("Forge: " + message);
+            var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
         }
         else if (Notification.permission !== "denied") {
             Notification.requestPermission().then(function (permission) {
                 if (permission === "granted") {
-                    var notification = new Notification("Forge: " + message);
+                    var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
                 }
             });
         }
