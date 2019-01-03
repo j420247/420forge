@@ -19,7 +19,7 @@ function onReady() {
                 clearTimeout(refreshStackInfoTimer);
                 getStatus(stack_name);
                 updateStats(stack_name);
-                refreshLogs(stack_name, true, 1000, action);
+                refreshLogs(stack_name, true, 2000, action);
                 refreshStackInfo(stack_name);
             }, false);
         }

@@ -264,12 +264,12 @@ class Stack:
         return True
 
     def validate_service_responding(self):
-        self.log_msg(log.INFO, "Waiting for service to reply on /status")
+        self.log_msg(log.INFO, 'Waiting for service to reply on /status')
         service_state = self.check_service_status()
         while service_state  not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
-        self.log_msg(log.INFO, f' {self.stack_name} /status now reporting {service_state}')
+        self.log_msg(log.INFO, f'{self.stack_name} /status now reporting {service_state}')
         return
 
     def check_service_status(self, logMsgs=True):
@@ -279,7 +279,7 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
-        self.state.update('lburl', self.getLburl(stack_details))
+        self.state.update('lburl', self.getLburl(stack_details)) #TODO remove
         if logMsgs:
             self.log_msg(log.INFO,
                         f' ==> checking service status at {self.state.stackstate["lburl"]}/status')
@@ -299,7 +299,7 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
                 self.log_msg(log.INFO, f'Service status check timed out')
-        return "Timed Out"
+        return 'Timed Out'
 
     def check_stack_state(self, stack_id=None):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -570,22 +570,20 @@ class Stack:
     def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
-        self.state.update('stack_parms', stack_parms)
-        self.state.update('app_type', app_type)
-        self.state.update('region', region)
-        self.region = region
-        deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_file=template_file, app_type=app_type, creator=creator, region=region):
-                self.log_change('Create complete, running post-clone SQL')
+            if self.create(stack_parms, template_file, app_type, creator, region):
+                self.log_change('Create complete, looking for post-clone SQL')
                 if self.run_post_clone_sql():
                     self.log_change('SQL complete, restarting {self.stack_name}')
                     self.full_restart()
                 else:
                     self.clear_current_action()
             else:
+                self.log_msg(log.INFO, 'Clone complete - failed')
+                self.log_change('Clone complete - failed')
                 self.clear_current_action()
+                return False
         else:
             self.clear_current_action()
         self.log_msg(log.INFO, 'Clone complete')
@@ -635,14 +633,8 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, parms, template_file, app_type, creator, region, like_stack=None):
-        if like_stack:
-            self.get_current_state(like_stack, region)
-            stack_parms = self.state.stackstate['stack_parms']
-            self.log_msg(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
-        elif parms:
-            stack_parms = parms
-            self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
+    def create(self, stack_parms, template_file, app_type, creator, region):
+        self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(log.INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
         template = str(template_file)
@@ -666,14 +658,12 @@ class Stack:
                         'Value': app_type
                     },{
                         'Key': 'environment',
-                        'Value': next(parm['ParameterValue'] for parm in parms if parm['ParameterKey'] == 'DeployEnvironment')
+                        'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
                     },{
                         'Key': 'created_by',
                         'Value': creator
                     }]
             )
-            time.sleep(5)
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             self.log_msg(log.WARN, f'Error occurred creating stack: {e.args[0]}')
@@ -681,7 +671,7 @@ class Stack:
             self.log_change('Create complete - failed')
             return False
         self.log_msg(log.INFO, f'Create has begun: {created_stack}')
-        if not self.wait_stack_action_complete("CREATE_IN_PROGRESS"):
+        if not self.wait_stack_action_complete('CREATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Create complete - failed')
             self.log_change('Create complete - failed')
             return False
@@ -746,7 +736,7 @@ class Stack:
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         if self.shutdown_app(self.instancelist, app_type):
             for instance in self.instancelist:
-                startup = self.startup_app([instance], app_type)
+                self.startup_app([instance], app_type)
             self.log_msg(log.INFO, 'Full restart complete')
             self.log_change('Full restart complete')
         else:
