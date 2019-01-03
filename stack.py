@@ -35,11 +35,6 @@ class Stack:
         self.state.update('region', self.region)
 
 ## Stack - micro function methods
-    def debug_stackstate(self):
-        self.state.load_state()
-        pprint(self.state.stackstate)
-        return
-
     def getLburl(self, stack_details):
         if 'lburl' in self.state.stackstate:
             return self.state.stackstate['lburl'].replace("https", "http")
@@ -203,7 +198,7 @@ class Stack:
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
-            update_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=spindown_parms,
                 UsePreviousTemplate=True,
@@ -236,21 +231,21 @@ class Stack:
             return False
         return True
 
-    def spinup_to_one_appnode(self, app_type):
+    def spinup_to_one_appnode(self, app_type, new_version):
         self.log_msg(log.INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.stackstate['stack_parms']
+        spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
         if app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
             update_stack = cfn.update_stack(
                 StackName=self.stack_name,
@@ -261,9 +256,9 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             self.log_msg(log.INFO, f'Stack spinup failed: {e.args[0]}')
             return False
-        if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             return False
-        self.log_msg(log.INFO, "Spun up to 1 node, waiting for service to respond")
+        self.log_msg(log.INFO, 'Spun up to 1 node, waiting for service to respond')
         self.validate_service_responding()
         self.log_msg(log.INFO, f'Updated stack: {update_stack}')
         return True
@@ -347,22 +342,17 @@ class Stack:
             print(e.args[0])
         return "Timed Out"
 
-    def spinup_remaining_nodes(self, app_type):
+    def spinup_remaining_nodes(self, app_type, app_node_count, synchrony_node_count):
         self.log_msg(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.stackstate['stack_parms']
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.stackstate['appnodemax'])
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.stackstate['appnodemin'])
-        if app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
-        if app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
+        spinup_parms = self.getparms()
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', app_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', app_node_count)
         if app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.stackstate['syncnodemax'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.stackstate['syncnodemin'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', synchrony_node_count)
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', synchrony_node_count)
         try:
-            update_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
@@ -513,7 +503,11 @@ class Stack:
         self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
-        if not self.get_current_state():
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get product
@@ -521,27 +515,32 @@ class Stack:
         if not app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
+        # get preupgrade version and node counts
+        preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                            p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                            p['ParameterKey'] == 'ClusterNodeMax'][0]
+        preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                     p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
-        self.log_change(f"Pre upgrade version: {self.state.stackstate['preupgrade_version']}")
-        self.log_change(f"New version: {self.state.stackstate['new_version']}")
+        self.log_change(f'Pre upgrade version: {preupgrade_version}')
+        self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes(app_type):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
-        # TODO change template if required
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(app_type):
+        if not self.spinup_to_one_appnode(app_type, new_version):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
-        # spinup remaining appnodes in stack if needed
-        if self.state.stackstate['appnodemin'] != "1":
-            self.spinup_remaining_nodes(app_type)
-        elif 'syncnodemin' in self.state.stackstate.keys() and self.state.stackstate[
-            'syncnodemin'] != "1":
-            self.spinup_remaining_nodes(app_type)
+        # spinup remaining nodes in stack if needed
+        if preupgrade_app_node_count > "1":
+            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+        elif preupgrade_synchrony_node_count > "1":
+            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
