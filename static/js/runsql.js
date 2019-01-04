@@ -9,7 +9,7 @@ function onReady() {
             selectStack(data.target.text);
 
             var getSqlRequest = new XMLHttpRequest();
-            getSqlRequest.open("GET", baseUrl + "/getsql/" + data.target.text, true);
+            getSqlRequest.open("GET", baseUrl + "/getsql/" + region + "/" + data.target.text, true);
             getSqlRequest.setRequestHeader("Content-Type", "text/xml");
             getSqlRequest.onreadystatechange = function () {
                 if (getSqlRequest.readyState === XMLHttpRequest.DONE && getSqlRequest.status === 200) {

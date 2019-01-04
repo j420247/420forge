@@ -420,11 +420,52 @@ class Stack:
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
-            self.log_msg(log.ERROR, f'Error checking node status: {e.args[0]}')
-            print(f'Error checking node status: {e.args[0]}')
-            return [{'error': e.args[0]}]
+            self.log_msg(log.ERROR, f'Error getting tags: {e.args[0]}')
+            print(f'Error getting tags: {e.args[0]}')
+            return False
         tags = stack['Stacks'][0]['Tags']
         return tags
+
+    def get_tag(self, tag_name):
+        tags = self.get_tags()
+        if tags:
+            tag= [tag for tag in tags if tag['Key'] == tag_name]
+            if tag:
+                tag_value = tag[0]['Value']
+                if hasattr(self, 'logfile'):
+                    self.log_msg(log.INFO, f'{tag_name} is {tag_value}')
+                return tag_value.lower()
+        if hasattr(self, 'logfile'):
+            self.log_msg(log.WARN, f'Tag {tag_name} not found')
+        return False
+
+    def get_sql(self):
+        sql_exists = False
+        # get SQL for the stack this stack was cloned from (ie the master stack)
+        cloned_from_stack = self.get_tag('cloned_from')
+        if cloned_from_stack:
+            cloned_from_stack_sql_dir = f'stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d/'
+            if Path(cloned_from_stack_sql_dir).exists():
+                sql_files = os.listdir(cloned_from_stack_sql_dir)
+                if len(sql_files) > 0:
+                    sql_to_run = f'---- ***** SQL to run for clones of {cloned_from_stack} *****\n\n'
+                    sql_exists = True
+                    for file in sql_files:
+                        sql_file = open(os.path.join(cloned_from_stack_sql_dir, file), "r")
+                        sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
+        # get SQL for this stack
+        own_sql_dir = f'stacks/{self.stack_name}/local-post-clone-sql.d/'
+        if Path(own_sql_dir).exists():
+            sql_files = os.listdir(own_sql_dir)
+            if len(sql_files) > 0:
+                sql_to_run = f'{sql_to_run}---- ***** SQL to run for {self.stack_name} *****\n\n'
+                sql_exists = True
+                for file in sql_files:
+                    sql_file = open(os.path.join(own_sql_dir, file), "r")
+                    sql_to_run = f"{sql_to_run}-- *** SQL from {sql_file.name} ***\n\n{sql_file.read()}\n\n"
+        if sql_exists:
+            return sql_to_run
+        return 'No SQL script exists for this stack'
 
 
 ## Stack - Major Action Methods
@@ -441,7 +482,7 @@ class Stack:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get product
-        app_type = self.get_product()
+        app_type = self.get_tag('product')
         if not app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
@@ -498,14 +539,14 @@ class Stack:
         self.log_msg(log.INFO, 'Destroy complete')
         return True
 
-    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
+    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator, cloned_from):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(stack_parms, template_file, app_type, creator, region):
+            if self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
                 self.log_change('Create complete, looking for post-clone SQL')
-                if self.run_post_clone_sql():
+                if self.run_sql():
                     self.log_change('SQL complete, restarting {self.stack_name}')
                     self.full_restart()
                 else:
@@ -564,12 +605,26 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, stack_parms, template_file, app_type, creator, region):
+    def create(self, stack_parms, template_file, app_type, creator, region, cloned_from=False):
         self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(log.INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
         template = str(template_file)
         self.log_change(f'Template is {template}')
+        # create tags
+        tags = [{
+            'Key': 'product',
+            'Value': app_type
+        },{
+            'Key': 'environment',
+            'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
+        },{
+            'Key': 'created_by',
+            'Value': creator
+        }]
+        if cloned_from:
+            tags.append({'Key': 'cloned_from',
+                        'Value': cloned_from})
         try:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
@@ -584,16 +639,7 @@ class Stack:
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_file.name}',
                 Capabilities=['CAPABILITY_IAM'],
-                Tags=[{
-                        'Key': 'product',
-                        'Value': app_type
-                    },{
-                        'Key': 'environment',
-                        'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
-                    },{
-                        'Key': 'created_by',
-                        'Value': creator
-                    }]
+                Tags=tags
             )
         except Exception as e:
             print(e.args[0])
@@ -615,7 +661,7 @@ class Stack:
     def rolling_restart(self):
         self.log_msg(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.log_change(f'Beginning Rolling Restart for {self.stack_name}')
-        app_type = self.get_product()
+        app_type = self.get_tag('product')
         if not app_type:
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             return False
@@ -658,7 +704,7 @@ class Stack:
     def full_restart(self):
         self.log_msg(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.log_change(f'Beginning Full Restart for {self.stack_name}')
-        app_type = self.get_product()
+        app_type = self.get_tag('product')
         if not app_type:
             self.log_msg(log.ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
@@ -699,23 +745,22 @@ class Stack:
         self.log_msg(log.INFO, "Heap dumps complete")
         return True
 
-    def run_post_clone_sql(self):
+    def run_sql(self):
         self.log_msg(log.INFO, 'Running post clone SQL')
         self.log_change('Running post clone SQL')
         self.get_stacknodes()
-        sqlfile = Path(f'stacks/{self.stack_name}/{self.stack_name}.post-clone.sql')
-        if sqlfile.is_file():
-            with open(sqlfile, 'r') as outfile:
-                file_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', outfile.read())
-                if self.run_command([self.instancelist[0]], f'echo "{file_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
-                    db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
-                    if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
-                        self.log_msg(log.ERROR, f'Running SQL script failed')
-                        return False
-                else:
-                    self.log_msg(log.ERROR, 'Dumping SQL file to target machine failed')
-                    self.log_change('Dumping SQL file to target machine failed')
+        sql_to_run = self.get_sql()
+        if sql_to_run != 'No SQL script exists for this stack':
+            sql_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', sql_to_run)
+            if self.run_command([self.instancelist[0]], f'echo "{sql_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
+                db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+                if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
+                    self.log_msg(log.ERROR, f'Running SQL script failed')
                     return False
+            else:
+                self.log_msg(log.ERROR, 'Dumping SQL file to target machine failed')
+                self.log_change('Dumping SQL file to target machine failed')
+                return False
         else:
             self.log_msg(log.INFO, 'No post clone SQL file found')
             self.log_change('No post clone SQL file found')
@@ -731,14 +776,14 @@ class Stack:
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
-            outcome = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=params,
                 UsePreviousTemplate=True,
                 Tags=tags,
                 Capabilities=['CAPABILITY_IAM']
             )
-            self.log_msg(log.INFO, f'Tagging successfully initiated: {outcome}')
+            self.log_msg(log.INFO, f'Tagging successfully initiated')
         except Exception as e:
             print(e.args[0])
             self.log_msg(log.ERROR, f'An error occurred tagging stack: {e.args[0]}')
@@ -750,22 +795,6 @@ class Stack:
             return True
         return False
 
-    def get_product(self):
-        try:
-            cfn = boto3.client('cloudformation', region_name=self.region)
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            if len(stack_details['Stacks'][0]['Tags']) > 0:
-                product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-                if product_tag:
-                    app_type = product_tag['Value']
-                    self.log_msg(log.INFO, f'{self.stack_name} is a {app_type}')
-                    return app_type.lower()
-            self.log_msg(log.WARN, f'Stack is not tagged with product')
-            return False
-        except Exception as e:
-            print(e.args[0])
-            self.log_msg(log.WARN, f'An error occurred getting stack product tag: {e.args[0]}')
-            return False
 
     # Logging functions
     def create_action_log(self, action):

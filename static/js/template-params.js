@@ -354,19 +354,27 @@ function selectDefaultSubnets(subnets_region) {
 
 function sendParamsAsJson() {
     var newParamsArray = [];
-    var stackNameParam = {};
     var templateNameParam = {};
     var stackNameForAction = "";
     var newParams = document.getElementsByClassName("field-group");
 
     if (action === 'update') {
         // Add stack name to params
+        var stackNameParam = {};
         stackNameParam["ParameterKey"] = "StackName";
         stackNameParam["ParameterValue"] = $("#stackSelector").text();
         stackNameForAction = $("#stackSelector").text();
         newParamsArray.push(stackNameParam);
     } else {
         stackNameForAction = document.getElementById("StackNameVal").value
+    }
+
+    // add cloned_from stackname
+    if (action === 'clone') {
+        var clonedFromStackParam = {};
+        clonedFromStackParam["ParameterKey"] = "ClonedFromStackName";
+        clonedFromStackParam["ParameterValue"] = $("#stackSelector").text();
+        newParamsArray.push(clonedFromStackParam);
     }
 
     if ($("#templateSelector").is(':visible')) {
