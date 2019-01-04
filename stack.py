@@ -440,7 +440,7 @@ class Stack:
         return False
 
     def get_sql(self):
-        sql_exists = False
+        sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
@@ -463,7 +463,7 @@ class Stack:
                 for file in sql_files:
                     sql_file = open(os.path.join(own_sql_dir, file), "r")
                     sql_to_run = f"{sql_to_run}-- *** SQL from {sql_file.name} ***\n\n{sql_file.read()}\n\n"
-        if sql_exists:
+        if len(sql_to_run) > 0:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
