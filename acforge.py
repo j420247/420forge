@@ -134,7 +134,7 @@ class doupgrade(RestrictedResource):
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            outcome = mystack.upgrade(new_version)
+            mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
@@ -152,9 +152,11 @@ class doclone(RestrictedResource):
         for param in content:
             if param['ParameterKey'] == 'TemplateName':
                 template_name = param['ParameterValue']
-            if param['ParameterKey'] == 'StackName':
+            elif param['ParameterKey'] == 'StackName':
                 stack_name = param['ParameterValue']
-            if param['ParameterKey'] == 'Region':
+            elif param['ParameterKey'] == 'ClonedFromStackName':
+                cloned_from = param['ParameterValue']
+            elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
             elif param['ParameterKey'] == 'ConfluenceVersion':
                 app_type = 'Confluence'
@@ -185,7 +187,7 @@ class doclone(RestrictedResource):
         if not mystack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.clone(params_to_send, template_file=template_file, app_type=app_type.lower(), instance_type=instance_type, region=region, creator=creator)
+        outcome = mystack.clone(params_to_send, template_file, app_type.lower(), instance_type, region, creator, cloned_from)
         mystack.clear_current_action()
         return outcome
 
@@ -373,7 +375,7 @@ class dorunsql(RestrictedResource):
         if not mystack.store_current_action('runsql', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            outcome = mystack.run_post_clone_sql()
+            outcome = mystack.run_sql()
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred running SQL: {e.args[0]}')
@@ -513,22 +515,16 @@ class templateParamsForStack(Resource):
 
 
 class getSql(Resource):
-    def get(self, stack_name):
-        if Path(f'stacks/{stack_name}/{stack_name}.post-clone.sql').is_file():
-            sql_file = open(f'stacks/{stack_name}/{stack_name}.post-clone.sql', "r")
-            sql_to_run = 'SQL to be run:<br /><br />' + sql_file.read()
-        else:
-            sql_to_run = 'No SQL script exists for this stack'
-        return sql_to_run
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_sql()
 
 
 class getStackActionInProgress(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         action = mystack.get_stack_action_in_progress()
-        if action:
-            return action
-        return 'None'
+        return action if action else 'None'
 
 
 class clearStackActionInProgress(Resource):
@@ -543,10 +539,10 @@ class getVersion(Resource):
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
-        except botocore.exceptions.ClientError as e:
+            version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
+        except Exception as e:
             print(e.args[0])
             return 'Error'
-        version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
         if version_param:
             version_number = version_param['ParameterValue']
             return version_number
@@ -813,7 +809,7 @@ api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(stackState, '/stackState/<region>/<stack_name>')
 api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')
 api.add_resource(templateParams, '/templateParams/<repo_name>/<template_name>')
-api.add_resource(getSql, '/getsql/<stack_name>')
+api.add_resource(getSql, '/getsql/<region>/<stack_name>')
 api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
 api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
 api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
@@ -859,7 +855,7 @@ def get_cfn_stacks_for_region(region=None):
 def get_current_log(stack_name):
     logs = glob.glob(f'stacks/{stack_name}/logs/{stack_name}_*.action.log')
     if len(logs) > 0:
-        logs.sort(key=os.path.getmtime, reverse=True)
+        logs.sort(key=os.path.getctime, reverse=True)
         with open(logs[0], 'r') as logfile:
             try:
                 return logfile.read()
