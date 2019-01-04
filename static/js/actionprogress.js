@@ -19,7 +19,7 @@ function onReady() {
                 clearTimeout(refreshStackInfoTimer);
                 getStatus(stack_name);
                 updateStats(stack_name);
-                refreshLogs(stack_name, true, 1000, action);
+                refreshLogs(stack_name, true, 2000, action);
                 refreshStackInfo(stack_name);
             }, false);
         }
@@ -63,7 +63,11 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                     refreshLogs(stack_name, false, refresh_interval, this_action);
                 }
             }
-            else if (countOccurences($("#log").contents().text().toLowerCase(), this_action.replace(' ', '').toLowerCase() + " complete") >= 1) {
+            else if (countOccurences($("#log").contents().text().toLowerCase()
+                    .replace(/ dumps/g, 'dumps')
+                    .replace(/ restart/g, 'restart')
+                    .replace(/run sql/g, 'runsql'),
+                    (this_action.toLowerCase() + " complete")) >= 1) {
                 notify(this_action + " is complete");
                 refreshLogs(stack_name, false, refresh_interval, this_action);
             }
@@ -71,7 +75,7 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                 refreshLogs(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
     } else {
-        clearTimeout(refreshLogsTimer);
+        clearTimeout(refreshLogsTimer); // TODO create function to check action complete and clear all timers
     }
 }
 

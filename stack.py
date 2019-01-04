@@ -1,10 +1,8 @@
-from stackstate import Stackstate
 import boto3
 import botocore
 import time
 import requests
 import json
-from pprint import pprint
 from pathlib import Path
 import log
 import os
@@ -24,40 +22,18 @@ class Stack:
         stack_name: The name of the stack we are keeping state for
     """
 
-    def __init__(self, stack_name, region, app_type=None):
-        self.state = Stackstate(stack_name)
+    def __init__(self, stack_name, region):
         self.stack_name = stack_name
         if region == '':
             error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
             print(f'{datetime.now()} {log.ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
-        self.state.update('region', self.region)
-            # try:
-            #     cfn = boto3.client('cloudformation', region_name=self.region)
-            #     stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            #     if len(stack_details['Stacks'][0]['Tags']) > 0:
-            #         product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-            #         if product_tag:
-            #             self.app_type = product_tag['Value']
-            #             self.log_msg(log.INFO, f'{self.stack_name} is a {self.app_type}')
-            #         env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-            #         if env_tag:
-            #             self.state.update('environment', env_tag['Value'])
-            # except Exception as e:
-            #     print(e.args[0])
-            #     self.log_msg(log.WARN, f'An error occurred getting stack details from AWS (stack may not exist yet): {e.args[0]}')
-
 
 ## Stack - micro function methods
-    def debug_stackstate(self):
-        self.state.load_state()
-        pprint(self.state.stackstate)
-        return
-
     def getLburl(self, stack_details):
-        if 'lburl' in self.state.stackstate:
-            return self.state.stackstate['lburl'].replace("https", "http")
+        if hasattr(self, 'lburl'):
+            return self.lburl.replace("https", "http")
         else:
             context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
             if context_path_param:
@@ -71,7 +47,6 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
         except botocore.exceptions.ClientError as e:
             print(e.args[0])
             return False
@@ -144,76 +119,6 @@ class Stack:
 
 ## Stack - helper methods
 
-    def get_current_state(self, like_stack=None, like_region=None):
-        self.log_msg(log.INFO, f'Getting pre-upgrade stack state for {self.stack_name}')
-        # use the "like" stack and parms in preference to self
-        query_stack = like_stack if like_stack else self.stack_name
-        query_region = like_region if like_region else self.region
-        cfn = boto3.client('cloudformation', region_name=query_region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=query_stack)
-            template = cfn.get_template(StackName=query_stack)
-        except botocore.exceptions.ClientError as e:
-            print(e.args[0])
-            return
-        # get tags
-        if len(stack_details['Stacks'][0]['Tags']) > 0:
-            product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-            if product_tag:
-                app_type = product_tag['Value']
-                self.log_msg(log.INFO, f"{self.stack_name} is a {app_type}")
-            else:
-                self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged with product')
-                return False
-            env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-            if env_tag:
-                self.state.update('environment', env_tag['Value'])
-            else:
-                self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged with environment')
-                return False
-        else:
-            self.log_msg(log.ERROR, f'Stack {self.stack_name} is not tagged')
-            return False
-        # store the template
-        self.state.update('TemplateBody', template['TemplateBody'])
-        # store the most recent parms (list of dicts)
-        self.state.update('stack_parms', stack_details['Stacks'][0]['Parameters'])
-        self.state.update('appnodemax', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                        p['ParameterKey'] == 'ClusterNodeMax'][0])
-        self.state.update('appnodemin', [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                                p['ParameterKey'] == 'ClusterNodeMin'][0])
-        self.state.update('tomcatcontextpath',
-        [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-         p['ParameterKey'] == 'TomcatContextPath'][0] )
-        # force lburl to always be http as we offoad SSL at the VTM before traffic hits ELB/ALB
-        self.state.update('lburl', self.getLburl(stack_details))
-        # all the following parms are dependent on stack type and will fail list index out of range when not matching so wrap in try by apptype
-        # versions in different parms relative to products - we should probably abstract the product
-        # connie
-        if app_type.lower() == 'confluence':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'ConfluenceVersion'][0])
-            # synchrony only exists for connie
-            self.state.update('syncnodemax',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'SynchronyClusterNodeMax'][0])
-            self.state.update('syncnodemin',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'SynchronyClusterNodeMin'][0])
-        # jira
-        elif app_type.lower() == 'jira':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'JiraVersion'][0])
-        # crowd
-        elif app_type.lower() == 'crowd':
-            self.state.update('preupgrade_version',
-                [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                 p['ParameterKey'] == 'CrowdVersion'][0])
-        self.log_msg(log.INFO, f'Finished getting stack_state for {self.stack_name}')
-        return True
-
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -224,7 +129,7 @@ class Stack:
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
-            update_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=spindown_parms,
                 UsePreviousTemplate=True,
@@ -257,21 +162,21 @@ class Stack:
             return False
         return True
 
-    def spinup_to_one_appnode(self, app_type):
+    def spinup_to_one_appnode(self, app_type, new_version):
         self.log_msg(log.INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.stackstate['stack_parms']
+        spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
         if app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
             update_stack = cfn.update_stack(
                 StackName=self.stack_name,
@@ -282,20 +187,20 @@ class Stack:
         except botocore.exceptions.ClientError as e:
             self.log_msg(log.INFO, f'Stack spinup failed: {e.args[0]}')
             return False
-        if not self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             return False
-        self.log_msg(log.INFO, "Spun up to 1 node, waiting for service to respond")
+        self.log_msg(log.INFO, 'Spun up to 1 node, waiting for service to respond')
         self.validate_service_responding()
         self.log_msg(log.INFO, f'Updated stack: {update_stack}')
         return True
 
     def validate_service_responding(self):
-        self.log_msg(log.INFO, "Waiting for service to reply on /status")
+        self.log_msg(log.INFO, 'Waiting for service to reply on /status')
         service_state = self.check_service_status()
         while service_state  not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
-        self.log_msg(log.INFO, f' {self.stack_name} /status now reporting {service_state}')
+        self.log_msg(log.INFO, f'{self.stack_name} /status now reporting {service_state}')
         return
 
     def check_service_status(self, logMsgs=True):
@@ -305,12 +210,12 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking service status: {e.args[0]}'
-        self.state.update('lburl', self.getLburl(stack_details))
+        self.lburl = self.getLburl(stack_details)
         if logMsgs:
             self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.state.stackstate["lburl"]}/status')
+                        f' ==> checking service status at {self.lburl}/status')
         try:
-            service_status = requests.get(self.state.stackstate['lburl'] + '/status', timeout=5)
+            service_status = requests.get(self.lburl + '/status', timeout=5)
             if service_status.status_code == 200:
                 status = service_status.text
                 json_status = json.loads(status)
@@ -325,7 +230,7 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
                 self.log_msg(log.INFO, f'Service status check timed out')
-        return "Timed Out"
+        return 'Timed Out'
 
     def check_stack_state(self, stack_id=None):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -368,22 +273,17 @@ class Stack:
             print(e.args[0])
         return "Timed Out"
 
-    def spinup_remaining_nodes(self, app_type):
+    def spinup_remaining_nodes(self, app_type, app_node_count, synchrony_node_count):
         self.log_msg(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.state.stackstate['stack_parms']
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.state.stackstate['appnodemax'])
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.state.stackstate['appnodemin'])
-        if app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', self.state.stackstate['new_version'])
-        if app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', self.state.stackstate['new_version'])
+        spinup_parms = self.getparms()
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', app_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', app_node_count)
         if app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', self.state.stackstate['new_version'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.state.stackstate['syncnodemax'])
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.state.stackstate['syncnodemin'])
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', synchrony_node_count)
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', synchrony_node_count)
         try:
-            update_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
@@ -531,10 +431,13 @@ class Stack:
 
     def upgrade(self, new_version):
         self.log_msg(log.INFO, f'Beginning upgrade for {self.stack_name}')
-        self.state.update('new_version', new_version)
         # TODO block traffic at vtm
         # get pre-upgrade state information
-        if not self.get_current_state():
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+        except botocore.exceptions.ClientError as e:
+            print(e.args[0])
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get product
@@ -542,27 +445,33 @@ class Stack:
         if not app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
+        # get preupgrade version and node counts
+        preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                            p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                            p['ParameterKey'] == 'ClusterNodeMax'][0]
+        if app_type.lower() == 'confluence':
+            preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                            p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
-        self.log_change(f"Pre upgrade version: {self.state.stackstate['preupgrade_version']}")
-        self.log_change(f"New version: {self.state.stackstate['new_version']}")
+        self.log_change(f'Pre upgrade version: {preupgrade_version}')
+        self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes(app_type):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
-        # TODO change template if required
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(app_type):
+        if not self.spinup_to_one_appnode(app_type, new_version):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
-        # spinup remaining appnodes in stack if needed
-        if self.state.stackstate['appnodemin'] != "1":
-            self.spinup_remaining_nodes(app_type)
-        elif 'syncnodemin' in self.state.stackstate.keys() and self.state.stackstate[
-            'syncnodemin'] != "1":
-            self.spinup_remaining_nodes(app_type)
+        # spinup remaining nodes in stack if needed
+        if preupgrade_app_node_count > "1":
+            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+        elif preupgrade_synchrony_node_count > "1":
+            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
@@ -589,25 +498,23 @@ class Stack:
         self.log_msg(log.INFO, 'Destroy complete')
         return True
 
-    def clone(self, stack_parms, template_file, app_type, region, creator):
+    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
-        self.state.update('stack_parms', stack_parms)
-        self.state.update('app_type', app_type)
-        self.state.update('region', region)
-        self.region = region
-        deploy_type = 'Clone'
         # TODO popup confirming if you want to destroy existing
         if self.destroy():
-            if self.create(parms=stack_parms, template_file=template_file, app_type=app_type, creator=creator, region=region):
-                self.log_change('Create complete, running post-clone SQL')
+            if self.create(stack_parms, template_file, app_type, creator, region):
+                self.log_change('Create complete, looking for post-clone SQL')
                 if self.run_post_clone_sql():
                     self.log_change('SQL complete, restarting {self.stack_name}')
                     self.full_restart()
                 else:
                     self.clear_current_action()
             else:
+                self.log_msg(log.INFO, 'Clone complete - failed')
+                self.log_change('Clone complete - failed')
                 self.clear_current_action()
+                return False
         else:
             self.clear_current_action()
         self.log_msg(log.INFO, 'Clone complete')
@@ -638,7 +545,7 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.state.update('lburl', self.getLburl(stack_details))
+        self.lburl = self.getLburl(stack_details)
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
@@ -657,14 +564,8 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, parms, template_file, app_type, creator, region, like_stack=None):
-        if like_stack:
-            self.get_current_state(like_stack, region)
-            stack_parms = self.state.stackstate['stack_parms']
-            self.log_msg(log.INFO, f'Creating stack: {self.stack_name}, like source stack {like_stack}')
-        elif parms:
-            stack_parms = parms
-            self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
+    def create(self, stack_parms, template_file, app_type, creator, region):
+        self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(log.INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
         template = str(template_file)
@@ -688,14 +589,12 @@ class Stack:
                         'Value': app_type
                     },{
                         'Key': 'environment',
-                        'Value': next(parm['ParameterValue'] for parm in parms if parm['ParameterKey'] == 'DeployEnvironment')
+                        'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
                     },{
                         'Key': 'created_by',
                         'Value': creator
                     }]
             )
-            time.sleep(5)
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             self.log_msg(log.WARN, f'Error occurred creating stack: {e.args[0]}')
@@ -703,7 +602,7 @@ class Stack:
             self.log_change('Create complete - failed')
             return False
         self.log_msg(log.INFO, f'Create has begun: {created_stack}')
-        if not self.wait_stack_action_complete("CREATE_IN_PROGRESS"):
+        if not self.wait_stack_action_complete('CREATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Create complete - failed')
             self.log_change('Create complete - failed')
             return False
@@ -768,7 +667,7 @@ class Stack:
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         if self.shutdown_app(self.instancelist, app_type):
             for instance in self.instancelist:
-                startup = self.startup_app([instance], app_type)
+                self.startup_app([instance], app_type)
             self.log_msg(log.INFO, 'Full restart complete')
             self.log_change('Full restart complete')
         else:
@@ -828,10 +727,6 @@ class Stack:
     def tag(self, tags):
         self.log_msg(log.INFO, 'Tagging stack')
         self.log_change('Tagging stack')
-        product = next((tag for tag in tags if tag['Key'] == 'product'), None)
-        environment = next((tag for tag in tags if tag['Key'] == 'environment'), None)
-        if 'environment':
-            self.state.update('environment', environment['Value'])
         params = self.get_parms_for_update()
         self.log_change(f'Parameters for update: {params}')
         try:
@@ -884,12 +779,12 @@ class Stack:
                 if e.errno != errno.EEXIST:
                     raise
         open(filename, 'w').close()
-        self.state.update('logfile', filename)
+        self.logfile = filename
 
     def log_msg(self, level, message):
         logline = f'{datetime.now()} {level} {message} \n'
         print(logline)
-        logfile = open(self.state.stackstate['logfile'], 'a')
+        logfile = open(self.logfile, 'a')
         logfile.write(logline)
         logfile.close()
 
@@ -897,19 +792,19 @@ class Stack:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f'stacks/{self.stack_name}/logs/{self.stack_name}_{timestamp}_{action}.change.log'
         open(filename, 'w').close()
-        self.state.update('changelogfile', filename)
+        self.changelogfile = filename
 
     def log_change(self, message):
         logline = f'{datetime.now()} {message} \n'
         print(logline)
-        logfile = open(self.state.stackstate['changelogfile'], 'a')
+        logfile = open(self.changelogfile, 'a')
         logfile.write(logline)
         logfile.close()
 
     def save_change_log(self):
-        if 'changelogfile' in self.state.stackstate:
-            changelog = os.path.relpath(self.state.stackstate['changelogfile'])
-            changelog_filename = os.path.basename(self.state.stackstate['changelogfile'])
+        if self.changelogfile:
+            changelog = os.path.relpath(self.changelogfile)
+            changelog_filename = os.path.basename(self.changelogfile)
             config = configparser.ConfigParser()
             config.read('forge.properties')
             s3_bucket = config['s3']['bucket']

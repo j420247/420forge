@@ -482,20 +482,6 @@ class templateParamsForStack(Resource):
             print(e.args[0])
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
-        # # get product and env tags #todo determine if needed
-        # if len(stack_details['Stacks'][0]['Tags']) > 0:
-        #     product_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'product'), None)
-        #     if product_tag:
-        #         app_type = product_tag['Value']
-        #     else:
-        #         return 'tag-error'
-        #     env_tag = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
-        #     if env_tag:
-        #         env = env_tag['Value']
-        #     else:
-        #         return 'tag-error'
-        # else:
-        #     return 'tag-error'
         # load the template params
         template_file = open(get_template_file(template_name), "r")
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
