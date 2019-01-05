@@ -273,13 +273,13 @@ class Stack:
             print(e.args[0])
         return "Timed Out"
 
-    def spinup_remaining_nodes(self, app_type, app_node_count, synchrony_node_count):
+    def spinup_remaining_nodes(self, app_type, app_node_count, synchrony_node_count=False):
         self.log_msg(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', app_node_count)
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', app_node_count)
-        if app_type == 'confluence':
+        if synchrony_node_count:
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', synchrony_node_count)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', synchrony_node_count)
         try:
@@ -440,7 +440,7 @@ class Stack:
         return False
 
     def get_sql(self):
-        sql_exists = False
+        sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
@@ -463,7 +463,7 @@ class Stack:
                 for file in sql_files:
                     sql_file = open(os.path.join(own_sql_dir, file), "r")
                     sql_to_run = f"{sql_to_run}-- *** SQL from {sql_file.name} ***\n\n{sql_file.read()}\n\n"
-        if sql_exists:
+        if len(sql_to_run) > 0:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
@@ -510,9 +510,10 @@ class Stack:
             return False
         # spinup remaining nodes in stack if needed
         if preupgrade_app_node_count > "1":
-            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
-        elif preupgrade_synchrony_node_count > "1":
-            self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+            if app_type.lower() == 'confluence':
+                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+            else:
+                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
