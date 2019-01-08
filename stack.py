@@ -33,14 +33,14 @@ class Stack:
 ## Stack - micro function methods
     def getLburl(self, stack_details):
         if hasattr(self, 'lburl'):
-            return self.lburl.replace("https", "http")
+            return self.lburl
         else:
             context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
             if context_path_param:
                 context_path = context_path_param['ParameterValue']
                 rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                             p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-                return rawlburl.replace("https", "http")
+                return rawlburl
             return ''
 
     def getparms(self):
