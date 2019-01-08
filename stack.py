@@ -32,13 +32,16 @@ class Stack:
 
 ## Stack - micro function methods
     def getLburl(self, stack_details):
-        context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
-        if context_path_param:
-            context_path = context_path_param['ParameterValue']
-            rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                        p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-            return rawlburl
-        return ''
+        if hasattr(self, 'lburl'):
+            return self.lburl
+        else:
+            context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
+            if context_path_param:
+                context_path = context_path_param['ParameterValue']
+                rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                            p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
+                return rawlburl
+            return ''
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
