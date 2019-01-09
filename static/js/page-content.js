@@ -48,7 +48,7 @@ function addDefaultActionButtonListener() {
 
 var defaultActionBtnEvent = function() {
     if (action === 'upgrade') {
-        performAction($("#upgradeVersionSelector").val())
+        performAction($("#upgradeVersionSelector").val(), document.getElementById("zduCheckBox").checked)
     } else {
         performAction()
     }
@@ -136,7 +136,7 @@ function processResponse() {
     }
 }
 
-function performAction(version) {
+function performAction(version, zdu) {
     // scrape page for stack_name
     var stack_name = $("#stackName").text();
     if (! stack_name) {
@@ -148,7 +148,7 @@ function performAction(version) {
     var actionRequest = new XMLHttpRequest();
     switch (action) {
         case "upgrade":
-            url += "/" + version;
+            url += "/" + version + "/" + zdu;
             break;
         case "rollingrestart":
         case "fullrestart":

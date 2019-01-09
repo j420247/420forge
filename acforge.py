@@ -129,11 +129,13 @@ class RestrictedResource(Resource):
 #### REST Endpoint classes
 ##
 class doupgrade(RestrictedResource):
-    def get(self, region, stack_name, new_version):
+    def get(self, region, stack_name, new_version, zdu):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
+            if zdu:
+                mystack.upgrade_zdu(new_version)
             mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
@@ -790,7 +792,7 @@ def admin_stack(stack_name):
 
 
 # Actions
-api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
+api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>/<zdu>')
 api.add_resource(doclone, '/doclone')
 api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')

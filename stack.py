@@ -467,12 +467,8 @@ class Stack:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
-
-## Stack - Major Action Methods
-
-    def upgrade(self, new_version):
+    def get_pre_upgrade_information(self):
         self.log_msg(log.INFO, f'Beginning upgrade for {self.stack_name}')
-        # TODO block traffic at vtm
         # get pre-upgrade state information
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -482,38 +478,123 @@ class Stack:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get product
-        app_type = self.get_tag('product')
-        if not app_type:
+        self.app_type = self.get_tag('product')
+        if not self.app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get preupgrade version and node counts
-        preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
-        preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if app_type.lower() == 'confluence':
-            preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                            p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+        self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                              p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                     p['ParameterKey'] == 'ClusterNodeMax'][0]
+        if self.app_type.lower() == 'confluence':
+            self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                               p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
-        self.log_change(f'Pre upgrade version: {preupgrade_version}')
+        self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
+
+    def get_zdu_state(self):
+        try:
+            return json.loads(requests.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5))
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.INFO, f'ZDU state check timed out')
+            return False
+
+    def enable_zdu_mode(self):
+        try:
+            requests.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
+            return True
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.INFO, f'Could not enable ZDU mode')
+            return False
+
+
+## Stack - Major Action Methods
+
+    def upgrade(self, new_version):
+        self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
-        if not self.spindown_to_zero_appnodes(app_type):
+        if not self.spindown_to_zero_appnodes(self.app_type):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(app_type, new_version):
+        if not self.spinup_to_one_appnode(self.app_type, new_version):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
         # spinup remaining nodes in stack if needed
-        if preupgrade_app_node_count > "1":
-            if app_type.lower() == 'confluence':
-                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+        if self.preupgrade_app_node_count > "1":
+            if self.app_type.lower() == 'confluence':
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count, self.preupgrade_synchrony_node_count)
             else:
-                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count)
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count)
+        # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
+        # TODO enable traffic at VTM
+        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+        self.log_msg(log.INFO, 'Upgrade complete')
+        self.log_change('Upgrade successful')
+        return True
+
+    def upgrade_zdu(self, new_version):
+        self.get_pre_upgrade_information()
+        self.log_change(f'New version: {new_version}')
+        self.log_change('Upgrade is underway')
+        # set upgrade mode on
+        zdu_json = self.get_zdu_state()
+        if zdu_json and 'state' in zdu_json:
+            zdu_state = zdu_json['state']
+            if zdu_state == 'STABLE':
+                if self.enable_zdu_mode():
+                    # update the version in stack parameters
+                    stack_params = self.getparms()
+                    stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+                    cfn = boto3.client('cloudformation', region_name=self.region)
+                    try:
+                        cfn.update_stack(
+                            StackName=self.stack_name,
+                            Parameters=stack_params,
+                            UsePreviousTemplate=True,
+                            Capabilities=['CAPABILITY_IAM'])
+                    except Exception as e:
+                        if 'No updates are to be performed' in e.args[0]:
+                            self.log_msg(log.INFO, f'Stack is already at {new_version}')
+                        else:
+                            print(e.args[0])
+                            self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                            return False
+                    if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                        self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+                    else:
+                        self.log_msg(log.INFO, 'Could not update version in stack parameters')
+                        self.log_msg(log.INFO, 'Upgrade complete - failed')
+                        self.log_change('Upgrade failed - could not update version in stack parameters')
+                        return False
+                    # terminate the nodes and allow new ones to spin up
+                    self.rolling_rebuild()
+            else:
+                self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
+                self.log_msg(log.INFO, 'Upgrade complete - failed')
+                self.log_change(f'Upgrade failed, expected STABLE but ZDU state is {zdu_state}')
+                return False
+        else:
+            self.log_msg(log.INFO, 'Could not retrieve ZDU state')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed, could not retrieve ZDU state')
+            return False
+        # spin stack up to 1 node on new release version
+        if not self.spinup_to_one_appnode(self.app_type, new_version):
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Change failed, see action log for details')
+            return False
+        # spinup remaining nodes in stack if needed
+        if self.preupgrade_app_node_count > "1":
+            if self.app_type.lower() == 'confluence':
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count, self.preupgrade_synchrony_node_count)
+            else:
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
@@ -722,6 +803,11 @@ class Stack:
             self.log_change('Full restart complete - failed')
             return False
         return True
+
+    def rolling_rebuild(self):
+        self.get_stacknodes()
+        for node in self.instancelist:
+            pass
 
     def thread_dump(self, alsoHeaps=False):
         heaps_to_come_log_line = ''
