@@ -592,9 +592,9 @@ Resources:
       CrossZone: true
       Listeners:
         - LoadBalancerPort: 80
-          Protocol: HTTP
+          Protocol: TCP
           InstancePort: 8000
-          InstanceProtocol: HTTP
+          InstanceProtocol: TCP
       HealthCheck:
         Target: 'HTTP:8000/status'
         Timeout: 29
