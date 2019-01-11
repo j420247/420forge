@@ -104,7 +104,7 @@ except Exception:
 
 ##
 #### All actions need to pass through the sub class (RestrictedResource) to control permissions -
-#### (doupgrade, doclone, dofullrestart, dorollingrestart, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, doupdate, status)
+#### (doupgrade, doclone, dofullrestart, dorollingrestart, dorollingrebuild, docreate, dodestroy, dothreaddumps, doheapdumps dorunsql, doupdate, status)
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
@@ -291,6 +291,21 @@ class dorollingrestart(RestrictedResource):
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred doing rolling restart: {e.args[0]}')
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
+class dorollingrebuild(RestrictedResource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('rollingrebuild', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            mystack.rolling_rebuild()
+        except Exception as e:
+            print(e.args[0])
+            mystack.log_msg(log.ERROR, f'Error occurred doing rolling rebuild: {e.args[0]}')
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -754,6 +769,10 @@ def fullrestart():
 def rollingrestart():
     return render_template('rollingrestart.html')
 
+@app.route('/rollingrebuild', methods = ['GET'])
+def rollingrebuild():
+    return render_template('rollingrebuild.html')
+
 @app.route('/create', methods = ['GET'])
 def create():
     return render_template('create.html')
@@ -796,6 +815,7 @@ api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>/<zdu
 api.add_resource(doclone, '/doclone')
 api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
+api.add_resource(dorollingrebuild, '/dorollingrebuild/<region>/<stack_name>')
 api.add_resource(docreate, '/docreate')
 api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
 api.add_resource(doupdate, '/doupdate/<stack_name>')
@@ -920,6 +940,7 @@ def get_nice_action_name(action):
         'diagnostics': 'Diagnostics',
         'fullrestart': 'Full restart',
         'rollingrestart': 'Rolling restart',
+        'rollingrebuild': 'Rolling rebuild',
         'runsql': 'Run SQL',
         'viewlog': 'Stack logs',
         'tag': 'Tag stack',

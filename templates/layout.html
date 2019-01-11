@@ -99,6 +99,9 @@
                                     <li {% if session['nice_action_name'] == 'Rolling restart' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='rollingrestart') }}" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'Rolling rebuild' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('setaction', action='rollingrebuild') }}" aria-owns="aui-menu-rollingrebuild" id="rollingrebuild-link">Rolling Rebuild</a>
+                                    </li>
                                     <li {% if session['nice_action_name'] == 'Create stack' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('setaction', action='create') }}" aria-owns="aui-menu-create" id="create-link">Create</a>
                                     </li>
