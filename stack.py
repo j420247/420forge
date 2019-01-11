@@ -12,6 +12,7 @@ from datetime import datetime
 import itertools
 import errno
 import re
+import json
 
 
 class Stack:
@@ -31,17 +32,22 @@ class Stack:
         self.region = region
 
 ## Stack - micro function methods
-    def getLburl(self, stack_details):
+    def getLburl(self):
         if hasattr(self, 'lburl'):
             return self.lburl
         else:
+            try:
+                cfn = boto3.client('cloudformation', region_name=self.region)
+                stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            except Exception as e:
+                print(e.args[0])
+                return f'Error checking service status: {e.args[0]}'
             context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
             if context_path_param:
                 context_path = context_path_param['ParameterValue']
                 rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                             p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-                return rawlburl
-            return ''
+                self.lburl = rawlburl
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -204,13 +210,7 @@ class Stack:
         return
 
     def check_service_status(self, logMsgs=True):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
-        except Exception as e:
-            print(e.args[0])
-            return f'Error checking service status: {e.args[0]}'
-        self.lburl = self.getLburl(stack_details)
+        self.getLburl()
         if logMsgs:
             self.log_msg(log.INFO,
                         f' ==> checking service status at {self.lburl}/status')
@@ -493,19 +493,43 @@ class Stack:
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
-    def get_zdu_state(self):
+    def get_zdu_state(self, username, password):
         try:
-            return json.loads(requests.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5))
+            self.get_session_cookie(username, password)
+            response = requests.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5, headers={'Authorization': f'Basic {username}:{password}'}).text
+            response_json = json.loads(response)
+            return response_json['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_msg(log.INFO, f'ZDU state check timed out')
             return False
+        except Exception:
+            self.log_msg(log.INFO, 'Could not retrieve ZDU state')
+            return False
 
-    def enable_zdu_mode(self):
+    def enable_zdu_mode(self, auth_string):
         try:
-            requests.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
+            requests.post(self.lburl + '/rest/api/2/cluster/zdu/start', data={'Authorization': f'Basic {auth_string}'}, timeout=5)
+            while self.get_zdu_state() != 'READY':
+                time.sleep(5)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_msg(log.INFO, f'Could not enable ZDU mode')
+            return False
+
+    def get_session_cookie(self, username, password):
+        try:
+            result = requests.post(self.lburl + '/rest/auth/1/session', json={'username': username, 'password': password}, timeout=5)
+            if result.status_code == 200:
+                json_result = json.loads(result.text)
+                json_result['session']['value'] # cookie
+                while self.get_zdu_state(username, password) != 'READY':
+                    time.sleep(5)
+                    return True
+            else:
+                #TODO handle error
+                pass
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.INFO, f'Could not get session cookie')
             return False
 
 
@@ -538,51 +562,53 @@ class Stack:
         self.log_change('Upgrade successful')
         return True
 
-    def upgrade_zdu(self, new_version):
+    def upgrade_zdu(self, new_version, username, password):
+        self.getLburl()
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # set upgrade mode on
-        zdu_json = self.get_zdu_state()
-        if zdu_json and 'state' in zdu_json:
-            zdu_state = zdu_json['state']
-            if zdu_state == 'STABLE':
-                if self.enable_zdu_mode():
-                    # update the version in stack parameters
-                    stack_params = self.getparms()
-                    stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
-                    cfn = boto3.client('cloudformation', region_name=self.region)
-                    try:
-                        cfn.update_stack(
-                            StackName=self.stack_name,
-                            Parameters=stack_params,
-                            UsePreviousTemplate=True,
-                            Capabilities=['CAPABILITY_IAM'])
-                    except Exception as e:
-                        if 'No updates are to be performed' in e.args[0]:
-                            self.log_msg(log.INFO, f'Stack is already at {new_version}')
-                        else:
-                            print(e.args[0])
-                            self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
-                            return False
-                    if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                        self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+        zdu_state = self.get_zdu_state(username, password)
+        if zdu_state == 'STABLE':
+            if self.enable_zdu_mode(username, password):
+                # update the version in stack parameters
+                stack_params = self.getparms()
+                stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+                cfn = boto3.client('cloudformation', region_name=self.region)
+                try:
+                    cfn.update_stack(
+                        StackName=self.stack_name,
+                        Parameters=stack_params,
+                        UsePreviousTemplate=True,
+                        Capabilities=['CAPABILITY_IAM'])
+                except Exception as e:
+                    if 'No updates are to be performed' in e.args[0]:
+                        self.log_msg(log.INFO, f'Stack is already at {new_version}')
                     else:
-                        self.log_msg(log.INFO, 'Could not update version in stack parameters')
-                        self.log_msg(log.INFO, 'Upgrade complete - failed')
-                        self.log_change('Upgrade failed - could not update version in stack parameters')
+                        print(e.args[0])
+                        self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
                         return False
-                    # terminate the nodes and allow new ones to spin up
-                    self.rolling_rebuild()
+                if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                    self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+                else:
+                    self.log_msg(log.INFO, 'Could not update version in stack parameters')
+                    self.log_msg(log.INFO, 'Upgrade complete - failed')
+                    self.log_change('Upgrade failed - could not update version in stack parameters')
+                    return False
+                # terminate the nodes and allow new ones to spin up
+                if self.rolling_rebuild():
+                    zdu_json = self.get_zdu_state()
+                    if zdu_json and 'state' in zdu_json:
+                        zdu_state = zdu_json['state']
+                        if zdu_state == 'STABLE':
+                            pass
             else:
-                self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
-                self.log_msg(log.INFO, 'Upgrade complete - failed')
-                self.log_change(f'Upgrade failed, expected STABLE but ZDU state is {zdu_state}')
-                return False
+                self.log_msg(log.ERROR, 'Could not enable ZDU mode')
+                self.log_change('Could not enable ZDU mode')
         else:
-            self.log_msg(log.INFO, 'Could not retrieve ZDU state')
+            self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
             self.log_msg(log.INFO, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed, could not retrieve ZDU state')
+            self.log_change(f'Upgrade failed, expected STABLE but ZDU state is {zdu_state}')
             return False
         # spin stack up to 1 node on new release version
         if not self.spinup_to_one_appnode(self.app_type, new_version):
@@ -655,20 +681,19 @@ class Stack:
         config.read('forge.properties')
         s3_bucket = config['s3']['bucket']
         try:
-            updated_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_filename}',
                 Capabilities=['CAPABILITY_IAM']
             )
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             self.log_msg(log.ERROR, f'An error occurred updating stack: {e.args[0]}')
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.lburl = self.getLburl(stack_details)
+        self.getLburl()
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')

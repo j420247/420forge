@@ -1,4 +1,7 @@
 {% extends "page-content.html" %}
+{% block head %}
+    <script src="/static/js/upgrade.js"></script>
+{% endblock head %}
 
 {% block extraInput %}
 {#  Upgrade version selector  #}
@@ -8,6 +11,10 @@
             <div class="field-group top-label">
                 <label for="toplabelfieldexample">Upgrade Version</label>
                 <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
+            </div>
+            <div class="checkbox">
+                <input class="checkbox" type="checkbox" name="zduCheckBox" id="zduCheckBox">
+                <label for="zduCheckBox">Zero downtime upgrade - JIRA ONLY</label>
             </div>
         </fieldset>
     </form>
@@ -21,6 +28,39 @@
     </div>
     </div>
 </div>
+
+<!-- Modal auth prompt -->
+<section id="auth-dialog" class="aui-dialog2 aui-dialog2-small aui-layer" role="dialog" aria-hidden="true">
+    <header class="aui-dialog2-header">
+        <h2 class="aui-dialog2-header-main"></h2>
+        <a class="aui-dialog2-header-close">
+            <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
+        </a>
+    </header>
+    <div class="aui-dialog2-content">
+        <p>ZDU requires admin authentication to the Jira server.
+            NB: We do NOT recommend entering your credentials unless both Forge and the Jira server use SSL.
+            Please enter your username:</p>
+    </div>
+    <div class="aui-panel">
+        <form class="aui top-label">
+            <fieldset class="top-label">
+                <div class="field-group top-label">
+                    <label for="username">Username</label>
+                    <input class="text" type="text" id="username" name="username">
+                    <label for="username">Password</label>
+                    <input class="password" type="password" id="password" name="password">
+                </div>
+            </fieldset>
+        </form>
+    </div>
+    <footer class="aui-dialog2-footer">
+        <div class="aui-dialog2-footer-actions">
+            <button class="aui-button aui-button-primary" onclick="performUpgrade(true);">Okay</button>
+            <button class="aui-button aui-button-link">Cancel</button>
+        </div>
+    </footer>
+</section>
 {% endblock extraInput %}
 
 {% block buttonText %}Upgrade{% endblock buttonText %}

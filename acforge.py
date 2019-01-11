@@ -129,14 +129,16 @@ class RestrictedResource(Resource):
 #### REST Endpoint classes
 ##
 class doupgrade(RestrictedResource):
-    def get(self, region, stack_name, new_version, zdu):
+    def post(self, region, stack_name, new_version, zdu):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             if zdu:
-                mystack.upgrade_zdu(new_version)
-            mystack.upgrade(new_version)
+                auth = request.get_json()[0]
+                mystack.upgrade_zdu(new_version, auth['username'], auth['password'])
+            else:
+                mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
@@ -438,7 +440,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_file=get_template_file(template_name), app_type=app_type, creator=creator, region=session['region'])
+        outcome = mystack.create(params_for_create, get_template_file(template_name), app_type, creator, session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome

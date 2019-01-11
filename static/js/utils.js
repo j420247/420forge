@@ -124,3 +124,11 @@ function notify(message) {
         }
     }
 }
+
+function scrapePageForStackName() {
+    var stack_name = $("#stackName").text();
+    if (!stack_name) {
+        stack_name = $("#StackNameVal").val();
+    }
+    return stack_name;
+}
