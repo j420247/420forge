@@ -723,6 +723,54 @@ class Stack:
             return False
         return True
 
+    def rolling_rebuild(self):
+        self.log_msg(log.INFO, 'Rolling rebuild has begun')
+        self.log_change('Rolling rebuild has begun')
+        ec2 = boto3.client('ec2', region_name=self.region)
+        self.get_stacknodes()
+        old_nodes = self.instancelist
+        self.log_msg(log.INFO, f'Old nodes: {old_nodes}')
+        self.log_change(f'Old nodes: {old_nodes}')
+        new_nodes = []
+        try:
+            for node in old_nodes:
+                # destroy each node and wait for another to be created to replace it
+                self.log_msg(log.INFO, f'Replacing node {node}')
+                self.log_change(f'Replacing node {node}')
+                ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
+                time.sleep(30)
+                self.get_stacknodes()
+                current_instances = self.instancelist
+                waiting_for_new_node = True
+                replacement_node = {}
+                while waiting_for_new_node:
+                    for instance in current_instances:
+                        if instance not in old_nodes:
+                            # if the instance is new, track it
+                            replacement_node = instance
+                            self.log_msg(log.INFO, f'New node: {replacement_node}')
+                            self.log_change(f'New node: {replacement_node}')
+                            new_nodes.append(replacement_node)
+                            waiting_for_new_node = False
+                    time.sleep(30)
+                    self.get_stacknodes()
+                    current_instances = self.instancelist
+                # wait for the new node to come up
+                result = ''
+                while result not in ['RUNNING', 'FIRST_RUN']:
+                    node_ip = list(replacement_node.values())[0]
+                    result = self.check_node_status(node_ip)
+                    self.log_msg(log.INFO, f'Startup result for {node_ip}: {result}')
+                    time.sleep(30)
+            self.log_msg(log.INFO, 'Rolling rebuild complete')
+            self.log_change(f'Rolling rebuild complete, new nodes are: {new_nodes}')
+            return True
+        except Exception as e:
+            print(e.args[0])
+            self.log_msg(log.ERROR, f'An error occurred during rolling rebuild: {e.args[0]}')
+            self.log_change(f'An error occurred during rolling rebuild: {e.args[0]}')
+            return False
+
     def thread_dump(self, alsoHeaps=False):
         heaps_to_come_log_line = ''
         if alsoHeaps == 'true':
