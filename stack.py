@@ -139,9 +139,13 @@ class Stack:
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.getparms()
-        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
-        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
-        if self.app_type == 'confluence':
+        # TODO: should we modify Server CFN templates to use a variable for AutoScalingGroup size
+        #       (currently hardcoded to '1' to avoid issues where users might specify any number other
+        #       than '1') or should we just manipulate the resources directly (issue commands directly
+        #       to the autoscaling group to scale down)?
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax' if self.clustered == 'true' else 'TODO: REPLACE ME?', '0')
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin' if self.clustered == 'true' else 'TODO: REPLACE ME?', '0')
+        if self.app_type == 'confluence' and self.clustered == 'true':
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
@@ -183,14 +187,19 @@ class Stack:
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
+        # TODO: should we modify Server CFN templates to use a variable for AutoScalingGroup size
+        #       (currently hardcoded to '1' to avoid issues where users might specify any number other
+        #       than '1') or should we just manipulate the resources directly (issue commands directly
+        #       to the autoscaling group to scale up)?
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax' if self.clustered == 'true' else 'TODO: REPLACE ME?', '1')
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin' if self.clustered == 'true' else 'TODO: REPLACE ME?', '1')
         if self.app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif self.app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
+            if self.clustered == 'true':
+                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif self.app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
@@ -457,7 +466,7 @@ class Stack:
     def get_tag(self, tag_name):
         tags = self.get_tags()
         if tags:
-            tag= [tag for tag in tags if tag['Key'] == tag_name]
+            tag = [tag for tag in tags if tag['Key'] == tag_name]
             if tag:
                 tag_value = tag[0]['Value']
                 if hasattr(self, 'logfile'):
@@ -552,14 +561,19 @@ class Stack:
         if not self.app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
+        self.clustered = self.get_tag('clustered')
+        if not self.clustered:
+            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            return False
         # get preupgrade version and node counts
         self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                              p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+                                   p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
         self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                     p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if self.app_type == 'confluence':
+                                          p['ParameterKey'] == 'ClusterNodeMax'][0]
+        if self.app_type == 'confluence' and self.clustered == 'true':
             self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                               p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+                                                    p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
@@ -661,7 +675,7 @@ class Stack:
             self.log_change('Change failed, see action log for details')
             return False
         # spinup remaining nodes in stack if needed
-        if self.preupgrade_app_node_count > "1":
+        if self.preupgrade_app_node_count > "1" and self.clustered == 'false':
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
@@ -764,7 +778,7 @@ class Stack:
         self.log_msg(log.INFO, 'Destroy complete')
         return True
 
-    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator, cloned_from):
+    def clone(self, stack_parms, template_file, app_type, clustered, region, creator, cloned_from):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         # TODO popup confirming if you want to destroy existing
@@ -772,7 +786,7 @@ class Stack:
             self.log_msg(log.INFO, 'Clone complete - failed')
             self.log_change('Clone complete - failed')
             self.clear_current_action()
-        if not self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
+        if not self.create(stack_parms, template_file, app_type, clustered, creator, region, cloned_from):
             self.log_msg(log.INFO, 'Clone complete - failed')
             self.log_change('Clone complete - failed')
             self.clear_current_action()
@@ -791,7 +805,13 @@ class Stack:
         self.log_msg(log.INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
-        template= str(template_file)
+        template = str(template_file)
+        self.clustered = self.get_tag('clustered')
+        if not self.clustered:
+            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
+            self.log_msg(log.ERROR, 'Update complete - failed')
+            self.log_change('Could not determine whether app is clustered. Update complete - failed.')
+            return False
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -814,8 +834,9 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and \
-                int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0:
+        # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
+        if self.clustered == 'false' or ('ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and
+                                         int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0):
             self.log_msg(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.log_msg(log.INFO, 'Update complete')
@@ -828,7 +849,7 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, stack_parms, template_file, app_type, creator, region, cloned_from=False):
+    def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
         self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(log.INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
@@ -838,10 +859,13 @@ class Stack:
         tags = [{
             'Key': 'product',
             'Value': app_type
-        },{
+        }, {
+            'Key': 'clustered',
+            'Value': clustered
+        }, {
             'Key': 'environment',
             'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
-        },{
+        }, {
             'Key': 'created_by',
             'Value': creator
         }]
@@ -889,6 +913,17 @@ class Stack:
             self.log_msg(log.ERROR, 'Could not determine product')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine product. Rolling restart failed.')
+            return False
+        self.clustered = self.get_tag('clustered')
+        if not self.clustered:
+            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
+            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('Could not determine whether app is clustered. Rolling restart failed.')
+            return False
+        if self.clustered == 'false':
+            self.log_msg(log.ERROR, 'App is not clustered; rolling restart not supported')
+            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
             return False
         self.get_stacknodes()
         instance_list = self.instancelist
