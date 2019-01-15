@@ -29,38 +29,11 @@
     </div>
 </div>
 
-<!-- Modal auth prompt -->
-<section id="auth-dialog" class="aui-dialog2 aui-dialog2-small aui-layer" role="dialog" aria-hidden="true">
-    <header class="aui-dialog2-header">
-        <h2 class="aui-dialog2-header-main"></h2>
-        <a class="aui-dialog2-header-close">
-            <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
-        </a>
-    </header>
-    <div class="aui-dialog2-content">
-        <p>ZDU requires admin authentication to the Jira server.
-            NB: We do NOT recommend entering your credentials unless both Forge and the Jira server use SSL.
-            Please enter your username:</p>
-    </div>
-    <div class="aui-panel">
-        <form class="aui top-label">
-            <fieldset class="top-label">
-                <div class="field-group top-label">
-                    <label for="username">Username</label>
-                    <input class="text" type="text" id="username" name="username">
-                    <label for="username">Password</label>
-                    <input class="password" type="password" id="password" name="password">
-                </div>
-            </fieldset>
-        </form>
-    </div>
-    <footer class="aui-dialog2-footer">
-        <div class="aui-dialog2-footer-actions">
-            <button class="aui-button aui-button-primary" onclick="performUpgrade(true);">Okay</button>
-            <button class="aui-button aui-button-link">Cancel</button>
-        </div>
-    </footer>
-</section>
 {% endblock extraInput %}
 
 {% block buttonText %}Upgrade{% endblock buttonText %}
+
+{% block footerInput %}
+<h4 class="component-heading">Zero Downtime Upgrade</h4>
+<button id="cancelZDUButton" class="aui-button" onClick="cancelZDUMode()" disabled>Cancel ZDU Mode</button>
+{% endblock footerInput %}

@@ -120,9 +120,5 @@ function sendTagsAsJson() {
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.send(JSON.stringify(tagsArray));
 
-    // Wait a mo for action to begin  in backend
-    setTimeout(function () {
-        // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
-    }, 1000);
+    redirectToLog(stack_name);
 }
