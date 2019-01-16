@@ -2,7 +2,6 @@ import boto3
 import botocore
 import time
 import requests
-import json
 from pathlib import Path
 import log
 import os
@@ -493,43 +492,71 @@ class Stack:
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
-    def get_zdu_state(self, username, password):
+    def get_zdu_state(self):
         try:
-            self.get_session_cookie(username, password)
-            response = requests.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5, headers={'Authorization': f'Basic {username}:{password}'}).text
-            response_json = json.loads(response)
+            response = self.session.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
+                self.log_change('Unable to get ZDU state')
+                return False
+            response_json = json.loads(response.text)
             return response_json['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_msg(log.INFO, f'ZDU state check timed out')
             return False
-        except Exception:
-            self.log_msg(log.INFO, 'Could not retrieve ZDU state')
+        except Exception as e:
+            self.log_msg(log.INFO, f'Could not retrieve ZDU state: {e.args[0]}')
             return False
 
-    def enable_zdu_mode(self, auth_string):
+    def enable_zdu_mode(self):
         try:
-            requests.post(self.lburl + '/rest/api/2/cluster/zdu/start', data={'Authorization': f'Basic {auth_string}'}, timeout=5)
-            while self.get_zdu_state() != 'READY':
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
+            if response.status_code != 201:
+                self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
+                self.log_change('Unable to enable ZDU mode')
+                return False
+            while self.get_zdu_state() != 'READY_TO_UPGRADE':
                 time.sleep(5)
+            self.log_msg(log.INFO, 'ZDU mode enabled')
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            self.log_msg(log.INFO, f'Could not enable ZDU mode')
+            self.log_msg(log.ERROR, 'Could not enable ZDU mode')
             return False
 
-    def get_session_cookie(self, username, password):
+    def cancel_zdu_mode(self):
         try:
-            result = requests.post(self.lburl + '/rest/auth/1/session', json={'username': username, 'password': password}, timeout=5)
-            if result.status_code == 200:
-                json_result = json.loads(result.text)
-                json_result['session']['value'] # cookie
-                while self.get_zdu_state(username, password) != 'READY':
-                    time.sleep(5)
-                    return True
-            else:
-                #TODO handle error
-                pass
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/cancel', timeout=5)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
+                self.log_change('Unable to cancel ZDU mode')
+                return False
+            while self.get_zdu_state() != 'STABLE':
+                time.sleep(5)
+            self.log_msg(log.INFO, 'ZDU mode cancelled')
+            return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            self.log_msg(log.INFO, f'Could not get session cookie')
+            self.log_msg(log.INFO, f'Could not cancel ZDU mode')
+            return False
+
+    def approve_zdu_upgrade(self):
+        self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
+        try:
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/approve', timeout=30)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
+                self.log_change('Unable to approve upgrade')
+                return False
+            self.log_msg(log.INFO, 'Upgrade tasks are running, waiting for STABLE state')
+            state = self.get_zdu_state()
+            while state != 'STABLE':
+                self.log_msg(log.INFO, f'ZDU state is {state}')
+                time.sleep(5)
+                state = self.get_zdu_state()
+            self.log_msg(log.INFO, 'Upgrade tasks complete')
+            #todo check for error states
+            return True
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
+            self.log_msg(log.INFO, f'Could not approve ZDU mode: {e.args[0]}')
             return False
 
 
@@ -563,14 +590,17 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
+        s = requests.Session()
+        s.auth = (username, password)
+        self.session = s
         self.getLburl()
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # set upgrade mode on
-        zdu_state = self.get_zdu_state(username, password)
+        zdu_state = self.get_zdu_state()
         if zdu_state == 'STABLE':
-            if self.enable_zdu_mode(username, password):
+            if self.enable_zdu_mode():
                 # update the version in stack parameters
                 stack_params = self.getparms()
                 stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
@@ -587,6 +617,7 @@ class Stack:
                     else:
                         print(e.args[0])
                         self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                        self.cancel_zdu_mode()
                         return False
                 if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
                     self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
@@ -594,39 +625,41 @@ class Stack:
                     self.log_msg(log.INFO, 'Could not update version in stack parameters')
                     self.log_msg(log.INFO, 'Upgrade complete - failed')
                     self.log_change('Upgrade failed - could not update version in stack parameters')
+                    self.cancel_zdu_mode()
                     return False
                 # terminate the nodes and allow new ones to spin up
                 if self.rolling_rebuild():
-                    zdu_json = self.get_zdu_state()
-                    if zdu_json and 'state' in zdu_json:
-                        zdu_state = zdu_json['state']
-                        if zdu_state == 'STABLE':
-                            pass
+                    state = self.get_zdu_state()
+                    while state != 'READY_TO_RUN_UPGRADE_TASKS':
+                        time.sleep(5)
+                        state = self.get_zdu_state()
+                    # check node count is not fewer than pre-upgrade
+                    self.get_stacknodes()
+                    if len(self.instancelist) < int(self.preupgrade_app_node_count):
+                        self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
+                        self.log_msg(log.INFO, 'Upgrade complete - failed')
+                        self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
+                        return False
+                    # approve the upgrade and allow upgrade tasks to run
+                    if self.approve_zdu_upgrade():
+                        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+                        self.log_msg(log.INFO, 'Upgrade complete')
+                        self.log_change('Upgrade successful')
+                        return True
+                    else:
+                        self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
+                        self.log_msg(log.ERROR, 'Upgrade complete - failed')
+                        self.log_change(f'Could not approve upgrade. Upgrade failed.')
             else:
                 self.log_msg(log.ERROR, 'Could not enable ZDU mode')
-                self.log_change('Could not enable ZDU mode')
+                self.log_msg(log.ERROR, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed - Could not enable ZDU mode')
+                return False
         else:
             self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
             self.log_msg(log.INFO, 'Upgrade complete - failed')
-            self.log_change(f'Upgrade failed, expected STABLE but ZDU state is {zdu_state}')
+            self.log_change(f'Could not begin upgrade, expected STABLE but ZDU state is {zdu_state}')
             return False
-        # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(self.app_type, new_version):
-            self.log_msg(log.INFO, 'Upgrade complete - failed')
-            self.log_change('Change failed, see action log for details')
-            return False
-        # spinup remaining nodes in stack if needed
-        if self.preupgrade_app_node_count > "1":
-            if self.app_type.lower() == 'confluence':
-                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count, self.preupgrade_synchrony_node_count)
-            else:
-                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count)
-        # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
-        # TODO enable traffic at VTM
-        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-        self.log_msg(log.INFO, 'Upgrade complete')
-        self.log_change('Upgrade successful')
-        return True
 
     def destroy(self):
         self.log_msg(log.INFO, f'Destroying stack {self.stack_name} in {self.region}')
@@ -853,11 +886,12 @@ class Stack:
                     for instance in current_instances:
                         if instance not in old_nodes:
                             # if the instance is new, track it
-                            replacement_node = instance
-                            self.log_msg(log.INFO, f'New node: {replacement_node}')
-                            self.log_change(f'New node: {replacement_node}')
-                            new_nodes.append(replacement_node)
-                            waiting_for_new_node = False
+                            if instance not in new_nodes:
+                                replacement_node = instance
+                                self.log_msg(log.INFO, f'New node: {replacement_node}')
+                                self.log_change(f'New node: {replacement_node}')
+                                new_nodes.append(replacement_node)
+                                waiting_for_new_node = False
                     time.sleep(30)
                     self.get_stacknodes()
                     current_instances = self.instancelist

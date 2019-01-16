@@ -134,7 +134,7 @@ class doupgrade(RestrictedResource):
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            if zdu:
+            if zdu == 'true':
                 auth = request.get_json()[0]
                 mystack.upgrade_zdu(new_version, auth['username'], auth['password'])
             else:
