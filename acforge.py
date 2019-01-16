@@ -555,18 +555,8 @@ class clearStackActionInProgress(Resource):
 
 class getVersion(Resource):
     def get(self, region, stack_name):
-        cfn = boto3.client('cloudformation', region_name=region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=stack_name)
-            version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
-        except Exception as e:
-            print(e.args[0])
-            return 'Error'
-        if version_param:
-            version_number = version_param['ParameterValue']
-            return version_number
-        else:
-            return ''
+        mystack = Stack(stack_name, region)
+        return mystack.get_param('Version')
 
 
 class getNodes(Resource):
@@ -603,6 +593,12 @@ class getCloneDefaults(Resource):
         if clone_default_props.has_section('defaults'):
             return clone_default_props.items('defaults')
         return []
+
+
+class getZDUCompatibility(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_zdu_compatibility()
 
 
 class actionReadyToStart(Resource):
@@ -840,6 +836,7 @@ api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
 api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
 api.add_resource(getTags, '/getTags/<region>/<stack_name>')
 api.add_resource(getCloneDefaults, '/getCloneDefaults/<stack_name>')
+api.add_resource(getZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
 
 
 # Helpers

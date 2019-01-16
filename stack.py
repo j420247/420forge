@@ -414,6 +414,19 @@ class Stack:
                     dict['UsePreviousValue'] = True
         return parms
 
+    def get_param(self, param_to_get):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            found_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']), None)
+        except Exception as e:
+            print(e.args[0])
+            return 'Error'
+        if found_param:
+             return found_param['ParameterValue']
+        else:
+            return ''
+
     def get_tags(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -559,6 +572,23 @@ class Stack:
             self.log_msg(log.INFO, f'Could not approve ZDU mode: {e.args[0]}')
             return False
 
+    def get_zdu_compatibility(self):
+        if self.get_tag('product') == 'jira':
+            self.get_stacknodes()
+            if len(self.instancelist) > 1:
+                version = self.get_param('Version')
+                jira_product = self.get_param('JiraProduct')
+                if jira_product == 'ServiceDesk':
+                    if float(version[:3]) > 3.6:
+                        return True
+                elif float(version[:3]) > 7.3:
+                    return True
+                else:
+                    return [f'Jira {jira_product} {version} is incompatible with ZDU']
+            else:
+                return ['too few nodes']
+        else:
+            return ['not Jira']
 
 ## Stack - Major Action Methods
 
@@ -1000,11 +1030,12 @@ class Stack:
         self.logfile = filename
 
     def log_msg(self, level, message):
-        logline = f'{datetime.now()} {level} {message} \n'
-        print(logline)
-        logfile = open(self.logfile, 'a')
-        logfile.write(logline)
-        logfile.close()
+        if hasattr(self, 'logfile'):
+            logline = f'{datetime.now()} {level} {message} \n'
+            print(logline)
+            logfile = open(self.logfile, 'a')
+            logfile.write(logline)
+            logfile.close()
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")

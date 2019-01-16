@@ -70,8 +70,6 @@ function selectStack(stack_name) {
     switch (action) {
         case "upgrade":
             $("#upgradeVersionSelector").removeAttr("disabled");
-            $("#action-button").attr("aria-disabled", false);
-
             // Version checking not currently working
             // currently only works for Confluence
             // $("#versionCheckButton").removeAttr("disabled");

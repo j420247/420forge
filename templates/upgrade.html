@@ -12,9 +12,12 @@
                 <label for="toplabelfieldexample">Upgrade Version</label>
                 <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
             </div>
-            <div class="checkbox">
+            <div id="zduCheckDiv" style="display:none">
+                <label id="zduCheckLbl" style="opacity: 0.5">Checking Zero Downtime Upgrade compatibility ...</label>
+            </div>
+            <div class="checkbox" id="performZDUDiv" style="display:none">
                 <input class="checkbox" type="checkbox" name="zduCheckBox" id="zduCheckBox">
-                <label for="zduCheckBox">Zero downtime upgrade - JIRA ONLY</label>
+                <label id="zduCheckBoxLbl" for="zduCheckBox">Perform ZDU upgrade</label>
             </div>
         </fieldset>
     </form>
