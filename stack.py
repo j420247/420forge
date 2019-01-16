@@ -25,21 +25,33 @@ class Stack:
     def __init__(self, stack_name, region):
         self.stack_name = stack_name
         if region == '':
-            error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
+            error_string = (
+                'No region defined for stack - your session may have timed out. Go back and retry the operation.'
+            )
             print(f'{datetime.now()} {log.ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
 
-## Stack - micro function methods
+    ## Stack - micro function methods
     def getLburl(self, stack_details):
         if hasattr(self, 'lburl'):
             return self.lburl
         else:
-            context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
+            context_path_param = next(
+                (
+                    parm
+                    for parm in stack_details['Stacks'][0]['Parameters']
+                    if parm['ParameterKey'] == 'TomcatContextPath'
+                ),
+                None,
+            )
             if context_path_param:
                 context_path = context_path_param['ParameterValue']
-                rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                            p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
+                rawlburl = [
+                    p['OutputValue']
+                    for p in stack_details['Stacks'][0]['Outputs']
+                    if p['OutputKey'] == 'LoadBalancerURL'
+                ][0] + context_path
                 return rawlburl
             return ''
 
@@ -59,12 +71,12 @@ class Stack:
                 return param['ParameterValue']
 
     def update_parmlist(self, parmlist, parmkey, parmvalue):
-        key_found=False
+        key_found = False
         for dict in parmlist:
             for k, v in dict.items():
                 if v == parmkey:
                     dict['ParameterValue'] = parmvalue
-                    key_found=True
+                    key_found = True
                 if v == 'DBMasterUserPassword' or v == 'DBPassword':
                     try:
                         del dict['ParameterValue']
@@ -92,11 +104,11 @@ class Stack:
             DocumentName='AWS-RunShellScript',
             Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
             OutputS3BucketName=logs_bucket,
-            OutputS3KeyPrefix='run-command-logs'
+            OutputS3KeyPrefix='run-command-logs',
         )
         self.log_msg(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
         if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
-            return (ssm_command['Command']['CommandId'])
+            return ssm_command['Command']['CommandId']
         return False
 
     def ssm_cmd_check(self, cmd_id):
@@ -116,8 +128,7 @@ class Stack:
             result = self.wait_for_cmd_result(cmd_id)
         return result
 
-
-## Stack - helper methods
+    ## Stack - helper methods
 
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
@@ -133,7 +144,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spindown_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
@@ -155,10 +166,10 @@ class Stack:
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
-            self.log_msg(log.ERROR,f'Stack action was rolled back: {stack_state}')
+            self.log_msg(log.ERROR, f'Stack action was rolled back: {stack_state}')
             return False
         elif 'FAILED' in stack_state:
-            self.log_msg(log.ERROR,f'Stack action failed: {stack_state}')
+            self.log_msg(log.ERROR, f'Stack action failed: {stack_state}')
             return False
         return True
 
@@ -182,7 +193,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
         except botocore.exceptions.ClientError as e:
             self.log_msg(log.INFO, f'Stack spinup failed: {e.args[0]}')
@@ -197,7 +208,7 @@ class Stack:
     def validate_service_responding(self):
         self.log_msg(log.INFO, 'Waiting for service to reply on /status')
         service_state = self.check_service_status()
-        while service_state  not in ['RUNNING', 'FIRST_RUN']:
+        while service_state not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
         self.log_msg(log.INFO, f'{self.stack_name} /status now reporting {service_state}')
@@ -212,8 +223,7 @@ class Stack:
             return f'Error checking service status: {e.args[0]}'
         self.lburl = self.getLburl(stack_details)
         if logMsgs:
-            self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.lburl}/status')
+            self.log_msg(log.INFO, f' ==> checking service status at {self.lburl}/status')
         try:
             service_status = requests.get(self.lburl + '/status', timeout=5)
             if service_status.status_code == 200:
@@ -222,12 +232,19 @@ class Stack:
                 if 'state' in json_status:
                     status = json_status['state']
             else:
-                status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
+                status = (
+                    str(service_status.status_code) + ": " + service_status.reason[:19]
+                    if service_status.reason
+                    else str(service_status.status_code)
+                )
             if logMsgs:
-                self.log_msg(log.INFO,
-                            f' ==> service status is: {status}')
+                self.log_msg(log.INFO, f' ==> service status is: {status}')
             return status
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        except (
+            requests.exceptions.ReadTimeout,
+            requests.exceptions.ConnectTimeout,
+            requests.exceptions.ConnectionError,
+        ):
             if logMsgs:
                 self.log_msg(log.INFO, f'Service status check timed out')
         return 'Timed Out'
@@ -253,8 +270,16 @@ class Stack:
         except Exception as e:
             print(e.args[0])
             return f'Error checking node status: {e.args[0]}'
-        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
-        port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
+        context_path = [
+            param['ParameterValue']
+            for param in stack['Stacks'][0]['Parameters']
+            if param['ParameterKey'] == 'TomcatContextPath'
+        ][0]
+        port = [
+            param['ParameterValue']
+            for param in stack['Stacks'][0]['Parameters']
+            if param['ParameterKey'] == 'TomcatDefaultConnectorPort'
+        ][0]
         if logMsgs:
             self.log_msg(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
@@ -287,7 +312,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=spinup_parms,
                 UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
         except Exception as e:
             print(e.args[0])
@@ -302,7 +327,7 @@ class Stack:
         filters = [
             {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
             {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
-            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']},
         ]
         self.instancelist = []
         for i in ec2.instances.filter(Filters=filters):
@@ -385,7 +410,9 @@ class Stack:
             os.mkdir(f'locks/{self.stack_name}')
             os.mkdir(f'locks/{self.stack_name}/{action}')
         elif locking_enabled:
-            self.log_msg(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
+            self.log_msg(
+                log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}'
+            )
             return False
         self.create_action_log(action)
         if changelog:
@@ -429,7 +456,7 @@ class Stack:
     def get_tag(self, tag_name):
         tags = self.get_tags()
         if tags:
-            tag= [tag for tag in tags if tag['Key'] == tag_name]
+            tag = [tag for tag in tags if tag['Key'] == tag_name]
             if tag:
                 tag_value = tag[0]['Value']
                 if hasattr(self, 'logfile'):
@@ -439,12 +466,37 @@ class Stack:
             self.log_msg(log.WARN, f'Tag {tag_name} not found')
         return False
 
+    def get_sql_from_s3(self, stack, sql_dir):
+        # try to pull latest from s3
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        s3_bucket = config['s3']['bucket']
+        try:
+            s3 = boto3.client('s3')
+            bucket_list = s3.list_objects(Bucket=s3_bucket, Prefix=f'config/{sql_dir}')['Contents']
+            if bucket_list:
+                if not os.path.exists(sql_dir):
+                    os.makedirs(sql_dir)
+                sql_file_list = []
+                s3 = boto3.resource('s3')
+                for bucket_item in bucket_list:
+                    if (
+                        bucket_item['Size'] > 0
+                    ):  # this is to catch when s3 sometimes weirdly returns the path as an object
+                        sql_file_list.append(bucket_item['Key'])
+                        sql_file_name = os.path.basename(bucket_item['Key'])
+                        s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
+        except Exception as e:
+            print(e.args[0])
+            return
+
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
             cloned_from_stack_sql_dir = f'stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d/'
+            self.get_sql_from_s3(cloned_from_stack, cloned_from_stack_sql_dir)
             if Path(cloned_from_stack_sql_dir).exists():
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
@@ -455,6 +507,7 @@ class Stack:
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
         # get SQL for this stack
         own_sql_dir = f'stacks/{self.stack_name}/local-post-clone-sql.d/'
+        self.get_sql_from_s3(self.stack_name, own_sql_dir)
         if Path(own_sql_dir).exists():
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
@@ -467,8 +520,7 @@ class Stack:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
-
-## Stack - Major Action Methods
+    ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
         self.log_msg(log.INFO, f'Beginning upgrade for {self.stack_name}')
@@ -487,13 +539,22 @@ class Stack:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get preupgrade version and node counts
-        preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
-        preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] == 'ClusterNodeMax'][0]
+        preupgrade_version = [
+            p['ParameterValue']
+            for p in stack_details['Stacks'][0]['Parameters']
+            if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+        ][0]
+        preupgrade_app_node_count = [
+            p['ParameterValue']
+            for p in stack_details['Stacks'][0]['Parameters']
+            if p['ParameterKey'] == 'ClusterNodeMax'
+        ][0]
         if app_type.lower() == 'confluence':
-            preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                            p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+            preupgrade_synchrony_node_count = [
+                p['ParameterValue']
+                for p in stack_details['Stacks'][0]['Parameters']
+                if p['ParameterKey'] == 'SynchronyClusterNodeMax'
+            ][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {preupgrade_version}')
         self.log_change(f'New version: {new_version}')
@@ -564,10 +625,13 @@ class Stack:
         return True
 
     def update(self, stack_parms, template_file):
-        self.log_msg(log.INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+        self.log_msg(
+            log.INFO,
+            f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}",
+        )
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
-        template= str(template_file)
+        template = str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -578,7 +642,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_filename}',
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
@@ -592,8 +656,13 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and \
-                int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0:
+        if (
+            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
+            and int(
+                [param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
+            )
+            > 0
+        ):
             self.log_msg(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.log_msg(log.INFO, 'Update complete')
@@ -613,19 +682,18 @@ class Stack:
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
-        tags = [{
-            'Key': 'product',
-            'Value': app_type
-        },{
-            'Key': 'environment',
-            'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
-        },{
-            'Key': 'created_by',
-            'Value': creator
-        }]
+        tags = [
+            {'Key': 'product', 'Value': app_type},
+            {
+                'Key': 'environment',
+                'Value': next(
+                    parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'
+                ),
+            },
+            {'Key': 'created_by', 'Value': creator},
+        ]
         if cloned_from:
-            tags.append({'Key': 'cloned_from',
-                        'Value': cloned_from})
+            tags.append({'Key': 'cloned_from', 'Value': cloned_from})
         try:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
@@ -640,7 +708,7 @@ class Stack:
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_file.name}',
                 Capabilities=['CAPABILITY_IAM'],
-                Tags=tags
+                Tags=tags,
             )
         except Exception as e:
             print(e.args[0])
@@ -790,7 +858,7 @@ class Stack:
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for instance in self.instancelist:
             self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30) # give node time to recover and rejoin cluster
+            time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(log.INFO, "Heap dumps complete")
         return True
 
@@ -801,14 +869,34 @@ class Stack:
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
             sql_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', sql_to_run)
-            if self.run_command([self.instancelist[0]], f'echo "{sql_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
-                db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
-                if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
-                    self.log_msg(log.ERROR, f'Running SQL script failed')
-                    return False
-            else:
-                self.log_msg(log.ERROR, 'Dumping SQL file to target machine failed')
-                self.log_change('Dumping SQL file to target machine failed')
+            config = configparser.ConfigParser()
+            config.read('forge.properties')
+            s3_bucket = config['s3']['bucket']
+            cloned_from_stack = self.get_tag('cloned_from')
+            db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+            # on node, grab cloned_from sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d',
+            )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
+            ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
+                return False
+            # on node, grab local-stack sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d',
+            )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
+            ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
                 return False
         else:
             self.log_msg(log.INFO, 'No post clone SQL file found')
@@ -830,7 +918,7 @@ class Stack:
                 Parameters=params,
                 UsePreviousTemplate=True,
                 Tags=tags,
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
             self.log_msg(log.INFO, f'Tagging successfully initiated')
         except Exception as e:
@@ -843,7 +931,6 @@ class Stack:
             self.log_change('Tag complete')
             return True
         return False
-
 
     # Logging functions
     def create_action_log(self, action):
