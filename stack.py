@@ -590,8 +590,7 @@ class Stack:
                         return True
                 elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
                     return True
-                else:
-                    return [f'Jira {jira_product} {version} is incompatible with ZDU']
+                return [f'Jira {jira_product} {version} is incompatible with ZDU']
             else:
                 return ['too few nodes']
         else:
