@@ -443,5 +443,5 @@ function sendParamsAsJson() {
     if (action === 'clone')
         appendRegion = "&region=" + $("#regionSelector").text().trim();
 
-    redirectToLog(stack_name);
+    redirectToLog(stackNameForAction);
 }
