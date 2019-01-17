@@ -355,7 +355,6 @@ class dogetthreaddumplinks(RestrictedResource):
                 Bucket=s3_bucket,
                 Prefix=f'diagnostics/{stack_name}/'
             )
-
             if 'Contents' in list_objects:
                 for thread_dump in list_objects['Contents']:
                     url = client.generate_presigned_url(

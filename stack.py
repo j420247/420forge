@@ -573,28 +573,26 @@ class Stack:
                 time.sleep(5)
                 state = self.get_zdu_state()
             self.log_msg(log.INFO, 'Upgrade tasks complete')
-            #todo check for error states
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             self.log_msg(log.INFO, f'Could not approve ZDU mode: {e.args[0]}')
             return False
 
     def get_zdu_compatibility(self):
-        if self.get_tag('product') == 'jira':
-            self.get_stacknodes()
-            if len(self.instancelist) > 1:
-                version = version_tuple(self.get_param('Version'))
-                jira_product = self.get_param('JiraProduct')
-                if jira_product == 'ServiceDesk':
-                    if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
-                        return True
-                elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
-                    return True
-                return [f'Jira {jira_product} {version} is incompatible with ZDU']
-            else:
-                return ['too few nodes']
-        else:
+        if not self.get_tag('product') == 'jira':
             return ['not Jira']
+        self.get_stacknodes()
+        if not len(self.instancelist) > 1:
+            return ['too few nodes']
+        version = version_tuple(self.get_param('Version'))
+        jira_product = self.get_param('JiraProduct')
+        if jira_product == 'ServiceDesk':
+            if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
+                return True
+        elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
+            return True
+        return [f'Jira {jira_product} {version} is incompatible with ZDU']
+
 
 ## Stack - Major Action Methods
 
@@ -635,67 +633,67 @@ class Stack:
         self.log_change('Upgrade is underway')
         # set upgrade mode on
         zdu_state = self.get_zdu_state()
-        if zdu_state == 'STABLE':
-            if self.enable_zdu_mode():
-                # update the version in stack parameters
-                stack_params = self.getparms()
-                stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
-                cfn = boto3.client('cloudformation', region_name=self.region)
-                try:
-                    cfn.update_stack(
-                        StackName=self.stack_name,
-                        Parameters=stack_params,
-                        UsePreviousTemplate=True,
-                        Capabilities=['CAPABILITY_IAM'])
-                except Exception as e:
-                    if 'No updates are to be performed' in e.args[0]:
-                        self.log_msg(log.INFO, f'Stack is already at {new_version}')
-                    else:
-                        print(e.args[0])
-                        self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
-                        self.cancel_zdu_mode()
-                        return False
-                if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                    self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
-                else:
-                    self.log_msg(log.INFO, 'Could not update version in stack parameters')
-                    self.log_msg(log.INFO, 'Upgrade complete - failed')
-                    self.log_change('Upgrade failed - could not update version in stack parameters')
-                    self.cancel_zdu_mode()
-                    return False
-                # terminate the nodes and allow new ones to spin up
-                if self.rolling_rebuild():
-                    state = self.get_zdu_state()
-                    while state != 'READY_TO_RUN_UPGRADE_TASKS':
-                        time.sleep(5)
-                        state = self.get_zdu_state()
-                    # check node count is not fewer than pre-upgrade
-                    self.get_stacknodes()
-                    if len(self.instancelist) < int(self.preupgrade_app_node_count):
-                        self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
-                        self.log_msg(log.INFO, 'Upgrade complete - failed')
-                        self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
-                        return False
-                    # approve the upgrade and allow upgrade tasks to run
-                    if self.approve_zdu_upgrade():
-                        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-                        self.log_msg(log.INFO, 'Upgrade complete')
-                        self.log_change('Upgrade successful')
-                        return True
-                    else:
-                        self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
-                        self.log_msg(log.ERROR, 'Upgrade complete - failed')
-                        self.log_change(f'Could not approve upgrade. Upgrade failed.')
-            else:
-                self.log_msg(log.ERROR, 'Could not enable ZDU mode')
-                self.log_msg(log.ERROR, 'Upgrade complete - failed')
-                self.log_change('Upgrade failed - Could not enable ZDU mode')
-                return False
-        else:
+        if zdu_state != 'STABLE':
             self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change(f'Could not begin upgrade, expected STABLE but ZDU state is {zdu_state}')
             return False
+        if not self.enable_zdu_mode():
+            self.log_msg(log.ERROR, 'Could not enable ZDU mode')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - Could not enable ZDU mode')
+            return False
+        # update the version in stack parameters
+        stack_params = self.getparms()
+        stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_params,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'])
+        except Exception as e:
+            if 'No updates are to be performed' in e.args[0]:
+                self.log_msg(log.INFO, f'Stack is already at {new_version}')
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                self.cancel_zdu_mode()
+                return False
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+        else:
+            self.log_msg(log.INFO, 'Could not update version in stack parameters')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - could not update version in stack parameters')
+            self.cancel_zdu_mode()
+            return False
+        # terminate the nodes and allow new ones to spin up
+        if not self.rolling_rebuild():
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Upgrade failed.')
+        state = self.get_zdu_state()
+        while state != 'READY_TO_RUN_UPGRADE_TASKS':
+            time.sleep(5)
+            state = self.get_zdu_state()
+        # check node count is not fewer than pre-upgrade
+        self.get_stacknodes()
+        if len(self.instancelist) < int(self.preupgrade_app_node_count):
+            self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
+            return False
+        # approve the upgrade and allow upgrade tasks to run
+        if self.approve_zdu_upgrade():
+            self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+            self.log_msg(log.INFO, 'Upgrade complete')
+            self.log_change('Upgrade successful')
+            return True
+        else:
+            self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Could not approve upgrade. Upgrade failed.')
 
     def destroy(self):
         self.log_msg(log.INFO, f'Destroying stack {self.stack_name} in {self.region}')
@@ -708,6 +706,10 @@ class Stack:
                 self.log_msg(log.INFO, "Destroy complete - not required")
                 self.log_change(f'Stack {self.stack_name} does not exist, destroy not required')
                 return True
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred destroying stack: {e.args[0]}')
+                return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
@@ -720,19 +722,19 @@ class Stack:
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         # TODO popup confirming if you want to destroy existing
-        if self.destroy():
-            if self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
-                self.log_change('Create complete, looking for post-clone SQL')
-                if self.run_sql():
-                    self.log_change('SQL complete, restarting {self.stack_name}')
-                    self.full_restart()
-                else:
-                    self.clear_current_action()
-            else:
-                self.log_msg(log.INFO, 'Clone complete - failed')
-                self.log_change('Clone complete - failed')
-                self.clear_current_action()
-                return False
+        if not self.destroy():
+            self.log_msg(log.INFO, 'Clone complete - failed')
+            self.log_change('Clone complete - failed')
+            self.clear_current_action()
+        if not self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
+            self.log_msg(log.INFO, 'Clone complete - failed')
+            self.log_change('Clone complete - failed')
+            self.clear_current_action()
+            return False
+        self.log_change('Create complete, looking for post-clone SQL')
+        if self.run_sql():
+            self.log_change('SQL complete, restarting {self.stack_name}')
+            self.full_restart()
         else:
             self.clear_current_action()
         self.log_msg(log.INFO, 'Clone complete')
@@ -855,24 +857,22 @@ class Stack:
                 non_running_nodes.append(node)
         # restart non running nodes first
         for instance in itertools.chain(non_running_nodes, running_nodes):
-            if self.shutdown_app([instance], app_type):
-                node_ip = list(instance.values())[0]
-                if self.startup_app([instance], app_type):
-                    result = ""
-                    while result not in ['RUNNING', 'FIRST_RUN']:
-                        result = self.check_node_status(node_ip, False)
-                        time.sleep(10)
-                    self.log_msg(log.INFO, f'Startup result for {node_ip}: {result}')
-                else:
-                    self.log_msg(log.INFO, f'Failed to start application on instance {instance}')
-                    self.log_msg(log.ERROR, 'Rolling restart complete - failed')
-                    self.log_change('Rolling restart complete - failed')
-                    return False
-            else:
+            if not self.shutdown_app([instance], app_type):
                 self.log_msg(log.INFO, f'Failed to stop application on instance {instance}')
                 self.log_msg(log.ERROR, 'Rolling restart complete - failed')
                 self.log_change('Rolling restart complete - failed')
                 return False
+            if not self.startup_app([instance], app_type):
+                self.log_msg(log.INFO, f'Failed to start application on instance {instance}')
+                self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+                self.log_change('Rolling restart complete - failed')
+                return False
+            node_ip = list(instance.values())[0]
+            result = ""
+            while result not in ['RUNNING', 'FIRST_RUN']:
+                result = self.check_node_status(node_ip, False)
+                time.sleep(10)
+            self.log_msg(log.INFO, f'Startup result for {node_ip}: {result}')
         self.log_msg(log.INFO, 'Rolling restart complete')
         self.log_change('Rolling restart complete')
         return True
@@ -887,15 +887,14 @@ class Stack:
             return False
         self.get_stacknodes()
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        if self.shutdown_app(self.instancelist, app_type):
-            for instance in self.instancelist:
-                self.startup_app([instance], app_type)
-            self.log_msg(log.INFO, 'Full restart complete')
-            self.log_change('Full restart complete')
-        else:
+        if not self.shutdown_app(self.instancelist, app_type):
             self.log_msg(log.ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
+        for instance in self.instancelist:
+            self.startup_app([instance], app_type)
+        self.log_msg(log.INFO, 'Full restart complete')
+        self.log_change('Full restart complete')
         return True
 
     def rolling_rebuild(self):
