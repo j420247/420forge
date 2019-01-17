@@ -12,20 +12,14 @@ function onReady() {
     getLockedStacks();
 
     var actionButton = document.getElementById("action-button");
-    actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#stackInformation").hide();
         $("#lock-state").hide();
         $("#unlock-warning").hide();
         $("#action-button").attr("aria-disabled", true);
-        var clearStackActionInProgressRequest = new XMLHttpRequest();
-        clearStackActionInProgressRequest.open("GET", baseUrl  + "/clearActionInProgress/" + region + "/" + document.getElementById("lockedStackSelector").text, true);
-        clearStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
-        clearStackActionInProgressRequest.onreadystatechange = function () {
-            if (clearStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && clearStackActionInProgressRequest.status === 200)
-                getStackActionInProgress()
-        };
-        clearStackActionInProgressRequest.send();
+
+        var url = baseUrl  + "/clearActionInProgress/" + region + "/" + document.getElementById("lockedStackSelector").text;
+        send_http_get_request(url, getStackActionInProgress)
     });
 
     var stackToAdmin = $("meta[name=stackToAdmin]").attr("value");
@@ -33,78 +27,65 @@ function onReady() {
         document.getElementById("lockedStackSelector").text = stackToAdmin;
         selectStack(stackToAdmin);
         getStackActionInProgress(stackToAdmin);
+        $("#action-button").attr("aria-disabled", true);
     }
 }
 
-function getLockedStacks() {
-    var getLockedStacksRequest = new XMLHttpRequest();
-    getLockedStacksRequest.open("GET", baseUrl + "/getLockedStacks", true);
-    getLockedStacksRequest.setRequestHeader("Content-Type", "text/xml");
-    getLockedStacksRequest.onreadystatechange = function () {
-        if (getLockedStacksRequest.readyState === XMLHttpRequest.DONE && getLockedStacksRequest.status === 200) {
-            var lockedStacksDropdown = document.getElementById("lockedStacksDropdownDiv");
-            if (lockedStacksDropdown) {
-                while (lockedStacksDropdown.firstChild) {
-                    lockedStacksDropdown.removeChild(lockedStacksDropdown.firstChild);
-                }
-            }
-
-            var lockedStacks = JSON.parse(getLockedStacksRequest.responseText);
-            var ul = document.createElement("UL");
-            ul.className = "aui-list-truncate";
-
-            for(var i = 0; i < lockedStacks.length; i++) {
-                var li = document.createElement("LI");
-                var anchor = document.createElement("A");
-                anchor.className = "lockedStacksOption";
-                var text = document.createTextNode(lockedStacks[i]);
-                anchor.appendChild(text);
-                li.appendChild(anchor);
-                ul.appendChild(li);
-
-                anchor.addEventListener("click", function (data) {
-                    $("#stackInformation").hide();
-                    $("#lock-state").hide();
-                    $("#unlock-warning").hide();
-                    var locked_stack = data.target.text;
-                    document.getElementById("lockedStackSelector").text = locked_stack;
-                    selectStack(locked_stack);
-                    getStackActionInProgress(locked_stack);
-                }, false);
-            }
-            lockedStacksDropdown.appendChild(ul);
+function createLockedStacksDropdown(responseText) {
+    var lockedStacksDropdown = document.getElementById("lockedStacksDropdownDiv");
+    if (lockedStacksDropdown) {
+        while (lockedStacksDropdown.firstChild) {
+            lockedStacksDropdown.removeChild(lockedStacksDropdown.firstChild);
         }
-    };
-    getLockedStacksRequest.send();
+    }
+
+    var lockedStacks = JSON.parse(responseText);
+    var ul = document.createElement("UL");
+    ul.className = "aui-list-truncate";
+
+    for(var i = 0; i < lockedStacks.length; i++) {
+        var li = document.createElement("LI");
+        var anchor = document.createElement("A");
+        anchor.className = "lockedStacksOption";
+        var text = document.createTextNode(lockedStacks[i]);
+        anchor.appendChild(text);
+        li.appendChild(anchor);
+        ul.appendChild(li);
+
+        anchor.addEventListener("click", function (data) {
+            $("#stackInformation").hide();
+            $("#lock-state").hide();
+            $("#unlock-warning").hide();
+            var locked_stack = data.target.text;
+            document.getElementById("lockedStackSelector").text = locked_stack;
+            selectStack(locked_stack);
+            getStackActionInProgress(locked_stack);
+        }, false);
+    }
+    lockedStacksDropdown.appendChild(ul);
+}
+
+function getLockedStacks() {
+    send_http_get_request(baseUrl + "/getLockedStacks", createLockedStacksDropdown);
+}
+
+function updateActionInProgressAdminPage(responseText) {
+    var actionInProgress = JSON.parse(responseText);
+    $("#lock-state").html("Action in progress: " + getStatusLozenge(actionInProgress, "moved"));
+    $("#lock-state").show();
+    if (countOccurences(actionInProgress.toLowerCase(), 'none') === 0) {
+        $("#unlock-warning").show();
+        $("#action-button").attr("aria-disabled", false);
+    }
 }
 
 function getStackActionInProgress(locked_stack) {
-    var getStackActionInProgressRequest = new XMLHttpRequest();
-    getStackActionInProgressRequest.open("GET", baseUrl + "/getActionInProgress/" + region + "/" + locked_stack, true);
-    getStackActionInProgressRequest.setRequestHeader("Content-Type", "text/xml");
-    getStackActionInProgressRequest.onreadystatechange = function () {
-        if (getStackActionInProgressRequest.readyState === XMLHttpRequest.DONE && getStackActionInProgressRequest.status === 200) {
-            var actionInProgress = JSON.parse(getStackActionInProgressRequest.responseText);
-            $("#lock-state").html("Action in progress: " + getStatusLozenge(actionInProgress, "moved"));
-            $("#lock-state").show();
-            if (countOccurences(actionInProgress.toLowerCase(), 'none') === 0) {
-                $("#unlock-warning").show();
-                $("#action-button").attr("aria-disabled", false);
-            }
-        }
-    };
-    getStackActionInProgressRequest.send();
+    var url = baseUrl + "/getActionInProgress/" + region + "/" + locked_stack;
+    send_http_get_request(url, updateActionInProgressAdminPage)
 }
 
 function setStackLocking() {
     $("#lockStacksCheckBox").disabled = true;
-    var setStackLockingRequest = new XMLHttpRequest();
-    setStackLockingRequest.open("POST", baseUrl + "/setStackLocking/" + $("#lockStacksCheckBox")[0].checked, true);
-    setStackLockingRequest.setRequestHeader("Content-Type", "text/xml");
-    setStackLockingRequest.onreadystatechange = function () {
-        if (setStackLockingRequest.readyState === XMLHttpRequest.DONE && setStackLockingRequest.status === 200) {
-            $("#lockStacksCheckBox").removeAttr("disabled");
-        }
-    };
-    setStackLockingRequest.send();
+    var url = baseUrl + "/setStackLocking/" + $("#lockStacksCheckBox")[0].checked;
+    send_http_post_request(url, {}, function(){$("#lockStacksCheckBox").removeAttr("disabled");});
 }

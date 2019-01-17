@@ -10,45 +10,8 @@ function onReady() {
         }, false);
     }
 
-    if (action.indexOf("/") != -1)
-        action = action.substr(action.indexOf("/") + 1);
-
-    // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
-    // if (action === "upgrade") {
-    //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
-    //         var version = $("#upgradeVersionSelector").val();
-    //         var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
-    //         $.ajax({
-    //             url: url,
-    //             type: 'HEAD',
-    //             headers: {'Access-Control-Allow-Origin': url},
-    //             complete: function (xhr) {
-    //                 switch (xhr.status) {
-    //                     case 200:
-    //                         $("#versionExists").html(getStatusLozenge("Valid"));
-    //                         $("#action-button").attr("aria-disabled", false);
-    //                         break;
-    //                     case 403:
-    //                     default:
-    //                         $("#versionExists").html(getStatusLozenge("Invalid"));
-    //                 }
-    //             },
-    //         });
-    //     });
-    // }
-
     addDefaultActionButtonListener();
 }
-
-function addDefaultActionButtonListener() {
-    var actionButton = document.getElementById("action-button");
-    if (actionButton)
-        actionButton.addEventListener("click", defaultActionBtnEvent);
-}
-
-var defaultActionBtnEvent = function() {
-    performAction();
-};
 
 function selectStack(stack_name) {
     $("#stackSelector").text(stack_name);
@@ -64,31 +27,9 @@ function selectStack(stack_name) {
     $("#currentVersion").html("Current version: ");
     $("#nodes").html("");
 
-    updateStats(stack_name);
+    $("#action-button").attr("aria-disabled", false);
 
-    // Enable extra input parameters per action
-    switch (action) {
-        case "upgrade":
-            $("#upgradeVersionSelector").removeAttr("disabled");
-            // Version checking not currently working
-            // currently only works for Confluence
-            // $("#versionCheckButton").removeAttr("disabled");
-            break;
-        case "update":
-        case "clone":
-            $("#versionCheckButton").hide();
-            break;
-        case "admin":
-            $("#action-button").attr("aria-disabled", true);
-            break;
-        case "rollingrestart":
-        case "fullrestart":
-            $("#takeThreadDumps").removeAttr("disabled");
-            $("#takeHeapDumps").removeAttr("disabled");
-        default:
-            $("#versionCheckButton").hide();
-            $("#action-button").attr("aria-disabled", false);
-    }
+    updateStats(stack_name);
 }
 
 function getStatus(stack_name) {
@@ -122,32 +63,6 @@ function getStatus(stack_name) {
         }
     };
     statusRequest.send();
-}
-
-function processResponse() {
-    if (this.status !== 200) {
-        window.location = baseUrl + "/error/" + this.status;
-    }
-}
-
-function performAction() {
-    var stack_name = scrapePageForStackName();
-    var url = baseUrl + "/do" + action + "/" + region + "/" + stack_name;
-
-    var actionRequest = new XMLHttpRequest();
-    switch (action) {
-        case "rollingrestart":
-        case "fullrestart":
-            url += "/" + document.getElementById("takeThreadDumps").checked
-                + "/" + document.getElementById("takeHeapDumps").checked
-    }
-
-    actionRequest.open("GET", url, true);
-    actionRequest.setRequestHeader("Content-Type", "text/xml");
-    actionRequest.addEventListener("load", processResponse);
-    actionRequest.send();
-
-    redirectToLog(stack_name);
 }
 
 function updateStats(stack_name, stack_region) {
@@ -270,11 +185,17 @@ function getStatusLozenge(text, cssClass) {
     return "<span class=\"aui-lozenge aui-lozenge-" + cssClass + "\">" + text + "</span>"
 }
 
-function removeElementsByClass(className){
-    var elements = document.getElementsByClassName(className);
-    while(elements.length > 0){
-        elements[0].parentNode.removeChild(elements[0]);
-    }
+function performAction() {
+    var stack_name = scrapePageForStackName();
+    var url = baseUrl + "/do" + action + "/" + region + "/" + stack_name;
+
+    var actionRequest = new XMLHttpRequest();
+    actionRequest.open("GET", url, true);
+    actionRequest.setRequestHeader("Content-Type", "text/xml");
+    actionRequest.addEventListener("load", processResponse);
+    actionRequest.send();
+
+    redirectToLog(stack_name);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

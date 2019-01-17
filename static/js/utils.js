@@ -1,3 +1,4 @@
+// JS helpers
 function countOccurences(stringToSearch, searchTerm) {
     var count = 0;
     var position = stringToSearch.indexOf(searchTerm);
@@ -8,6 +9,58 @@ function countOccurences(stringToSearch, searchTerm) {
     return count;
 }
 
+function removeElementsByClass(className){
+    var elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
+}
+
+function notify(message) {
+    if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+            var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
+        }
+        else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(function (permission) {
+                if (permission === "granted") {
+                    var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
+                }
+            });
+        }
+    }
+}
+
+// API helpers
+function send_http_get_request(url, onreadystatechange) {
+    var getRequest = new XMLHttpRequest();
+    getRequest.open("GET", url, true);
+    getRequest.setRequestHeader("Content-Type", "text/xml");
+    getRequest.addEventListener("load", processResponse);
+    if (onreadystatechange) {
+        getRequest.onreadystatechange = function () {
+            if (getRequest.readyState === XMLHttpRequest.DONE && getRequest.status === 200)
+                onreadystatechange(getRequest.responseText);
+        };
+    }
+    getRequest.send();
+}
+
+function send_http_post_request(url, data, onreadystatechange) {
+    var postRequest = new XMLHttpRequest();
+    postRequest.open("POST", url, true);
+    postRequest.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+    postRequest.addEventListener("load", processResponse);
+    if (onreadystatechange) {
+        postRequest.onreadystatechange = function () {
+            if (postRequest.readyState === XMLHttpRequest.DONE && postRequest.status === 200)
+                onreadystatechange(postRequest.responseText);
+        };
+    }
+    postRequest.send(data);
+}
+
+// Forge common functions
 function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     var dropdownAnchor = document.createElement("A");
     dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
@@ -101,27 +154,12 @@ function updateTextField(parameterKey, newValue) {
 
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
-    if (stacks.length == 1 && stacks[0].text == 'No credentials') {
+    if (stacks.length === 1 && stacks[0].text === 'No credentials') {
         AJS.flag({
             type: 'error',
             body: 'No credentials - please authenticate with Cloudtoken',
             close: 'manual'
         });
-    }
-}
-
-function notify(message) {
-    if ("Notification" in window) {
-        if (Notification.permission === "granted") {
-            var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
-        }
-        else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then(function (permission) {
-                if (permission === "granted") {
-                    var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
-                }
-            });
-        }
     }
 }
 
@@ -150,4 +188,16 @@ function redirectToLog(stack_name) {
         // Redirect to action progress screen
         window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
     }, 1000);
+}
+
+function addDefaultActionButtonListener() {
+    var actionButton = document.getElementById("action-button");
+    if (actionButton)
+        actionButton.addEventListener("click", performAction);
+}
+
+function processResponse() {
+    if (this.status !== 200) {
+        window.location = baseUrl + "/error/" + this.status;
+    }
 }

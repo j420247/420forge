@@ -5,9 +5,34 @@ function onReady() {
             var stack_name = data.target.text;
             selectStack(stack_name);
             checkZDUCompatibility(stack_name);
+            $("#upgradeVersionSelector").removeAttr("disabled");
         }, false);
     }
     $("#action-button").on("click", beginUpgrade);
+
+    // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
+    // if (action === "upgrade") {
+    //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
+    //         var version = $("#upgradeVersionSelector").val();
+    //         var url = 'https://s3.amazonaws.com/atlassian-software/releases/confluence/atlassian-confluence-' + version + '-linux-x64.bin';
+    //         $.ajax({
+    //             url: url,
+    //             type: 'HEAD',
+    //             headers: {'Access-Control-Allow-Origin': url},
+    //             complete: function (xhr) {
+    //                 switch (xhr.status) {
+    //                     case 200:
+    //                         $("#versionExists").html(getStatusLozenge("Valid"));
+    //                         $("#action-button").attr("aria-disabled", false);
+    //                         break;
+    //                     case 403:
+    //                     default:
+    //                         $("#versionExists").html(getStatusLozenge("Invalid"));
+    //                 }
+    //             },
+    //         });
+    //     });
+    // }
 }
 
 function checkZDUCompatibility(stack_name) {

@@ -6,8 +6,8 @@ function onReady() {
     $("#action-button").hide();
 
     // fix action string
-    if (action.indexOf("/") != -1)
-        action = action.substr(action.indexOf("/") + 1)
+    if (action.indexOf("/") !== -1)
+        action = action.substr(action.indexOf("/") + 1);
 
     // Set up stack selector if we are in viewlog
     if (action === 'viewlog') {
@@ -53,10 +53,10 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
             refresh_interval = 5000;
             if (action === 'diagnostics') {
                 if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
-                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") != 1)
+                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") !== 1)
                     refreshLogs(stack_name, true, refresh_interval, this_action);
                 else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
-                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") != 1)
+                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") !== 1)
                     refreshLogs(stack_name, true, refresh_interval, this_action);
                 else {
                     notify(this_action + " is complete");
