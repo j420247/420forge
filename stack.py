@@ -108,7 +108,7 @@ class Stack:
             OutputS3KeyPrefix='run-command-logs'
         )
         self.log_msg(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
-        if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
+        if ssm_command['ResponseMetadata']['HTTPStatusCode'] == requests.codes.ok:
             return (ssm_command['Command']['CommandId'])
         return False
 
@@ -223,9 +223,8 @@ class Stack:
                         f' ==> checking service status at {self.lburl}/status')
         try:
             service_status = requests.get(self.lburl + '/status', timeout=5)
-            if service_status.status_code == 200:
-                status = service_status.text
-                json_status = json.loads(status)
+            if service_status.status_code == requests.codes.ok:
+                json_status = service_status.json()
                 if 'state' in json_status:
                     status = json_status['state']
             else:
@@ -265,7 +264,7 @@ class Stack:
         if logMsgs:
             self.log_msg(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
+            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).json()
             if 'state' in node_status:
                 status = node_status['state']
             else:
@@ -516,12 +515,11 @@ class Stack:
     def get_zdu_state(self):
         try:
             response = self.session.get('/rest/api/2/cluster/zdu/state', timeout=5)
-            if response.status_code != 200:
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
                 self.log_change('Unable to get ZDU state')
                 return False
-            response_json = json.loads(response.text)
-            return response_json['state']
+            return response.json()['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_msg(log.INFO, f'ZDU state check timed out')
             return False
@@ -532,7 +530,7 @@ class Stack:
     def enable_zdu_mode(self):
         try:
             response = self.session.post('/rest/api/2/cluster/zdu/start', timeout=5)
-            if response.status_code != 201:
+            if response.status_code != requests.codes.created:
                 self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
                 self.log_change('Unable to enable ZDU mode')
                 return False
@@ -547,7 +545,7 @@ class Stack:
     def cancel_zdu_mode(self):
         try:
             response = self.session.post('/rest/api/2/cluster/zdu/cancel', timeout=5)
-            if response.status_code != 200:
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
                 self.log_change('Unable to cancel ZDU mode')
                 return False
@@ -563,7 +561,7 @@ class Stack:
         self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
         try:
             response = self.session.post('/rest/api/2/cluster/zdu/approve', timeout=30)
-            if response.status_code != 200:
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
                 self.log_change('Unable to approve upgrade')
                 return False
