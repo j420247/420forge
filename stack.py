@@ -37,6 +37,9 @@ class Stack:
             print(f'{datetime.now()} {log.ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
+        self.logfile = None
+        self.changelogfile = None
+
 
 ## Stack - micro function methods
     def get_lburl(self):
@@ -1031,12 +1034,11 @@ class Stack:
         self.logfile = filename
 
     def log_msg(self, level, message):
-        if hasattr(self, 'logfile'):
+        if self.logfile is not None:
             logline = f'{datetime.now()} {level} {message} \n'
             print(logline)
-            logfile = open(self.logfile, 'a')
-            logfile.write(logline)
-            logfile.close()
+            with open(self.logfile, 'a') as logfile:
+                logfile.write(logline)
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -1045,14 +1047,14 @@ class Stack:
         self.changelogfile = filename
 
     def log_change(self, message):
-        logline = f'{datetime.now()} {message} \n'
-        print(logline)
-        logfile = open(self.changelogfile, 'a')
-        logfile.write(logline)
-        logfile.close()
+        if self.changelogfile is not None:
+            logline = f'{datetime.now()} {message} \n'
+            print(logline)
+            with open(self.changelogfile, 'a') as logfile:
+                logfile.write(logline)
 
     def save_change_log(self):
-        if self.changelogfile:
+        if self.changelogfile is not None:
             changelog = os.path.relpath(self.changelogfile)
             changelog_filename = os.path.basename(self.changelogfile)
             config = configparser.ConfigParser()
