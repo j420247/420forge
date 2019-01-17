@@ -12,6 +12,7 @@ import itertools
 import errno
 import re
 import json
+from requests_toolbelt.sessions import BaseUrlSession
 
 
 def version_tuple(version):
@@ -38,7 +39,7 @@ class Stack:
         self.region = region
 
 ## Stack - micro function methods
-    def getLburl(self):
+    def get_lburl(self):
         if hasattr(self, 'lburl'):
             return self.lburl
         else:
@@ -216,7 +217,7 @@ class Stack:
         return
 
     def check_service_status(self, logMsgs=True):
-        self.getLburl()
+        self.get_lburl()
         if logMsgs:
             self.log_msg(log.INFO,
                         f' ==> checking service status at {self.lburl}/status')
@@ -514,7 +515,7 @@ class Stack:
 
     def get_zdu_state(self):
         try:
-            response = self.session.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5)
+            response = self.session.get('/rest/api/2/cluster/zdu/state', timeout=5)
             if response.status_code != 200:
                 self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
                 self.log_change('Unable to get ZDU state')
@@ -530,7 +531,7 @@ class Stack:
 
     def enable_zdu_mode(self):
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
+            response = self.session.post('/rest/api/2/cluster/zdu/start', timeout=5)
             if response.status_code != 201:
                 self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
                 self.log_change('Unable to enable ZDU mode')
@@ -545,7 +546,7 @@ class Stack:
 
     def cancel_zdu_mode(self):
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/cancel', timeout=5)
+            response = self.session.post('/rest/api/2/cluster/zdu/cancel', timeout=5)
             if response.status_code != 200:
                 self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
                 self.log_change('Unable to cancel ZDU mode')
@@ -561,7 +562,7 @@ class Stack:
     def approve_zdu_upgrade(self):
         self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/approve', timeout=30)
+            response = self.session.post('/rest/api/2/cluster/zdu/approve', timeout=30)
             if response.status_code != 200:
                 self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
                 self.log_change('Unable to approve upgrade')
@@ -624,10 +625,9 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
-        s = requests.Session()
-        s.auth = (username, password)
-        self.session = s
-        self.getLburl()
+        self.get_lburl()
+        self.session = BaseUrlSession(base_url=self.lburl)
+        self.session.auth = (username, password)
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
@@ -764,7 +764,6 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.getLburl()
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')

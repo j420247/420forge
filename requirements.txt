@@ -7,3 +7,4 @@ flask_sqlalchemy
 flask_restful
 requests
 ruamel.yaml
+requests-toolbelt
