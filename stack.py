@@ -14,6 +14,13 @@ import re
 import json
 
 
+def version_tuple(version):
+    return tuple(int(i) for i in version.split('.'))
+
+ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
+ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
+
+
 class Stack:
     """An object describing an instance of an aws cloudformation stack:
 
@@ -576,12 +583,12 @@ class Stack:
         if self.get_tag('product') == 'jira':
             self.get_stacknodes()
             if len(self.instancelist) > 1:
-                version = self.get_param('Version')
+                version = version_tuple(self.get_param('Version'))
                 jira_product = self.get_param('JiraProduct')
                 if jira_product == 'ServiceDesk':
-                    if float(version[:3]) > 3.6:
+                    if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
                         return True
-                elif float(version[:3]) > 7.3:
+                elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
                     return True
                 else:
                     return [f'Jira {jira_product} {version} is incompatible with ZDU']
