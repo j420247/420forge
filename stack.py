@@ -52,12 +52,13 @@ class Stack:
             except Exception as e:
                 print(e.args[0])
                 return f'Error checking service status: {e.args[0]}'
-            context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
-            if context_path_param:
-                context_path = context_path_param['ParameterValue']
-                rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                            p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-                self.lburl = rawlburl
+            rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                        p['OutputKey'] == 'LoadBalancerURL'][0]
+            context_path_param = [parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath']
+            if len(context_path_param) > 0:
+                context_path = context_path_param[0]['ParameterValue']
+                rawlburl += context_path
+            self.lburl = rawlburl
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -411,9 +412,9 @@ class Stack:
 
     def get_parms_for_update(self):
         parms = self.getparms()
-        stackName_param = next((param for param in parms if param['ParameterKey'] == 'StackName'), None)
-        if stackName_param:
-            parms.remove(stackName_param)
+        stackName_param = [param for param in parms if param['ParameterKey'] == 'StackName']
+        if len(stackName_param) > 0:
+            parms.remove(stackName_param[0])
         for dict in parms:
             for k, v in dict.items():
                 if v == 'DBMasterUserPassword' or v == 'DBPassword':
@@ -428,12 +429,12 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            found_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']), None)
+            found_param = [param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']]
         except Exception as e:
             print(e.args[0])
             return 'Error'
-        if found_param:
-             return found_param['ParameterValue']
+        if len(found_param) > 0:
+             return found_param[0]['ParameterValue']
         else:
             return ''
 
