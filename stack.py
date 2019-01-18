@@ -42,23 +42,20 @@ class Stack:
 
 
 ## Stack - micro function methods
-    def get_lburl(self):
-        if hasattr(self, 'lburl'):
-            return self.lburl
+    def get_service_url(self):
+        if hasattr(self, 'service_url'):
+            return self.service_url
         else:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
+                service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                            p['OutputKey'] == 'ServiceURL'][0]
+                self.service_url = service_url
+                return service_url
             except Exception as e:
                 print(e.args[0])
                 return f'Error checking service status: {e.args[0]}'
-            rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                        p['OutputKey'] == 'LoadBalancerURL'][0]
-            context_path_param = [parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath']
-            if len(context_path_param) > 0:
-                context_path = context_path_param[0]['ParameterValue']
-                rawlburl += context_path
-            self.lburl = rawlburl
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -221,12 +218,12 @@ class Stack:
         return
 
     def check_service_status(self, logMsgs=True):
-        self.get_lburl()
+        self.get_service_url()
         if logMsgs:
             self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.lburl}/status')
+                        f' ==> checking service status at {self.service_url}/status')
         try:
-            service_status = requests.get(self.lburl + '/status', timeout=5)
+            service_status = requests.get(self.service_url + '/status', timeout=5)
             if service_status.status_code == requests.codes.ok:
                 json_status = service_status.json()
                 if 'state' in json_status:
@@ -287,11 +284,11 @@ class Stack:
         self.log_msg(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.app_node_count)
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.app_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
         if hasattr(self, 'synchrony_node_count'):
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.synchrony_node_count)
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.synchrony_node_count)
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
         try:
             cfn.update_stack(
                 StackName=self.stack_name,
@@ -390,6 +387,7 @@ class Stack:
         return False
 
     def store_current_action(self, action, locking_enabled, changelog, actor):
+        self.create_action_log(action)
         action_already_in_progress = self.get_stack_action_in_progress()
         if not action_already_in_progress:
             os.mkdir(f'locks/{self.stack_name}')
@@ -397,7 +395,6 @@ class Stack:
         elif locking_enabled:
             self.log_msg(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
             return False
-        self.create_action_log(action)
         if changelog:
             self.create_change_log(action)
             if actor:
@@ -624,8 +621,8 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
-        self.get_lburl()
-        self.session = BaseUrlSession(base_url=self.lburl)
+        self.get_service_url()
+        self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
