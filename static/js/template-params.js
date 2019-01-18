@@ -172,11 +172,12 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
 
 function createInputParameter(param, fieldset) {
     var div = document.createElement("DIV");
-    div.className = "field-group";
+    div.className = "field-group param-field-group";
     div.id = param.ParameterKey + "Div";
     div.name = "parameter";
 
     var label = document.createElement("LABEL");
+    label.className = "paramLbl";
     label.htmlFor = param.ParameterKey + "Val";
     label.innerHTML = param.ParameterKey;
     div.appendChild(label);
@@ -356,7 +357,7 @@ function sendParamsAsJson() {
     var newParamsArray = [];
     var templateNameParam = {};
     var stackNameForAction = "";
-    var newParams = document.getElementsByClassName("field-group");
+    var newParams = document.getElementsByClassName("param-field-group");
 
     if (action === 'update') {
         // Add stack name to params
@@ -386,7 +387,7 @@ function sendParamsAsJson() {
 
     for(var i = 0; i < newParams.length; i++) {
         var jsonParam = {};
-        var param = newParams.item(i).getElementsByTagName("LABEL")[0].innerHTML;
+        var param = newParams.item(i).getElementsByClassName("paramLbl")[0].innerHTML;
         var value;
 
         if (param == "EBSSnapshotId") {
@@ -442,9 +443,5 @@ function sendParamsAsJson() {
     if (action === 'clone')
         appendRegion = "&region=" + $("#regionSelector").text().trim();
 
-    // Wait a mo for action to begin  in backend
-    setTimeout(function () {
-        // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stackNameForAction + appendRegion;
-    }, 1000);
+    redirectToLog(stackNameForAction);
 }

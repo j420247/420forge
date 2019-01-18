@@ -50,7 +50,7 @@ function getTags() {
             // display each tag
             for (var tag in tags) {
                 var div = document.createElement("DIV");
-                div.className = "field-group";
+                div.className = "field-group tag-field-group";
 
                 var keyInput = document.createElement("INPUT");
                 keyInput.className = "text";
@@ -97,7 +97,7 @@ function getTags() {
 
 function sendTagsAsJson() {
     var tagsArray = [];
-    var tags = document.getElementsByClassName("field-group");
+    var tags = document.getElementsByClassName("tag-field-group");
 
     for(var i = 0; i < tags.length; i++) {
         var jsonParam = {};
@@ -120,9 +120,5 @@ function sendTagsAsJson() {
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.send(JSON.stringify(tagsArray));
 
-    // Wait a mo for action to begin  in backend
-    setTimeout(function () {
-        // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
-    }, 1000);
+    redirectToLog(stack_name);
 }

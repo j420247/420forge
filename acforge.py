@@ -129,12 +129,16 @@ class RestrictedResource(Resource):
 #### REST Endpoint classes
 ##
 class doupgrade(RestrictedResource):
-    def get(self, region, stack_name, new_version):
+    def post(self, region, stack_name, new_version, zdu):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            mystack.upgrade(new_version)
+            if zdu == 'true':
+                auth = request.get_json()[0]
+                mystack.upgrade_zdu(new_version, auth['username'], auth['password'])
+            else:
+                mystack.upgrade(new_version)
         except Exception as e:
             print(e.args[0])
             mystack.log_msg(log.ERROR, f'Error occurred upgrading stack: {e.args[0]}')
@@ -436,7 +440,7 @@ class docreate(RestrictedResource):
             return False
         params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.create(parms=params_for_create, template_file=get_template_file(template_name), app_type=app_type, creator=creator, region=session['region'])
+        outcome = mystack.create(params_for_create, get_template_file(template_name), app_type, creator, session['region'])
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
         return outcome
@@ -551,18 +555,8 @@ class clearStackActionInProgress(Resource):
 
 class getVersion(Resource):
     def get(self, region, stack_name):
-        cfn = boto3.client('cloudformation', region_name=region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=stack_name)
-            version_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if 'Version' in param['ParameterKey']), None)
-        except Exception as e:
-            print(e.args[0])
-            return 'Error'
-        if version_param:
-            version_number = version_param['ParameterValue']
-            return version_number
-        else:
-            return ''
+        mystack = Stack(stack_name, region)
+        return mystack.get_param('Version')
 
 
 class getNodes(Resource):
@@ -599,6 +593,12 @@ class getCloneDefaults(Resource):
         if clone_default_props.has_section('defaults'):
             return clone_default_props.items('defaults')
         return []
+
+
+class getZDUCompatibility(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_zdu_compatibility()
 
 
 class actionReadyToStart(Resource):
@@ -809,7 +809,7 @@ def admin_stack(stack_name):
 
 
 # Actions
-api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>')
+api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>/<zdu>')
 api.add_resource(doclone, '/doclone')
 api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
@@ -836,6 +836,7 @@ api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
 api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
 api.add_resource(getTags, '/getTags/<region>/<stack_name>')
 api.add_resource(getCloneDefaults, '/getCloneDefaults/<stack_name>')
+api.add_resource(getZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
 
 
 # Helpers

@@ -47,11 +47,7 @@ function addDefaultActionButtonListener() {
 }
 
 var defaultActionBtnEvent = function() {
-    if (action === 'upgrade') {
-        performAction($("#upgradeVersionSelector").val())
-    } else {
-        performAction()
-    }
+    performAction();
 };
 
 function selectStack(stack_name) {
@@ -74,8 +70,6 @@ function selectStack(stack_name) {
     switch (action) {
         case "upgrade":
             $("#upgradeVersionSelector").removeAttr("disabled");
-            $("#action-button").attr("aria-disabled", false);
-
             // Version checking not currently working
             // currently only works for Confluence
             // $("#versionCheckButton").removeAttr("disabled");
@@ -136,20 +130,12 @@ function processResponse() {
     }
 }
 
-function performAction(version) {
-    // scrape page for stack_name
-    var stack_name = $("#stackName").text();
-    if (! stack_name) {
-        stack_name = $("#StackNameVal").val();
-    }
-
+function performAction() {
+    var stack_name = scrapePageForStackName();
     var url = baseUrl + "/do" + action + "/" + region + "/" + stack_name;
 
     var actionRequest = new XMLHttpRequest();
     switch (action) {
-        case "upgrade":
-            url += "/" + version;
-            break;
         case "rollingrestart":
         case "fullrestart":
             url += "/" + document.getElementById("takeThreadDumps").checked
@@ -161,11 +147,7 @@ function performAction(version) {
     actionRequest.addEventListener("load", processResponse);
     actionRequest.send();
 
-    // Wait a mo for action to begin  in backend
-    setTimeout(function () {
-        // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
-    }, 1000);
+    redirectToLog(stack_name);
 }
 
 function updateStats(stack_name, stack_region) {

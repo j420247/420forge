@@ -1,4 +1,7 @@
 {% extends "page-content.html" %}
+{% block head %}
+    <script src="/static/js/upgrade.js"></script>
+{% endblock head %}
 
 {% block extraInput %}
 {#  Upgrade version selector  #}
@@ -8,6 +11,13 @@
             <div class="field-group top-label">
                 <label for="toplabelfieldexample">Upgrade Version</label>
                 <input class="text" type="text" id="upgradeVersionSelector" name="toplabelfieldexample" disabled>
+            </div>
+            <div id="zduCheckDiv" style="display:none">
+                <label id="zduCheckLbl" style="opacity: 0.5">Checking Zero Downtime Upgrade compatibility ...</label>
+            </div>
+            <div class="checkbox" id="performZDUDiv" style="display:none">
+                <input class="checkbox" type="checkbox" name="zduCheckBox" id="zduCheckBox">
+                <label id="zduCheckBoxLbl" for="zduCheckBox">Perform ZDU upgrade</label>
             </div>
         </fieldset>
     </form>
@@ -21,6 +31,7 @@
     </div>
     </div>
 </div>
+
 {% endblock extraInput %}
 
 {% block buttonText %}Upgrade{% endblock buttonText %}

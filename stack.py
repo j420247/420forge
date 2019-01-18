@@ -2,7 +2,6 @@ import boto3
 import botocore
 import time
 import requests
-import json
 from pathlib import Path
 import log
 import os
@@ -12,6 +11,14 @@ from datetime import datetime
 import itertools
 import errno
 import re
+import json
+
+
+def version_tuple(version):
+    return tuple(int(i) for i in version.split('.'))
+
+ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
+ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
 
 
 class Stack:
@@ -31,17 +38,22 @@ class Stack:
         self.region = region
 
 ## Stack - micro function methods
-    def getLburl(self, stack_details):
+    def getLburl(self):
         if hasattr(self, 'lburl'):
             return self.lburl
         else:
+            try:
+                cfn = boto3.client('cloudformation', region_name=self.region)
+                stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            except Exception as e:
+                print(e.args[0])
+                return f'Error checking service status: {e.args[0]}'
             context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
             if context_path_param:
                 context_path = context_path_param['ParameterValue']
                 rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                             p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-                return rawlburl
-            return ''
+                self.lburl = rawlburl
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -204,13 +216,7 @@ class Stack:
         return
 
     def check_service_status(self, logMsgs=True):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
-        except Exception as e:
-            print(e.args[0])
-            return f'Error checking service status: {e.args[0]}'
-        self.lburl = self.getLburl(stack_details)
+        self.getLburl()
         if logMsgs:
             self.log_msg(log.INFO,
                         f' ==> checking service status at {self.lburl}/status')
@@ -308,7 +314,7 @@ class Stack:
         for i in ec2.instances.filter(Filters=filters):
             instancedict = {i.instance_id: i.private_ip_address}
             self.instancelist.append(instancedict)
-        return
+        return self.instancelist
 
     def shutdown_app(self, instancelist, app_type):
         cmd_id_list = []
@@ -415,6 +421,19 @@ class Stack:
                     dict['UsePreviousValue'] = True
         return parms
 
+    def get_param(self, param_to_get):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            found_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']), None)
+        except Exception as e:
+            print(e.args[0])
+            return 'Error'
+        if found_param:
+             return found_param['ParameterValue']
+        else:
+            return ''
+
     def get_tags(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -467,12 +486,8 @@ class Stack:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
-
-## Stack - Major Action Methods
-
-    def upgrade(self, new_version):
+    def get_pre_upgrade_information(self):
         self.log_msg(log.INFO, f'Beginning upgrade for {self.stack_name}')
-        # TODO block traffic at vtm
         # get pre-upgrade state information
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -482,44 +497,205 @@ class Stack:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get product
-        app_type = self.get_tag('product')
-        if not app_type:
+        self.app_type = self.get_tag('product')
+        if not self.app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
         # get preupgrade version and node counts
-        preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
-        preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                            p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if app_type.lower() == 'confluence':
-            preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                            p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+        self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                              p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                     p['ParameterKey'] == 'ClusterNodeMax'][0]
+        if self.app_type.lower() == 'confluence':
+            self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                               p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
-        self.log_change(f'Pre upgrade version: {preupgrade_version}')
+        self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
+
+    def get_zdu_state(self):
+        try:
+            response = self.session.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
+                self.log_change('Unable to get ZDU state')
+                return False
+            response_json = json.loads(response.text)
+            return response_json['state']
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.INFO, f'ZDU state check timed out')
+            return False
+        except Exception as e:
+            self.log_msg(log.INFO, f'Could not retrieve ZDU state: {e.args[0]}')
+            return False
+
+    def enable_zdu_mode(self):
+        try:
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
+            if response.status_code != 201:
+                self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
+                self.log_change('Unable to enable ZDU mode')
+                return False
+            while self.get_zdu_state() != 'READY_TO_UPGRADE':
+                time.sleep(5)
+            self.log_msg(log.INFO, 'ZDU mode enabled')
+            return True
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.ERROR, 'Could not enable ZDU mode')
+            return False
+
+    def cancel_zdu_mode(self):
+        try:
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/cancel', timeout=5)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
+                self.log_change('Unable to cancel ZDU mode')
+                return False
+            while self.get_zdu_state() != 'STABLE':
+                time.sleep(5)
+            self.log_msg(log.INFO, 'ZDU mode cancelled')
+            return True
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+            self.log_msg(log.INFO, f'Could not cancel ZDU mode')
+            return False
+
+    def approve_zdu_upgrade(self):
+        self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
+        try:
+            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/approve', timeout=30)
+            if response.status_code != 200:
+                self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
+                self.log_change('Unable to approve upgrade')
+                return False
+            self.log_msg(log.INFO, 'Upgrade tasks are running, waiting for STABLE state')
+            state = self.get_zdu_state()
+            while state != 'STABLE':
+                self.log_msg(log.INFO, f'ZDU state is {state}')
+                time.sleep(5)
+                state = self.get_zdu_state()
+            self.log_msg(log.INFO, 'Upgrade tasks complete')
+            #todo check for error states
+            return True
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
+            self.log_msg(log.INFO, f'Could not approve ZDU mode: {e.args[0]}')
+            return False
+
+    def get_zdu_compatibility(self):
+        if self.get_tag('product') == 'jira':
+            self.get_stacknodes()
+            if len(self.instancelist) > 1:
+                version = version_tuple(self.get_param('Version'))
+                jira_product = self.get_param('JiraProduct')
+                if jira_product == 'ServiceDesk':
+                    if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
+                        return True
+                elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
+                    return True
+                return [f'Jira {jira_product} {version} is incompatible with ZDU']
+            else:
+                return ['too few nodes']
+        else:
+            return ['not Jira']
+
+## Stack - Major Action Methods
+
+    def upgrade(self, new_version):
+        self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
-        if not self.spindown_to_zero_appnodes(app_type):
+        if not self.spindown_to_zero_appnodes(self.app_type):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(app_type, new_version):
+        if not self.spinup_to_one_appnode(self.app_type, new_version):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
         # spinup remaining nodes in stack if needed
-        if preupgrade_app_node_count > "1":
-            if app_type.lower() == 'confluence':
-                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count, preupgrade_synchrony_node_count)
+        if self.preupgrade_app_node_count > "1":
+            if self.app_type.lower() == 'confluence':
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count, self.preupgrade_synchrony_node_count)
             else:
-                self.spinup_remaining_nodes(app_type, preupgrade_app_node_count)
+                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
         self.log_msg(log.INFO, 'Upgrade complete')
         self.log_change('Upgrade successful')
         return True
+
+    def upgrade_zdu(self, new_version, username, password):
+        s = requests.Session()
+        s.auth = (username, password)
+        self.session = s
+        self.getLburl()
+        self.get_pre_upgrade_information()
+        self.log_change(f'New version: {new_version}')
+        self.log_change('Upgrade is underway')
+        # set upgrade mode on
+        zdu_state = self.get_zdu_state()
+        if zdu_state == 'STABLE':
+            if self.enable_zdu_mode():
+                # update the version in stack parameters
+                stack_params = self.getparms()
+                stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+                cfn = boto3.client('cloudformation', region_name=self.region)
+                try:
+                    cfn.update_stack(
+                        StackName=self.stack_name,
+                        Parameters=stack_params,
+                        UsePreviousTemplate=True,
+                        Capabilities=['CAPABILITY_IAM'])
+                except Exception as e:
+                    if 'No updates are to be performed' in e.args[0]:
+                        self.log_msg(log.INFO, f'Stack is already at {new_version}')
+                    else:
+                        print(e.args[0])
+                        self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                        self.cancel_zdu_mode()
+                        return False
+                if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                    self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+                else:
+                    self.log_msg(log.INFO, 'Could not update version in stack parameters')
+                    self.log_msg(log.INFO, 'Upgrade complete - failed')
+                    self.log_change('Upgrade failed - could not update version in stack parameters')
+                    self.cancel_zdu_mode()
+                    return False
+                # terminate the nodes and allow new ones to spin up
+                if self.rolling_rebuild():
+                    state = self.get_zdu_state()
+                    while state != 'READY_TO_RUN_UPGRADE_TASKS':
+                        time.sleep(5)
+                        state = self.get_zdu_state()
+                    # check node count is not fewer than pre-upgrade
+                    self.get_stacknodes()
+                    if len(self.instancelist) < int(self.preupgrade_app_node_count):
+                        self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
+                        self.log_msg(log.INFO, 'Upgrade complete - failed')
+                        self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
+                        return False
+                    # approve the upgrade and allow upgrade tasks to run
+                    if self.approve_zdu_upgrade():
+                        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+                        self.log_msg(log.INFO, 'Upgrade complete')
+                        self.log_change('Upgrade successful')
+                        return True
+                    else:
+                        self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
+                        self.log_msg(log.ERROR, 'Upgrade complete - failed')
+                        self.log_change(f'Could not approve upgrade. Upgrade failed.')
+            else:
+                self.log_msg(log.ERROR, 'Could not enable ZDU mode')
+                self.log_msg(log.ERROR, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed - Could not enable ZDU mode')
+                return False
+        else:
+            self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change(f'Could not begin upgrade, expected STABLE but ZDU state is {zdu_state}')
+            return False
 
     def destroy(self):
         self.log_msg(log.INFO, f'Destroying stack {self.stack_name} in {self.region}')
@@ -574,20 +750,19 @@ class Stack:
         config.read('forge.properties')
         s3_bucket = config['s3']['bucket']
         try:
-            updated_stack = cfn.update_stack(
+            cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f'https://s3.amazonaws.com/{s3_bucket}/forge-templates/{template_filename}',
                 Capabilities=['CAPABILITY_IAM']
             )
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             print(e.args[0])
             self.log_msg(log.ERROR, f'An error occurred updating stack: {e.args[0]}')
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.lburl = self.getLburl(stack_details)
+        self.getLburl()
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
@@ -739,22 +914,26 @@ class Stack:
                 self.log_change(f'Replacing node {node}')
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
-                self.get_stacknodes()
-                current_instances = self.instancelist
+                current_instances = self.get_stacknodes()
                 waiting_for_new_node = True
                 replacement_node = {}
                 while waiting_for_new_node:
                     for instance in current_instances:
-                        if instance not in old_nodes:
+                        # check the instance id against the old nodes
+                        if list(instance.keys())[0] not in [node.keys() for node in old_nodes]:
                             # if the instance is new, track it
-                            replacement_node = instance
-                            self.log_msg(log.INFO, f'New node: {replacement_node}')
-                            self.log_change(f'New node: {replacement_node}')
-                            new_nodes.append(replacement_node)
-                            waiting_for_new_node = False
+                            if instance not in new_nodes:
+                                # check for IP, break out if not assigned yet
+                                if list(instance.values())[0] is None:
+                                    break
+                                # otherwise, store the node and proceed
+                                replacement_node = instance
+                                self.log_msg(log.INFO, f'New node: {replacement_node}')
+                                self.log_change(f'New node: {replacement_node}')
+                                new_nodes.append(replacement_node)
+                                waiting_for_new_node = False
                     time.sleep(30)
-                    self.get_stacknodes()
-                    current_instances = self.instancelist
+                    current_instances = self.get_stacknodes()
                 # wait for the new node to come up
                 result = ''
                 while result not in ['RUNNING', 'FIRST_RUN']:
@@ -860,11 +1039,12 @@ class Stack:
         self.logfile = filename
 
     def log_msg(self, level, message):
-        logline = f'{datetime.now()} {level} {message} \n'
-        print(logline)
-        logfile = open(self.logfile, 'a')
-        logfile.write(logline)
-        logfile.close()
+        if hasattr(self, 'logfile'):
+            logline = f'{datetime.now()} {level} {message} \n'
+            print(logline)
+            logfile = open(self.logfile, 'a')
+            logfile.write(logline)
+            logfile.close()
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
