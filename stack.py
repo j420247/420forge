@@ -318,7 +318,7 @@ class Stack:
         for i in ec2.instances.filter(Filters=filters):
             instancedict = {i.instance_id: i.private_ip_address}
             self.instancelist.append(instancedict)
-        return
+        return self.instancelist
 
     def shutdown_app(self, instancelist):
         cmd_id_list = []
@@ -913,23 +913,26 @@ class Stack:
                 self.log_change(f'Replacing node {node}')
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
-                self.get_stacknodes()
-                current_instances = self.instancelist
+                current_instances = self.get_stacknodes()
                 waiting_for_new_node = True
                 replacement_node = {}
                 while waiting_for_new_node:
                     for instance in current_instances:
-                        if instance not in old_nodes:
+                        # check the instance id against the old nodes
+                        if list(instance.keys())[0] not in [node.keys() for node in old_nodes]:
                             # if the instance is new, track it
                             if instance not in new_nodes:
+                                # check for IP, break out if not assigned yet
+                                if list(instance.values())[0] is None:
+                                    break
+                                # otherwise, store the node and proceed
                                 replacement_node = instance
                                 self.log_msg(log.INFO, f'New node: {replacement_node}')
                                 self.log_change(f'New node: {replacement_node}')
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node = False
                     time.sleep(30)
-                    self.get_stacknodes()
-                    current_instances = self.instancelist
+                    current_instances = self.get_stacknodes()
                 # wait for the new node to come up
                 result = ''
                 while result not in ['RUNNING', 'FIRST_RUN']:
