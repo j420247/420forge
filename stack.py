@@ -916,7 +916,7 @@ class Stack:
                 while waiting_for_new_node:
                     for instance in current_instances:
                         # check the instance id against the old nodes
-                        if list(instance.keys())[0] not in [node.keys() for node in old_nodes]:
+                        if list(instance.keys())[0] not in set().union(*(node.keys() for node in old_nodes)):
                             # if the instance is new, track it
                             if instance not in new_nodes:
                                 # check for IP, break out if not assigned yet
