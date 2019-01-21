@@ -124,3 +124,30 @@ function notify(message) {
         }
     }
 }
+
+function scrapePageForStackName() {
+    var stack_name = $("#stackName").text();
+    if (!stack_name) {
+        stack_name = $("#StackNameVal").val();
+    }
+    return stack_name;
+}
+
+function getAuthDetailsAsJSON() {
+    var username = $('#username').val();
+    var password = $('#password').val();
+    var jsonArray = [];
+    var authDetails = {};
+    authDetails["username"] = username;
+    authDetails["password"] = password;
+    jsonArray.push(authDetails);
+    return jsonArray;
+}
+
+function redirectToLog(stack_name) {
+    // Wait a mo for action to begin  in backend
+    setTimeout(function () {
+        // Redirect to action progress screen
+        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
+    }, 1000);
+}
