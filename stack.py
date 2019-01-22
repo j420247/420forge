@@ -13,6 +13,8 @@ import errno
 import re
 import json
 from requests_toolbelt.sessions import BaseUrlSession
+from botocore.exceptions import ClientError
+import pprint
 
 
 def version_tuple(version):
@@ -459,12 +461,52 @@ class Stack:
             self.log_msg(log.WARN, f'Tag {tag_name} not found')
         return False
 
+    def get_sql_from_s3(self, stack, sql_dir):
+        # try to pull latest from s3
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        s3_bucket = config['s3']['bucket']
+        try:
+            s3 = boto3.client('s3')
+            bucket_list = s3.list_objects(Bucket=s3_bucket, Prefix=f'config/{sql_dir}')['Contents']
+            if bucket_list:
+                if not os.path.exists(sql_dir):
+                    os.makedirs(sql_dir)
+                s3 = boto3.resource('s3')
+                for bucket_item in bucket_list:
+                    if (bucket_item['Size'] > 0):  # this is to catch when s3 sometimes weirdly returns the path as an object
+                        sql_file_name = os.path.basename(bucket_item['Key'])
+                        s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
+            self.log_msg(log.INFO, f'Retrieved latest SQL for {stack} from {sql_dir}')
+            return True
+        except KeyError as e:
+            if e.args[0] == 'Contents':
+                self.log_msg(log.ERROR, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                self.log_change(f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                return True
+            pprint.pprint(e)
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {error_code}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {error_code}')
+            print(error_code)
+            return False
+        except Exception as e:
+            pprint.pprint(e)
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
             cloned_from_stack_sql_dir = f'stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d/'
+            if not self.get_sql_from_s3(cloned_from_stack, cloned_from_stack_sql_dir):
+                return False
             if Path(cloned_from_stack_sql_dir).exists():
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
@@ -475,6 +517,8 @@ class Stack:
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
         # get SQL for this stack
         own_sql_dir = f'stacks/{self.stack_name}/local-post-clone-sql.d/'
+        if not self.get_sql_from_s3(self.stack_name, own_sql_dir):
+            return False
         if Path(own_sql_dir).exists():
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
@@ -975,19 +1019,35 @@ class Stack:
         self.get_stacknodes()
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
-            sql_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', sql_to_run)
-            if self.run_command([self.instancelist[0]], f'echo "{sql_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
-                db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
-                if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
-                    self.log_msg(log.ERROR, f'Running SQL script failed')
-                    return False
-            else:
-                self.log_msg(log.ERROR, 'Dumping SQL file to target machine failed')
-                self.log_change('Dumping SQL file to target machine failed')
+            config = configparser.ConfigParser()
+            config.read('forge.properties')
+            s3_bucket = config['s3']['bucket']
+            cloned_from_stack = self.get_tag('cloned_from')
+            db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -v ON_ERROR_STOP=1 -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+            # on node, grab cloned_from sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d', )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
+            # on node, grab local-stack sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d', )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
         else:
-            self.log_msg(log.INFO, 'No post clone SQL file found')
-            self.log_change('No post clone SQL file found')
+            self.log_msg(log.INFO, 'No post clone SQL files found')
+            self.log_change('No post clone SQL files found')
             return False
         self.log_msg(log.INFO, 'Run SQL complete')
         self.log_change('Run SQL complete')
