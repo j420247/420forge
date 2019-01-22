@@ -167,7 +167,7 @@ class Stack:
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
         self.log_msg(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
-        while stack_state == in_progress_state:
+        while stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
@@ -246,7 +246,10 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except Exception as e:
-            if "does not exist" in e.response['Error']['Message']:
+            if 'Throttling' in e.args[0] or 'Rate exceeded' in e.args[0]:
+                self.log_msg(log.WARN, f'Stack actions are being throttled: {e.args[0]}')
+                return 'throttled'
+            if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(log.INFO, f'Stack {self.stack_name} does not exist')
                 return
             print(e.args[0])
