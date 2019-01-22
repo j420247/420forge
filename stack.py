@@ -50,7 +50,7 @@ class Stack:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
                 service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                            p['OutputKey'] == 'ServiceURL'][0]
+                            p['OutputKey'] == 'ServiceURL'][0] + '/'
                 self.service_url = service_url
                 return service_url
             except Exception as e:
@@ -223,7 +223,7 @@ class Stack:
             self.log_msg(log.INFO,
                         f' ==> checking service status at {self.service_url}/status')
         try:
-            service_status = requests.get(self.service_url + '/status', timeout=5)
+            service_status = requests.get(self.service_url + 'status', timeout=5)
             if service_status.status_code == requests.codes.ok:
                 json_status = service_status.json()
                 if 'state' in json_status:
@@ -515,7 +515,7 @@ class Stack:
 
     def get_zdu_state(self):
         try:
-            response = self.session.get('/rest/api/2/cluster/zdu/state', timeout=5)
+            response = self.session.get('rest/api/2/cluster/zdu/state', timeout=5)
             if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
                 self.log_change('Unable to get ZDU state')
@@ -530,7 +530,7 @@ class Stack:
 
     def enable_zdu_mode(self):
         try:
-            response = self.session.post('/rest/api/2/cluster/zdu/start', timeout=5)
+            response = self.session.post('rest/api/2/cluster/zdu/start', timeout=5)
             if response.status_code != requests.codes.created:
                 self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
                 self.log_change('Unable to enable ZDU mode')
@@ -545,7 +545,7 @@ class Stack:
 
     def cancel_zdu_mode(self):
         try:
-            response = self.session.post('/rest/api/2/cluster/zdu/cancel', timeout=5)
+            response = self.session.post('rest/api/2/cluster/zdu/cancel', timeout=5)
             if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
                 self.log_change('Unable to cancel ZDU mode')
@@ -561,7 +561,7 @@ class Stack:
     def approve_zdu_upgrade(self):
         self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
         try:
-            response = self.session.post('/rest/api/2/cluster/zdu/approve', timeout=30)
+            response = self.session.post('rest/api/2/cluster/zdu/approve', timeout=30)
             if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
                 self.log_change('Unable to approve upgrade')
