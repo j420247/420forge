@@ -483,22 +483,30 @@ class Stack:
             if e.args[0] == 'Contents':
                 self.log_msg(log.ERROR, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
                 self.log_change(f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
-                return False
+                return True
             pprint.pprint(e)
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {error_code}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {error_code}')
             print(error_code)
             return False
         except Exception as e:
             pprint.pprint(e)
-
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
             cloned_from_stack_sql_dir = f'stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d/'
-            self.get_sql_from_s3(cloned_from_stack, cloned_from_stack_sql_dir)
+            if not self.get_sql_from_s3(cloned_from_stack, cloned_from_stack_sql_dir):
+                return False
             if Path(cloned_from_stack_sql_dir).exists():
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
@@ -509,7 +517,8 @@ class Stack:
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
         # get SQL for this stack
         own_sql_dir = f'stacks/{self.stack_name}/local-post-clone-sql.d/'
-        self.get_sql_from_s3(self.stack_name, own_sql_dir)
+        if not self.get_sql_from_s3(self.stack_name, own_sql_dir):
+            return False
         if Path(own_sql_dir).exists():
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
