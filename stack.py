@@ -16,7 +16,7 @@ from requests_toolbelt.sessions import BaseUrlSession
 
 
 def version_tuple(version):
-    return tuple(int(i) for i in version.split('.'))
+    return tuple(int(i) for i in version.replace('-m','.').split('.'))
 
 ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
 ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
