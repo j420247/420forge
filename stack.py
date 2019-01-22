@@ -13,6 +13,8 @@ import errno
 import re
 import json
 from requests_toolbelt.sessions import BaseUrlSession
+from botocore.exceptions import ClientError
+import pprint
 
 
 def version_tuple(version):
@@ -475,9 +477,20 @@ class Stack:
                     if (bucket_item['Size'] > 0):  # this is to catch when s3 sometimes weirdly returns the path as an object
                         sql_file_name = os.path.basename(bucket_item['Key'])
                         s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
+            self.log_msg(log.INFO, f'Retrieved latest SQL for {stack} from {sql_dir}')
+            return True
+        except KeyError as e:
+            if e.args[0] == 'Contents':
+                self.log_msg(log.ERROR, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                self.log_change(f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                return False
+            pprint.pprint(e)
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            print(error_code)
+            return False
         except Exception as e:
-            print(e.args[0])
-            return
+            pprint.pprint(e)
 
     def get_sql(self):
         sql_to_run = ''
@@ -997,12 +1010,11 @@ class Stack:
         self.get_stacknodes()
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
-            sql_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', sql_to_run)
             config = configparser.ConfigParser()
             config.read('forge.properties')
             s3_bucket = config['s3']['bucket']
             cloned_from_stack = self.get_tag('cloned_from')
-            db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+            db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -v ON_ERROR_STOP=1 -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
             # on node, grab cloned_from sql from s3
             self.run_command(
                 [self.instancelist[0]],
@@ -1012,6 +1024,7 @@ class Stack:
                 [self.instancelist[0]],
                 f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
                 self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
@@ -1022,9 +1035,10 @@ class Stack:
                 [self.instancelist[0]],
                 f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
                 self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
         else:
-            self.log_msg(log.INFO, 'No post clone SQL file found')
-            self.log_change('No post clone SQL file found')
+            self.log_msg(log.INFO, 'No post clone SQL files found')
+            self.log_change('No post clone SQL files found')
             return False
         self.log_msg(log.INFO, 'Run SQL complete')
         self.log_change('Run SQL complete')
