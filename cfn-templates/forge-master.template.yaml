@@ -352,7 +352,6 @@ Resources:
                   ATL_LOCAL_ANSIBLE_REPO=${LocalAnsibleGitRepo}
                   ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
                   ATL_SAML_METADATA_URL=${SamlMetadataUrl}
-                - HostedZone: !Ref HostedZone
               group: root
               mode: "000640"
               owner: root
