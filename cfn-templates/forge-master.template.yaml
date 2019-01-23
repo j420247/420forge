@@ -353,9 +353,9 @@ Resources:
                   ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
                   ATL_SAML_METADATA_URL=${SamlMetadataUrl}
                 - HostedZone: !Ref HostedZone
-              group: forge
+              group: root
               mode: "000640"
-              owner: forge
+              owner: root
             /root/setup_forge.sh:
               content: !Sub
                 - |
@@ -399,6 +399,7 @@ Resources:
                     git clone "${CustomTemplateRepo}"
                   fi
 
+                  chown forge:forge /etc/atl
                   ./update
 
                   # upload SAML params for later use
