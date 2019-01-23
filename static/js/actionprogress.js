@@ -20,7 +20,7 @@ function onReady() {
                 getStatus(stack_name);
                 updateStats(stack_name);
                 refreshLogs(stack_name, true, 2000, action);
-                refreshStackInfo(stack_name);
+                refreshStackInfo(stack_name, region, true);
             }, false);
         }
     // or if we got here from an action, refresh info now,
@@ -34,7 +34,7 @@ function onReady() {
         if (action !== 'create')
             getStatus(stack_name);
         refreshLogs(stack_name, true, 2000, action);
-        refreshStackInfo(stack_name, action, region);
+        refreshStackInfo(stack_name, region, true);
     }
 }
 
@@ -75,21 +75,21 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                 refreshLogs(stack_name, true, refresh_interval, this_action);
         }, refresh_interval)
     } else {
-        refreshStackInfo(stack_name, this_action, region);
+        refreshStackInfo(stack_name, region, false);
         clearTimeout(refreshLogsTimer); // TODO create function to check action complete and clear all timers
     }
 }
 
-function refreshStackInfo(stack_name, this_action, region) {
-    // Only check stack status in EC2 for stack changing actions
+function refreshStackInfo(stack_name, region, cont) {
     // Refresh every 10s
     //TODO check more frequently until stack_state is IN_PROGRESS
-    if (this_action !== 'diagnostics' &&
-        this_action !== 'fullrestart' &&
-        this_action !== 'rollingrestart') {
+    if (cont) {
         refreshStackInfoTimer = setTimeout(function () {
             updateStats(stack_name, region);
-            refreshStackInfo(stack_name, this_action, region);
+            refreshStackInfo(stack_name, region, true);
         }, 10000)
+    } else {
+        updateStats(stack_name, region);
+        clearTimeout(refreshStackInfoTimer);
     }
 }
