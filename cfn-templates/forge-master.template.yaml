@@ -343,10 +343,14 @@ Resources:
             /etc/atl:
               content: !Sub
                 - |
+                  ATL_AWS_REGION=${AWS::Region}
                   ATL_AWS_STACK_NAME=${AWS::StackName}
                   ATL_AUTOSCALING_GROUP_NAME=ForgeNodeGroup
+                  ATL_CUSTOM_TEMPLATE_REPO=${CustomTemplateRepo}
+                  ATL_CUSTOM_TEMPLATE_GITKEY=${CustomTemplateGitKey}
                   ATL_HOSTEDZONE=${HostedZone}
-                - HostedZone: !Ref HostedZone
+                  ATL_LOCAL_ANSIBLE_REPO=${LocalAnsibleGitRepo}
+                  ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
               group: root
               mode: "000640"
               owner: root
@@ -373,7 +377,6 @@ Resources:
                   mv /tmp/forge.properties $forgepath/forge.properties --force
                   mv /tmp/update $forgepath/update --force
                   chown -R forge:forge /home/forge
-                  ./update
 
                   # create s3 bucket for forge objects
                   if aws s3api create-bucket --bucket atl-cfn-forge-${AccountId} --region us-east-1; then echo "S3 bucket created"; else echo "S3 bucket already exists"; fi
@@ -393,6 +396,9 @@ Resources:
                     cd /home/forge/custom-templates
                     git clone "${CustomTemplateRepo}"
                   fi
+
+                  chown forge:forge /etc/atl
+                  ./update
 
                   # upload SAML params for later use
                   if [[ -n "${SamlMetadataUrl}" ]]; then
