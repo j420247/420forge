@@ -223,7 +223,7 @@ class Stack:
         self.get_service_url()
         if logMsgs:
             self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.service_url}/status')
+                        f' ==> checking service status at {self.service_url}status')
         try:
             service_status = requests.get(self.service_url + 'status', timeout=5)
             if service_status.status_code == requests.codes.ok:
@@ -239,6 +239,11 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
                 self.log_msg(log.INFO, f'Service status check timed out')
+        except json.decoder.JSONDecodeError as e:
+            pprint.pprint(e)
+            pprint.pprint(service_status)
+            if logMsgs:
+                self.log_msg(log.WARN, f'Service status check failed: returned 200 but response was empty')
         return 'Timed Out'
 
     def check_stack_state(self, stack_id=None):
