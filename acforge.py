@@ -717,7 +717,8 @@ class GetSubnetsForVpc(Resource):
             print(e.args[0])
             return
         subnet_ids = []
-        for subnet in subnets['Subnets']:
+        sorted_subnets = sorted(subnets['Subnets'], key=lambda subnet: subnet['AvailabilityZone'])
+        for subnet in sorted_subnets:
             subnet_ids.append(subnet['SubnetId'])
         return subnet_ids
 
