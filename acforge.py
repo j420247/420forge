@@ -125,10 +125,12 @@ class RestrictedResource(Resource):
         print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
 
+
 ##
 #### REST Endpoint classes
 ##
-class doupgrade(RestrictedResource):
+
+class DoUpgrade(RestrictedResource):
     def post(self, region, stack_name, new_version, zdu):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('upgrade', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -148,7 +150,7 @@ class doupgrade(RestrictedResource):
         return
 
 
-class doclone(RestrictedResource):
+class DoClone(RestrictedResource):
     def post(self):
         content = request.get_json()[0]
         app_type = '' #TODO is there a better way to do this?
@@ -196,7 +198,7 @@ class doclone(RestrictedResource):
         return outcome
 
 
-class doupdate(RestrictedResource):
+class DoUpdate(RestrictedResource):
     def post(self, stack_name):
         content = request.get_json()
         new_params = content[0]
@@ -260,7 +262,7 @@ class doupdate(RestrictedResource):
         return outcome
 
 
-class dofullrestart(RestrictedResource):
+class DoFullRestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('fullrestart', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -279,7 +281,7 @@ class dofullrestart(RestrictedResource):
         return
 
 
-class dorollingrestart(RestrictedResource):
+class DoRollingRestart(RestrictedResource):
     def get(self, region, stack_name, threads, heaps):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('rollingrestart', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -298,7 +300,7 @@ class dorollingrestart(RestrictedResource):
         return
 
 
-class dorollingrebuild(RestrictedResource):
+class DoRollingRebuild(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('rollingrebuild', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -313,7 +315,7 @@ class dorollingrebuild(RestrictedResource):
         return
 
 
-class dodestroy(RestrictedResource):
+class DoDestroy(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -329,7 +331,7 @@ class dodestroy(RestrictedResource):
         return
 
 
-class dothreaddumps(RestrictedResource):
+class DoThreadDumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('diagnostics', stack_locking_enabled(), False, False):
@@ -344,7 +346,7 @@ class dothreaddumps(RestrictedResource):
         return
 
 
-class dogetthreaddumplinks(RestrictedResource):
+class DoGetThreadDumpLinks(RestrictedResource):
     def get(self, stack_name):
         urls = []
         try:
@@ -355,7 +357,6 @@ class dogetthreaddumplinks(RestrictedResource):
                 Bucket=s3_bucket,
                 Prefix=f'diagnostics/{stack_name}/'
             )
-
             if 'Contents' in list_objects:
                 for thread_dump in list_objects['Contents']:
                     url = client.generate_presigned_url(
@@ -373,7 +374,7 @@ class dogetthreaddumplinks(RestrictedResource):
         return urls
 
 
-class doheapdumps(RestrictedResource):
+class DoHeapDumps(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('diagnostics', stack_locking_enabled(), False, False):
@@ -388,7 +389,7 @@ class doheapdumps(RestrictedResource):
         return
 
 
-class dorunsql(RestrictedResource):
+class DoRunSql(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('runsql', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
@@ -403,7 +404,8 @@ class dorunsql(RestrictedResource):
         mystack.clear_current_action()
         return outcome
 
-class dotag(RestrictedResource):
+
+class DoTag(RestrictedResource):
     def post(self, region, stack_name):
         tags = request.get_json()
         mystack = Stack(stack_name, region)
@@ -419,7 +421,8 @@ class dotag(RestrictedResource):
         mystack.clear_current_action()
         return outcome
 
-class docreate(RestrictedResource):
+
+class DoCreate(RestrictedResource):
     def post(self):
         content = request.get_json()[0]
         for param in content:
@@ -446,19 +449,19 @@ class docreate(RestrictedResource):
         return outcome
 
 
-class status(Resource):
+class Status(Resource):
     def get(self, stack_name):
         log = get_current_log(stack_name)
         return log if log else f'No current status for {stack_name}'
 
 
-class serviceStatus(Resource):
+class ServiceStatus(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.check_service_status(logMsgs=False)
 
 
-class stackState(Resource):
+class StackState(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         cfn = boto3.client('cloudformation', region_name=region)
@@ -472,7 +475,8 @@ class stackState(Resource):
             return f'Error checking stack state: {e.args[0]}'
         return stack_state['Stacks'][0]['StackStatus']
 
-class templateParams(Resource):
+
+class TemplateParams(Resource):
     def get(self, repo_name, template_name):
         if 'atlassian-aws-deployment' in repo_name:
             template_file = open(f"atlassian-aws-deployment/templates/{template_name}", "r")
@@ -494,7 +498,7 @@ class templateParams(Resource):
         return params_to_send
 
 
-class templateParamsForStack(Resource):
+class TemplateParamsForStack(Resource):
     def get(self, region, stack_name, template_name):
         cfn = boto3.client('cloudformation', region_name=region)
         try:
@@ -533,33 +537,33 @@ class templateParamsForStack(Resource):
         return compared_params
 
 
-class getSql(Resource):
+class GetSql(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.get_sql()
 
 
-class getStackActionInProgress(Resource):
+class GetStackActionInProgress(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         action = mystack.get_stack_action_in_progress()
         return action if action else 'None'
 
 
-class clearStackActionInProgress(Resource):
+class ClearStackActionInProgress(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
 
 
-class getVersion(Resource):
+class GetVersion(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.get_param('Version')
 
 
-class getNodes(Resource):
+class GetNodes(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         mystack.get_stacknodes()
@@ -573,14 +577,14 @@ class getNodes(Resource):
         return nodes
 
 
-class getTags(Resource):
+class GetTags(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         tags = mystack.get_tags()
         return tags
 
 
-class getCloneDefaults(Resource):
+class GetCloneDefaults(Resource):
     def get(self, stack_name):
         clone_default_props = configparser.ConfigParser()
         clone_default_props.optionxform = str
@@ -595,18 +599,18 @@ class getCloneDefaults(Resource):
         return []
 
 
-class getZDUCompatibility(Resource):
+class GetZDUCompatibility(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.get_zdu_compatibility()
 
 
-class actionReadyToStart(Resource):
+class ActionReadyToStart(Resource):
     def get(self):
         return actionReadyToStartRenderTemplate()
 
 
-class getEbsSnapshots(Resource):
+class GetEbsSnapshots(Resource):
     def get(self, region, stack_name):
         ec2 = boto3.client('ec2', region_name=region)
         snap_name_format = f'{stack_name}_ebs_snap_*'
@@ -631,7 +635,7 @@ class getEbsSnapshots(Resource):
         return snapshotIds
 
 
-class getRdsSnapshots(Resource):
+class GetRdsSnapshots(Resource):
     def get(self, region, stack_name):
         rds = boto3.client('rds', region_name=region)
         snapshotIds = []
@@ -652,7 +656,7 @@ class getRdsSnapshots(Resource):
         return snapshotIds
 
 
-class getTemplates(Resource):
+class GetTemplates(Resource):
     def get(self, template_type):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
@@ -681,7 +685,7 @@ class getTemplates(Resource):
         return templates
 
 
-class getVpcs(Resource):
+class GetVpcs(Resource):
     def get(self, region):
         ec2 = boto3.client('ec2', region_name=region)
         try:
@@ -695,7 +699,7 @@ class getVpcs(Resource):
         return vpc_ids
 
 
-class getSubnetsForVpc(Resource):
+class GetSubnetsForVpc(Resource):
     def get(self, region, vpc):
         ec2 = boto3.client('ec2', region_name=region)
         try:
@@ -713,12 +717,13 @@ class getSubnetsForVpc(Resource):
             print(e.args[0])
             return
         subnet_ids = []
-        for subnet in subnets['Subnets']:
+        sorted_subnets = sorted(subnets['Subnets'], key=lambda subnet: subnet['AvailabilityZone'])
+        for subnet in sorted_subnets:
             subnet_ids.append(subnet['SubnetId'])
         return subnet_ids
 
 
-class getAllSubnetsForRegion(Resource):
+class GetAllSubnetsForRegion(Resource):
     def get(self, region):
         ec2 = boto3.client('ec2', region_name=region)
         try:
@@ -731,14 +736,14 @@ class getAllSubnetsForRegion(Resource):
             subnet_ids.append(subnet['SubnetId'])
         return subnet_ids
 
-class getLockedStacks(Resource):
+class GetLockedStacks(Resource):
     def get(self):
         locked_stacks = [dir.name for dir in os.scandir(f'locks/') if dir.is_dir()]
         locked_stacks.sort()
         return locked_stacks
 
 
-class setStackLocking(Resource):
+class SetStackLocking(Resource):
     def post(self, lock):
         lockfile = Path(f'locks/locking')
         with open(lockfile, 'w') as lock_state:
@@ -746,7 +751,7 @@ class setStackLocking(Resource):
             session['stack_locking'] = lock
             return lock
 
-class forgeStatus(Resource):
+class ForgeStatus(Resource):
     def get(self):
         return {'state': 'RUNNING'}
 
@@ -809,49 +814,49 @@ def admin_stack(stack_name):
 
 
 # Actions
-api.add_resource(doupgrade, '/doupgrade/<region>/<stack_name>/<new_version>/<zdu>')
-api.add_resource(doclone, '/doclone')
-api.add_resource(dofullrestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
-api.add_resource(dorollingrestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
-api.add_resource(dorollingrebuild, '/dorollingrebuild/<region>/<stack_name>')
-api.add_resource(docreate, '/docreate')
-api.add_resource(dodestroy, '/dodestroy/<region>/<stack_name>')
-api.add_resource(doupdate, '/doupdate/<stack_name>')
-api.add_resource(dothreaddumps, '/dothreaddumps/<region>/<stack_name>')
-api.add_resource(dogetthreaddumplinks, '/dogetthreaddumplinks/<stack_name>')
-api.add_resource(doheapdumps, '/doheapdumps/<region>/<stack_name>')
-api.add_resource(dorunsql, '/dorunsql/<region>/<stack_name>')
-api.add_resource(dotag, '/dotag/<region>/<stack_name>')
+api.add_resource(DoUpgrade, '/doupgrade/<region>/<stack_name>/<new_version>/<zdu>')
+api.add_resource(DoClone, '/doclone')
+api.add_resource(DoFullRestart, '/dofullrestart/<region>/<stack_name>/<threads>/<heaps>')
+api.add_resource(DoRollingRestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
+api.add_resource(DoRollingRebuild, '/dorollingrebuild/<region>/<stack_name>')
+api.add_resource(DoCreate, '/docreate')
+api.add_resource(DoDestroy, '/dodestroy/<region>/<stack_name>')
+api.add_resource(DoUpdate, '/doupdate/<stack_name>')
+api.add_resource(DoThreadDumps, '/dothreaddumps/<region>/<stack_name>')
+api.add_resource(DoGetThreadDumpLinks, '/dogetthreaddumplinks/<stack_name>')
+api.add_resource(DoHeapDumps, '/doheapdumps/<region>/<stack_name>')
+api.add_resource(DoRunSql, '/dorunsql/<region>/<stack_name>')
+api.add_resource(DoTag, '/dotag/<region>/<stack_name>')
 
 # Stack info
-api.add_resource(status, '/status/<stack_name>')
-api.add_resource(serviceStatus, '/serviceStatus/<region>/<stack_name>')
-api.add_resource(stackState, '/stackState/<region>/<stack_name>')
-api.add_resource(templateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')
-api.add_resource(templateParams, '/templateParams/<repo_name>/<template_name>')
-api.add_resource(getSql, '/getsql/<region>/<stack_name>')
-api.add_resource(getStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
-api.add_resource(clearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
-api.add_resource(getVersion, '/getVersion/<region>/<stack_name>')
-api.add_resource(getNodes, '/getNodes/<region>/<stack_name>')
-api.add_resource(getTags, '/getTags/<region>/<stack_name>')
-api.add_resource(getCloneDefaults, '/getCloneDefaults/<stack_name>')
-api.add_resource(getZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
+api.add_resource(Status, '/status/<stack_name>')
+api.add_resource(ServiceStatus, '/serviceStatus/<region>/<stack_name>')
+api.add_resource(StackState, '/stackState/<region>/<stack_name>')
+api.add_resource(TemplateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')
+api.add_resource(TemplateParams, '/templateParams/<repo_name>/<template_name>')
+api.add_resource(GetSql, '/getsql/<region>/<stack_name>')
+api.add_resource(GetStackActionInProgress, '/getActionInProgress/<region>/<stack_name>')
+api.add_resource(ClearStackActionInProgress, '/clearActionInProgress/<region>/<stack_name>')
+api.add_resource(GetVersion, '/getVersion/<region>/<stack_name>')
+api.add_resource(GetNodes, '/getNodes/<region>/<stack_name>')
+api.add_resource(GetTags, '/getTags/<region>/<stack_name>')
+api.add_resource(GetCloneDefaults, '/getCloneDefaults/<stack_name>')
+api.add_resource(GetZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
 
 
 # Helpers
-api.add_resource(actionReadyToStart, '/actionReadyToStart')
-api.add_resource(getEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
-api.add_resource(getRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
-api.add_resource(getTemplates, '/getTemplates/<template_type>')
-api.add_resource(getVpcs, '/getVpcs/<region>')
-api.add_resource(getAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
-api.add_resource(getSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
-api.add_resource(getLockedStacks, '/getLockedStacks')
-api.add_resource(setStackLocking, '/setStackLocking/<lock>')
+api.add_resource(ActionReadyToStart, '/actionReadyToStart')
+api.add_resource(GetEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
+api.add_resource(GetRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
+api.add_resource(GetTemplates, '/getTemplates/<template_type>')
+api.add_resource(GetVpcs, '/getVpcs/<region>')
+api.add_resource(GetAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
+api.add_resource(GetSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
+api.add_resource(GetLockedStacks, '/getLockedStacks')
+api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 
 # Status endpoint
-api.add_resource(forgeStatus, '/status')
+api.add_resource(ForgeStatus, '/status')
 
 
 ##

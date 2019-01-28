@@ -2,6 +2,7 @@
 forge.iml
 atl-cfn-forge.iml
 stacks/**/*.json
+stacks/**/*.log
 __pycache__*
 *.db
 .DS_Store

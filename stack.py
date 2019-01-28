@@ -12,10 +12,13 @@ import itertools
 import errno
 import re
 import json
+from requests_toolbelt.sessions import BaseUrlSession
+from botocore.exceptions import ClientError
+import pprint
 
 
 def version_tuple(version):
-    return tuple(int(i) for i in version.split('.'))
+    return tuple(int(i) for i in version.replace('-m','.').split('.'))
 
 ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
 ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
@@ -36,24 +39,25 @@ class Stack:
             print(f'{datetime.now()} {log.ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
+        self.logfile = None
+        self.changelogfile = None
+
 
 ## Stack - micro function methods
-    def getLburl(self):
-        if hasattr(self, 'lburl'):
-            return self.lburl
+    def get_service_url(self):
+        if hasattr(self, 'service_url'):
+            return self.service_url
         else:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
+                service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
+                            p['OutputKey'] == 'ServiceURL'][0] + '/'
+                self.service_url = service_url
+                return service_url
             except Exception as e:
                 print(e.args[0])
                 return f'Error checking service status: {e.args[0]}'
-            context_path_param = next((parm for parm in stack_details['Stacks'][0]['Parameters'] if parm['ParameterKey'] == 'TomcatContextPath'), None)
-            if context_path_param:
-                context_path = context_path_param['ParameterValue']
-                rawlburl = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                            p['OutputKey'] == 'LoadBalancerURL'][0] + context_path
-                self.lburl = rawlburl
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -107,7 +111,7 @@ class Stack:
             OutputS3KeyPrefix='run-command-logs'
         )
         self.log_msg(log.INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
-        if ssm_command['ResponseMetadata']['HTTPStatusCode'] == 200:
+        if ssm_command['ResponseMetadata']['HTTPStatusCode'] == requests.codes.ok:
             return (ssm_command['Command']['CommandId'])
         return False
 
@@ -131,13 +135,13 @@ class Stack:
 
 ## Stack - helper methods
 
-    def spindown_to_zero_appnodes(self, app_type):
+    def spindown_to_zero_appnodes(self):
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.getparms()
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
-        if app_type == 'confluence':
+        if self.app_type == 'confluence':
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
@@ -163,7 +167,7 @@ class Stack:
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
         self.log_msg(log.INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
-        while stack_state == in_progress_state:
+        while stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
@@ -174,20 +178,20 @@ class Stack:
             return False
         return True
 
-    def spinup_to_one_appnode(self, app_type, new_version):
+    def spinup_to_one_appnode(self, new_version):
         self.log_msg(log.INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
-        if app_type == 'jira':
+        if self.app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
-        elif app_type == 'confluence':
+        elif self.app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
-        elif app_type == 'crowd':
+        elif self.app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
             update_stack = cfn.update_stack(
@@ -216,15 +220,14 @@ class Stack:
         return
 
     def check_service_status(self, logMsgs=True):
-        self.getLburl()
+        self.get_service_url()
         if logMsgs:
             self.log_msg(log.INFO,
-                        f' ==> checking service status at {self.lburl}/status')
+                        f' ==> checking service status at {self.service_url}status')
         try:
-            service_status = requests.get(self.lburl + '/status', timeout=5)
-            if service_status.status_code == 200:
-                status = service_status.text
-                json_status = json.loads(status)
+            service_status = requests.get(self.service_url + 'status', timeout=5)
+            if service_status.status_code == requests.codes.ok:
+                json_status = service_status.json()
                 if 'state' in json_status:
                     status = json_status['state']
             else:
@@ -236,6 +239,11 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
                 self.log_msg(log.INFO, f'Service status check timed out')
+        except json.decoder.JSONDecodeError as e:
+            pprint.pprint(e)
+            pprint.pprint(service_status)
+            if logMsgs:
+                self.log_msg(log.WARN, f'Service status check failed: returned 200 but response was empty')
         return 'Timed Out'
 
     def check_stack_state(self, stack_id=None):
@@ -243,7 +251,10 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except Exception as e:
-            if "does not exist" in e.response['Error']['Message']:
+            if 'Throttling' in e.args[0] or 'Rate exceeded' in e.args[0]:
+                self.log_msg(log.WARN, f'Stack actions are being throttled: {e.args[0]}')
+                return 'throttled'
+            if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(log.INFO, f'Stack {self.stack_name} does not exist')
                 return
             print(e.args[0])
@@ -264,7 +275,7 @@ class Stack:
         if logMsgs:
             self.log_msg(log.INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = json.loads(requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).text)
+            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).json()
             if 'state' in node_status:
                 status = node_status['state']
             else:
@@ -279,15 +290,15 @@ class Stack:
             print(e.args[0])
         return "Timed Out"
 
-    def spinup_remaining_nodes(self, app_type, app_node_count, synchrony_node_count=False):
+    def spinup_remaining_nodes(self):
         self.log_msg(log.INFO, 'Spinning up any remaining nodes in stack')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', app_node_count)
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', app_node_count)
-        if synchrony_node_count:
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', synchrony_node_count)
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', synchrony_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
+        if hasattr(self, 'synchrony_node_count'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
         try:
             cfn.update_stack(
                 StackName=self.stack_name,
@@ -314,17 +325,17 @@ class Stack:
         for i in ec2.instances.filter(Filters=filters):
             instancedict = {i.instance_id: i.private_ip_address}
             self.instancelist.append(instancedict)
-        return
+        return self.instancelist
 
-    def shutdown_app(self, instancelist, app_type):
+    def shutdown_app(self, instancelist):
         cmd_id_list = []
         for i in range(0, len(instancelist)):
             for key in instancelist[i]:
                 instance = key
                 node_ip = instancelist[i][instance]
-            self.log_msg(log.INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
-            self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} stop'
+            self.log_msg(log.INFO, f'Shutting down {self.app_type} on {instance} ({node_ip})')
+            self.log_change(f'Shutting down {self.app_type} on {instance} ({node_ip})')
+            cmd = f'/etc/init.d/{self.app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
@@ -335,13 +346,13 @@ class Stack:
             self.log_change(f'Shutdown result for {cmd_id}: {result}')
         return True
 
-    def startup_app(self, instancelist, app_type):
+    def startup_app(self, instancelist):
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
             self.log_msg(log.INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} start'
+            cmd = f'/etc/init.d/{self.app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
@@ -386,6 +397,7 @@ class Stack:
         return False
 
     def store_current_action(self, action, locking_enabled, changelog, actor):
+        self.create_action_log(action)
         action_already_in_progress = self.get_stack_action_in_progress()
         if not action_already_in_progress:
             os.mkdir(f'locks/{self.stack_name}')
@@ -393,7 +405,6 @@ class Stack:
         elif locking_enabled:
             self.log_msg(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
             return False
-        self.create_action_log(action)
         if changelog:
             self.create_change_log(action)
             if actor:
@@ -408,9 +419,9 @@ class Stack:
 
     def get_parms_for_update(self):
         parms = self.getparms()
-        stackName_param = next((param for param in parms if param['ParameterKey'] == 'StackName'), None)
-        if stackName_param:
-            parms.remove(stackName_param)
+        stackName_param = [param for param in parms if param['ParameterKey'] == 'StackName']
+        if len(stackName_param) > 0:
+            parms.remove(stackName_param[0])
         for dict in parms:
             for k, v in dict.items():
                 if v == 'DBMasterUserPassword' or v == 'DBPassword':
@@ -425,12 +436,12 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            found_param = next((param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']), None)
+            found_param = [param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']]
         except Exception as e:
             print(e.args[0])
             return 'Error'
-        if found_param:
-             return found_param['ParameterValue']
+        if len(found_param) > 0:
+             return found_param[0]['ParameterValue']
         else:
             return ''
 
@@ -458,12 +469,52 @@ class Stack:
             self.log_msg(log.WARN, f'Tag {tag_name} not found')
         return False
 
+    def get_sql_from_s3(self, stack, sql_dir):
+        # try to pull latest from s3
+        config = configparser.ConfigParser()
+        config.read('forge.properties')
+        s3_bucket = config['s3']['bucket']
+        try:
+            s3 = boto3.client('s3')
+            bucket_list = s3.list_objects(Bucket=s3_bucket, Prefix=f'config/{sql_dir}')['Contents']
+            if bucket_list:
+                if not os.path.exists(sql_dir):
+                    os.makedirs(sql_dir)
+                s3 = boto3.resource('s3')
+                for bucket_item in bucket_list:
+                    if (bucket_item['Size'] > 0):  # this is to catch when s3 sometimes weirdly returns the path as an object
+                        sql_file_name = os.path.basename(bucket_item['Key'])
+                        s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
+            self.log_msg(log.INFO, f'Retrieved latest SQL for {stack} from {sql_dir}')
+            return True
+        except KeyError as e:
+            if e.args[0] == 'Contents':
+                self.log_msg(log.ERROR, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                self.log_change(f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                return True
+            pprint.pprint(e)
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {error_code}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {error_code}')
+            print(error_code)
+            return False
+        except Exception as e:
+            pprint.pprint(e)
+            self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
+            return False
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
         cloned_from_stack = self.get_tag('cloned_from')
         if cloned_from_stack:
             cloned_from_stack_sql_dir = f'stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d/'
+            if not self.get_sql_from_s3(cloned_from_stack, cloned_from_stack_sql_dir):
+                return False
             if Path(cloned_from_stack_sql_dir).exists():
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
@@ -474,6 +525,8 @@ class Stack:
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
         # get SQL for this stack
         own_sql_dir = f'stacks/{self.stack_name}/local-post-clone-sql.d/'
+        if not self.get_sql_from_s3(self.stack_name, own_sql_dir):
+            return False
         if Path(own_sql_dir).exists():
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
@@ -506,7 +559,7 @@ class Stack:
                               p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
         self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                      p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if self.app_type.lower() == 'confluence':
+        if self.app_type == 'confluence':
             self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                                p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
@@ -514,13 +567,12 @@ class Stack:
 
     def get_zdu_state(self):
         try:
-            response = self.session.get(self.lburl + '/rest/api/2/cluster/zdu/state', timeout=5)
-            if response.status_code != 200:
+            response = self.session.get('rest/api/2/cluster/zdu/state', timeout=5)
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
                 self.log_change('Unable to get ZDU state')
                 return False
-            response_json = json.loads(response.text)
-            return response_json['state']
+            return response.json()['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             self.log_msg(log.INFO, f'ZDU state check timed out')
             return False
@@ -530,8 +582,8 @@ class Stack:
 
     def enable_zdu_mode(self):
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/start', timeout=5)
-            if response.status_code != 201:
+            response = self.session.post('rest/api/2/cluster/zdu/start', timeout=5)
+            if response.status_code != requests.codes.created:
                 self.log_msg(log.ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
                 self.log_change('Unable to enable ZDU mode')
                 return False
@@ -545,8 +597,8 @@ class Stack:
 
     def cancel_zdu_mode(self):
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/cancel', timeout=5)
-            if response.status_code != 200:
+            response = self.session.post('rest/api/2/cluster/zdu/cancel', timeout=5)
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
                 self.log_change('Unable to cancel ZDU mode')
                 return False
@@ -561,8 +613,8 @@ class Stack:
     def approve_zdu_upgrade(self):
         self.log_msg(log.INFO, 'Approving upgrade and running upgrade tasks')
         try:
-            response = self.session.post(self.lburl + '/rest/api/2/cluster/zdu/approve', timeout=30)
-            if response.status_code != 200:
+            response = self.session.post('rest/api/2/cluster/zdu/approve', timeout=30)
+            if response.status_code != requests.codes.ok:
                 self.log_msg(log.ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
                 self.log_change('Unable to approve upgrade')
                 return False
@@ -573,28 +625,26 @@ class Stack:
                 time.sleep(5)
                 state = self.get_zdu_state()
             self.log_msg(log.INFO, 'Upgrade tasks complete')
-            #todo check for error states
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             self.log_msg(log.INFO, f'Could not approve ZDU mode: {e.args[0]}')
             return False
 
     def get_zdu_compatibility(self):
-        if self.get_tag('product') == 'jira':
-            self.get_stacknodes()
-            if len(self.instancelist) > 1:
-                version = version_tuple(self.get_param('Version'))
-                jira_product = self.get_param('JiraProduct')
-                if jira_product == 'ServiceDesk':
-                    if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
-                        return True
-                elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
-                    return True
-                return [f'Jira {jira_product} {version} is incompatible with ZDU']
-            else:
-                return ['too few nodes']
-        else:
+        if not self.get_tag('product') == 'jira':
             return ['not Jira']
+        self.get_stacknodes()
+        if not len(self.instancelist) > 1:
+            return ['too few nodes']
+        version = version_tuple(self.get_param('Version'))
+        jira_product = self.get_param('JiraProduct')
+        if jira_product == 'ServiceDesk':
+            if version >= ZDU_MINIMUM_SERVICEDESK_VERSION:
+                return True
+        elif version >= ZDU_MINIMUM_JIRACORE_VERSION:
+            return True
+        return [f'Jira {jira_product} {version} is incompatible with ZDU']
+
 
 ## Stack - Major Action Methods
 
@@ -603,21 +653,18 @@ class Stack:
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
-        if not self.spindown_to_zero_appnodes(self.app_type):
+        if not self.spindown_to_zero_appnodes():
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(self.app_type, new_version):
+        if not self.spinup_to_one_appnode(new_version):
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
         # spinup remaining nodes in stack if needed
         if self.preupgrade_app_node_count > "1":
-            if self.app_type.lower() == 'confluence':
-                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count, self.preupgrade_synchrony_node_count)
-            else:
-                self.spinup_remaining_nodes(self.app_type, self.preupgrade_app_node_count)
+            self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
@@ -626,76 +673,75 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
-        s = requests.Session()
-        s.auth = (username, password)
-        self.session = s
-        self.getLburl()
+        self.get_service_url()
+        self.session = BaseUrlSession(base_url=self.service_url)
+        self.session.auth = (username, password)
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # set upgrade mode on
         zdu_state = self.get_zdu_state()
-        if zdu_state == 'STABLE':
-            if self.enable_zdu_mode():
-                # update the version in stack parameters
-                stack_params = self.getparms()
-                stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
-                cfn = boto3.client('cloudformation', region_name=self.region)
-                try:
-                    cfn.update_stack(
-                        StackName=self.stack_name,
-                        Parameters=stack_params,
-                        UsePreviousTemplate=True,
-                        Capabilities=['CAPABILITY_IAM'])
-                except Exception as e:
-                    if 'No updates are to be performed' in e.args[0]:
-                        self.log_msg(log.INFO, f'Stack is already at {new_version}')
-                    else:
-                        print(e.args[0])
-                        self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
-                        self.cancel_zdu_mode()
-                        return False
-                if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                    self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
-                else:
-                    self.log_msg(log.INFO, 'Could not update version in stack parameters')
-                    self.log_msg(log.INFO, 'Upgrade complete - failed')
-                    self.log_change('Upgrade failed - could not update version in stack parameters')
-                    self.cancel_zdu_mode()
-                    return False
-                # terminate the nodes and allow new ones to spin up
-                if self.rolling_rebuild():
-                    state = self.get_zdu_state()
-                    while state != 'READY_TO_RUN_UPGRADE_TASKS':
-                        time.sleep(5)
-                        state = self.get_zdu_state()
-                    # check node count is not fewer than pre-upgrade
-                    self.get_stacknodes()
-                    if len(self.instancelist) < int(self.preupgrade_app_node_count):
-                        self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
-                        self.log_msg(log.INFO, 'Upgrade complete - failed')
-                        self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
-                        return False
-                    # approve the upgrade and allow upgrade tasks to run
-                    if self.approve_zdu_upgrade():
-                        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-                        self.log_msg(log.INFO, 'Upgrade complete')
-                        self.log_change('Upgrade successful')
-                        return True
-                    else:
-                        self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
-                        self.log_msg(log.ERROR, 'Upgrade complete - failed')
-                        self.log_change(f'Could not approve upgrade. Upgrade failed.')
-            else:
-                self.log_msg(log.ERROR, 'Could not enable ZDU mode')
-                self.log_msg(log.ERROR, 'Upgrade complete - failed')
-                self.log_change('Upgrade failed - Could not enable ZDU mode')
-                return False
-        else:
+        if zdu_state != 'STABLE':
             self.log_msg(log.INFO, f'Expected STABLE but ZDU state is {zdu_state}')
             self.log_msg(log.INFO, 'Upgrade complete - failed')
             self.log_change(f'Could not begin upgrade, expected STABLE but ZDU state is {zdu_state}')
             return False
+        if not self.enable_zdu_mode():
+            self.log_msg(log.ERROR, 'Could not enable ZDU mode')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - Could not enable ZDU mode')
+            return False
+        # update the version in stack parameters
+        stack_params = self.getparms()
+        stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_params,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'])
+        except Exception as e:
+            if 'No updates are to be performed' in e.args[0]:
+                self.log_msg(log.INFO, f'Stack is already at {new_version}')
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                self.cancel_zdu_mode()
+                return False
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+        else:
+            self.log_msg(log.INFO, 'Could not update version in stack parameters')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - could not update version in stack parameters')
+            self.cancel_zdu_mode()
+            return False
+        # terminate the nodes and allow new ones to spin up
+        if not self.rolling_rebuild():
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Upgrade failed.')
+        state = self.get_zdu_state()
+        while state != 'READY_TO_RUN_UPGRADE_TASKS':
+            time.sleep(5)
+            state = self.get_zdu_state()
+        # check node count is not fewer than pre-upgrade
+        self.get_stacknodes()
+        if len(self.instancelist) < int(self.preupgrade_app_node_count):
+            self.log_msg(log.ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
+            return False
+        # approve the upgrade and allow upgrade tasks to run
+        if self.approve_zdu_upgrade():
+            self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+            self.log_msg(log.INFO, 'Upgrade complete')
+            self.log_change('Upgrade successful')
+            return True
+        else:
+            self.log_msg(log.ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Could not approve upgrade. Upgrade failed.')
 
     def destroy(self):
         self.log_msg(log.INFO, f'Destroying stack {self.stack_name} in {self.region}')
@@ -708,6 +754,10 @@ class Stack:
                 self.log_msg(log.INFO, "Destroy complete - not required")
                 self.log_change(f'Stack {self.stack_name} does not exist, destroy not required')
                 return True
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred destroying stack: {e.args[0]}')
+                return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
@@ -720,19 +770,19 @@ class Stack:
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         # TODO popup confirming if you want to destroy existing
-        if self.destroy():
-            if self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
-                self.log_change('Create complete, looking for post-clone SQL')
-                if self.run_sql():
-                    self.log_change('SQL complete, restarting {self.stack_name}')
-                    self.full_restart()
-                else:
-                    self.clear_current_action()
-            else:
-                self.log_msg(log.INFO, 'Clone complete - failed')
-                self.log_change('Clone complete - failed')
-                self.clear_current_action()
-                return False
+        if not self.destroy():
+            self.log_msg(log.INFO, 'Clone complete - failed')
+            self.log_change('Clone complete - failed')
+            self.clear_current_action()
+        if not self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
+            self.log_msg(log.INFO, 'Clone complete - failed')
+            self.log_change('Clone complete - failed')
+            self.clear_current_action()
+            return False
+        self.log_change('Create complete, looking for post-clone SQL')
+        if self.run_sql():
+            self.log_change('SQL complete, restarting {self.stack_name}')
+            self.full_restart()
         else:
             self.clear_current_action()
         self.log_msg(log.INFO, 'Clone complete')
@@ -762,7 +812,6 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        self.getLburl()
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
@@ -837,9 +886,11 @@ class Stack:
     def rolling_restart(self):
         self.log_msg(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.log_change(f'Beginning Rolling Restart for {self.stack_name}')
-        app_type = self.get_tag('product')
-        if not app_type:
+        self.app_type = self.get_tag('product')
+        if not self.app_type:
+            self.log_msg(log.ERROR, 'Could not determine product')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('Could not determine product. Rolling restart failed.')
             return False
         self.get_stacknodes()
         instance_list = self.instancelist
@@ -855,24 +906,22 @@ class Stack:
                 non_running_nodes.append(node)
         # restart non running nodes first
         for instance in itertools.chain(non_running_nodes, running_nodes):
-            if self.shutdown_app([instance], app_type):
-                node_ip = list(instance.values())[0]
-                if self.startup_app([instance], app_type):
-                    result = ""
-                    while result not in ['RUNNING', 'FIRST_RUN']:
-                        result = self.check_node_status(node_ip, False)
-                        time.sleep(10)
-                    self.log_msg(log.INFO, f'Startup result for {node_ip}: {result}')
-                else:
-                    self.log_msg(log.INFO, f'Failed to start application on instance {instance}')
-                    self.log_msg(log.ERROR, 'Rolling restart complete - failed')
-                    self.log_change('Rolling restart complete - failed')
-                    return False
-            else:
+            if not self.shutdown_app([instance]):
                 self.log_msg(log.INFO, f'Failed to stop application on instance {instance}')
                 self.log_msg(log.ERROR, 'Rolling restart complete - failed')
                 self.log_change('Rolling restart complete - failed')
                 return False
+            if not self.startup_app([instance]):
+                self.log_msg(log.INFO, f'Failed to start application on instance {instance}')
+                self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+                self.log_change('Rolling restart complete - failed')
+                return False
+            node_ip = list(instance.values())[0]
+            result = ""
+            while result not in ['RUNNING', 'FIRST_RUN']:
+                result = self.check_node_status(node_ip, False)
+                time.sleep(10)
+            self.log_msg(log.INFO, f'Startup result for {node_ip}: {result}')
         self.log_msg(log.INFO, 'Rolling restart complete')
         self.log_change('Rolling restart complete')
         return True
@@ -880,22 +929,21 @@ class Stack:
     def full_restart(self):
         self.log_msg(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.log_change(f'Beginning Full Restart for {self.stack_name}')
-        app_type = self.get_tag('product')
-        if not app_type:
+        self.app_type = self.get_tag('product')
+        if not self.app_type:
             self.log_msg(log.ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
         self.get_stacknodes()
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        if self.shutdown_app(self.instancelist, app_type):
-            for instance in self.instancelist:
-                self.startup_app([instance], app_type)
-            self.log_msg(log.INFO, 'Full restart complete')
-            self.log_change('Full restart complete')
-        else:
+        if not self.shutdown_app(self.instancelist):
             self.log_msg(log.ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
+        for instance in self.instancelist:
+            self.startup_app([instance])
+        self.log_msg(log.INFO, 'Full restart complete')
+        self.log_change('Full restart complete')
         return True
 
     def rolling_rebuild(self):
@@ -914,23 +962,26 @@ class Stack:
                 self.log_change(f'Replacing node {node}')
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
-                self.get_stacknodes()
-                current_instances = self.instancelist
+                current_instances = self.get_stacknodes()
                 waiting_for_new_node = True
                 replacement_node = {}
                 while waiting_for_new_node:
                     for instance in current_instances:
-                        if instance not in old_nodes:
+                        # check the instance id against the old nodes
+                        if list(instance.keys())[0] not in set().union(*(node.keys() for node in old_nodes)):
                             # if the instance is new, track it
                             if instance not in new_nodes:
+                                # check for IP, break out if not assigned yet
+                                if list(instance.values())[0] is None:
+                                    break
+                                # otherwise, store the node and proceed
                                 replacement_node = instance
                                 self.log_msg(log.INFO, f'New node: {replacement_node}')
                                 self.log_change(f'New node: {replacement_node}')
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node = False
                     time.sleep(30)
-                    self.get_stacknodes()
-                    current_instances = self.instancelist
+                    current_instances = self.get_stacknodes()
                 # wait for the new node to come up
                 result = ''
                 while result not in ['RUNNING', 'FIRST_RUN']:
@@ -976,19 +1027,35 @@ class Stack:
         self.get_stacknodes()
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
-            sql_as_escaped_string = re.sub(r'([\"\$])', r'\\\1', sql_to_run)
-            if self.run_command([self.instancelist[0]], f'echo "{sql_as_escaped_string}" > /usr/local/bin/{self.stack_name}.post-clone.sql') :
-                db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
-                if not self.run_command([self.instancelist[0]], f'source /etc/atl; {db_conx_string} -a -f /usr/local/bin/{self.stack_name}.post-clone.sql'):
-                    self.log_msg(log.ERROR, f'Running SQL script failed')
-                    return False
-            else:
-                self.log_msg(log.ERROR, 'Dumping SQL file to target machine failed')
-                self.log_change('Dumping SQL file to target machine failed')
+            config = configparser.ConfigParser()
+            config.read('forge.properties')
+            s3_bucket = config['s3']['bucket']
+            cloned_from_stack = self.get_tag('cloned_from')
+            db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -v ON_ERROR_STOP=1 -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
+            # on node, grab cloned_from sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d', )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
+            # on node, grab local-stack sql from s3
+            self.run_command(
+                [self.instancelist[0]],
+                f'aws s3 sync s3://{s3_bucket}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d', )
+            # run that sql
+            if not self.run_command(
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                self.log_msg(log.ERROR, f'Running SQL script failed')
+                self.log_change(f'An error occurred running SQL for {self.stack_name}')
         else:
-            self.log_msg(log.INFO, 'No post clone SQL file found')
-            self.log_change('No post clone SQL file found')
+            self.log_msg(log.INFO, 'No post clone SQL files found')
+            self.log_change('No post clone SQL files found')
             return False
         self.log_msg(log.INFO, 'Run SQL complete')
         self.log_change('Run SQL complete')
@@ -1036,12 +1103,11 @@ class Stack:
         self.logfile = filename
 
     def log_msg(self, level, message):
-        if hasattr(self, 'logfile'):
+        if self.logfile is not None:
             logline = f'{datetime.now()} {level} {message} \n'
             print(logline)
-            logfile = open(self.logfile, 'a')
-            logfile.write(logline)
-            logfile.close()
+            with open(self.logfile, 'a') as logfile:
+                logfile.write(logline)
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -1050,14 +1116,14 @@ class Stack:
         self.changelogfile = filename
 
     def log_change(self, message):
-        logline = f'{datetime.now()} {message} \n'
-        print(logline)
-        logfile = open(self.changelogfile, 'a')
-        logfile.write(logline)
-        logfile.close()
+        if self.changelogfile is not None:
+            logline = f'{datetime.now()} {message} \n'
+            print(logline)
+            with open(self.changelogfile, 'a') as logfile:
+                logfile.write(logline)
 
     def save_change_log(self):
-        if self.changelogfile:
+        if self.changelogfile is not None:
             changelog = os.path.relpath(self.changelogfile)
             changelog_filename = os.path.basename(self.changelogfile)
             config = configparser.ConfigParser()
