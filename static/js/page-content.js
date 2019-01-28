@@ -32,39 +32,6 @@ function selectStack(stack_name) {
     updateStats(stack_name);
 }
 
-function getStatus(stack_name) {
-    if (stack_name === 'actionreadytostart') return;
-
-    $("#log").css("background", "rgba(0,20,70,.08)");
-
-    var statusRequest = new XMLHttpRequest();
-    statusRequest.open("GET", baseUrl + "/status/" + stack_name, true);
-    statusRequest.setRequestHeader("Content-Type", "text/xml");
-    statusRequest.onreadystatechange = function () {
-        if (statusRequest.readyState === XMLHttpRequest.DONE && statusRequest.status === 200) {
-            $("#log").css("background", "rgba(0,0,0,0)");
-
-            // If getting the logs has blipped, don't overwrite legitimate logging
-            if ((countOccurences($("#log").contents().text(), "No current status for") !== 1 &&
-                    countOccurences($("#log").contents().text(), "Waiting for logs") !== 1)
-                    &&
-                (countOccurences(statusRequest.responseText, "No current status for") === 1 ||
-                countOccurences(statusRequest.responseText, "Waiting for logs") === 1))
-            return;
-
-            $("#log").contents().find('body').html(statusRequest.responseText
-                .substr(1, statusRequest.responseText.length - 3)
-                .split('",').join('<br />')
-                .split('\\n').join('<br />')
-                .split('"').join('')
-                .trim());
-
-            $("#log").contents().find('body').scrollTop(9999999999);
-        }
-    };
-    statusRequest.send();
-}
-
 function updateStats(stack_name, stack_region) {
     if (stack_name === 'actionreadytostart') return;
     if (! stack_region) stack_region = region;

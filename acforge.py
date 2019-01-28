@@ -449,7 +449,7 @@ class DoCreate(RestrictedResource):
         return outcome
 
 
-class Status(Resource):
+class GetLogs(Resource):
     def get(self, stack_name):
         log = get_current_log(stack_name)
         return log if log else f'No current status for {stack_name}'
@@ -829,7 +829,7 @@ api.add_resource(DoRunSql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(DoTag, '/dotag/<region>/<stack_name>')
 
 # Stack info
-api.add_resource(Status, '/status/<stack_name>')
+api.add_resource(GetLogs, '/getLogs/<stack_name>')
 api.add_resource(ServiceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(StackState, '/stackState/<region>/<stack_name>')
 api.add_resource(TemplateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')
