@@ -2,17 +2,6 @@ var baseUrl = window.location .protocol + "//" + window.location.host;
 var region = $("meta[name=region]").attr("value");
 var action = window.location.pathname.substr(1);
 
-function onReady() {
-    var stacks = document.getElementsByClassName("selectStackOption");
-    for (var i = 0; i < stacks.length; i++) {
-        stacks[i].addEventListener("click", function (data) {
-            selectStack(data.target.text);
-        }, false);
-    }
-
-    addDefaultActionButtonListener();
-}
-
 function selectStack(stack_name) {
     $("#stackSelector").text(stack_name);
     $("#stackName").text(stack_name);

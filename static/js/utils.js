@@ -199,6 +199,15 @@ function addDefaultActionButtonListener() {
         actionButton.addEventListener("click", performAction);
 }
 
+function addStackDropdown() {
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            selectStack(data.target.text);
+        }, false);
+    }
+}
+
 function processResponse() {
     if (this.status !== 200) {
         window.location = baseUrl + "/error/" + this.status;

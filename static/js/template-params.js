@@ -24,10 +24,6 @@ function readyTheTemplate() {
     });
 }
 
-function onReady() {
-    readyTheTemplate();
-}
-
 function getTemplates(template_type) {
     var getTemplatesRequest = new XMLHttpRequest();
     getTemplatesRequest.open("GET", baseUrl + "/getTemplates/" + template_type, true);
