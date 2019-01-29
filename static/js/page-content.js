@@ -275,6 +275,9 @@ function removeElementsByClass(className){
     }
 }
 
+function onReady() {
+    // empty function for errors, overridden by each action
+}
 document.addEventListener('DOMContentLoaded', function() {
     $("#stackInformation").hide();
     onReady();

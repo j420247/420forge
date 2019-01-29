@@ -1,7 +1,7 @@
 {% extends "template-params.html" %}
 {% block head %}
     {{ super() }}
-    <script src="/static/js/clone.js"></script>
+    <script src="{{ get_filename_with_last_update_time('static/js/clone.js') }}"></script>
 {% endblock head %}
 
 {% block stackSelectorDescription %}
