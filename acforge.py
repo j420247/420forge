@@ -974,6 +974,15 @@ def get_forge_settings():
     session['forge_version'] = __version__
 
 
+# function to get last modified time of JS files to automatically invalidate them when updated
+@app.context_processor
+def utility_processor():
+    def get_filename_with_last_update_time(js_file):
+        mtime = str(os.path.getmtime(js_file))
+        return f"/{js_file}?v={mtime}"
+    return dict(get_filename_with_last_update_time=get_filename_with_last_update_time)
+
+
 @app.route('/error/<error>')
 def error(error):
     return render_template('error.html', code=error), error

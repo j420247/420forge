@@ -1,6 +1,7 @@
 {% extends "page-content.html" %}
 {% block head %}
-    <script src="/static/js/template-params.js"></script>
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('static/js/template-params.js') }}"></script>
 {% endblock head %}
 
 {% block templateSelector %}
