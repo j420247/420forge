@@ -17,9 +17,9 @@
         <script src="/static/aui/js/aui.min.js"></script>
         <script src="/static/aui/js/aui-experimental.min.js"></script>
         <script src="/static/aui/js/aui-soy.min.js"></script>
-        <script src="/static/js/global-variables.js"></script>
-        <script src="/static/js/page-content.js"></script>
-        <script src="/static/js/utils.js"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/global-variables.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/page-content.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/utils.js') }}"></script>
 
         <title>Atlassian Cloudformation Forge</title>
         {% block head %}

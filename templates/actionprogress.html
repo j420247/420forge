@@ -1,5 +1,5 @@
 {% extends "viewlog.html" %}
 {% block head %}
     {{ super() }}
-    <script src="/static/js/actionprogress.js"></script>
+    <script src="{{ get_filename_with_last_update_time('static/js/actionprogress.js') }}"></script>
 {% endblock head %}

@@ -152,6 +152,9 @@ function performAction() {
     redirectToLog(stack_name);
 }
 
+function onReady() {
+    // empty function for errors, overridden by each action
+}
 document.addEventListener('DOMContentLoaded', function() {
     $("#stackInformation").hide();
     onReady();
