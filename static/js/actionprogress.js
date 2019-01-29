@@ -13,7 +13,7 @@ function onReady() {
     var params = new URL(window.location).searchParams;
     var stack_name = params.get("stack");
     if (params.has("region"))
-        var region = params.get("region");
+        region = params.get("region");
     selectStack(stack_name);
     clearTimeout(refreshLogsTimer);
     clearTimeout(refreshStackInfoTimer);
