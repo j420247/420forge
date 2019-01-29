@@ -402,8 +402,7 @@ class Stack:
         if locking_enabled and action_already_in_progress:
             self.log_msg(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
             return False
-        os.mkdir(f'locks/{self.stack_name}')
-        os.mkdir(f'locks/{self.stack_name}/{action}')
+        os.makedirs(f'locks/{self.stack_name}/{action}', exist_ok=True)
         if changelog:
             self.create_change_log(action)
             if actor:
