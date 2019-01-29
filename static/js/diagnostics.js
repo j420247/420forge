@@ -29,10 +29,10 @@ function heapDumps() {
 
 function dlThreadDumps() {
     var stack_name = $("#stackName").text();
-    send_http_get_request(baseUrl + "/dogetthreaddumplinks/" + stack_name, showThreaddumpsToDownload);
+    send_http_get_request(baseUrl + "/dogetthreaddumplinks/" + stack_name, displayThreaddumpsToDownload);
 }
 
-function showThreaddumpsToDownload(responseText) {
+function displayThreaddumpsToDownload(responseText) {
     var threaddumpDialog = document.getElementById("threaddump-dialog-content");
     while (threaddumpDialog.firstChild) {
         threaddumpDialog.removeChild(threaddumpDialog.firstChild);

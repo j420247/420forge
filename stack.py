@@ -493,7 +493,7 @@ class Stack:
             pprint.pprint(e)
             self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
             self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
-            return FalseF
+            return False
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {error_code}')
