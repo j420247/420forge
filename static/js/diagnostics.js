@@ -17,59 +17,47 @@ function onReady() {
 
 function threadDumps() {
     var stack_name = $("#stackName").text();
-    var threadDumpRequest = new XMLHttpRequest();
-    threadDumpRequest.open("GET", baseUrl + "/dothreaddumps/" + region + "/" + stack_name, true);
-    threadDumpRequest.setRequestHeader("Content-Type", "text/xml");
-    threadDumpRequest.send();
-
+    send_http_get_request(baseUrl + "/dothreaddumps/" + region + "/" + stack_name);
     redirectToLog(stack_name);
 }
 
 function heapDumps() {
     var stack_name = $("#stackName").text();
-    var heapDumpRequest = new XMLHttpRequest();
-    heapDumpRequest.open("GET", baseUrl + "/doheapdumps/" + region + "/" + stack_name, true);
-    heapDumpRequest.setRequestHeader("Content-Type", "text/xml");
-    heapDumpRequest.send();
-
+    send_http_get_request(baseUrl + "/doheapdumps/" + region + "/" + stack_name);
     redirectToLog(stack_name);
 }
 
 function dlThreadDumps() {
     var stack_name = $("#stackName").text();
-    var dlThreadDumpLinksRequest = new XMLHttpRequest();
-    dlThreadDumpLinksRequest.open("GET", baseUrl + "/dogetthreaddumplinks/" + stack_name, true);
-    dlThreadDumpLinksRequest.setRequestHeader("Content-Type", "text/xml");
-    dlThreadDumpLinksRequest.onreadystatechange = function () {
-        if (dlThreadDumpLinksRequest.readyState === XMLHttpRequest.DONE && dlThreadDumpLinksRequest.status === 200) {
-            var threaddumpDialog = document.getElementById("threaddump-dialog-content");
-            while (threaddumpDialog.firstChild) {
-                threaddumpDialog.removeChild(threaddumpDialog.firstChild);
-            }
-            var urls = JSON.parse(dlThreadDumpLinksRequest.responseText);
-            if (urls.length == 0) {
-                var text = document.createTextNode("No thread dumps exist for this stack");
-                text.className = "threaddump-url";
-                document.getElementById("threaddump-dialog-content").appendChild(text);
-            }
+    send_http_get_request(baseUrl + "/dogetthreaddumplinks/" + stack_name, showThreaddumpsToDownload);
+}
 
-            var ul = document.createElement("UL");
-            ul.className = "aui-list-truncate";
+function showThreaddumpsToDownload(responseText) {
+    var threaddumpDialog = document.getElementById("threaddump-dialog-content");
+    while (threaddumpDialog.firstChild) {
+        threaddumpDialog.removeChild(threaddumpDialog.firstChild);
+    }
+    var urls = JSON.parse(responseText);
+    if (urls.length == 0) {
+        var text = document.createTextNode("No thread dumps exist for this stack");
+        text.className = "threaddump-url";
+        document.getElementById("threaddump-dialog-content").appendChild(text);
+    }
 
-            for (var url in urls) {
-                var li = document.createElement("LI");
-                var anchor = document.createElement("A");
-                var stringUrl = urls[url].substr(urls[url].lastIndexOf("/")+1);
-                stringUrl = stringUrl.substr(0, stringUrl.indexOf("?"));
-                var text = document.createTextNode(stringUrl);
-                anchor.appendChild(text);
-                anchor.href=urls[url];
-                li.appendChild(anchor);
-                ul.appendChild(li);
-            }
-            document.getElementById("threaddump-dialog-content").appendChild(ul);
-            AJS.dialog2("#threaddump-dialog").show();
-        }
-    };
-    dlThreadDumpLinksRequest.send();
+    var ul = document.createElement("UL");
+    ul.className = "aui-list-truncate";
+
+    for (var url in urls) {
+        var li = document.createElement("LI");
+        var anchor = document.createElement("A");
+        var stringUrl = urls[url].substr(urls[url].lastIndexOf("/")+1);
+        stringUrl = stringUrl.substr(0, stringUrl.indexOf("?"));
+        var text = document.createTextNode(stringUrl);
+        anchor.appendChild(text);
+        anchor.href=urls[url];
+        li.appendChild(anchor);
+        ul.appendChild(li);
+    }
+    document.getElementById("threaddump-dialog-content").appendChild(ul);
+    AJS.dialog2("#threaddump-dialog").show();
 }
