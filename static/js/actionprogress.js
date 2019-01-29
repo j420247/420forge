@@ -12,7 +12,8 @@ function onReady() {
 
     var params = new URL(window.location).searchParams;
     var stack_name = params.get("stack");
-    var region = params.get("region");
+    if (params.has("region"))
+        var region = params.get("region");
     selectStack(stack_name);
     clearTimeout(refreshLogsTimer);
     clearTimeout(refreshStackInfoTimer);
@@ -86,19 +87,19 @@ function getLogs(stack_name) {
     send_http_get_request(baseUrl + "/getLogs/" + stack_name, displayLogs)
 }
 
-function displayLogs(requestText) {
+function displayLogs(responseText) {
     $("#log").css("background", "rgba(0,0,0,0)");
 
     // If getting the logs has blipped, don't overwrite legitimate logging
     if ((countOccurences($("#log").contents().text(), "No current status for") !== 1 &&
         countOccurences($("#log").contents().text(), "Waiting for logs") !== 1)
         &&
-        (countOccurences(requestText, "No current status for") === 1 ||
-            countOccurences(requestText, "Waiting for logs") === 1))
+        (countOccurences(responseText, "No current status for") === 1 ||
+            countOccurences(responseText, "Waiting for logs") === 1))
         return;
 
-    $("#log").contents().find('body').html(requestText
-        .substr(1, requestText.length - 3)
+    $("#log").contents().find('body').html(responseText
+        .substr(1, responseText.length - 3)
         .split('",').join('<br />')
         .split('\\n').join('<br />')
         .split('"').join('')

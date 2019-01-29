@@ -14,7 +14,6 @@ function readyTheTemplate() {
     }
 
     var actionButton = document.getElementById("action-button");
-    actionButton.removeEventListener("click", defaultActionBtnEvent);
     actionButton.addEventListener("click", function (data) {
         $("#paramsForm").submit();
     });
@@ -443,5 +442,5 @@ function sendParamsAsJson() {
     if (action === 'clone')
         appendRegion = "&region=" + $("#regionSelector").text().trim();
 
-    redirectToLog(stackNameForAction);
+    redirectToLog(stackNameForAction, appendRegion);
 }

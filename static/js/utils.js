@@ -182,11 +182,14 @@ function getAuthDetailsAsJSON() {
     return jsonArray;
 }
 
-function redirectToLog(stack_name) {
+function redirectToLog(stack_name, extra_params) {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
+        var url = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
+        if (extra_params)
+            url += extra_params;
+        window.location = url;
     }, 1000);
 }
 

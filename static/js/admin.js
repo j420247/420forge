@@ -1,5 +1,3 @@
-var stack_name;
-
 function onReady() {
     $("#stackInformation").hide();
     $("#lock-state").hide();
