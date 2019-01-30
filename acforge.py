@@ -630,7 +630,12 @@ class GetEbsSnapshots(Resource):
             return
         snapshotIds = []
         for snap in snapshots['Snapshots']:
-            snapshotIds.append(str(snap['StartTime']).split('+').__getitem__(0) + ": " + snap['SnapshotId'])
+            start_time = str(snap['StartTime'])
+            if '.' in start_time:
+                start_time = start_time.split('.')[0]
+            else:
+                start_time = start_time.split('+')[0]
+            snapshotIds.append(start_time + ": " + snap['SnapshotId'])
         snapshotIds.sort(reverse=True)
         return snapshotIds
 
