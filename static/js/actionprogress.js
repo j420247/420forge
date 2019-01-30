@@ -88,6 +88,10 @@ function getLogs(stack_name) {
 }
 
 function displayLogs(responseText) {
+    var userHasScrolled = false;
+    if ($("#log").contents().find('body').scrollTop() + $("#log").height() < $("#log").contents().height())
+        userHasScrolled = true;
+
     $("#log").css("background", "rgba(0,0,0,0)");
 
     // If getting the logs has blipped, don't overwrite legitimate logging
@@ -105,5 +109,6 @@ function displayLogs(responseText) {
         .split('"').join('')
         .trim());
 
-    $("#log").contents().find('body').scrollTop(9999999999);
+    if (! userHasScrolled)
+        $("#log").contents().find('body').scrollTop(9999999999);
 }
