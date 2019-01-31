@@ -54,6 +54,8 @@ function displayStackStateAndRequestServiceStatus(responseText, functionParams) 
         responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
         // only request service status if stack actions are complete and successful
         send_http_get_request(baseUrl  + "/serviceStatus/" + functionParams.stack_region + "/" + functionParams.stack_name, displayServiceStatus);
+    else
+        $("#serviceStatus").html("Service status: ");
 }
 
 function displayServiceStatus(responseText) {
