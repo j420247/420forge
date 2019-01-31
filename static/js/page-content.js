@@ -30,9 +30,9 @@ function updateStackInfo(stack_name, stack_region) {
         $("#serviceStatus").html("Service status: <aui-spinner size=\"small\" ></aui-spinner>");
     if ($("#stackState").find('span.aui-lozenge').length == 0)
         $("#stackState").html("Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
-    if ($("#currentVersion").length <= 17)
+    if ($("#currentVersion").length && $("#currentVersion").html().length <= 17)
         $("#currentVersion").html("Current version: <aui-spinner size=\"small\" ></aui-spinner>");
-    if ($("#nodes").length <= 4)
+    if ($("#nodes").length && $("#nodes").html().length <= 4)
         $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
 
     var functionParams = {
