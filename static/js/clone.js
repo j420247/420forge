@@ -8,9 +8,8 @@ function onReady() {
             $("#regionSelector").text(clone_region);
             $("#ebsSnapshotSelector").text("Select EBS snapshot");
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            getEbsSnapshots(clone_region, document.getElementById("stackSelector").innerText);
-            getRdsSnapshots(clone_region, document.getElementById("stackSelector").innerText);
-            getVPCs(clone_region, document.getElementById("VPCDiv"));
+            getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
+            getVPCs(clone_region);
         }, false);
     }
 }

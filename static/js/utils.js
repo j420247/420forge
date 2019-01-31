@@ -32,15 +32,19 @@ function notify(message) {
 }
 
 // API helpers
-function send_http_get_request(url, onreadystatechange) {
+function send_http_get_request(url, onreadystatechange, optionalFunctionParams) {
     var getRequest = new XMLHttpRequest();
     getRequest.open("GET", url, true);
     getRequest.setRequestHeader("Content-Type", "text/xml");
     getRequest.addEventListener("load", processResponse);
     if (onreadystatechange) {
         getRequest.onreadystatechange = function () {
-            if (getRequest.readyState === XMLHttpRequest.DONE && getRequest.status === 200)
-                onreadystatechange(getRequest.responseText);
+            if (getRequest.readyState === XMLHttpRequest.DONE && getRequest.status === 200) {
+                if (optionalFunctionParams)
+                    onreadystatechange(getRequest.responseText, optionalFunctionParams);
+                else
+                    onreadystatechange(getRequest.responseText);
+            }
         };
     }
     getRequest.send();
@@ -60,7 +64,7 @@ function send_http_post_request(url, data, onreadystatechange) {
     postRequest.send(data);
 }
 
-// Forge common functions
+// Create/modify page elements
 function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     var dropdownAnchor = document.createElement("A");
     dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
@@ -102,15 +106,15 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     updateTextField("TomcatSecure", "false");
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                getSubnets(region, data.target.text, true);
+                getSubnets(data.target.text, true);
             }
         }, false);
         li.appendChild(liAnchor);
         ul.appendChild(li);
     }
     dropdownDiv.appendChild(ul);
-    div.appendChild(dropdownAnchor);
-    div.appendChild(dropdownDiv);
+    div.append(dropdownAnchor);
+    div.append(dropdownDiv);
 }
 
 function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) {
@@ -129,6 +133,53 @@ function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) 
 
     $("#" + parameterKey + "Val").remove();
     $(multiSelect).insertBefore($(div).children().last(), null);
+}
+
+function createInputParameter(param, fieldset) {
+    var div = document.createElement("DIV");
+    div.className = "field-group param-field-group";
+    div.id = param.ParameterKey + "Div";
+    div.name = "parameter";
+
+    var label = document.createElement("LABEL");
+    label.className = "paramLbl";
+    label.htmlFor = param.ParameterKey + "Val";
+    label.innerHTML = param.ParameterKey;
+    div.appendChild(label);
+
+    if (param.AllowedValues) {
+        createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
+    } else if (param.ParameterKey === "VPC") {
+        if (action === 'clone')
+            getVPCs($("#regionSelector").text().trim());
+        else
+            getVPCs(region, param.ParameterValue);
+    } else {
+        var input = document.createElement("INPUT");
+        input.className = "text";
+        input.id = param.ParameterKey + "Val";
+        input.value = param.ParameterValue;
+
+        if ((action === 'clone' || action === 'create')
+            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "password";
+            input.value = "";
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
+            input.value = ssh_key_name;
+        } else if (param.ParameterKey === "HostedZone" && hosted_zone !== "") {
+            input.value = hosted_zone;
+        }
+        div.appendChild(input);
+    }
+    if (param.ParameterDescription) {
+        var description = document.createElement("DIV");
+        description.className = "description";
+        description.innerText = param.ParameterDescription;
+        div.appendChild(description);
+    }
+    fieldset.appendChild(div);
 }
 
 function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
@@ -152,6 +203,22 @@ function updateTextField(parameterKey, newValue) {
     }
 }
 
+function addStackDropdown() {
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            selectStack(data.target.text);
+        }, false);
+    }
+}
+
+function addDefaultActionButtonListener() {
+    var actionButton = document.getElementById("action-button");
+    if (actionButton)
+        actionButton.addEventListener("click", performAction);
+}
+
+// Forge common functions
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
     if (stacks.length === 1 && stacks[0].text === 'No credentials') {
@@ -191,21 +258,6 @@ function redirectToLog(stack_name, extra_params) {
             url += extra_params;
         window.location = url;
     }, 1000);
-}
-
-function addDefaultActionButtonListener() {
-    var actionButton = document.getElementById("action-button");
-    if (actionButton)
-        actionButton.addEventListener("click", performAction);
-}
-
-function addStackDropdown() {
-    var stacks = document.getElementsByClassName("selectStackOption");
-    for (var i = 0; i < stacks.length; i++) {
-        stacks[i].addEventListener("click", function (data) {
-            selectStack(data.target.text);
-        }, false);
-    }
 }
 
 function processResponse() {
