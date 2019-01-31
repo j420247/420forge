@@ -2,7 +2,6 @@ var refreshLogsTimer;
 var refreshStackInfoTimer;
 
 function onReady() {
-    var stacks = document.getElementsByClassName("selectStackOption");
     $("#action-button").hide();
     $("#stackSelector").hide();
 
@@ -57,11 +56,11 @@ function refreshStackInfo(stack_name, region, cont) {
     //TODO check more frequently until stack_state is IN_PROGRESS
     if (cont) {
         refreshStackInfoTimer = setTimeout(function () {
-            updateStats(stack_name, region);
+            updateStackInfo(stack_name, region);
             refreshStackInfo(stack_name, region, true);
         }, 10000)
     } else {
-        updateStats(stack_name, region);
+        updateStackInfo(stack_name, region);
         clearTimeout(refreshStackInfoTimer);
     }
 }
