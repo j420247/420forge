@@ -27,7 +27,6 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
             getLogs(stack_name);
 
             // Stop once action is complete
-            refresh_interval = 5000;
             var logText = $("#log").contents().text().toLowerCase();
             if (action === 'diagnostics' && countOccurences(logText, "dumps complete") >= 1 ||
             countOccurences(logText
@@ -35,10 +34,10 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
                     .replace(/run sql/g, 'runsql'),
                     (this_action.toLowerCase() + " complete")) >= 1) {
                 notify(this_action + " is complete");
-                refreshLogs(stack_name, false, refresh_interval, this_action);
+                refreshLogs(stack_name, false, 0, this_action);
             }
             else
-                refreshLogs(stack_name, true, refresh_interval, this_action);
+                refreshLogs(stack_name, true, 5000, this_action);
         }, refresh_interval)
     } else {
         refreshStackInfo(stack_name, region, false);
