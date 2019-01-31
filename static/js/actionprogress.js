@@ -16,7 +16,7 @@ function onReady() {
     selectStack(stack_name);
     clearTimeout(refreshLogsTimer);
     clearTimeout(refreshStackInfoTimer);
-    refreshLogs(stack_name, true, 2000, action);
+    refreshLogs(stack_name, true, 3000, action);
     refreshStackInfo(stack_name, region, true);
 }
 
@@ -25,11 +25,6 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
     if (cont) {
         refreshLogsTimer = setTimeout(function () {
             getLogs(stack_name);
-
-            // Set refresh interval to more frequent if there is no logging yet
-            if (countOccurences($("#log").contents().text(), "No current status for") >= 1 ||
-                countOccurences($("#log").contents().text(), "Waiting for logs") >= 1 )
-                refresh_interval = 1000;
 
             // Stop once action is complete
             refresh_interval = 5000;
@@ -47,7 +42,7 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
         }, refresh_interval)
     } else {
         refreshStackInfo(stack_name, region, false);
-        clearTimeout(refreshLogsTimer); // TODO create function to check action complete and clear all timers
+        clearTimeout(refreshLogsTimer);
     }
 }
 
@@ -69,7 +64,6 @@ function getLogs(stack_name) {
     if (stack_name === 'actionreadytostart') return;
 
     $("#log").css("background", "rgba(0,20,70,.08)");
-
     send_http_get_request(baseUrl + "/getLogs/" + stack_name, displayLogs)
 }
 
