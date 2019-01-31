@@ -51,6 +51,10 @@ function displayStackStateAndRequestServiceStatus(responseText, functionParams) 
     $("#stackState").html("Stack status: " + getStatusLozenge(responseText));
     if (responseText.trim() === "\"CREATE_COMPLETE\"" ||
         responseText.trim() === "\"UPDATE_COMPLETE\"" ||
+        responseText.trim() === "\"UPDATE_IN_PROGRESS\"" ||
+        responseText.trim() === "\"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
+        responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
+        responseText.trim() === "\"UPDATE_ROLLBACK_IN_PROGRESS\"" ||
         responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
         // only request service status if stack actions are complete and successful
         send_http_get_request(baseUrl  + "/serviceStatus/" + functionParams.stack_region + "/" + functionParams.stack_name, displayServiceStatus);
