@@ -17,8 +17,6 @@ function onReady() {
     selectStack(stack_name);
     clearTimeout(refreshLogsTimer);
     clearTimeout(refreshStackInfoTimer);
-    getLogs(stack_name);
-    updateStats(stack_name, region);
     refreshLogs(stack_name, true, 2000, action);
     refreshStackInfo(stack_name, region, true);
 }
@@ -36,20 +34,9 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
 
             // Stop once action is complete
             refresh_interval = 5000;
-            if (action === 'diagnostics') {
-                if (countOccurences($("#log").contents().text().toLowerCase(), "beginning thread dumps") >= 1 &&
-                    countOccurences($("#log").contents().text().toLowerCase(), "thread dumps complete") !== 1)
-                    refreshLogs(stack_name, true, refresh_interval, this_action);
-                else if (countOccurences($("#log").contents().text().toLowerCase(), "beginning heap dumps") >= 1 &&
-                    countOccurences($("#log").contents().text().toLowerCase(), "heap dumps complete") !== 1)
-                    refreshLogs(stack_name, true, refresh_interval, this_action);
-                else {
-                    notify(this_action + " is complete");
-                    refreshLogs(stack_name, false, refresh_interval, this_action);
-                }
-            }
-            else if (countOccurences($("#log").contents().text().toLowerCase()
-                    .replace(/ dumps/g, 'dumps')
+            var logText = $("#log").contents().text().toLowerCase();
+            if (action === 'diagnostics' && countOccurences(logText, "dumps complete") >= 1 ||
+            countOccurences(logText
                     .replace(/ restart/g, 'restart')
                     .replace(/run sql/g, 'runsql'),
                     (this_action.toLowerCase() + " complete")) >= 1) {
