@@ -399,12 +399,10 @@ class Stack:
     def store_current_action(self, action, locking_enabled, changelog, actor):
         self.create_action_log(action)
         action_already_in_progress = self.get_stack_action_in_progress()
-        if not action_already_in_progress:
-            os.mkdir(f'locks/{self.stack_name}')
-            os.mkdir(f'locks/{self.stack_name}/{action}')
-        elif locking_enabled:
+        if locking_enabled and action_already_in_progress:
             self.log_msg(log.ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
             return False
+        os.makedirs(f'locks/{self.stack_name}/{action}', exist_ok=True)
         if changelog:
             self.create_change_log(action)
             if actor:
@@ -489,7 +487,7 @@ class Stack:
             return True
         except KeyError as e:
             if e.args[0] == 'Contents':
-                self.log_msg(log.ERROR, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                self.log_msg(log.WARN, f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
                 self.log_change(f'no SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
                 return True
             pprint.pprint(e)

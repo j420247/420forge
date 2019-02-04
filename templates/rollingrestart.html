@@ -1,3 +1,7 @@
 {% extends "restart.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="/static/js/restart.js"></script>
+{% endblock head %}
 
 {% block buttonText %}Rolling Restart{% endblock buttonText %}

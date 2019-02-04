@@ -8,9 +8,8 @@ function onReady() {
             $("#regionSelector").text(clone_region);
             $("#ebsSnapshotSelector").text("Select EBS snapshot");
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            getEbsSnapshots(clone_region, document.getElementById("stackSelector").innerText);
-            getRdsSnapshots(clone_region, document.getElementById("stackSelector").innerText);
-            getVPCs(clone_region, document.getElementById("VPCDiv"));
+            getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
+            getVPCs(clone_region);
         }, false);
     }
 }
@@ -25,34 +24,30 @@ function getCloneDefaults(){
         });
         return;
     }
-    var getCloneDefaultsRequest = new XMLHttpRequest();
-    getCloneDefaultsRequest.open("GET", baseUrl + "/getCloneDefaults/" + stack_name, true);
-    getCloneDefaultsRequest.setRequestHeader("Content-Type", "text/xml");
-    getCloneDefaultsRequest.onreadystatechange = function () {
-        if (getCloneDefaultsRequest.readyState === XMLHttpRequest.DONE && getCloneDefaultsRequest.status === 200) {
-            var params = JSON.parse(getCloneDefaultsRequest.responseText);
-            if (params.length == 0) {
-                AJS.flag({
-                    type: 'error',
-                    body: 'No defaults exist for ' + stack_name,
-                    close: 'auto'
-                });
-                return;
-            }
+    send_http_get_request(baseUrl + "/getCloneDefaults/" + stack_name, applyCloneDefaults);
+}
 
-            for (var param in params) {
-                var element = $("#" + params[param][0] + "Val");
-                if (element.is("input"))
-                    element.val(params[param][1]);
-                else if (element.is("a"))
-                    element.text(params[param][1]);
-            }
-            AJS.flag({
-                type: 'success',
-                body: 'Defaults for ' + stack_name + ' have been applied',
-                close: 'auto'
-            });
-        }
-    };
-    getCloneDefaultsRequest.send();
+function applyCloneDefaults(responseText) {
+    var params = JSON.parse(responseText);
+    if (params.length == 0) {
+        AJS.flag({
+            type: 'error',
+            body: 'No defaults exist for ' + stack_name,
+            close: 'auto'
+        });
+        return;
+    }
+
+    for (var param in params) {
+        var element = $("#" + params[param][0] + "Val");
+        if (element.is("input"))
+            element.val(params[param][1]);
+        else if (element.is("a"))
+            element.text(params[param][1]);
+    }
+    AJS.flag({
+        type: 'success',
+        body: 'Defaults for ' + stack_name + ' have been applied',
+        close: 'auto'
+    });
 }

@@ -1,3 +1,4 @@
+// JS helpers
 function countOccurences(stringToSearch, searchTerm) {
     var count = 0;
     var position = stringToSearch.indexOf(searchTerm);
@@ -8,6 +9,62 @@ function countOccurences(stringToSearch, searchTerm) {
     return count;
 }
 
+function removeElementsByClass(className){
+    var elements = document.getElementsByClassName(className);
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
+}
+
+function notify(message) {
+    if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+            var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
+        }
+        else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(function (permission) {
+                if (permission === "granted") {
+                    var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
+                }
+            });
+        }
+    }
+}
+
+// API helpers
+function send_http_get_request(url, onreadystatechange, optionalFunctionParams) {
+    var getRequest = new XMLHttpRequest();
+    getRequest.open("GET", url, true);
+    getRequest.setRequestHeader("Content-Type", "text/xml");
+    getRequest.addEventListener("load", processResponse);
+    if (onreadystatechange) {
+        getRequest.onreadystatechange = function () {
+            if (getRequest.readyState === XMLHttpRequest.DONE && getRequest.status === 200) {
+                if (optionalFunctionParams)
+                    onreadystatechange(getRequest.responseText, optionalFunctionParams);
+                else
+                    onreadystatechange(getRequest.responseText);
+            }
+        };
+    }
+    getRequest.send();
+}
+
+function send_http_post_request(url, data, onreadystatechange) {
+    var postRequest = new XMLHttpRequest();
+    postRequest.open("POST", url, true);
+    postRequest.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+    postRequest.addEventListener("load", processResponse);
+    if (onreadystatechange) {
+        postRequest.onreadystatechange = function () {
+            if (postRequest.readyState === XMLHttpRequest.DONE && postRequest.status === 200)
+                onreadystatechange(postRequest.responseText);
+        };
+    }
+    postRequest.send(data);
+}
+
+// Create/modify page elements
 function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     var dropdownAnchor = document.createElement("A");
     dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
@@ -49,15 +106,15 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     updateTextField("TomcatSecure", "false");
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                getSubnets(region, data.target.text, true);
+                getSubnets(data.target.text, true);
             }
         }, false);
         li.appendChild(liAnchor);
         ul.appendChild(li);
     }
     dropdownDiv.appendChild(ul);
-    div.appendChild(dropdownAnchor);
-    div.appendChild(dropdownDiv);
+    div.append(dropdownAnchor);
+    div.append(dropdownDiv);
 }
 
 function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) {
@@ -76,6 +133,53 @@ function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) 
 
     $("#" + parameterKey + "Val").remove();
     $(multiSelect).insertBefore($(div).children().last(), null);
+}
+
+function createInputParameter(param, fieldset) {
+    var div = document.createElement("DIV");
+    div.className = "field-group param-field-group";
+    div.id = param.ParameterKey + "Div";
+    div.name = "parameter";
+
+    var label = document.createElement("LABEL");
+    label.className = "paramLbl";
+    label.htmlFor = param.ParameterKey + "Val";
+    label.innerHTML = param.ParameterKey;
+    div.appendChild(label);
+
+    if (param.AllowedValues) {
+        createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
+    } else if (param.ParameterKey === "VPC") {
+        if (action === 'clone')
+            getVPCs($("#regionSelector").text().trim());
+        else
+            getVPCs(region, param.ParameterValue);
+    } else {
+        var input = document.createElement("INPUT");
+        input.className = "text";
+        input.id = param.ParameterKey + "Val";
+        input.value = param.ParameterValue;
+
+        if ((action === 'clone' || action === 'create')
+            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "password";
+            input.value = "";
+            input.required = true;
+        } else if (param.ParameterKey === "KeyName" && ssh_key_name !== "") {
+            input.value = ssh_key_name;
+        } else if (param.ParameterKey === "HostedZone" && hosted_zone !== "") {
+            input.value = hosted_zone;
+        }
+        div.appendChild(input);
+    }
+    if (param.ParameterDescription) {
+        var description = document.createElement("DIV");
+        description.className = "description";
+        description.innerText = param.ParameterDescription;
+        div.appendChild(description);
+    }
+    fieldset.appendChild(div);
 }
 
 function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
@@ -99,29 +203,30 @@ function updateTextField(parameterKey, newValue) {
     }
 }
 
+function addStackDropdown() {
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            selectStack(data.target.text);
+        }, false);
+    }
+}
+
+function addDefaultActionButtonListener() {
+    var actionButton = document.getElementById("action-button");
+    if (actionButton)
+        actionButton.addEventListener("click", performAction);
+}
+
+// Forge common functions
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
-    if (stacks.length == 1 && stacks[0].text == 'No credentials') {
+    if (stacks.length === 1 && stacks[0].text === 'No credentials') {
         AJS.flag({
             type: 'error',
             body: 'No credentials - please authenticate with Cloudtoken',
             close: 'manual'
         });
-    }
-}
-
-function notify(message) {
-    if ("Notification" in window) {
-        if (Notification.permission === "granted") {
-            var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
-        }
-        else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then(function (permission) {
-                if (permission === "granted") {
-                    var notification = new Notification('Forge', {body: message, icon: '/static/img/Atlassian-vertical-blue@2x-rgb.png'});
-                }
-            });
-        }
     }
 }
 
@@ -144,10 +249,19 @@ function getAuthDetailsAsJSON() {
     return jsonArray;
 }
 
-function redirectToLog(stack_name) {
+function redirectToLog(stack_name, extra_params) {
     // Wait a mo for action to begin  in backend
     setTimeout(function () {
         // Redirect to action progress screen
-        window.location = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
+        var url = baseUrl + "/actionprogress/" + action + "?stack=" + stack_name;
+        if (extra_params)
+            url += extra_params;
+        window.location = url;
     }, 1000);
+}
+
+function processResponse() {
+    if (this.status !== 200) {
+        window.location = baseUrl + "/error/" + this.status;
+    }
 }
