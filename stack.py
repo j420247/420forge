@@ -561,11 +561,12 @@ class Stack:
         # get preupgrade version and node counts
         self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                    p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
-        self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                          p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if self.app_type == 'confluence' and self.clustered == 'true':
-            self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                                    p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+        if self.clustered == 'true':
+            self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                              p['ParameterKey'] == 'ClusterNodeMax'][0]
+            if self.app_type == 'confluence':
+                self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                                        p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
