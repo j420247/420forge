@@ -191,7 +191,7 @@ class Stack:
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif self.app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            if self.clustered == 'true':
+            if hasattr(self, 'preupgrade_synchrony_node_count'):
                 spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
                 spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif self.app_type == 'crowd':
@@ -299,7 +299,7 @@ class Stack:
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
-        if hasattr(self, 'synchrony_node_count'):
+        if hasattr(self, 'preupgrade_synchrony_node_count'):
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
         try:
