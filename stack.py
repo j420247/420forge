@@ -141,13 +141,9 @@ class Stack:
         self.log_msg(log.INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.getparms()
-        # TODO: should we modify Server CFN templates to use a variable for AutoScalingGroup size
-        #       (currently hardcoded to '1' to avoid issues where users might specify any number other
-        #       than '1') or should we just manipulate the resources directly (issue commands directly
-        #       to the autoscaling group to scale down)?
-        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax' if self.clustered == 'true' else 'TODO: REPLACE ME?', '0')
-        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin' if self.clustered == 'true' else 'TODO: REPLACE ME?', '0')
-        if self.app_type == 'confluence' and self.clustered == 'true':
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
+        spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
+        if self.app_type == 'confluence':
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
@@ -189,12 +185,8 @@ class Stack:
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
-        # TODO: should we modify Server CFN templates to use a variable for AutoScalingGroup size
-        #       (currently hardcoded to '1' to avoid issues where users might specify any number other
-        #       than '1') or should we just manipulate the resources directly (issue commands directly
-        #       to the autoscaling group to scale up)?
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax' if self.clustered == 'true' else 'TODO: REPLACE ME?', '1')
-        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin' if self.clustered == 'true' else 'TODO: REPLACE ME?', '1')
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
+        spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
         if self.app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif self.app_type == 'confluence':
