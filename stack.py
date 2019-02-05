@@ -654,6 +654,27 @@ class Stack:
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
+        if not self.clustered:
+            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change('Could not determine whether app is clustered. Upgrade complete - failed.')
+            return False
+        if self.clustered == 'true':
+            if not self.upgrade_dc(new_version):
+                self.log_msg(log.INFO, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed, see action log for details')
+                return False
+        else:
+            if not self.upgrade_server(new_version):
+                self.log_msg(log.INFO, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed, see action log for details')
+                return False
+        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+        self.log_msg(log.INFO, 'Upgrade complete')
+        self.log_change('Upgrade successful')
+        return True
+
+    def upgrade_dc(self, new_version):
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
@@ -672,9 +693,46 @@ class Stack:
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
-        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-        self.log_msg(log.INFO, 'Upgrade complete')
-        self.log_change('Upgrade successful')
+        return True
+
+    def upgrade_server(self, new_version):
+        self.get_pre_upgrade_information()
+        self.log_change(f'New version: {new_version}')
+        self.log_change('Upgrade is underway')
+        # update the version in stack parameters
+        stack_params = self.getparms()
+        if self.app_type == 'jira':
+            stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+        elif self.app_type == 'confluence':
+            stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
+        elif self.app_type == 'crowd':
+            stack_params = self.update_parmlist(stack_params, 'CrowdVersion', new_version)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_params,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'])
+        except Exception as e:
+            if 'No updates are to be performed' in e.args[0]:
+                self.log_msg(log.INFO, f'Stack is already at {new_version}')
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                return False
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+        else:
+            self.log_msg(log.INFO, 'Could not update version in stack parameters')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - could not update version in stack parameters')
+            return False
+        # terminate the node and allow new one to spin up
+        if not self.rolling_rebuild():
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Upgrade failed.')
+            return False
         return True
 
     def upgrade_zdu(self, new_version, username, password):
