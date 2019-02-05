@@ -257,6 +257,7 @@ Resources:
                 - kms:CreateAlias
                 - kms:CreateGrant
                 - kms:CreateKey
+                - kms:DeleteAlias
                 - kms:DescribeKey
                 - kms:ListAliases
                 - kms:PutKeyPolicy
@@ -264,6 +265,7 @@ Resources:
                 - kms:TagResource
                 - kms:UpdateKey
                 - rds:CreateDBInstance
+                - rds:CreateDBInstanceReadReplica
                 - rds:CreateDBSubnetGroup
                 - rds:DeleteDBInstance
                 - rds:DeleteDBSubnetGroup
@@ -290,8 +292,7 @@ Resources:
                 - s3:ListBucket
                 - s3:ListBucketByTags
                 Effect: Allow
-                Resource:
-                  - !Sub ["arn:aws:s3:::atl-cfn-forge-${AccountId}", AccountId: !Ref "AWS::AccountId"]
+                Resource: !Sub "arn:aws:s3:::atl-cfn-forge-${AWS::AccountId}"
               - Action:
                 - s3:GetObject
                 - s3:GetObjectAcl
@@ -301,8 +302,7 @@ Resources:
                 - s3:PutObjectTagging
                 - s3:PutObjectVersionTagging
                 Effect: Allow
-                Resource:
-                  - !Sub ["arn:aws:s3:::atl-cfn-forge-${AccountId}/*", AccountId: !Ref "AWS::AccountId"]
+                Resource: !Sub "arn:aws:s3:::atl-cfn-forge-${AWS::AccountId}/*"
 
   ForgeNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -612,7 +612,7 @@ Resources:
       Subnets: !Ref ExternalSubnet
       Tags:
         - Key: Name
-          Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
+          Value: !Sub "${AWS::StackName}-LoadBalancer"
   LoadBalancerCname:
     Condition: UseHostedZone
     Type: AWS::Route53::RecordSet
