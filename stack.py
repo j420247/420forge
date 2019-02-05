@@ -41,6 +41,8 @@ class Stack:
         self.region = region
         self.logfile = None
         self.changelogfile = None
+        self.app_type = self.get_tag('product')
+        self.clustered = self.get_tag('clustered')
 
 
 ## Stack - micro function methods
@@ -556,12 +558,9 @@ class Stack:
             print(e.args[0])
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
-        # get product
-        self.app_type = self.get_tag('product')
         if not self.app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
-        self.clustered = self.get_tag('clustered')
         if not self.clustered:
             self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
@@ -806,7 +805,6 @@ class Stack:
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
         template = str(template_file)
-        self.clustered = self.get_tag('clustered')
         if not self.clustered:
             self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
             self.log_msg(log.ERROR, 'Update complete - failed')
@@ -908,13 +906,11 @@ class Stack:
     def rolling_restart(self):
         self.log_msg(log.INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.log_change(f'Beginning Rolling Restart for {self.stack_name}')
-        self.app_type = self.get_tag('product')
         if not self.app_type:
             self.log_msg(log.ERROR, 'Could not determine product')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine product. Rolling restart failed.')
             return False
-        self.clustered = self.get_tag('clustered')
         if not self.clustered:
             self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
@@ -962,7 +958,6 @@ class Stack:
     def full_restart(self):
         self.log_msg(log.INFO, f'Beginning Full Restart for {self.stack_name}')
         self.log_change(f'Beginning Full Restart for {self.stack_name}')
-        self.app_type = self.get_tag('product')
         if not self.app_type:
             self.log_msg(log.ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
