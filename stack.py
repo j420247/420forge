@@ -329,9 +329,10 @@ class Stack:
         ec2 = boto3.resource('ec2', region_name=self.region)
         filters = [
             {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
-            {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
             {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}
         ]
+        if self.clustered == 'true':
+            filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
         for i in ec2.instances.filter(Filters=filters):
             instancedict = {i.instance_id: i.private_ip_address}
