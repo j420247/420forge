@@ -351,6 +351,11 @@ Resources:
                   ATL_HOSTEDZONE=${HostedZone}
                   ATL_LOCAL_ANSIBLE_REPO=${LocalAnsibleGitRepo}
                   ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
+                - CustomTemplateRepo: !Ref CustomTemplateRepo
+                  CustomTemplateGitKey: !Ref CustomTemplateGitKey
+                  HostedZone: !Ref HostedZone
+                  LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
+                  LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
               group: root
               mode: "000640"
               owner: root
@@ -588,7 +593,7 @@ Resources:
     Properties:
       GroupId: !Ref ForgeNodeSecurityGroup
       FromPort: -1
-      IpProtocol: -1
+      IpProtocol: '-1'
       ToPort: -1
       SourceSecurityGroupId: !Ref ForgeNodeSecurityGroup
 # Loadbalancer
@@ -597,16 +602,16 @@ Resources:
     Properties:
       CrossZone: true
       Listeners:
-        - LoadBalancerPort: 80
+        - LoadBalancerPort: '80'
           Protocol: TCP
-          InstancePort: 8000
+          InstancePort: '8000'
           InstanceProtocol: TCP
       HealthCheck:
         Target: 'HTTP:8000/status'
-        Timeout: 29
-        Interval: 30
-        UnhealthyThreshold: 2
-        HealthyThreshold: 2
+        Timeout: '29'
+        Interval: '30'
+        UnhealthyThreshold: '2'
+        HealthyThreshold: '2'
       Scheme: !If [InternetAccessible, 'internet-facing', 'internal']
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
       Subnets: !Ref ExternalSubnet
@@ -621,7 +626,7 @@ Resources:
       Comment: Route53 cname for the ELB
       Name: !Join ['.', [!Ref "AWS::StackName", !Ref 'HostedZone']]
       Type: CNAME
-      TTL: 900
+      TTL: '900'
       ResourceRecords:
         - !GetAtt LoadBalancer.DNSName
 Outputs:
