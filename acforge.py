@@ -920,7 +920,7 @@ def get_template_file(template_name):
     if 'atlassian-aws-deployment' in template_name:
         template_folder = Path('atlassian-aws-deployment/templates')
     else:
-        template_folder = Path('../custom-templates')
+        template_folder = Path(f"../custom-templates/{template_name.split(': ')[0]}")
     return list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))[0]
 
 
