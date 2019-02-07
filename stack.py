@@ -42,7 +42,8 @@ class Stack:
         self.logfile = None
         self.changelogfile = None
         self.app_type = self.get_tag('product')
-        self.clustered = self.get_tag('clustered')
+        # assume apps are clustered if no tag exists
+        self.clustered = self.get_tag('clustered') or 'true'
 
 
 ## Stack - micro function methods
@@ -554,10 +555,6 @@ class Stack:
         if not self.app_type:
             self.log_msg(log.ERROR, 'Upgrade complete - failed')
             return False
-        if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Upgrade complete - failed')
-            return False
         # get preupgrade version and node counts
         self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                    p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
@@ -654,11 +651,6 @@ class Stack:
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
-        if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Upgrade complete - failed')
-            self.log_change('Could not determine whether app is clustered. Upgrade complete - failed.')
-            return False
         if self.clustered == 'true':
             if not self.upgrade_dc(new_version):
                 self.log_msg(log.INFO, 'Upgrade complete - failed')
@@ -857,11 +849,6 @@ class Stack:
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
         template = str(template_file)
-        if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Update complete - failed')
-            self.log_change('Could not determine whether app is clustered. Update complete - failed.')
-            return False
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -966,11 +953,6 @@ class Stack:
         instance_list = self.get_stacknodes()
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
         # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
-        if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
-            self.log_change('Could not determine whether app is clustered. Rolling restart failed.')
-            return False
         if self.clustered == 'false':
             self.log_msg(log.ERROR, 'App is not clustered - rolling restart not supported (use full restart)')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
