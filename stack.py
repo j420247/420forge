@@ -963,19 +963,24 @@ class Stack:
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine product. Rolling restart failed.')
             return False
+        instance_list = self.get_stacknodes()
+        self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
         if not self.clustered:
             self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine whether app is clustered. Rolling restart failed.')
             return False
         if self.clustered == 'false':
-            self.log_msg(log.ERROR, 'App is not clustered; rolling restart not supported')
+            self.log_msg(log.ERROR, 'App is not clustered - rolling restart not supported (use full restart)')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
             return False
-        self.get_stacknodes()
-        instance_list = self.instancelist
-        self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        if len(instance_list) == 1:
+            self.log_msg(log.ERROR, 'App only has one node - rolling restart not supported (use full restart)')
+            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('App only has one node - rolling restart not supported (use full restart). Rolling restart failed.')
+            return False
         # determine if the nodes are running or not
         running_nodes = []
         non_running_nodes = []
