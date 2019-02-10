@@ -51,8 +51,11 @@ class Stack:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
+                product = self.get_tag('product')
                 service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
                             p['OutputKey'] == 'ServiceURL'][0] + '/'
+                if product == 'crowd':
+                    service_url = service_url + product + '/'
                 self.service_url = service_url
                 return service_url
             except Exception as e:
