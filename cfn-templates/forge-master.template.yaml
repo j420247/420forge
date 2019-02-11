@@ -104,6 +104,9 @@ Parameters:
       - dr
       - prod
       - stg
+    ConstraintDescription: Must be either Production (prod), Staging (stg), or Disaster Recovery (dr).
+    Description: Environment of the application - either Production, Staging, Disaster Recovery (DR) or Development
+    Type: String
   ExternalSubnet:
     ConstraintDescription: Select one Subnet ID within the selected VPC
     Description: Subnet where your user-facing load balancer will be deployed. MUST be within the selected VPC.
