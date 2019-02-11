@@ -321,6 +321,10 @@ class Stack:
             {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
             {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}
         ]
+        self.clustered = self.get_tag('clustered')
+        if not self.clustered:
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.clustered = 'true'
         if self.clustered == 'true':
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
@@ -556,9 +560,8 @@ class Stack:
             return False
         self.clustered = self.get_tag('clustered')
         if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Upgrade complete - failed')
-            return False
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.clustered = 'true'
         # get preupgrade version and node counts
         self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
                                    p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
@@ -655,11 +658,10 @@ class Stack:
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
+        self.clustered = self.get_tag('clustered')
         if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Upgrade complete - failed')
-            self.log_change('Could not determine whether app is clustered. Upgrade complete - failed.')
-            return False
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.clustered = 'true'
         if self.clustered == 'true':
             if not self.upgrade_dc(new_version):
                 self.log_msg(log.INFO, 'Upgrade complete - failed')
@@ -860,10 +862,8 @@ class Stack:
         template = str(template_file)
         self.clustered = self.get_tag('clustered')
         if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Update complete - failed')
-            self.log_change('Could not determine whether app is clustered. Update complete - failed.')
-            return False
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.clustered = 'true'
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -971,10 +971,8 @@ class Stack:
         # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
         self.clustered = self.get_tag('clustered')
         if not self.clustered:
-            self.log_msg(log.ERROR, 'Could not determine whether app is clustered')
-            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
-            self.log_change('Could not determine whether app is clustered. Rolling restart failed.')
-            return False
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.clustered = 'true'
         if self.clustered == 'false':
             self.log_msg(log.ERROR, 'App is not clustered - rolling restart not supported (use full restart)')
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
