@@ -28,6 +28,7 @@ Metadata:
             - Analytics
             - CustomTemplateRepo
             - CustomTemplateGitKey
+            - DeployEnvironment
             - LocalAnsibleGitRepo
             - LocalAnsibleGitSshKeyName
             - Nodes
@@ -41,6 +42,8 @@ Metadata:
           default: Custom Cloudformation template repository
         CustomTemplateGitKey:
           default: Git key for custom template repository
+        DeployEnvironment:
+          default: Deployment Environment
         FlaskSecretKey:
           default: Flask secret key
         ExternalSubnet:
@@ -71,7 +74,6 @@ Metadata:
           default: SAML metadata URL
         VPC:
           default: VPC Id
-
 Parameters:
   Analytics:
     Default: true
@@ -94,6 +96,16 @@ Parameters:
     Type: String
   CustomTemplateGitKey:
     Description: If your custom template repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
+    Type: String
+  DeployEnvironment:
+    Default: stg
+    AllowedValues:
+      - dev
+      - dr
+      - prod
+      - stg
+    ConstraintDescription: Must be either Production (prod), Staging (stg), Disaster Recovery (dr) or Development (dev).
+    Description: Environment of the application - either Production, Staging, Disaster Recovery (DR) or Development
     Type: String
   ExternalSubnet:
     ConstraintDescription: Select one Subnet ID within the selected VPC
@@ -348,11 +360,13 @@ Resources:
                   ATL_AUTOSCALING_GROUP_NAME=ForgeNodeGroup
                   ATL_CUSTOM_TEMPLATE_REPO=${CustomTemplateRepo}
                   ATL_CUSTOM_TEMPLATE_GITKEY=${CustomTemplateGitKey}
+                  ATL_ENVIRONMENT=${DeployEnvironment}
                   ATL_HOSTEDZONE=${HostedZone}
                   ATL_LOCAL_ANSIBLE_REPO=${LocalAnsibleGitRepo}
                   ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
                 - CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
+                  DeployEnvironment: !Ref DeployEnvironment
                   HostedZone: !Ref HostedZone
                   LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
                   LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
