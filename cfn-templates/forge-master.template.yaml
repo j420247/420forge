@@ -104,7 +104,7 @@ Parameters:
       - dr
       - prod
       - stg
-    ConstraintDescription: Must be either Production (prod), Staging (stg), or Disaster Recovery (dr).
+    ConstraintDescription: Must be either Production (prod), Staging (stg), Disaster Recovery (dr) or Development (dev).
     Description: Environment of the application - either Production, Staging, Disaster Recovery (DR) or Development
     Type: String
   ExternalSubnet:
