@@ -1,0 +1,28 @@
+#!/bin/env bash
+# This script should be run from an app node on a clean Atlassian Product CFN stack
+#  to populate the product RDS with a dumpfile taken from an existing (source) service
+
+# reload the DB cleanly from a pg_dump taken with unload_rds
+
+# get input values from /etc/atl
+source /etc/atl
+
+# load the postgres user password into the appropriate env var
+export PGPASSWORD=${ATL_DB_PASSWORD}
+
+# terminate any active DB connections
+/usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid)
+   FROM pg_stat_activity
+   WHERE pg_stat_activity.datname = '${ATL_DB_NAME}' AND pid <> pg_backend_pid();"
+
+# drop the DB
+/usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -c "drop database ${ATL_DB_NAME}"
+
+# create the DB
+/usr/bin/psql -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -c "CREATE DATABASE ${ATL_DB_NAME} WITH ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0"
+
+# load the application user password into the appropriate env var
+export PGPASSWORD=${ATL_JDBC_PASSWORD}
+
+# reload the db from sql dump filename passed in $1
+pg_restore --verbose --no-privileges --jobs=$(nproc) --no-owner -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U ${ATL_JDBC_USER} -d ${ATL_DB_NAME} $1

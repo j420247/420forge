@@ -1,0 +1,66 @@
+{% extends "template-params.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('clone.js') }}"></script>
+{% endblock head %}
+
+{% block stackSelectorDescription %}
+Select stack to clone
+{% endblock stackSelectorDescription %}
+
+{% block stackStatusPanel %}
+{% endblock stackStatusPanel %}
+
+{% block extraParams %}
+<div id="clone-params" hidden>
+    <div class="field-group param-field-group">
+        <label for="StackNameVal" class="paramLbl">StackName</label>
+        <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required>
+        <button class="aui-button" type="button" onclick="getCloneDefaults()" >Get defaults</button>
+    </div>
+    <div class="field-group param-field-group">
+        <label for="regionSelector" class="paramLbl">Region</label>
+        <a id="regionSelector" href="#regionSelection" aria-owns="regionSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            {{ session['regions'][0][0] }}
+        </a>
+        <!-- Dropdown -->
+        <div id="regionSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate" id="region">
+                {% for region in session['regions'] %}
+                <li><a class="selectRegionOption">{{ region[0] }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <!-- Snapshot selectors -->
+    {#  EBS snapshot selector  #}
+    <div class="field-group param-field-group">
+        <label for="ebsSnapshotSelector" class="paramLbl">EBSSnapshotId</label>
+        <a id="ebsSnapshotSelector" href="#ebsSnapshotSelection" aria-owns="ebsSnapshotSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            Select EBS snapshot
+        </a>
+        <!-- Dropdown -->
+        <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate" id="ebsSnapshots">
+            </ul>
+        </div>
+    </div>
+    {#  RDS snapshot selector  #}
+    <div class="field-group param-field-group">
+        <label for="rdsSnapshotSelector" class="paramLbl">DBSnapshotName</label>
+        <a id="rdsSnapshotSelector" href="#rdsSnapshotSelection" aria-owns="rdsSnapshotSelection" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            Select RDS snapshot
+        </a>
+        <!-- Dropdown -->
+        <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
+            <ul class="aui-list-truncate" id="rdsSnapshots">
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock extraParams %}
+
+{% block buttonText %}Clone{% endblock buttonText %}

@@ -1,0 +1,46 @@
+[{
+  "ParameterKey": "AccessCIDR",
+  "ParameterValue": "0.0.0.0/0"
+}, {
+  "ParameterKey": "AvailabilityZones",
+  "ParameterValue": "us-east-2a,us-east-2b"
+}, {
+  "ParameterKey": "DRRegion",
+  "ParameterValue": "us-east-1"
+}, {
+  "ParameterKey": "EnableBackmac",
+  "ParameterValue": "true"
+}, {
+  "ParameterKey": "EnableForge",
+  "ParameterValue": "true"
+}, {
+  "ParameterKey": "FlaskSecretKey",
+  "ParameterValue": "s3333333cret"
+}, {
+  "ParameterKey": "KeyPairName",
+  "ParameterValue": "WPE-GenericKeyPair-20161102"
+}, {
+  "ParameterKey": "NATInstanceType",
+  "ParameterValue": "t2.small"
+}, {
+  "ParameterKey": "PrivateSubnet1CIDR",
+  "ParameterValue": "10.0.0.0/20"
+}, {
+  "ParameterKey": "PrivateSubnet2CIDR",
+  "ParameterValue": "10.0.32.0/20"
+}, {
+  "ParameterKey": "PublicSubnet1CIDR",
+  "ParameterValue": "10.0.128.0/20"
+}, {
+  "ParameterKey": "PublicSubnet2CIDR",
+  "ParameterValue": "10.0.144.0/20"
+}, {
+  "ParameterKey": "QSS3BucketName",
+  "ParameterValue": "itops-ci"
+}, {
+  "ParameterKey": "QSS3KeyPrefix",
+  "ParameterValue": ""
+}, {
+  "ParameterKey": "VPCCIDR",
+  "ParameterValue": "10.0.0.0/16"
+}]

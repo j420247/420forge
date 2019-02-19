@@ -1,0 +1,348 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Elasticsearch cluster for Atlassian Bitbucket Server",
+
+  "Parameters" : {
+    "CidrBlock" : {
+      "Description" : "The IP address range that is permitted to access the instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "ESClusterNodeMax" : {
+      "Description" : "Maximum number of cluster nodes",
+      "Type" : "Number",
+      "Default" : "27"
+    },
+    "ESClusterNodeMin" : {
+      "Description" : "Minimum number of cluster nodes",
+      "Type" : "Number",
+      "Default" : "3"
+    },
+    "ESServerAvailabilityZones" : {
+      "Description" : "Availability Zone to place Elasticsearch server",
+      "Type": "List<AWS::EC2::AvailabilityZone::Name>"
+    },
+    "ESServerSubnetId": {
+      "Description" : "Subnet to place ES servers",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "ESServerEbsOptimized" : {
+      "Description" : "Enable EBS Optimizations",
+      "Type" : "String",
+      "Default" : "true",
+      "AllowedValues" : [ "true", "false" ],
+      "ConstraintDescription" : "must be 'true' or 'false'."
+    },
+    "ESServerInstanceType" : {
+      "Description" : "Cluster node EC2 instance type",
+      "Type" : "String",
+      "Default" : "m4.large",
+      "AllowedValues" : [
+        "m4.large","m4.xlarge", "m4.2xlarge",
+        "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge",
+        "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge",
+        "g2.2xlarge",
+        "hs1.8xlarge",
+        "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge",
+        "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge"
+      ],
+      "ConstraintDescription" : "must be a valid EC2 instance type, 'xlarge' or larger."
+    },
+    "ESSecurityGroupID" : {
+      "Description" : "Security Group ID of existing SG",
+      "Default" : "none",
+      "Type":"List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "HomeVolumeSnapshotId" : {
+      "Type":"String",
+      "Description" : "The EBS Snapshot to build the Home Volume from"
+    },
+    "HomeIops" : {
+      "Description" : "Home directory IOPS (100 - 20000, only used with Provisioned IOPS).  Note: The ratio of IOPS provisioned to the volume size requested can be a maximum of 30; for example, a volume with 3000 IOPS must be at least 100 GiB",
+      "Type" : "Number",
+      "Default" : "1000",
+      "MinValue" : "100",
+      "MaxValue" : "20000",
+      "ConstraintDescription" : "must be in the range 100 - 20000."
+    },
+    "HomeSize" : {
+      "Description" : "Home directory storage size, in gibibytes (GiB) (100 - 16384)",
+      "Type" : "Number",
+      "Default" : "100",
+      "MinValue" : "100",
+      "MaxValue" : "16384",
+      "ConstraintDescription" : "must be in the range 100 - 16384."
+    },
+    "HomeVolumeType" : {
+      "Description" : "Home directory volume type",
+      "Type" : "String",
+      "Default" : "General Purpose (SSD)",
+      "AllowedValues" : [ "General Purpose (SSD)", "Provisioned IOPS" ],
+      "ConstraintDescription" : "must be 'General Purpose (SSD)' or 'Provisioned IOPS'."
+    },
+    "BucklerPassword" : {
+      "Description" : "Basic auth password to talk to ES cluster nodes. (Min 6 characters)",
+      "Type" : "String",
+      "Default" : "",
+      "NoEcho" : true,
+      "Type": "String"
+    },
+    "KeystoreName" : {
+      "Description" : "Java keystore containing the SSL Server Certificate.",
+      "Type" : "String",
+      "Default" : "",
+      "Type": "String"
+    },
+    "InstanceProfile" : {
+      "Description" : "IAM Instance profile to allow elasticsearch nodes to discover each other",
+      "Type" : "String",
+      "Default" : "",
+      "Type": "String"
+    },
+    "KeyName" : {
+      "Description" : "(REQUIRED) The EC2 Key Pair to allow SSH access to the instances",
+      "Type" : "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+    "VPC" : {
+      "Description" : "(REQUIRED) Virtual Private Cloud",
+      "Type" : "AWS::EC2::VPC::Id",
+      "ConstraintDescription" : "must be the ID of a VPC."
+    }
+  },
+
+  "Conditions" : {
+    "HomeProvisionedIops" : { "Fn::Equals" : [ { "Ref" : "HomeVolumeType"    }, "Provisioned IOPS" ] }
+  },
+
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "m4.large"    : { "Arch" : "HVM64"  },
+      "m4.xlarge"   : { "Arch" : "HVM64"  },
+      "m4.2xlarge"  : { "Arch" : "HVM64"  },
+      "c3.large"    : { "Arch" : "HVM64"  },
+      "c3.xlarge"   : { "Arch" : "HVM64"  },
+      "c3.2xlarge"  : { "Arch" : "HVM64"  },
+      "c3.4xlarge"  : { "Arch" : "HVM64"  },
+      "c3.8xlarge"  : { "Arch" : "HVM64"  },
+      "c4.large"    : { "Arch" : "HVM64"  },
+      "c4.xlarge"   : { "Arch" : "HVM64"  },
+      "c4.2xlarge"  : { "Arch" : "HVM64"  },
+      "c4.4xlarge"  : { "Arch" : "HVM64"  },
+      "c4.8xlarge"  : { "Arch" : "HVM64"  },
+      "g2.2xlarge"  : { "Arch" : "HVMG2"  },
+      "r3.large"    : { "Arch" : "HVM64"  },
+      "r3.xlarge"   : { "Arch" : "HVM64"  },
+      "r3.2xlarge"  : { "Arch" : "HVM64"  },
+      "r3.4xlarge"  : { "Arch" : "HVM64"  },
+      "r3.8xlarge"  : { "Arch" : "HVM64"  },
+      "i2.xlarge"   : { "Arch" : "HVM64"  },
+      "i2.2xlarge"  : { "Arch" : "HVM64"  },
+      "i2.4xlarge"  : { "Arch" : "HVM64"  },
+      "i2.8xlarge"  : { "Arch" : "HVM64"  },
+      "hi1.4xlarge" : { "Arch" : "HVM64"  },
+      "hs1.8xlarge" : { "Arch" : "HVM64"  },
+      "cr1.8xlarge" : { "Arch" : "HVM64"  },
+      "cc2.8xlarge" : { "Arch" : "HVM64"  }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1" :      { "HVM64" : "ami-6661eb71" },
+      "ap-southeast-2" : { "HVM64" : "ami-1a615479" }
+    }
+  },
+
+  "Resources" : {
+
+    "ESServerGroup" : {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones" : { "Ref" : "ESServerAvailabilityZones" },
+        "VPCZoneIdentifier": { "Ref": "ESServerSubnetId" },
+        "HealthCheckGracePeriod": 600,
+        "HealthCheckType": "EC2",
+        "MetricsCollection": [{
+          "Granularity": "1Minute"
+        }],
+        "LaunchConfigurationName": { "Ref": "ESServerLaunchConfig" },
+        "LoadBalancerNames": [ { "Ref": "LoadBalancer" } ],
+        "DesiredCapacity": { "Ref": "ESClusterNodeMin" },
+        "MaxSize": { "Ref": "ESClusterNodeMax" },
+        "MinSize": { "Ref": "ESClusterNodeMin" },
+        "Tags" : [
+          { "Key" : "Name",           "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch" : true },
+          { "Key" : "service_name",   "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch" : true },
+          { "Key" : "resource_owner", "Value" : "secole",                     "PropagateAtLaunch" : true },
+          { "Key" : "business_unit",  "Value" : "RD:Dev Tools Engineering",   "PropagateAtLaunch" : true },
+          { "Key" : "cluster",        "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch" : true }
+        ]
+      }
+    },
+
+    "ESServerLaunchConfig" : {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata" : {
+        "Comment" : "",
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "default" : [ "1" ]
+          },
+          "1" : {
+            "commands" : {
+              "010_run_puppet" : {
+                "command": "sudo FACTER_role=nfs puppet apply /etc/puppet/manifests/site.pp --modulepath /etc/puppet/modules/",
+                "ignoreErrors" : "false"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "KeyName": { "Ref": "KeyName" },
+        "ImageId": {
+          "Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" },
+            { "Fn::FindInMap": [ "AWSInstanceType2Arch", { "Ref": "ESServerInstanceType" }, "Arch" ] } ]
+        },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+
+        "InstanceType": { "Ref": "ESServerInstanceType" },
+        "IamInstanceProfile" : { "Ref": "InstanceProfile" },
+        "BlockDeviceMappings" : [
+          {
+            "DeviceName" : "/dev/xvdf",
+            "Ebs" : {
+              "DeleteOnTermination" : true,
+              "Encrypted" : false,
+              "Iops" : 3000,
+              "VolumeSize" : { "Ref": "HomeSize" },
+              "VolumeType" : "gp2"
+            }
+          }  
+        ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "", [
+          "#!/bin/bash -xe\n",
+          "echo \"127.0.0.1 $(hostname)\" | sudo tee -a /etc/hosts\n",
+          "echo bitbucket::es::cluster_name: ",{ "Ref" : "AWS::StackName" },
+          " | tee /var/lib/hiera/cluster.yaml\n",
+          "echo region: ", { "Ref" : "AWS::Region" },
+          " | tee -a /var/lib/hiera/cluster.yaml\n",
+          "echo bitbucket::es::buckler::password: ", { "Ref" : "BucklerPassword" },
+          " | tee -a /var/lib/hiera/cluster.yaml\n",
+          "sudo locale-gen en_AU.UTF-8\n",
+          "sudo service elasticsearch-es-01 stop\n",
+          "sudo mkdir -p /srv/nfs/shared_home\n",
+          "sudo mkfs.ext4 /dev/xvdf\n",
+          "sudo mount /dev/xvdf /srv/nfs/shared_home\n",
+          "sudo rm -rf /usr/share/elasticsearch/data/es-01\n",
+          "sudo ln -s /srv/nfs/shared_home /usr/share/elasticsearch/data/es-01\n",
+          "sudo chown elasticsearch:elasticsearch /usr/share/elasticsearch/data/es-01\n",
+          "sudo FACTER_role=es puppet apply /etc/puppet/manifests/site.pp --modulepath /etc/puppet/modules/\n",
+          "sudo aws --region ", { "Ref" : "AWS::Region" } ," ",
+            "s3 cp s3://devtools-internal-assets/bitbucket-server/SSL/", { "Ref" : "KeystoreName" }, " ", 
+            "/etc/elasticsearch/es-01/buckler/", { "Ref" : "KeystoreName" },"\n",
+          "sudo keytool -importkeystore -srckeystore /etc/elasticsearch/es-01/buckler/",{ "Ref" : "KeystoreName" }, " ",
+            "-destkeystore /etc/elasticsearch/es-01/buckler/keystore -srcstorepass changeit -deststorepass ", { "Ref" : "BucklerPassword" }, "\n",
+          "sudo keytool -keypasswd -new ", { "Ref" : "BucklerPassword" }, " ", 
+            "-keystore /etc/elasticsearch/es-01/buckler/keystore -storepass ", { "Ref" : "BucklerPassword" }, 
+            " -alias buckler -keypass changeit\n",
+          "sudo chown elasticsearch:elasticsearch /etc/elasticsearch/es-01/buckler/keystore\n",
+          "sudo service elasticsearch-es-01 restart \n",
+          "\n"
+        ]]}}
+      }
+    },
+
+    "LoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "ConnectionDrainingPolicy" : {
+          "Enabled" : true,
+          "Timeout" : 300
+        },
+        "ConnectionSettings" : {
+          "IdleTimeout" : 3600
+        },
+        "CrossZone" : "true",
+        "Listeners" : [ {
+          "LoadBalancerPort" : "9200",
+          "Protocol" : "TCP",
+          "InstancePort" : "9200",
+          "InstanceProtocol" : "TCP"
+        },{
+          "LoadBalancerPort" : "443",
+          "Protocol" : "TCP",
+          "InstancePort" : "9200",
+          "InstanceProtocol" : "TCP"
+        } ],
+        "HealthCheck" : {
+          "Target" : "TCP:9200",
+          "Timeout" : "4",
+          "Interval" : "5",
+          "UnhealthyThreshold" : "2",
+          "HealthyThreshold" : "2"
+        },
+        "Scheme" : "internal",
+        "SecurityGroups" : [ { "Ref": "SecurityGroup" } ],
+        "Subnets" : { "Ref" : "ESServerSubnetId" }
+      }
+    },
+
+    "SecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Security group allowing SSH",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [ {
+            "IpProtocol" : "tcp",
+            "FromPort" : "22",  
+            "ToPort" : "22",
+            "CidrIp" : { "Ref" : "CidrBlock" }
+          },{
+            "IpProtocol" : "tcp",
+            "FromPort" : "9200",  
+            "ToPort" : "9200",
+            "CidrIp" : { "Ref" : "CidrBlock" }
+          },{
+            "IpProtocol" : "tcp",
+            "FromPort" : "443",  
+            "ToPort" : "443",
+            "CidrIp" : { "Ref" : "CidrBlock" }
+          }
+        ],
+        "Tags" : [
+          { "Key" : "Name",           "Value" : { "Ref" : "AWS::StackName" } },
+          { "Key" : "service_name",   "Value" : { "Ref" : "AWS::StackName" } },
+          { "Key" : "resource_owner", "Value" : "secole"                     },
+          { "Key" : "business_unit",  "Value" : "RD:Dev Tools Engineering"   },
+          { "Key" : "cluster",        "Value" : { "Ref" : "AWS::StackName" } }
+         ]
+      }
+    },
+
+    "SecurityGroupIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": { "Ref": "SecurityGroup" },
+        "IpProtocol": "-1",
+        "FromPort": "-1",
+        "ToPort": "-1",
+        "SourceSecurityGroupId": { "Ref": "SecurityGroup" }
+      }
+    }
+  },
+
+  "Outputs" : {
+    "ElasticSearchEndpoint" : {
+      "Description" : "Address to contact the ES cluster",
+      "Value" : { "Fn::Join" : [ "", [
+        "http://",
+        { "Fn::GetAtt" : [ "LoadBalancer", "DNSName" ]}
+      ]]}
+    }
+  }
+}

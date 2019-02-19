@@ -1,0 +1,19 @@
+#!/bin/env bash
+
+# First setup unload_rds.properties (example in unload_rds.properties.template) then run this script
+# $1 is "-h" or the directory to dump the RDS to (ensure you have enough space there)
+
+if [ "$1" == "-h" ] || [ -z "$1" ]; then
+    echo "Usage: `basename $0` [-h] [/path/to/store/dump/file/]"
+    exit 0
+fi
+
+# load properties needed to dump RDS db
+source unload_rds.properties
+
+export PGPASSWORD=${ATL_JDBC_PASSWORD}
+
+# --format=directory is used so we can dump and import in parallel jobs - one job per core (--jobs=$(nproc))
+# -no-owner means remove ownership, we will import all with the db user as specified in reload_rds
+# -no-privileges means remove all role allocations
+pg_dump --verbose --format=directory --jobs=$(nproc) --file=${1}rdsdump.sql --schema=public --no-owner --no-privileges --host ${ATL_DB_HOST} --port=${ATL_DB_PORT} --username ${ATL_JDBC_USER} ${ATL_DB_NAME}

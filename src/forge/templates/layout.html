@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="region" value={{ session['region'] }}>
+        <meta name="stack_locking" value={{ session['stack_locking'] }}>
+        <meta name="default_vpcs" value={{ session['default_vpcs'] }}>
+        <meta name="default_subnets" value={{ session['default_subnets'] }}>
+        <meta name="hosted_zone" value={{ session['hosted_zone'] }}>
+        <meta name="stack_locking" value={{ session['ssh_key_name'] }}>
+
+        <link rel="stylesheet" href="/static/css/index.css">
+        {#    AUI    #}
+        <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
+        <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
+        <link rel="stylesheet" href="/static/aui/css/aui-iconfonts.min.css" media="all">
+
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+        <script src="/static/jquery-3.3.1.min.js"></script>
+        <script src="/static/aui/js/aui.min.js"></script>
+        <script src="/static/aui/js/aui-experimental.min.js"></script>
+        <script src="/static/aui/js/aui-soy.min.js"></script>
+        <script src="{{ get_filename_with_last_update_time('page-content.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('utils.js') }}"></script>
+
+        <title>Atlassian Cloudformation Forge</title>
+        {% block head %}
+        {% endblock head %}
+
+        {%if config['ANALYTICS'] %}
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-124483963-2"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'UA-124483963-2');
+        </script>
+        {%endif%}
+    </head>
+    <body>
+            <nav class="aui-header aui-dropdown2-trigger-group" role="navigation" data-aui-responsive="true">
+                <div class="aui-header-inner aui-header-primary">
+                    <!-- Header -->
+                    <h1 id="logo" class="aui-header-logo aui-header-logo-textonly">
+                        <a href="/">
+                            <span class="aui-header-logo-device">FORGE</span>
+                        </a>
+                    </h1>
+                    <!-- Horizontal nav bar-->
+                    <ul class="aui-nav">
+                        {% block hnavitems %}
+                        {% for region, region_name in session['regions'] %}
+                        <li>
+                            <a {%if session['region'] == region %}class="region-selected"{%endif%}
+                               href="{{ url_for('main.setregion', region=region) }}">
+                                {{ region_name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% endblock %}
+                    </ul>
+                </div>
+                {%if session['saml'] %}
+                <div class="aui-header-secondary">
+                    <ul class="aui-nav">
+                        <li class="user-dropdown">
+                            <a href="#user-nav1" aria-owns="user-nav1" aria-haspopup="true" class="aui-dropdown2-trigger aui-dropdown2-trigger">
+                                <span class="aui-avatar aui-avatar-small"><img src="https://rps-bucket-prod-east.s3.amazonaws.com/directory-services/directory-avatar/256x256/{{ session['saml']['attributes']['User.Email'][0].split("@")[0] }}.png" /></span>
+                            </a>
+                            <!-- Dropdown -->
+                            <div id="user-nav1" class="aui-dropdown2 aui-style-default aui-dropdown2-in-header" data-dropdown2-alignment="right">
+                                <ul class="aui-list-truncate">
+                                    <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </nav>
+
+            <div class="aui-page-panel">
+                <div class="aui-page-panel-inner">
+                    <!-- Sidebar -->
+                    <div class="aui-page-panel-nav">
+                        <nav class="aui-navgroup aui-navgroup-vertical">
+                            <div class="aui-navgroup-inner">
+                                <div class="aui-nav-heading">
+                                    <strong>Action Type</strong>
+                                </div>
+                                <ul class="aui-nav">
+                                    {% block vnavitems %}
+                                    <li {% if session['nice_action_name'] == 'Upgrade' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='upgrade') }}" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Full restart' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='fullrestart') }}" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Rolling restart' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='rollingrestart') }}" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Rolling rebuild' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='rollingrebuild') }}" aria-owns="aui-menu-rollingrebuild" id="rollingrebuild-link">Rolling Rebuild</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Create stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='create') }}" aria-owns="aui-menu-create" id="create-link">Create</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Destroy stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Clone stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Update stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack Configuration</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Tag stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='tag') }}" aria-owns="aui-menu-tag" id="tag-link">Tag Stack</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Diagnostics' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Run SQL' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
+                                    </li>
+                                    <!-- commenting backup out until it works
+                                    <li {% if session['nice_action_name'] == 'Backup' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
+                                    </li>
+                                    -->
+                                    <li {% if session['nice_action_name'] == 'Stack logs' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
+                                    </li>
+                                    <li {% if session['nice_action_name'] == 'Admin' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
+                                    </li>
+                                    {% endblock %}
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                    <!-- Page contents-->
+                    <section class="aui-page-panel-content">
+                        <!--Title-->
+                        <h2 class="component-heading">Atlassian Cloudformation Forge</h2>
+                        {% if session['nice_action_name'] != 'Admin' %}
+                        <h4 class="component-heading">{{ session['nice_action_name'] }}</h4>
+                        {% endif %}
+                        <!--Message bar-->
+                        <div id="flash-messages">
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                            {% for category, message in messages %}
+                            <script>
+                                 AJS.flag({
+                                     type: '{{ category }}',
+                                     body: '{{ message }}',
+                                     close: "{% if category != 'error' %}auto{% endif %}"
+                                 });
+                             </script>
+                            {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        <!--Content-->
+                        {% block content %}
+                        {% endblock content %}
+                    </section>
+                </div>
+            </div>
+            <footer id="footer" role="contentinfo">
+                <section class="footer-body">
+                    <ul id="aui-footer-list">
+                        <li>Copyright &#169; 2009-<script>document.write(new Date().getUTCFullYear());</script> Atlassian</li>
+                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li>
+                        <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li>
+                        <li>{{ session['forge_version'] }}</li>
+                    </ul>
+                    <div id="footer-logo"><a href="https://www.atlassian.com/">Atlassian</a></div>
+                </section>
+            </footer>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,72 @@
+#!/bin/bash
+
+. /usr/local/bin/j2ee_tools_common.sh
+
+upload_s3() {
+  # upload a file to s3
+  local FILE=${1}
+  local FILENAME=`basename ${FILE}`
+  local IP=$(curl -f --silent http://169.254.169.254/latest/meta-data/local-ipv4 || echo "127.0.0.1")
+  source /etc/atl
+  local ACCOUNT_ID=`aws sts get-caller-identity | grep Account | awk {'print $2'} | sed 's/\"\|,//g'`
+  local BUCKET=atl-cfn-forge-${ACCOUNT_ID}
+  local DEST="${BUCKET}/diagnostics/${ATL_AWS_STACK_NAME}/$(date +%Y-%m-%d)"
+  aws s3 cp "${FILE}" "s3://${DEST}/${ATL_AWS_STACK_NAME}_${IP}_${FILENAME}" || echo "Upload of ${ATL_AWS_STACK_NAME}_${IP}_${FILENAME} to ${DEST} Failed"
+}
+
+if [[ ! -w ${TMPDIR} ]]
+then
+    echo "ERROR: Cannot write to ${TMPDIR}"
+    exit 1
+fi
+
+ANALYSIS_DIR=${TMPDIR}/analysis_$(date +%s)
+
+if [ ! -d "$ANALYSIS_DIR" ] ; then
+    mkdir $ANALYSIS_DIR
+    if [ $? != 0 ] ; then
+        echo "ERROR: Unable to create $ANALYSIS_DIR"
+        exit 1
+    fi
+fi
+
+ITERATIONS=10
+WAITTIME=5
+for (( f=1 ; f <= $ITERATIONS ; f++ ))
+do
+  echo "Grabbing thread dump ${f} of ${ITERATIONS}"
+  top -b -H -p  ${SERVICE_PID} -n 1 > ${ANALYSIS_DIR}/CPU-USAGE-DUMP-${f}.txt
+  if [ "$LOGNAME" = "$PROCUSER" ] ; then
+      jstack -l ${SERVICE_PID} > ${ANALYSIS_DIR}/THREAD-DUMP-${f}.txt
+  else
+      sudo -u $PROCUSER jstack -l ${SERVICE_PID} > ${ANALYSIS_DIR}/THREAD-DUMP-${f}.txt
+  fi
+  (( f < ${ITERATIONS} )) && fancywait ${WAITTIME}
+done
+
+# cpuhog.sh
+THREADS=$(cat ${ANALYSIS_DIR}/*CPU-USAGE-DUMP*txt |\
+          egrep "(S|R) *[0-9]{2}" | awk '/java/ {print $1}' | sort | uniq -c | sort -r | sed 's/^ *//g')
+echo ${THREADS} > ${ANALYSIS_DIR}/cpuhogs.log
+
+# offendingthreads.sh
+echo -e "Offending Thread report:\n\n" | tee ${ANALYSIS_DIR}/offendingthreads.log
+cd ${ANALYSIS_DIR}
+for PID in $(awk '{print $NF}' ${ANALYSIS_DIR}/cpuhogs.log)
+do
+    THREAD=$(printf "%x" ${PID})
+    echo -e "\n########## Thread: $THREAD PID: $PID ##########" | tee -a ${ANALYSIS_DIR}/offendingthreads.log
+    grep -i -h -A 12 $THREAD *DUMP* | egrep -v ^$ | tee -a ${ANALYSIS_DIR}/offendingthreads.log
+done
+
+DUMPFILE=$TMPDIR/thread_dumps_$(date +%Y%m%d_%H%M%S).tar.gz
+tar -czf ${DUMPFILE} $ANALYSIS_DIR 2> /dev/null
+update_permission $DUMPFILE
+echo Thread dump file ${DUMPFILE}
+
+echo Uploading to S3
+upload_s3 ${DUMPFILE}
+
+# Clean up directory post creation of the archive file
+/bin/rm -f $ANALYSIS_DIR/*
+/bin/rmdir $ANALYSIS_DIR

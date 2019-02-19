@@ -1,0 +1,13 @@
+[{
+  "ParameterKey": "CustomDnsName",
+  "ParameterValue": ""
+}, {
+  "ParameterKey": "DBMasterUserPassword",
+  "ParameterValue": "password1234"
+}, {
+  "ParameterKey": "DBPassword",
+  "ParameterValue": "password1234"
+}, {
+  "ParameterKey": "KeyName",
+  "ParameterValue": "WPE-GenericKeyPair-20161102"
+}]
