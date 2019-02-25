@@ -28,12 +28,12 @@ class BaseConfig(object):
         'lab': 'vpc-ff1b9284',
     }
 
-    # Subnets
-    # format 'subnet-12abc345,subnet-12abc346'
+    # Default subnets for each VPC
+    # format 'vpc-56abc789': {'internal': 'subnet-12abc345,subnet-12abc346', 'external': 'subnet-12abc345,subnet-12abc346'}'
     DEFAULT_SUBNETS = {
-        'vpc-320c1355': 'subnet-df0c3597,subnet-f1fb87ab',
-        'vpc-dd8dc7ba': 'subnet-eb952fa2,subnet-f2bddd95',
-        'vpc-ff1b9284': { 'dmz': 'subnet-a2b3a3c6,subnet-a9b08f86', 'external': 'subnet-d9162484,subnet-158d4b5f'} ,
+        'vpc-320c1355': {'internal': 'subnet-df0c3597,subnet-f1fb87ab', 'external': 'subnet-df0c3597,subnet-f1fb87ab'},
+        'vpc-dd8dc7ba': {'internal': 'subnet-eb952fa2,subnet-f2bddd95', 'external': 'subnet-eb952fa2,subnet-f2bddd95'},
+        'vpc-ff1b9284': {'internal': 'subnet-d9162484,subnet-158d4b5f', 'external': 'subnet-782f5f32,subnet-afc26ff3'},
     }
 
     # Hosted Zone

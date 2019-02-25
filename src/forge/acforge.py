@@ -734,7 +734,7 @@ def get_forge_settings():
     session['regions'] = current_app.config['REGIONS']
     session['stack_locking'] = stack_locking_enabled()
     session['forge_version'] = __version__
-    session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ','').replace('-','')
-    session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ','').replace('-','')
+    session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ','').encode(errors='xmlcharrefreplace')
+    session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ','').encode(errors='xmlcharrefreplace')
     session['hosted_zone'] = current_app.config['HOSTED_ZONE']
     session['ssh_key_name'] = current_app.config['SSH_KEY_NAME']

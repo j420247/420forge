@@ -214,17 +214,17 @@ function displayVPCs(responseText, functionParams) {
     var vpcs = JSON.parse(responseText);
     var vpc_region = functionParams.vpc_region;
     var existingVpc = functionParams.existingVpc;
-    var default_vpcs =  JSON.parse($("meta[name=default_vpcs]").attr("value"));
+    var default_vpcs =  JSON.parse($("meta[name=default_vpcs]").attr("value").replace(/'/g,"").substr(1));
 
     // Set default VPC and subnets for region
     var defaultVpc = existingVpc ? existingVpc : default_vpcs[vpc_region];
     createDropdown("VPC", defaultVpc, vpcs, document.getElementById("VPCDiv"));
-    getSubnets(defaultVpc, false);
+    getSubnets(defaultVpc, 'create');
 }
 
-function getSubnets(vpc, updateList) {
+function getSubnets(vpc, createOrUpdateList) {
     var functionParams = {
-        updateList: updateList
+        createOrUpdateList: createOrUpdateList
     };
 
     var subnets_region = $("#regionSelector").length ? $("#regionSelector").text().trim() : region;
@@ -236,29 +236,29 @@ function getSubnets(vpc, updateList) {
 
 function displaySubnets(responseText, functionParams) {
     var subnets = JSON.parse(responseText);
-    if (functionParams.updateList) {
-        updateMultiSelect("ExternalSubnets", "", subnets);
-        updateMultiSelect("InternalSubnets", "", subnets);
-    } else {
+    // create the subnet options list
+    if (functionParams.createOrUpdateList === 'create') {
         createMultiSelect("ExternalSubnets", "", subnets, document.getElementById("ExternalSubnetsDiv"));
         createMultiSelect("InternalSubnets", "", subnets, document.getElementById("InternalSubnetsDiv"));
+    } else {
+        updateMultiSelect("ExternalSubnets", "", subnets);
+        updateMultiSelect("InternalSubnets", "", subnets);
     }
+    // select the default subnets
     if (action === "update") {
         $("#ExternalSubnetsVal").val(externalSubnets);
         $("#InternalSubnetsVal").val(internalSubnets);
     }
-    else if (action === 'clone') {
-        selectDefaultSubnets($("#regionSelector").text().trim())
-    } else {
-        selectDefaultSubnets(region);
+    else {
+        selectDefaultSubnets($("#VPCVal")[0].innerText.trim())
     }
 }
 
 function selectDefaultSubnets(vpc) {
     // get defaults for the vpc
-    var default_subnets =  JSON.parse($("meta[name=default_subnets]").attr("value"));
-    $("#ExternalSubnetsVal").val(default_subnets[vpc].split(","));
-    $("#InternalSubnetsVal").val(default_subnets[vpc].split(","));
+    var default_subnets =  JSON.parse($("meta[name=default_subnets]").attr("value").replace(/'/g,"").substr(1));
+    $("#ExternalSubnetsVal").val(default_subnets[vpc]['external'].split(","));
+    $("#InternalSubnetsVal").val(default_subnets[vpc]['internal'].split(","));
 }
 
 function sendParamsAsJson() {

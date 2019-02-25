@@ -106,7 +106,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
                     updateTextField("TomcatSecure", "false");
                 }
             } else if (dropdownAnchor.id === "VPCVal") {
-                getSubnets(data.target.text, true);
+                getSubnets(data.target.text, 'update');
             }
         }, false);
         li.appendChild(liAnchor);
