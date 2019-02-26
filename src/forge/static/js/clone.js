@@ -29,25 +29,25 @@ function getCloneDefaults(){
 
 function applyCloneDefaults(responseText) {
     var params = JSON.parse(responseText);
-    if (params.length == 0) {
+    if (params.length === 0) {
         AJS.flag({
             type: 'error',
-            body: 'No defaults exist for ' + stack_name,
+            body: 'No defaults exist for ' + $("#StackNameVal").val(),
             close: 'auto'
         });
         return;
     }
 
     for (var param in params) {
-        var element = $("#" + params[param][0] + "Val");
+        var element = $("#" + param + "Val");
         if (element.is("input"))
-            element.val(params[param][1]);
+            element.val(params[param]);
         else if (element.is("a"))
-            element.text(params[param][1]);
+            element.text(params[param]);
     }
     AJS.flag({
         type: 'success',
-        body: 'Defaults for ' + stack_name + ' have been applied',
+        body: 'Defaults for ' + $("#StackNameVal").val() + ' have been applied',
         close: 'auto'
     });
 }

@@ -477,17 +477,10 @@ class GetTags(Resource):
 
 class GetCloneDefaults(Resource):
     def get(self, stack_name):
-        clone_default_props = configparser.ConfigParser()
-        clone_default_props.optionxform = str
-        all_stacks_properties_file = Path('stacks/clone-defaults.properties')
-        if all_stacks_properties_file.exists():
-            clone_default_props.read(path.join(path.dirname(__file__), 'stacks/clone-defaults.properties'))
-        stack_properties_file = Path(f'stacks/{stack_name}/{stack_name}.clone-defaults.properties')
-        if stack_properties_file.exists():
-            clone_default_props.read(path.join(path.dirname(__file__), f'stacks/{stack_name}/{stack_name}.clone-defaults.properties'))
-        if clone_default_props.has_section('defaults'):
-            return clone_default_props.items('defaults')
-        return []
+        clone_defaults = current_app.config['CLONE_DEFAULTS']['all']
+        if stack_name in current_app.config['CLONE_DEFAULTS']:
+            clone_defaults.update(current_app.config['CLONE_DEFAULTS'][stack_name])
+        return clone_defaults
 
 
 class GetZDUCompatibility(Resource):
