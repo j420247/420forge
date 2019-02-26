@@ -620,6 +620,7 @@ class GetAllSubnetsForRegion(Resource):
             subnet_ids.append(subnet['SubnetId'])
         return subnet_ids
 
+
 class GetLockedStacks(Resource):
     def get(self):
         locked_stacks = [dir.name for dir in os.scandir(f'locks/') if dir.is_dir()]
@@ -629,11 +630,10 @@ class GetLockedStacks(Resource):
 
 class SetStackLocking(Resource):
     def post(self, lock):
-        lockfile = Path(f'locks/locking')
-        with open(lockfile, 'w') as lock_state:
-            lock_state.write(lock)
-            session['stack_locking'] = lock
-            return lock
+        current_app.config['STACK_LOCKING'] = lock
+        session['stack_locking'] = lock
+        return lock
+
 
 class ForgeStatus(Resource):
     def get(self):
@@ -703,29 +703,17 @@ def get_nice_action_name(action):
 
 
 def stack_locking_enabled():
-    lockfile = path.join(path.dirname(__file__), 'locks/locking')
-    with open(lockfile, 'r') as lock_state:
-        try:
-            return lock_state.read() == 'true'
-        except Exception as e:
-            print(e)
-
-
-def get_config_properties():
-    config_props = configparser.ConfigParser()
-    config_props.read(path.join(path.dirname(__file__), 'config/forge.properties'))
-    return config_props
+    return current_app.config['STACK_LOCKING']
 
 
 def get_forge_settings():
-    get_config_properties()
-    # use first region in forge.properties if no region selected (eg first load)
+    # use first region in config.py if no region selected (eg first load)
     if 'region' not in session:
         session['region'] = current_app.config['REGIONS'][0][0]
         session['stacks'] = sorted(get_cfn_stacks_for_region(session['region']))
     session['products'] = current_app.config['PRODUCTS']
     session['regions'] = current_app.config['REGIONS']
-    session['stack_locking'] = stack_locking_enabled()
+    session['stack_locking'] = current_app.config['STACK_LOCKING']
     session['forge_version'] = __version__
     session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ','').encode(errors='xmlcharrefreplace')
     session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ','').encode(errors='xmlcharrefreplace')

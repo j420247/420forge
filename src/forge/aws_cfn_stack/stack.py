@@ -395,15 +395,16 @@ class Stack:
 
     def store_current_action(self, action, locking_enabled, changelog, actor):
         self.create_action_log(action)
-        action_already_in_progress = self.get_stack_action_in_progress()
-        if locking_enabled and action_already_in_progress:
-            self.log_msg(ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
-            return False
+        if locking_enabled:
+            action_already_in_progress = self.get_stack_action_in_progress()
+            if action_already_in_progress:
+                self.log_msg(ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
+                return False
         os.makedirs(f'locks/{self.stack_name}/{action}', exist_ok=True)
         if changelog:
             self.create_change_log(action)
             if actor:
-                self.log_change(f"Action triggered by {actor}")
+                self.log_change(f'Action triggered by {actor}')
         return True
 
     def clear_current_action(self):

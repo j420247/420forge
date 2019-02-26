@@ -6,6 +6,3 @@ stacks/**/*.log
 __pycache__*
 *.db
 .DS_Store
-permissions.json
-forge.properties
-locks/locking

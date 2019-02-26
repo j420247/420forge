@@ -14,7 +14,7 @@ class BaseConfig(object):
         ('us-west-2', 'Oregon'),
         ('ap-southeast-2', 'Sydney'),
     ]
-    ANALYTICS = 'true'
+    ANALYTICS = True
     S3_BUCKET = 'atl-cfn-forge-515798882395'
 
     ########
@@ -63,8 +63,10 @@ class BaseConfig(object):
         #     'ClusterNodeMax': '2',
         #     'CustomDnsName': 'mystack.mycompany.com'
         # },
-
     }
+    ## Stack locking
+    # Lock stack actions so only one can be performed at a time
+    STACK_LOCKING = False
 
 
 class DevelopmentConfig(BaseConfig):
