@@ -370,11 +370,11 @@ class StackState(Resource):
 class TemplateParams(Resource):
     def get(self, repo_name, template_name):
         if 'atlassian-aws-deployment' in repo_name:
-            template_file = open(f"atlassian-aws-deployment/templates/{template_name}", "r")
+            template_file = open(f'atlassian-aws-deployment/templates/{template_name}', 'r')
         else:
-            for file in glob.glob(f'../custom-templates/{repo_name}/**/*.yaml'):
+            for file in glob.glob(f'custom-templates/{repo_name}/**/*.yaml'):
                 if template_name in file:
-                    template_file = open(file, "r")
+                    template_file = open(file, 'r')
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
         template_params = yaml.safe_load(template_file)['Parameters']
 
@@ -544,7 +544,7 @@ class GetTemplates(Resource):
     def get(self, template_type):
         templates = []
         template_folder = Path('atlassian-aws-deployment/templates')
-        custom_template_folder = Path('../custom-templates')
+        custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
             default_templates = list(template_folder.glob(f"**/*.yaml"))
@@ -678,7 +678,7 @@ def get_template_file(template_name):
     if 'atlassian-aws-deployment' in template_name:
         template_folder = Path('atlassian-aws-deployment/templates')
     else:
-        template_folder = Path('../custom-templates')
+        template_folder = Path('custom-templates')
     return list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))[0]
 
 

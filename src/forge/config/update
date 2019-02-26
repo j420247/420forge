@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # update the submodules
+cd ../
 echo Updating submodules
 git pull
 git submodule update --init --recursive

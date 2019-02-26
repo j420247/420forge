@@ -1,6 +1,7 @@
 .idea
 forge.iml
 atl-cfn-forge.iml
+custom-templates
 stacks/**/*.json
 stacks/**/*.log
 __pycache__*
