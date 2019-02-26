@@ -511,6 +511,7 @@ class Stack:
             self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
             self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
             return False
+
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
