@@ -389,8 +389,8 @@ class Stack:
         return result
 
     def get_stack_action_in_progress(self):
-        if Path(f'locks/{self.stack_name}').exists():
-            return os.listdir(f'locks/{self.stack_name}')[0]
+        if 'LOCKS' in current_app.config and self.stack_name in current_app.config['LOCKS']:
+            return current_app.config['LOCKS'][self.stack_name]
         return False
 
     def store_current_action(self, action, locking_enabled, changelog, actor):
@@ -400,7 +400,9 @@ class Stack:
             if action_already_in_progress:
                 self.log_msg(ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
                 return False
-        os.makedirs(f'locks/{self.stack_name}/{action}', exist_ok=True)
+        if 'LOCKS' not in current_app.config:
+            current_app.config['LOCKS'] = {}
+        current_app.config['LOCKS'][self.stack_name] = action
         if changelog:
             self.create_change_log(action)
             if actor:
@@ -409,8 +411,8 @@ class Stack:
 
     def clear_current_action(self):
         self.save_change_log()
-        if Path(f'locks/{self.stack_name}').exists():
-            shutil.rmtree(f'locks/{self.stack_name}')
+        if  'LOCKS' in current_app.config and self.stack_name in current_app.config['LOCKS']:
+            del current_app.config['LOCKS'][self.stack_name]
         return True
 
     def get_parms_for_update(self):

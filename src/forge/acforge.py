@@ -623,8 +623,9 @@ class GetAllSubnetsForRegion(Resource):
 
 class GetLockedStacks(Resource):
     def get(self):
-        locked_stacks = [dir.name for dir in os.scandir(f'locks/') if dir.is_dir()]
-        locked_stacks.sort()
+        locked_stacks = []
+        if 'LOCKS' in current_app.config:
+            locked_stacks = list(current_app.config['LOCKS'].keys())
         return locked_stacks
 
 
