@@ -192,8 +192,9 @@ class Stack:
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif self.app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
+            if hasattr(self, 'preupgrade_synchrony_node_count'):
+                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif self.app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
@@ -299,7 +300,7 @@ class Stack:
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
-        if hasattr(self, 'synchrony_node_count'):
+        if hasattr(self, 'preupgrade_synchrony_node_count'):
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
         try:
@@ -321,9 +322,10 @@ class Stack:
         ec2 = boto3.resource('ec2', region_name=self.region)
         filters = [
             {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
-            {'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']},
             {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}
         ]
+        if self.is_app_clustered():
+            filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
         for i in ec2.instances.filter(Filters=filters):
             instancedict = {i.instance_id: i.private_ip_address}
@@ -460,7 +462,7 @@ class Stack:
     def get_tag(self, tag_name):
         tags = self.get_tags()
         if tags:
-            tag= [tag for tag in tags if tag['Key'] == tag_name]
+            tag = [tag for tag in tags if tag['Key'] == tag_name]
             if tag:
                 tag_value = tag[0]['Value']
                 if hasattr(self, 'logfile'):
@@ -469,6 +471,12 @@ class Stack:
         if hasattr(self, 'logfile'):
             self.log_msg(log.WARN, f'Tag {tag_name} not found')
         return False
+
+    def is_app_clustered(self):
+        clustered = self.get_tag('clustered')
+        if not clustered:
+            self.log_msg(log.WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+        return True if clustered == 'true' else False
 
     def get_sql_from_s3(self, stack, sql_dir):
         # try to pull latest from s3
@@ -508,6 +516,7 @@ class Stack:
             self.log_msg(log.ERROR, f'could not retrieve sql from s3 for stack {stack}: {e}')
             self.log_change(f'could not retrieve sql from s3 for stack {stack}: {e}')
             return False
+
     def get_sql(self):
         sql_to_run = ''
         # get SQL for the stack this stack was cloned from (ie the master stack)
@@ -557,12 +566,13 @@ class Stack:
             return False
         # get preupgrade version and node counts
         self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                              p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
-        self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                     p['ParameterKey'] == 'ClusterNodeMax'][0]
-        if self.app_type == 'confluence':
-            self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                               p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+                                   p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        if self.is_app_clustered():
+            self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                              p['ParameterKey'] == 'ClusterNodeMax'][0]
+            if self.app_type == 'confluence':
+                self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
+                                                        p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
@@ -650,6 +660,22 @@ class Stack:
 ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
+        if self.is_app_clustered():
+            if not self.upgrade_dc(new_version):
+                self.log_msg(log.INFO, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed, see action log for details')
+                return False
+        else:
+            if not self.upgrade_server(new_version):
+                self.log_msg(log.INFO, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed, see action log for details')
+                return False
+        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
+        self.log_msg(log.INFO, 'Upgrade complete')
+        self.log_change('Upgrade successful')
+        return True
+
+    def upgrade_dc(self, new_version):
         self.get_pre_upgrade_information()
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
@@ -668,9 +694,46 @@ class Stack:
             self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
-        self.log_msg(log.INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-        self.log_msg(log.INFO, 'Upgrade complete')
-        self.log_change('Upgrade successful')
+        return True
+
+    def upgrade_server(self, new_version):
+        self.get_pre_upgrade_information()
+        self.log_change(f'New version: {new_version}')
+        self.log_change('Upgrade is underway')
+        # update the version in stack parameters
+        stack_params = self.getparms()
+        if self.app_type == 'jira':
+            stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+        elif self.app_type == 'confluence':
+            stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
+        elif self.app_type == 'crowd':
+            stack_params = self.update_parmlist(stack_params, 'CrowdVersion', new_version)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_params,
+                UsePreviousTemplate=True,
+                Capabilities=['CAPABILITY_IAM'])
+        except Exception as e:
+            if 'No updates are to be performed' in e.args[0]:
+                self.log_msg(log.INFO, f'Stack is already at {new_version}')
+            else:
+                print(e.args[0])
+                self.log_msg(log.ERROR, f'An error occurred updating the version: {e.args[0]}')
+                return False
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(log.INFO, 'Successfully updated version in stack parameters')
+        else:
+            self.log_msg(log.INFO, 'Could not update version in stack parameters')
+            self.log_msg(log.INFO, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - could not update version in stack parameters')
+            return False
+        # terminate the node and allow new one to spin up
+        if not self.rolling_rebuild():
+            self.log_msg(log.ERROR, 'Upgrade complete - failed')
+            self.log_change(f'Upgrade failed.')
+            return False
         return True
 
     def upgrade_zdu(self, new_version, username, password):
@@ -767,7 +830,7 @@ class Stack:
         self.log_msg(log.INFO, 'Destroy complete')
         return True
 
-    def clone(self, stack_parms, template_file, app_type, instance_type, region, creator, cloned_from):
+    def clone(self, stack_parms, template_file, app_type, clustered, region, creator, cloned_from):
         self.log_msg(log.INFO, 'Initiating clone')
         self.log_change('Initiating clone')
         # TODO popup confirming if you want to destroy existing
@@ -775,7 +838,7 @@ class Stack:
             self.log_msg(log.INFO, 'Clone complete - failed')
             self.log_change('Clone complete - failed')
             self.clear_current_action()
-        if not self.create(stack_parms, template_file, app_type, creator, region, cloned_from):
+        if not self.create(stack_parms, template_file, app_type, clustered, creator, region, cloned_from):
             self.log_msg(log.INFO, 'Clone complete - failed')
             self.log_change('Clone complete - failed')
             self.clear_current_action()
@@ -794,7 +857,7 @@ class Stack:
         self.log_msg(log.INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
-        template= str(template_file)
+        template = str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         config = configparser.ConfigParser()
@@ -817,8 +880,9 @@ class Stack:
             self.log_msg(log.INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        if 'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and \
-                int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0:
+        # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
+        if not self.is_app_clustered() or ('ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and
+                                           int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0):
             self.log_msg(log.INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.log_msg(log.INFO, 'Update complete')
@@ -831,7 +895,7 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, stack_parms, template_file, app_type, creator, region, cloned_from=False):
+    def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
         self.log_msg(log.INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(log.INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
@@ -841,10 +905,13 @@ class Stack:
         tags = [{
             'Key': 'product',
             'Value': app_type
-        },{
+        }, {
+            'Key': 'clustered',
+            'Value': clustered
+        }, {
             'Key': 'environment',
             'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
-        },{
+        }, {
             'Key': 'created_by',
             'Value': creator
         }]
@@ -893,9 +960,19 @@ class Stack:
             self.log_msg(log.ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine product. Rolling restart failed.')
             return False
-        self.get_stacknodes()
-        instance_list = self.instancelist
+        instance_list = self.get_stacknodes()
         self.log_msg(log.INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
+        if not self.is_app_clustered():
+            self.log_msg(log.ERROR, 'App is not clustered - rolling restart not supported (use full restart)')
+            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
+            return False
+        if len(instance_list) == 1:
+            self.log_msg(log.ERROR, 'App only has one node - rolling restart not supported (use full restart)')
+            self.log_msg(log.ERROR, 'Rolling restart complete - failed')
+            self.log_change('App only has one node - rolling restart not supported (use full restart). Rolling restart failed.')
+            return False
         # determine if the nodes are running or not
         running_nodes = []
         non_running_nodes = []
