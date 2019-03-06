@@ -14,7 +14,7 @@ from forge.main import main as main_blueprint
 from forge.saml_auth import saml_blueprint, saml_auth
 
 
-def create_app():
+def create_app(config_class):
     # get args
     parser = argparse.ArgumentParser(description='Forge')
     parser.add_argument('--nosaml',
@@ -29,7 +29,7 @@ def create_app():
     # create and initialize app
     print(f'Starting Atlassian CloudFormation Forge v{__version__}')
     app = Flask(__name__)
-    app.config.from_object('forge.config.BaseConfig')
+    app.config.from_object(config_class)
 
     app.args = args
 
