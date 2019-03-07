@@ -58,13 +58,14 @@ class RestrictedResource(Resource):
         for keys in current_app.json_perms:
             if current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
                 if session['region'] in current_app.json_perms[keys]['region'] or '*' in current_app.json_perms[keys]['region']:
-                    if request.endpoint in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
-                        if request.endpoint in ('docreate', 'doclone'):
+                    action = request.endpoint.split('.')[1]
+                    if action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
+                        if action in ('docreate', 'doclone'):
                             # do not check stack_name on stack creation/clone
-                            print(f'User is authorised to perform {request.endpoint}')
+                            print(f'User is authorised to perform {action}')
                             return super().dispatch_request(*args, **kwargs)
                         elif kwargs['stack_name'] in current_app.json_perms[keys]['stack'] or '*' in current_app.json_perms[keys]['stack']:
-                            print(f'User is authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+                            print(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
                             return super().dispatch_request(*args, **kwargs)
-        print(f'User is not authorised to perform {request.endpoint} on {kwargs["stack_name"]}')
+        print(f'User is not authorised to perform {action} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
