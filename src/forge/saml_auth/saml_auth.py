@@ -14,6 +14,8 @@ saml_blueprint = Blueprint('saml_auth', __name__)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(handler)
 
 def configure_saml(ssm_client, app):
     # Create a SQLalchemy db for session and permission storge.
