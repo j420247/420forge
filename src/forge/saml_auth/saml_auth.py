@@ -8,8 +8,12 @@ from flask_sessionstore import Session
 from os import path
 import json
 from sys import argv
+import logging
 
 saml_blueprint = Blueprint('saml_auth', __name__)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def configure_saml(ssm_client, app):
     # Create a SQLalchemy db for session and permission storge.
@@ -26,10 +30,10 @@ def configure_saml(ssm_client, app):
         with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
             app.json_perms = json.load(json_data)
     except Exception:
-        print('could not open permissions.json; SAML auth will not work!')
+        logger.error('could not open permissions.json; SAML auth will not work!')
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
-    print('SAML auth configured')
+    logger.info('SAML auth configured')
     try:
         saml_protocol = ssm_client.get_parameter(
             Name='atl_forge_saml_metadata_protocol',
@@ -41,7 +45,7 @@ def configure_saml(ssm_client, app):
         )
         app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
     except Exception:
-        print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+        logger.error('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
         sys.exit(1)
     flask_saml.FlaskSAML(app)
 
@@ -58,22 +62,22 @@ class RestrictedResource(Resource):
         action = request.endpoint.split('.')[1]
         for keys in current_app.json_perms:
             if not current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                print(f'User is not authorised to perform {action}: not in correct groups')
+                logger.error(f'User is not authorised to perform {action}: not in correct groups')
                 return 'Forbidden', 403
             if session['region'] not in current_app.json_perms[keys]['region'] and '*' not in current_app.json_perms[keys]['region']:
-                print(f"User is not authorised to perform actions in {session['region']}")
+                logger.error(f"User is not authorised to perform actions in {session['region']}")
                 return 'Forbidden', 403
             if action not in current_app.json_perms[keys]['action'] and '*' not in current_app.json_perms[keys]['action']:
-                print(f'User is not authorised to perform {action}: action not listed as allowed')
+                logger.error(f'User is not authorised to perform {action}: action not listed as allowed')
                 return 'Forbidden', 403
             if action in ('docreate', 'doclone'):
                 # do not check stack_name on stack creation/clone
-                print(f'User is authorised to perform {action}')
+                logger.info(f'User is authorised to perform {action}')
                 return super().dispatch_request(*args, **kwargs)
             elif kwargs['stack_name'] not in current_app.json_perms[keys]['stack'] and '*' not in current_app.json_perms[keys]['stack']:
-                print(f'User is not authorised to perform actions on {kwargs["stack_name"]}')
+                logger.error(f'User is not authorised to perform actions on {kwargs["stack_name"]}')
             else:
-                print(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
+                logger.info(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
                 return super().dispatch_request(*args, **kwargs)
-        print(f'Could not determine if user is authorised to perform {action} on {kwargs["stack_name"]}')
+        logger.error(f'Could not determine if user is authorised to perform {action} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
