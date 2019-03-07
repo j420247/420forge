@@ -55,10 +55,10 @@ class RestrictedResource(Resource):
         if '--nosaml' in argv:
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
+        action = request.endpoint.split('.')[1]
         for keys in current_app.json_perms:
             if current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
                 if session['region'] in current_app.json_perms[keys]['region'] or '*' in current_app.json_perms[keys]['region']:
-                    action = request.endpoint.split('.')[1]
                     if action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
                         if action in ('docreate', 'doclone'):
                             # do not check stack_name on stack creation/clone
