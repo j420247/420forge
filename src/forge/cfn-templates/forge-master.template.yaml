@@ -427,7 +427,7 @@ Resources:
 
                   # download config files from S3 if they exist
                   cd /home/forge/atl-cfn-forge
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json src/forge/config/permissions.json
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json src/forge/saml_auth/permissions.json
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py src/forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 

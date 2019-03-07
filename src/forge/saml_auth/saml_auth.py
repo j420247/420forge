@@ -60,10 +60,10 @@ class RestrictedResource(Resource):
             if not current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
                 print(f'User is not authorised to perform {action}: not in correct groups')
                 return 'Forbidden', 403
-            if not session['region'] in current_app.json_perms[keys]['region'] or '*' in current_app.json_perms[keys]['region']:
-                print(f'User is not authorised to perform actions in {region}')
+            if session['region'] not in current_app.json_perms[keys]['region'] and '*' not in current_app.json_perms[keys]['region']:
+                print(f"User is not authorised to perform actions in {session['region']}")
                 return 'Forbidden', 403
-            if not action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
+            if action not in current_app.json_perms[keys]['action'] and '*' not in current_app.json_perms[keys]['action']:
                 print(f'User is not authorised to perform {action}: action not listed as allowed')
                 return 'Forbidden', 403
             if action in ('docreate', 'doclone'):
