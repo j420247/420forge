@@ -57,15 +57,23 @@ class RestrictedResource(Resource):
         # check permissions before returning super
         action = request.endpoint.split('.')[1]
         for keys in current_app.json_perms:
-            if current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
-                if session['region'] in current_app.json_perms[keys]['region'] or '*' in current_app.json_perms[keys]['region']:
-                    if action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
-                        if action in ('docreate', 'doclone'):
-                            # do not check stack_name on stack creation/clone
-                            print(f'User is authorised to perform {action}')
-                            return super().dispatch_request(*args, **kwargs)
-                        elif kwargs['stack_name'] in current_app.json_perms[keys]['stack'] or '*' in current_app.json_perms[keys]['stack']:
-                            print(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
-                            return super().dispatch_request(*args, **kwargs)
-        print(f'User is not authorised to perform {action} on {kwargs["stack_name"]}')
+            if not current_app.json_perms[keys]['group'][0] in session['saml']['attributes']['memberOf']:
+                print(f'User is not authorised to perform {action}: not in correct groups')
+                return 'Forbidden', 403
+            if not session['region'] in current_app.json_perms[keys]['region'] or '*' in current_app.json_perms[keys]['region']:
+                print(f'User is not authorised to perform actions in {region}')
+                return 'Forbidden', 403
+            if not action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
+                print(f'User is not authorised to perform {action}: action not listed as allowed')
+                return 'Forbidden', 403
+            if action in ('docreate', 'doclone'):
+                # do not check stack_name on stack creation/clone
+                print(f'User is authorised to perform {action}')
+                return super().dispatch_request(*args, **kwargs)
+            elif kwargs['stack_name'] not in current_app.json_perms[keys]['stack'] and '*' not in current_app.json_perms[keys]['stack']:
+                print(f'User is not authorised to perform actions on {kwargs["stack_name"]}')
+            else:
+                print(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
+                return super().dispatch_request(*args, **kwargs)
+        print(f'Could not determine if user is authorised to perform {action} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
