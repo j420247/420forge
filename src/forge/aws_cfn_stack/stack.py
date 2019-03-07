@@ -1,3 +1,4 @@
+from flask import Blueprint, current_app
 import boto3
 import botocore
 import time
@@ -5,8 +6,6 @@ import requests
 from pathlib import Path
 from logging import INFO, WARN, ERROR
 import os
-from flask import current_app
-import configparser
 from datetime import datetime
 import itertools
 import errno
