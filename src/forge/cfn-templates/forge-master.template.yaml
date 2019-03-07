@@ -375,12 +375,11 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath
+                      git clone --recurse-submodules https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
                       cd $forgepath
                   fi
                   /usr/bin/pip-3.6 install -r requirements.txt
-                  mv /tmp/forge.properties $forgepath/forge.properties --force
-                  mv /tmp/update $forgepath/update --force
+                  mv /tmp/update $forgepath/src/forge/config/update --force
                   chown -R forge:forge /home/forge
 
                   # create s3 bucket for forge objects
@@ -397,13 +396,13 @@ Resources:
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
                     fi
                     # clone the repo
-                    mkdir /home/forge/custom-templates
-                    cd /home/forge/custom-templates
+                    mkdir $forgepath/custom-templates
+                    cd $forgepath/custom-templates
                     git clone "${CustomTemplateRepo}"
                   fi
 
                   chown forge:forge /etc/atl
-                  ./update
+                  ./src/forge/config/update
 
                   # upload SAML params for later use
                   if [[ -n "${SamlMetadataUrl}" ]]; then
@@ -414,10 +413,9 @@ Resources:
 
                   # download config files from S3 if they exist
                   cd /home/forge/atl-cfn-forge
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/global-variables.js static/js/
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json .
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json src/forge/config/permissions.json
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py src/forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/locking locks/
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge
@@ -445,30 +443,11 @@ Resources:
 
                   script
                     cd /home/forge/atl-cfn-forge
-                    exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/acforge.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/src/run.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "--nosaml", '']
                   region: !Ref AWS::Region
               mode: "000600"
-              owner: root
-              group: root
-            /tmp/forge.properties:
-              content: !Sub
-                - |
-                  # Regions in format 'aws_region: region_name'
-                  # Names are for reference only, so can be AWS region names or Staging/Production etc
-                  # Enter default region first"
-                  [regions]
-                  ${Regions}
-
-                  [analytics]
-                  enabled: ${Analytics}
-
-                  [s3]
-                  bucket: atl-cfn-forge-${AWS::AccountId}
-                - Analytics: !Ref Analytics
-                  Regions: !Join ["\n", !Ref Regions]
-              mode: "000750"
               owner: root
               group: root
             /tmp/bootstrap_local_ansible:
@@ -500,8 +479,11 @@ Resources:
                 - |
                   #!/usr/bin/env bash
 
-                  # update the submodules
+                  # update Forge
+                  cd ../../..
                   git pull
+
+                  # update the submodules
                   git submodule update --init --recursive
                   git submodule foreach git checkout master
                   git submodule foreach git pull
@@ -521,7 +503,7 @@ Resources:
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
                     fi
                     # update the repo
-                    cd /home/forge/custom-templates/*/.
+                    cd /home/forge/src/forge/custom-templates/*/.
                     git checkout master
                     git pull
                   fi
