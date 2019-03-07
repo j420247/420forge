@@ -1,5 +1,5 @@
-from flask import session, request, Blueprint
-from flask_restful import Resource, current_app
+from flask import session, request, Blueprint, current_app
+from flask_restful import Resource
 import flask_saml
 from werkzeug.contrib.fixers import ProxyFix
 import sys
@@ -11,24 +11,24 @@ from sys import argv
 
 saml_blueprint = Blueprint('saml_auth', __name__)
 
-def configure_saml(ssm_client):
+def configure_saml(ssm_client, app):
     # Create a SQLalchemy db for session and permission storge.
-    current_app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
-    current_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
-    current_app.config['SESSION_TYPE'] = 'sqlalchemy'
-    db = SQLAlchemy(current_app)
-    session_store = Session(current_app)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
+    app.config['SESSION_TYPE'] = 'sqlalchemy'
+    db = SQLAlchemy(app)
+    session_store = Session(app)
     session_store.app.session_interface.db.create_all()
 
     # load permissions file
     #TODO think about whether we want to restrict based on environment tags or regions
     try:
         with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
-            current_app.json_perms = json.load(json_data)
+            app.json_perms = json.load(json_data)
     except Exception:
         print('could not open permissions.json; SAML auth will not work!')
 
-    current_app.wsgi_app = ProxyFix(current_app.wsgi_app)
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     print('SAML auth configured')
     try:
         saml_protocol = ssm_client.get_parameter(
@@ -39,11 +39,11 @@ def configure_saml(ssm_client):
             Name='atl_forge_saml_metadata_url',
             WithDecryption=True
         )
-        current_app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
+        app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
     except Exception:
         print('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
         sys.exit(1)
-    flask_saml.FlaskSAML(current_app)
+    flask_saml.FlaskSAML(app)
 
 
 ##

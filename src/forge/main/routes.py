@@ -14,7 +14,7 @@ def check_loggedin():
     if current_app.args.nosaml:
         return
     if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
-        login_url = url_for('main.login', next=request.url)
+        login_url = url_for('login', next=request.url)
         return redirect(login_url)
 
 

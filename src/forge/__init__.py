@@ -49,7 +49,7 @@ def create_app(config_class):
 
     # create SAML URL if saml enabled
     if not args.nosaml:
-        saml_auth.configure_saml(ssm_client)
+        saml_auth.configure_saml(ssm_client, app)
     else:
         print('SAML auth is not configured')
 
