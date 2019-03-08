@@ -454,21 +454,21 @@ class Stack:
         tags = stack['Stacks'][0]['Tags']
         return tags
 
-    def get_tag(self, tag_name):
+    def get_tag(self, tag_name, log_msgs=True):
         tags = self.get_tags()
         if tags:
             tag = [tag for tag in tags if tag['Key'] == tag_name]
             if tag:
                 tag_value = tag[0]['Value']
-                if hasattr(self, 'logfile'):
-                    self.log_msg(INFO, f'{tag_name} is {tag_value}')
+                if log_msgs and hasattr(self, 'logfile'):
+                    self.log_msg(INFO, f'Tag \'{tag_name}\' is \'{tag_value}\'')
                 return tag_value.lower()
-        if hasattr(self, 'logfile'):
+        if log_msgs and hasattr(self, 'logfile'):
             self.log_msg(WARN, f'Tag {tag_name} not found')
         return False
 
     def is_app_clustered(self):
-        clustered = self.get_tag('clustered')
+        clustered = self.get_tag('clustered', False)
         if not clustered:
             self.log_msg(WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
             return True

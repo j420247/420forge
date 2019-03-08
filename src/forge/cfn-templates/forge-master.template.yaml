@@ -251,6 +251,7 @@ Resources:
                 - elasticfilesystem:CreateTags
                 - elasticfilesystem:DeleteFileSystem
                 - elasticfilesystem:DeleteMountTarget
+                - elasticfilesystem:DeleteTags
                 - elasticfilesystem:DescribeFileSystems
                 - elasticfilesystem:DescribeMountTargets
                 - elasticloadbalancing:*
