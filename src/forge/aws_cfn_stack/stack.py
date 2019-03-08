@@ -782,13 +782,6 @@ class Stack:
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
             time.sleep(5)
             state = self.get_zdu_state()
-        # check node count is not fewer than pre-upgrade
-        self.get_stacknodes()
-        if len(self.instancelist) < int(self.preupgrade_app_node_count):
-            self.log_msg(ERROR, f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}')
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change(f'Node count wrong. Pre upgrade count was {self.preupgrade_app_node_count}, current count is {len(self.instancelist)}. Upgrade failed.')
-            return False
         # approve the upgrade and allow upgrade tasks to run
         if self.approve_zdu_upgrade():
             self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
