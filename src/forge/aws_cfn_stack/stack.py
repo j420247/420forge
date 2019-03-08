@@ -471,6 +471,7 @@ class Stack:
         clustered = self.get_tag('clustered')
         if not clustered:
             self.log_msg(WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            return True
         return True if clustered == 'true' else False
 
     def get_sql_from_s3(self, stack, sql_dir):
