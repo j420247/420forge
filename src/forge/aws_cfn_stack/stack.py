@@ -4,7 +4,7 @@ import botocore
 import time
 import requests
 from pathlib import Path
-from logging import INFO, WARN, ERROR
+from logging import INFO, WARN, ERROR, getLevelName
 import os
 from datetime import datetime
 import itertools
@@ -1159,7 +1159,7 @@ class Stack:
 
     def log_msg(self, level, message):
         if self.logfile is not None:
-            logline = f'{datetime.now()} {level} {message} \n'
+            logline = f'{datetime.now().strftime("%Y-%m-%d %X")} {getLevelName(level)} {message} \n'
             print(logline)
             with open(self.logfile, 'a') as logfile:
                 logfile.write(logline)
