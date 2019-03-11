@@ -1,0 +1,40 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+    <meta name="stackToAdmin" value={{ stackToAdmin }}>
+    <script src="{{ get_filename_with_last_update_time('admin.js') }}"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<h4 class="component-heading">Stack locking</h4>
+<p>Locking stacks prevents multiple actions from being performed on a stack at the same time</p>
+<form class="aui">
+    <fieldset class="group">
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="lockStacksCheckBox" id="lockStacksCheckBox" onclick="setStackLocking()">
+            <label for="lockStacksCheckBox">Enable stack locking</label>
+        </div>
+    </fieldset>
+</form>
+
+<h5 class="component-heading">Currently locked stacks (multi region)</h5>
+<div class="aui-panel">
+    <a id="lockedStackSelector" href="#lockedStacksDropdownDiv" aria-owns="lockedStacksDropdownDiv" aria-haspopup="true"
+       class="aui-button aui-style-default aui-dropdown2-trigger">
+        Select Stack
+    </a>
+
+    <!-- Dropdown -->
+    <div id="lockedStacksDropdownDiv" class="aui-style-default aui-dropdown2"></div>
+</div>
+<div class="aui-panel">
+        <p id="lock-state" hidden>Action in progress: </p>
+</div>
+<div class="aui-panel" id="unlock-warning" hidden>
+    <div class="aui-message aui-message-warning">
+        <p>Only unlock if you are certain the stack is locked in error. Performing mutliple actions against a stack can result in corruption.</p>
+    </div>
+</div>
+{% endblock extraInput %}
+
+{% block buttonText %}Unlock{% endblock buttonText %}

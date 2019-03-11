@@ -1,12 +1,9 @@
 .idea
 forge.iml
 atl-cfn-forge.iml
+custom-templates
 stacks/**/*.json
 stacks/**/*.log
 __pycache__*
 *.db
 .DS_Store
-permissions.json
-forge.properties
-locks/locking
-static/js/global-variables.js

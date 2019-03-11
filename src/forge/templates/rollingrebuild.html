@@ -1,0 +1,7 @@
+{% extends "page-content.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('rebuild.js') }}"></script>
+{% endblock head %}
+
+{% block buttonText %}Rolling Rebuild{% endblock buttonText %}

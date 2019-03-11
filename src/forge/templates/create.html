@@ -1,0 +1,36 @@
+{% extends "template-params.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('create.js') }}"></script>
+{% endblock head %}
+
+{% block stackSelector %}
+{% endblock stackSelector %}
+
+{% block stackStatusPanel %}
+{% endblock stackStatusPanel %}
+
+{% block productSelector %}
+<a id="productSelector" href="#productSelection" aria-owns="productSelection" aria-haspopup="true"
+   class="aui-button aui-style-default aui-dropdown2-trigger">
+    Select Product
+</a>
+<!-- Product dropdown -->
+<div id="productSelection" class="aui-style-default aui-dropdown2">
+    <ul class="aui-list-truncate">
+        {% for product in session['products'] %}
+        <li><a class="selectProductOption">{{ product }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock productSelector %}
+
+{% block extraParams %}
+<div class="field-group param-field-group" id="stack-name-input">
+    <label for="StackNameVal" class="paramLbl">StackName</label>
+    <input class="text" type="text" name="StackNameVal" id="StackNameVal" data-aui-validation-field required
+           pattern="[a-zA-Z][-a-zA-Z0-9]*" data-aui-validation-pattern-msg="Stack name must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*">
+</div>
+{% endblock extraParams %}
+
+{% block buttonText %}Create{% endblock buttonText %}
