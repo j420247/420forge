@@ -48,9 +48,19 @@ class BaseConfig(object):
 
     ## Default parameters for cloning a stack
     # Enter defaults for desired parameters to be applied to all stacks
+    # fmt: off
     CLONE_DEFAULTS = {
-        'all': {'ClusterNodeMin': '1', 'ClusterNodeMax': '1', 'DeployEnvironment': 'stg', 'DBMultiAZ': 'false'},
-        'foj-stg': {'ClusterNodeMin': '4', 'ClusterNodeMax': '4', 'CustomDnsName': 'mystack.mycompany.com'},
+        'all': {
+            'ClusterNodeMin': '1',
+            'ClusterNodeMax': '1',
+            'DeployEnvironment': 'stg',
+            'DBMultiAZ': 'false',
+        },
+        'foj-stg': {
+            'ClusterNodeMin': '4',
+            'ClusterNodeMax': '4',
+            'CustomDnsName': 'mystack.mycompany.com'
+        },
         # To create stack specific defaults, add a param with the stackname, as below
         # When cloning a stack of this name, these defaults will be applied over the top of the parameters above
         # 'mystack' = {
@@ -59,6 +69,7 @@ class BaseConfig(object):
         #     'CustomDnsName': 'mystack.mycompany.com'
         # },
     }
+    # fmt: on
     ## Stack locking
     # Lock stack actions so only one can be performed at a time
     STACK_LOCKING = False
