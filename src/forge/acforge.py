@@ -1,4 +1,5 @@
 # imports
+from datetime import datetime
 from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
 from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
@@ -638,9 +639,14 @@ def get_cfn_stacks_for_region(region=None):
 
 def get_current_log(stack_name):
     logs = glob.glob(f'stacks/{stack_name}/logs/{stack_name}_*.action.log')
+    logs_by_time = {}
     if len(logs) > 0:
-        logs.sort(key=os.path.getctime, reverse=True)
-        with open(logs[0], 'r') as logfile:
+        for log in logs:
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name):log.rfind('_')]
+            datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
+            logs_by_time[log] = datetime_timestamp
+        sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
+        with open(sorted_logs[0], 'r') as logfile:
             try:
                 return logfile.read()
             except Exception as e:
