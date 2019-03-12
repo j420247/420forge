@@ -642,7 +642,7 @@ def get_current_log(stack_name):
     logs_by_time = {}
     if len(logs) > 0:
         for log in logs:
-            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name):log.rfind('_')]
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name) : log.rfind('_')]
             datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
             logs_by_time[log] = datetime_timestamp
         sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
