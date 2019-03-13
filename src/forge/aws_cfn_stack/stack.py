@@ -16,7 +16,8 @@ import pprint
 
 
 def version_tuple(version):
-    return tuple(int(i) for i in version.replace('-m','.').split('.'))
+    return tuple(int(i) for i in version.replace('-m', '.').split('.'))
+
 
 ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
 ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
@@ -42,7 +43,6 @@ class Stack:
         self.logfile = None
         self.changelogfile = None
 
-
     ## Stack - micro function methods
     def get_service_url(self):
         if hasattr(self, 'service_url'):
@@ -51,8 +51,7 @@ class Stack:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if
-                               p['OutputKey'] == 'ServiceURL'][0] + '/'
+                service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if p['OutputKey'] == 'ServiceURL'][0] + '/'
                 self.service_url = service_url
                 return service_url
             except Exception as e:
@@ -75,12 +74,12 @@ class Stack:
                 return param['ParameterValue']
 
     def update_parmlist(self, parmlist, parmkey, parmvalue):
-        key_found=False
+        key_found = False
         for dict in parmlist:
             for k, v in dict.items():
                 if v == parmkey:
                     dict['ParameterValue'] = parmvalue
-                    key_found=True
+                    key_found = True
                 if v == 'DBMasterUserPassword' or v == 'DBPassword':
                     try:
                         del dict['ParameterValue']
@@ -103,11 +102,11 @@ class Stack:
             DocumentName='AWS-RunShellScript',
             Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
             OutputS3BucketName=logs_bucket,
-            OutputS3KeyPrefix='run-command-logs'
+            OutputS3KeyPrefix='run-command-logs',
         )
         self.log_msg(INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
         if ssm_command['ResponseMetadata']['HTTPStatusCode'] == requests.codes.ok:
-            return (ssm_command['Command']['CommandId'])
+            return ssm_command['Command']['CommandId']
         return False
 
     def ssm_cmd_check(self, cmd_id):
@@ -127,7 +126,6 @@ class Stack:
             result = self.wait_for_cmd_result(cmd_id)
         return result
 
-
     ## Stack - helper methods
 
     def spindown_to_zero_appnodes(self):
@@ -140,12 +138,7 @@ class Stack:
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
-            cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=spindown_parms,
-                UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
-            )
+            cfn.update_stack(StackName=self.stack_name, Parameters=spindown_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e:
                 self.log_msg(INFO, 'Stack is already at 0 nodes')
@@ -190,12 +183,7 @@ class Stack:
         elif self.app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
-            update_stack = cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=spinup_parms,
-                UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
-            )
+            update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
             self.log_msg(INFO, f'Stack spinup failed: {e}')
             return False
@@ -209,7 +197,7 @@ class Stack:
     def validate_service_responding(self):
         self.log_msg(INFO, 'Waiting for service to reply on /status')
         service_state = self.check_service_status()
-        while service_state  not in ['RUNNING', 'FIRST_RUN']:
+        while service_state not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
         self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}')
@@ -218,8 +206,7 @@ class Stack:
     def check_service_status(self, logMsgs=True):
         self.get_service_url()
         if logMsgs:
-            self.log_msg(INFO,
-                         f' ==> checking service status at {self.service_url}status')
+            self.log_msg(INFO, f' ==> checking service status at {self.service_url}status')
         try:
             service_status = requests.get(self.service_url + 'status', timeout=5)
             if service_status.status_code == requests.codes.ok:
@@ -229,8 +216,7 @@ class Stack:
             else:
                 status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
             if logMsgs:
-                self.log_msg(INFO,
-                             f' ==> service status is: {status}')
+                self.log_msg(INFO, f' ==> service status is: {status}')
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
@@ -266,7 +252,7 @@ class Stack:
         except Exception as e:
             print(e)
             return f'Error checking node status: {e}'
-        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters']  if param['ParameterKey'] == 'TomcatContextPath'][0]
+        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
         if logMsgs:
             self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
@@ -296,12 +282,7 @@ class Stack:
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
             spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
         try:
-            cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=spinup_parms,
-                UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM']
-            )
+            cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             print(e)
             self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}')
@@ -314,7 +295,7 @@ class Stack:
         ec2 = boto3.resource('ec2', region_name=self.region)
         filters = [
             {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
-            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']},
         ]
         if self.is_app_clustered():
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
@@ -411,7 +392,7 @@ class Stack:
 
     def clear_current_action(self):
         self.save_change_log()
-        if  'LOCKS' in current_app.config and self.stack_name in current_app.config['LOCKS']:
+        if 'LOCKS' in current_app.config and self.stack_name in current_app.config['LOCKS']:
             del current_app.config['LOCKS'][self.stack_name]
         return True
 
@@ -485,7 +466,7 @@ class Stack:
                     os.makedirs(sql_dir)
                 s3 = boto3.resource('s3')
                 for bucket_item in bucket_list:
-                    if (bucket_item['Size'] > 0):  # this is to catch when s3 sometimes weirdly returns the path as an object
+                    if bucket_item['Size'] > 0:  # this is to catch when s3 sometimes weirdly returns the path as an object
                         sql_file_name = os.path.basename(bucket_item['Key'])
                         s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
             self.log_msg(INFO, f'Retrieved latest SQL for {stack} from {sql_dir}')
@@ -559,14 +540,13 @@ class Stack:
             self.log_msg(ERROR, 'Upgrade complete - failed')
             return False
         # get preupgrade version and node counts
-        self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                   p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        self.preupgrade_version = [
+            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+        ][0]
         if self.is_app_clustered():
-            self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                              p['ParameterKey'] == 'ClusterNodeMax'][0]
+            self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
             if self.app_type == 'confluence':
-                self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if
-                                                        p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
+                self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
 
@@ -650,7 +630,6 @@ class Stack:
             return True
         return [f'Jira {jira_product} {version} is incompatible with ZDU']
 
-
     ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
@@ -704,11 +683,7 @@ class Stack:
             stack_params = self.update_parmlist(stack_params, 'CrowdVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=stack_params,
-                UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM'])
+            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}')
@@ -754,11 +729,7 @@ class Stack:
         stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=stack_params,
-                UsePreviousTemplate=True,
-                Capabilities=['CAPABILITY_IAM'])
+            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}')
@@ -852,7 +823,7 @@ class Stack:
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
-                Capabilities=['CAPABILITY_IAM']
+                Capabilities=['CAPABILITY_IAM'],
             )
         except Exception as e:
             print(e)
@@ -865,8 +836,10 @@ class Stack:
             self.log_change('Update complete - failed')
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
-        if not self.is_app_clustered() or ('ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and
-                                           int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0):
+        if not self.is_app_clustered() or (
+            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
+            and int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0
+        ):
             self.log_msg(INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
         self.log_msg(INFO, 'Update complete')
@@ -886,22 +859,14 @@ class Stack:
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
-        tags = [{
-            'Key': 'product',
-            'Value': app_type
-        }, {
-            'Key': 'clustered',
-            'Value': clustered
-        }, {
-            'Key': 'environment',
-            'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')
-        }, {
-            'Key': 'created_by',
-            'Value': creator
-        }]
+        tags = [
+            {'Key': 'product', 'Value': app_type},
+            {'Key': 'clustered', 'Value': clustered},
+            {'Key': 'environment', 'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')},
+            {'Key': 'created_by', 'Value': creator},
+        ]
         if cloned_from:
-            tags.append({'Key': 'cloned_from',
-                         'Value': cloned_from})
+            tags.append({'Key': 'cloned_from', 'Value': cloned_from})
         try:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
@@ -913,7 +878,7 @@ class Stack:
                 Parameters=stack_parms,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
                 Capabilities=['CAPABILITY_IAM'],
-                Tags=tags
+                Tags=tags,
             )
         except Exception as e:
             print(e)
@@ -1076,7 +1041,7 @@ class Stack:
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for instance in self.instancelist:
             self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30) # give node time to recover and rejoin cluster
+            time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, "Heap dumps complete")
         return True
 
@@ -1091,22 +1056,23 @@ class Stack:
             # on node, grab cloned_from sql from s3
             self.run_command(
                 [self.instancelist[0]],
-                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d", )
+                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d",
+            )
             # run that sql
             if not self.run_command(
-                    [self.instancelist[0]],
-                    f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+            ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
-                [self.instancelist[0]],
-                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d", )
+                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d"
+            )
             # run that sql
             if not self.run_command(
-                    [self.instancelist[0]],
-                    f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done', ):
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+            ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
         else:
@@ -1124,13 +1090,7 @@ class Stack:
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
-            cfn.update_stack(
-                StackName=self.stack_name,
-                Parameters=params,
-                UsePreviousTemplate=True,
-                Tags=tags,
-                Capabilities=['CAPABILITY_IAM']
-            )
+            cfn.update_stack(StackName=self.stack_name, Parameters=params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
             self.log_msg(INFO, f'Tagging successfully initiated')
         except Exception as e:
             print(e)
@@ -1142,7 +1102,6 @@ class Stack:
             self.log_change('Tag complete')
             return True
         return False
-
 
     # Logging functions
     def create_action_log(self, action):
