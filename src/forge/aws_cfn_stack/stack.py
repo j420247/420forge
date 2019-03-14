@@ -91,9 +91,9 @@ class Stack:
             parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
         return parmlist
 
-    def upload_template(self, file, s3_name):
+    def upload_template(self, file, s3_name, s3_bucket=False):
         s3 = boto3.resource('s3', region_name=self.region)
-        s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
+        s3.meta.client.upload_file(file, s3_bucket if s3_bucket else current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
 
     def ssm_send_command(self, instance, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
@@ -794,7 +794,7 @@ class Stack:
             self.log_msg(ERROR, 'Upgrade complete - failed')
             self.log_change(f'Could not approve upgrade. Upgrade failed.')
 
-    def destroy(self):
+    def destroy(self, testing=False):
         self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}')
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -811,9 +811,10 @@ class Stack:
                 return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
-        if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
-            self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}')
-            self.log_change(f'Destroy successful for stack {self.stack_name}')
+        if not testing:
+            if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
+                self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}')
+                self.log_change(f'Destroy successful for stack {self.stack_name}')
         self.log_msg(INFO, 'Destroy complete')
         return True
 
@@ -840,18 +841,18 @@ class Stack:
         self.log_change('Clone complete')
         return True
 
-    def update(self, stack_parms, template_file):
+    def update(self, stack_parms, template_file, s3_bucket=False, testing=False):
         self.log_msg(INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
         template = str(template_file)
-        self.upload_template(template, template_filename)
+        self.upload_template(template, template_filename, s3_bucket)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             cfn.update_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
+                TemplateURL=f"https://s3.amazonaws.com/{s3_bucket if s3_bucket else current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
                 Capabilities=['CAPABILITY_IAM']
             )
         except Exception as e:
@@ -860,15 +861,16 @@ class Stack:
             self.log_msg(INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
             return False
-        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Update complete - failed')
-            self.log_change('Update complete - failed')
-            return False
-        # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
-        if not self.is_app_clustered() or ('ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and
-                                           int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0):
-            self.log_msg(INFO, 'Waiting for stack to respond')
-            self.validate_service_responding()
+        if not testing:
+            if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                self.log_msg(INFO, 'Update complete - failed')
+                self.log_change('Update complete - failed')
+                return False
+            # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
+            if not self.is_app_clustered() or ('ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and
+                                               int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0):
+                self.log_msg(INFO, 'Waiting for stack to respond')
+                self.validate_service_responding()
         self.log_msg(INFO, 'Update complete')
         self.log_change('Update successful')
         return True
@@ -879,7 +881,8 @@ class Stack:
     #     # changedParms = param list with changed parms
     #     create(parms=changedParms)
 
-    def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
+    def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False, s3_bucket=False, testing=False):
+        # s3_bucket is required for moto testing
         self.log_msg(INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(INFO, f'Creation params: {stack_parms}')
         self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
@@ -903,15 +906,16 @@ class Stack:
             tags.append({'Key': 'cloned_from',
                          'Value': cloned_from})
         try:
-            self.upload_template(template, template_file.name)
+            self.upload_template(template, template_file.name, s3_bucket)
             cfn = boto3.client('cloudformation', region_name=region)
             # wait for the template to upload to avoid race conditions
-            time.sleep(5)
+            if not testing:
+                time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_parms,
-                TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
+                TemplateURL=f"https://s3.amazonaws.com/{s3_bucket if s3_bucket else current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=tags
             )
@@ -927,7 +931,8 @@ class Stack:
             self.log_change('Create complete - failed')
             return False
         self.log_msg(INFO, f'Stack {self.stack_name} created, waiting on service responding')
-        self.validate_service_responding()
+        if not testing:
+            self.validate_service_responding()
         self.log_msg(INFO, 'Create complete')
         self.log_change('Create complete')
         return True
