@@ -37,13 +37,16 @@ def configure_saml(ssm_client, app):
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     logger.info('SAML auth configured')
-    try:
-        saml_protocol = ssm_client.get_parameter(Name='atl_forge_saml_metadata_protocol', WithDecryption=True)
-        saml_url = ssm_client.get_parameter(Name='atl_forge_saml_metadata_url', WithDecryption=True)
-        app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
-    except Exception:
-        logger.error('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
-        sys.exit(1)
+    if app.args.localSamlUrl:
+        app.config['SAML_METADATA_URL'] = app.args.localSamlUrl
+    else:
+        try:
+            saml_protocol = ssm_client.get_parameter(Name='atl_forge_saml_metadata_protocol', WithDecryption=True)
+            saml_url = ssm_client.get_parameter(Name='atl_forge_saml_metadata_url', WithDecryption=True)
+            app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
+        except Exception:
+            logger.error('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+            sys.exit(1)
     flask_saml.FlaskSAML(app)
 
 

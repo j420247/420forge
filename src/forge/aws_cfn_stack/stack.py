@@ -97,7 +97,13 @@ class Stack:
     def ssm_send_command(self, instance, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
         ssm = boto3.client('ssm', region_name=self.region)
-        ssm_command = ssm.send_command(InstanceIds=[instance], DocumentName='AWS-RunShellScript', Parameters={'commands': [cmd], 'executionTimeout': ["900"]}, OutputS3BucketName=logs_bucket, OutputS3KeyPrefix='run-command-logs')
+        ssm_command = ssm.send_command(
+            InstanceIds=[instance],
+            DocumentName='AWS-RunShellScript',
+            Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
+            OutputS3BucketName=logs_bucket,
+            OutputS3KeyPrefix='run-command-logs',
+        )
         self.log_msg(INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
         if ssm_command['ResponseMetadata']['HTTPStatusCode'] == requests.codes.ok:
             return ssm_command['Command']['CommandId']
@@ -287,7 +293,10 @@ class Stack:
 
     def get_stacknodes(self):
         ec2 = boto3.resource('ec2', region_name=self.region)
-        filters = [{'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]}, {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']}]
+        filters = [
+            {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']},
+        ]
         if self.is_app_clustered():
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
@@ -546,7 +555,9 @@ class Stack:
             self.log_msg(ERROR, 'Upgrade complete - failed')
             return False
         # get preupgrade version and node counts
-        self.preupgrade_version = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')][0]
+        self.preupgrade_version = [
+            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+        ][0]
         if self.is_app_clustered():
             self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
             if self.app_type == 'confluence':
@@ -823,7 +834,12 @@ class Stack:
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=stack_parms, TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}", Capabilities=['CAPABILITY_IAM'])
+            cfn.update_stack(
+                StackName=self.stack_name,
+                Parameters=stack_parms,
+                TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
+                Capabilities=['CAPABILITY_IAM'],
+            )
         except Exception as e:
             print(e)
             self.log_msg(ERROR, f'An error occurred updating stack: {e}')
@@ -836,7 +852,8 @@ class Stack:
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
         if not self.is_app_clustered() or (
-            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0] and int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0
+            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
+            and int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0
         ):
             self.log_msg(INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
@@ -871,7 +888,13 @@ class Stack:
             # wait for the template to upload to avoid race conditions
             time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
-            created_stack = cfn.create_stack(StackName=self.stack_name, Parameters=stack_parms, TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}", Capabilities=['CAPABILITY_IAM'], Tags=tags)
+            created_stack = cfn.create_stack(
+                StackName=self.stack_name,
+                Parameters=stack_parms,
+                TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
+                Capabilities=['CAPABILITY_IAM'],
+                Tags=tags,
+            )
         except Exception as e:
             print(e)
             self.log_msg(WARN, f'Error occurred creating stack: {e}')
@@ -1046,16 +1069,25 @@ class Stack:
             cloned_from_stack = self.get_tag('cloned_from')
             db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -v ON_ERROR_STOP=1 -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
             # on node, grab cloned_from sql from s3
-            self.run_command([self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d")
+            self.run_command(
+                [self.instancelist[0]],
+                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d",
+            )
             # run that sql
-            if not self.run_command([self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'):
+            if not self.run_command(
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+            ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
             # on node, grab local-stack sql from s3
-            self.run_command([self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d")
+            self.run_command(
+                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d"
+            )
             # run that sql
-            if not self.run_command([self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'):
+            if not self.run_command(
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+            ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
         else:

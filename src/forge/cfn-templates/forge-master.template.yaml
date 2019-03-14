@@ -15,7 +15,7 @@ Metadata:
         - Label:
             default: EC2 Config
           Parameters:
-            - KeyName
+            - KeyPairName
             - NodeInstanceType
             - NodeVolumeSize
         - Label:
@@ -56,7 +56,7 @@ Metadata:
           default: IP range permitted to access forge
         HostedZone:
           default: Route 53 Hosted Zone
-        KeyName:
+        KeyPairName:
           default: Key Pair
         LocalAnsibleGitRepo:
           default: Git repo for local-ansible
@@ -132,7 +132,7 @@ Parameters:
     Default: false
     Description: Whether the load balancer can be accessed from the internet
     Type: String
-  KeyName:
+  KeyPairName:
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
@@ -495,7 +495,8 @@ Resources:
                   #!/usr/bin/env bash
 
                   # update Forge
-                  cd ../../..
+                  cd /home/forge/atl-cfn-forge/
+                  git config --global url."https://github.com/".insteadOf "git@github.com:"
                   git pull
 
                   # update the submodules
@@ -518,7 +519,7 @@ Resources:
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
                     fi
                     # update the repo
-                    cd /home/forge/src/forge/custom-templates/*/.
+                    cd /home/forge/atl-cfn-forge/src/forge/custom-templates/*/.
                     git checkout master
                     git pull
                   fi
@@ -552,7 +553,7 @@ Resources:
       IamInstanceProfile: !Ref ForgeNodeInstanceProfile
       ImageId: !FindInMap [RegionAmiMap, !Ref "AWS::Region", "ami"]
       InstanceType: !Ref NodeInstanceType
-      KeyName: !Ref KeyName
+      KeyName: !Ref KeyPairName
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
       UserData:
         Fn::Base64: !Sub |
