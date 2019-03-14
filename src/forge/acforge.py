@@ -1,4 +1,5 @@
 # imports
+from datetime import datetime
 from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
 from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
@@ -370,7 +371,11 @@ class TemplateParams(Resource):
         params_to_send = []
         for param in template_params:
             params_to_send.append(
-                {'ParameterKey': param, 'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '', 'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else ''}
+                {
+                    'ParameterKey': param,
+                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
+                    'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
+                }
             )
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
@@ -402,10 +407,16 @@ class TemplateParamsForStack(Resource):
         for param in template_params['Parameters']:
             if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
-                    compared_params.append({'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
+                    compared_params.append(
+                        {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
+                    )
                 if 'AllowedValues' in template_params['Parameters'][param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = template_params['Parameters'][param]['AllowedValues']
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = template_params['Parameters'][param][
+                        'AllowedValues'
+                    ]
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
+                        template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
+                    )
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
@@ -628,9 +639,14 @@ def get_cfn_stacks_for_region(region=None):
 
 def get_current_log(stack_name):
     logs = glob.glob(f'stacks/{stack_name}/logs/{stack_name}_*.action.log')
+    logs_by_time = {}
     if len(logs) > 0:
-        logs.sort(key=os.path.getctime, reverse=True)
-        with open(logs[0], 'r') as logfile:
+        for log in logs:
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name) : log.rfind('_')]
+            datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
+            logs_by_time[log] = datetime_timestamp
+        sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
+        with open(sorted_logs[0], 'r') as logfile:
             try:
                 return logfile.read()
             except Exception as e:
