@@ -17,13 +17,9 @@ from forge.saml_auth import saml_blueprint, saml_auth
 def create_app(config_class):
     # get args
     parser = argparse.ArgumentParser(description='Forge')
-    parser.add_argument('--nosaml',
-                        action='store_true',
-                        help='Start with --nosaml to bypass SAML for local testing')
-    parser.add_argument('--region',
-                        nargs='?',
-                        default='us-east-1',
-                        help='The AWS region that Forge is operating in')
+    parser.add_argument('--nosaml', action='store_true', help='Start with --nosaml to bypass SAML for local testing')
+    parser.add_argument('--region', nargs='?', default='us-east-1', help='The AWS region that Forge is operating in')
+    parser.add_argument('--localSamlUrl', nargs='?', help='The SAML URL to use for local development')
     args = parser.parse_args()
 
     # create and initialize app
@@ -37,10 +33,7 @@ def create_app(config_class):
     ssm_client = boto3.client('ssm', region_name=args.region)
     app.config['SECRET_KEY'] = 'REPLACE_ME'
     try:
-        key = ssm_client.get_parameter(
-            Name='atl_forge_secret_key',
-            WithDecryption=True
-        )
+        key = ssm_client.get_parameter(Name='atl_forge_secret_key', WithDecryption=True)
         app.config['SECRET_KEY'] = key['Parameter']['Value']
     except botocore.exceptions.NoCredentialsError as e:
         print('No credentials - please authenticate with Cloudtoken')

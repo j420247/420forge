@@ -2,8 +2,7 @@
 from datetime import datetime
 from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, redirect, url_for, current_app, \
-    render_template, flash
+from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
 from flask_restful import Resource
 from ruamel import yaml
 from pathlib import Path
@@ -21,6 +20,7 @@ import json
 ##
 #### REST Endpoint classes
 ##
+
 
 class DoUpgrade(RestrictedResource):
     def post(self, region, stack_name, new_version, zdu):
@@ -242,19 +242,10 @@ class DoGetThreadDumpLinks(RestrictedResource):
             accountId = boto3.client('sts').get_caller_identity().get('Account')
             s3_bucket = f'atl-cfn-forge-{accountId}'
             client = boto3.client('s3', region_name=session['region'])
-            list_objects = client.list_objects_v2(
-                Bucket=s3_bucket,
-                Prefix=f'diagnostics/{stack_name}/'
-            )
+            list_objects = client.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{stack_name}/')
             if 'Contents' in list_objects:
                 for thread_dump in list_objects['Contents']:
-                    url = client.generate_presigned_url(
-                        ClientMethod='get_object',
-                        Params={
-                            'Bucket': s3_bucket,
-                            'Key': thread_dump['Key']
-                        }
-                    )
+                    url = client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': s3_bucket, 'Key': thread_dump['Key']})
                     urls.append(url)
         except Exception as e:
             if e.response['Error']['Code'] == 'NoSuchBucket':
@@ -379,12 +370,15 @@ class TemplateParams(Resource):
 
         params_to_send = []
         for param in template_params:
-            params_to_send.append({'ParameterKey': param,
-                                   'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
-                                   'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else ''})
+            params_to_send.append(
+                {
+                    'ParameterKey': param,
+                    'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
+                    'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
+                }
+            )
             if 'AllowedValues' in template_params[param]:
-                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = \
-                    template_params[param]['AllowedValues']
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
         return params_to_send
 
 
@@ -413,17 +407,19 @@ class TemplateParamsForStack(Resource):
         for param in template_params['Parameters']:
             if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
-                    compared_params.append({'ParameterKey': param,
-                                            'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''})
+                    compared_params.append(
+                        {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
+                    )
                 if 'AllowedValues' in template_params['Parameters'][param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = \
-                        template_params['Parameters'][param]['AllowedValues']
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = \
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedValues'] = template_params['Parameters'][param][
+                        'AllowedValues'
+                    ]
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
+                    )
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
-                compared_param['ParameterDescription'] = \
-                    template_params['Parameters'][param]['Description']
+                compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
         return compared_params
 
 
@@ -495,14 +491,7 @@ class GetEbsSnapshots(Resource):
         if region != session['region']:
             snap_name_format = f'dr_{snap_name_format}'
         try:
-            snapshots = ec2.describe_snapshots(Filters=[
-                {
-                    'Name': 'tag-value',
-                    'Values': [
-                        snap_name_format,
-                    ]
-                },
-            ],)
+            snapshots = ec2.describe_snapshots(Filters=[{'Name': 'tag-value', 'Values': [snap_name_format]}])
         except botocore.exceptions.ClientError as e:
             print(e)
             return
@@ -584,16 +573,7 @@ class GetSubnetsForVpc(Resource):
     def get(self, region, vpc):
         ec2 = boto3.client('ec2', region_name=region)
         try:
-            subnets = ec2.describe_subnets(
-                Filters=[
-                    {
-                        'Name': 'vpc-id',
-                        'Values': [
-                            vpc,
-                        ]
-                    },
-                ]
-            )
+            subnets = ec2.describe_subnets(Filters=[{'Name': 'vpc-id', 'Values': [vpc]}])
         except botocore.exceptions.ClientError as e:
             print(e)
             return
@@ -637,16 +617,17 @@ class ForgeStatus(Resource):
     def get(self):
         return {'state': 'RUNNING'}
 
+
 ##
 #### Common functions
 ##
+
 
 def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
     try:
-        stack_list = cfn.list_stacks(
-            StackStatusFilter=current_app.config['VALID_STACK_STATUSES'])
+        stack_list = cfn.list_stacks(StackStatusFilter=current_app.config['VALID_STACK_STATUSES'])
         session['credentials'] = True
         for stack in stack_list['StackSummaries']:
             stack_name_list.append(stack['StackName'])
@@ -661,7 +642,7 @@ def get_current_log(stack_name):
     logs_by_time = {}
     if len(logs) > 0:
         for log in logs:
-            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name):log.rfind('_')]
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name) : log.rfind('_')]
             datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
             logs_by_time[log] = datetime_timestamp
         sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
@@ -718,7 +699,7 @@ def get_forge_settings():
     session['regions'] = current_app.config['REGIONS']
     session['stack_locking'] = current_app.config['STACK_LOCKING']
     session['forge_version'] = __version__
-    session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ','').encode(errors='xmlcharrefreplace')
-    session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ','').encode(errors='xmlcharrefreplace')
+    session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ', '').encode(errors='xmlcharrefreplace')
+    session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ', '').encode(errors='xmlcharrefreplace')
     session['hosted_zone'] = current_app.config['HOSTED_ZONE']
     session['ssh_key_name'] = current_app.config['SSH_KEY_NAME']

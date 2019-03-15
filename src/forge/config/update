@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # update the submodules
-cd ../
+cd /home/forge/atl-cfn-forge || exit
+git config --global url."https://github.com/".insteadOf "git@github.com:"
 echo Updating submodules
 git pull
 git submodule update --init --recursive
@@ -25,7 +26,7 @@ if [[ -n "${ATL_CUSTOM_TEMPLATE_REPO}" ]]; then
     fi
     # update the repo from master
     echo Updating custom-templates
-    cd /home/forge/custom-templates/*/.
+    cd /home/forge/atl-cfn-forge/custom-templates/*/. || exit
     echo Updating $PWD from master
     git checkout -f master
     git pull

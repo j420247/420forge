@@ -39,7 +39,7 @@ A quick overview of the parameters for Forge's CloudFormation template. We provi
 * **InternetAccessible**  
   Whether or not the Elastic Load Balancer associated with Forge is configured to be publicly-accessible
 
-* **KeyName**  
+* **KeyPairName**  
   The name of an existing EC2 KeyPair to enable SSH access to the instance
 
 * **NodeInstanceType**  

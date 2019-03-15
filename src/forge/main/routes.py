@@ -28,76 +28,74 @@ def check_cloudtoken():
 
 
 # Action UI pages
-@main.route('/upgrade', methods = ['GET'])
+@main.route('/upgrade', methods=['GET'])
 def upgrade():
     return render_template('upgrade.html')
 
 
-@main.route('/clone', methods = ['GET'])
+@main.route('/clone', methods=['GET'])
 def clone():
     return render_template('clone.html')
 
 
-@main.route('/fullrestart', methods = ['GET'])
+@main.route('/fullrestart', methods=['GET'])
 def fullrestart():
     return render_template('fullrestart.html')
 
 
-@main.route('/rollingrestart', methods = ['GET'])
+@main.route('/rollingrestart', methods=['GET'])
 def rollingrestart():
     return render_template('rollingrestart.html')
 
 
-@main.route('/rollingrebuild', methods = ['GET'])
+@main.route('/rollingrebuild', methods=['GET'])
 def rollingrebuild():
     return render_template('rollingrebuild.html')
 
 
-@main.route('/create', methods = ['GET'])
+@main.route('/create', methods=['GET'])
 def create():
     return render_template('create.html')
 
 
-@main.route('/destroy', methods = ['GET'])
+@main.route('/destroy', methods=['GET'])
 def destroy():
     return render_template('destroy.html')
 
 
-@main.route('/update', methods = ['GET'])
+@main.route('/update', methods=['GET'])
 def update():
     return render_template('update.html')
 
 
-@main.route('/tag', methods = ['GET'])
+@main.route('/tag', methods=['GET'])
 def tag():
     return render_template('tag.html')
 
 
-@main.route('/viewlog', methods = ['GET'])
+@main.route('/viewlog', methods=['GET'])
 def viewlog():
     return render_template('viewlog.html')
 
 
-@main.route('/diagnostics', methods = ['GET'])
+@main.route('/diagnostics', methods=['GET'])
 def diagnostics():
     return render_template('diagnostics.html')
 
 
-@main.route('/runsql', methods = ['GET'])
+@main.route('/runsql', methods=['GET'])
 def runsql():
     return render_template('runsql.html')
 
 
-@main.route('/admin', methods = ['GET'])
+@main.route('/admin', methods=['GET'])
 def admin():
     return render_template('admin.html')
 
 
-@main.route('/admin/<stack_name>', methods = ['GET'])
+@main.route('/admin/<stack_name>', methods=['GET'])
 def admin_stack(stack_name):
     return render_template('admin.html', stackToAdmin=stack_name)
-
-
 
 
 @main.route('/error/<error>')
@@ -151,7 +149,6 @@ def getparms(action):
     return sorted(get_cfn_stacks_for_region())
 
 
-
 # function to get last modified time of JS files to automatically invalidate them when updated
 @main.context_processor
 def utility_processor():
@@ -159,4 +156,5 @@ def utility_processor():
         js_file_with_path = f'static/js/{js_file}'
         mtime = str(path.getmtime(path.join(current_app.root_path, js_file_with_path)))
         return f"/{js_file_with_path}?v={mtime}"
+
     return dict(get_filename_with_last_update_time=get_filename_with_last_update_time)
