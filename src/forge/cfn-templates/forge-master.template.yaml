@@ -495,8 +495,7 @@ Resources:
                   #!/usr/bin/env bash
 
                   # update Forge
-                  cd /home/forge/atl-cfn-forge/
-                  git config --global url."https://github.com/".insteadOf "git@github.com:"
+                  cd ../../..
                   git pull
 
                   # update the submodules
@@ -519,7 +518,7 @@ Resources:
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
                     fi
                     # update the repo
-                    cd /home/forge/atl-cfn-forge/src/forge/custom-templates/*/.
+                    cd /home/forge/src/forge/custom-templates/*/.
                     git checkout master
                     git pull
                   fi
