@@ -2,7 +2,6 @@
 
 # update the submodules
 cd /home/forge/atl-cfn-forge || exit
-git config --global url."https://github.com/".insteadOf "git@github.com:"
 echo Updating submodules
 git pull
 git submodule update --init --recursive

@@ -496,7 +496,6 @@ Resources:
 
                   # update Forge
                   cd /home/forge/atl-cfn-forge/
-                  git config --global url."https://github.com/".insteadOf "git@github.com:"
                   git pull
 
                   # update the submodules
