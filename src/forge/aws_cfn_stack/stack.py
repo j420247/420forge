@@ -330,7 +330,6 @@ class Stack:
             node_ip = list(instancedict.values())[0]
             if not self.cleanup_temp_files(str(instance)):
                 self.log_msg('ERROR', f'Failure cleaning up temp files for {instance}')
-                return False
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
             cmd = f'/etc/init.d/{self.app_type} start'
@@ -355,10 +354,9 @@ class Stack:
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.log_msg('ERROR', f'Startup result for {cmd_id}: {result}')
+                self.log_msg('ERROR', f'Cleanup temp files result for {cmd_id}: {result}')
                 return False
             self.log_msg(INFO, f'Deleted Jira temp files on {instance}')
-            self.log_change(f'Deleted Jira temp files on {instance}')
         return True
 
     def run_command(self, instancelist, cmd):
