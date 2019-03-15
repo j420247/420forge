@@ -4,24 +4,24 @@ sys.path.append('../../src')
 import boto3
 import unittest
 import forge.aws_cfn_stack.stack as aws_stack
-from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53
+from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53, mock_ssm
 from setup_test_env import setup_env_resources, REGION, CONF_STACKNAME, S3_BUCKET
 from pathlib import Path
+
+from flask import Flask
 
 
 class test_aws_stacks(unittest.TestCase):
     TEMPLATE_FILE = Path('../../src/forge/cfn-templates/UnitTest-Confluence.template.yaml')
-
-    def get_stack_params(self):
-        env_resources = setup_env_resources()
+    def get_stack_params(self, env_resources):
         return [
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
         {'ParameterKey': 'AutologinCookieAge', 'ParameterValue': ''},
         {'ParameterKey': 'CatalinaOpts', 'ParameterValue': ''},
         {'ParameterKey': 'CidrBlock', 'ParameterValue': '0.0.0.0/0'},
         {'ParameterKey': 'ClusterNodeInstanceType', 'ParameterValue': 't2.medium'},
-        {'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '1'},
-        {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '1'},
+        {'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '2'},
+        {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '2'},
         {'ParameterKey': 'ClusterNodeVolumeSize', 'ParameterValue': '50'},
         {'ParameterKey': 'ConfluenceDownloadUrl', 'ParameterValue': ''},
         {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.11.0'},
@@ -77,10 +77,10 @@ class test_aws_stacks(unittest.TestCase):
     def setup(self):
         # not using unittest.setUp/setUpClass here as the created stack does not persist in the moto environment
         # each test must call this at the start
+        env_resources = setup_env_resources()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        mystack.create(self.get_stack_params(), self.TEMPLATE_FILE,
-                       'confluence', 'true', 'test_user', REGION, cloned_from=False, s3_bucket=S3_BUCKET,
-                       testing=True)
+        mystack.create(self.get_stack_params(env_resources), self.TEMPLATE_FILE,
+                       'confluence', 'true', 'test_user', REGION, cloned_from=False)
 
     @mock_cloudformation
     def test_create(self):
@@ -96,7 +96,7 @@ class test_aws_stacks(unittest.TestCase):
         stacks = cfn.describe_stacks()
         self.assertEqual(len(stacks['Stacks']), 1)
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        mystack.destroy(testing=True)
+        mystack.destroy()
         stacks = cfn.describe_stacks()
         self.assertEqual(len(stacks['Stacks']), 0)
 
@@ -135,6 +135,21 @@ class test_aws_stacks(unittest.TestCase):
         tags = mystack.get_tags()
         self.assertEqual(tags, tags_to_add)
 
+    @mock_ec2
+    @mock_ssm
+    @mock_cloudformation
+    def test_restarts(self):
+            self.setup()
+            mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+            rolling_result = mystack.rolling_restart()
+            self.assertTrue(rolling_result)
+            full_result = mystack.full_restart()
+            self.assertTrue(full_result)
+
 
 if __name__ == '__main__':
-    unittest.main()
+    app = Flask(__name__)
+    app.config['S3_BUCKET'] = 'mock_bucket'
+    app.config['TESTING'] = True
+    with app.app_context():
+        unittest.main()
