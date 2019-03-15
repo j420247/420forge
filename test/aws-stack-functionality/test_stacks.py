@@ -8,12 +8,12 @@ from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53, mock_ssm
 from setup_test_env import setup_env_resources, REGION, CONF_STACKNAME, S3_BUCKET
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, current_app
 
 
 class test_aws_stacks(unittest.TestCase):
     TEMPLATE_FILE = Path('../../src/forge/cfn-templates/UnitTest-Confluence.template.yaml')
-    def get_stack_params(self, env_resources):
+    def get_stack_params(self):
         return [
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
         {'ParameterKey': 'AutologinCookieAge', 'ParameterValue': ''},
@@ -43,9 +43,9 @@ class test_aws_stacks(unittest.TestCase):
         {'ParameterKey': 'DBTimeout', 'ParameterValue': '0'},
         {'ParameterKey': 'DBValidate', 'ParameterValue': 'false'},
         {'ParameterKey': 'DeployEnvironment', 'ParameterValue': 'prod'},
-        {'ParameterKey': 'ExternalSubnets', 'ParameterValue': f"{env_resources['subnet_1_id']},{env_resources['subnet_2_id']}"},
+        {'ParameterKey': 'ExternalSubnets', 'ParameterValue': f"{current_app.config['RESOURCES']['subnet_1_id']},{current_app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
-        {'ParameterKey': 'InternalSubnets', 'ParameterValue': f"{env_resources['subnet_1_id']},{env_resources['subnet_2_id']}"},
+        {'ParameterKey': 'InternalSubnets', 'ParameterValue': f"{current_app.config['RESOURCES']['subnet_1_id']},{current_app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'JvmHeapOverride', 'ParameterValue': ''},
         {'ParameterKey': 'JvmHeapOverrideSynchrony', 'ParameterValue': ''},
         {'ParameterKey': 'KeyName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
@@ -67,7 +67,7 @@ class test_aws_stacks(unittest.TestCase):
         {'ParameterKey': 'TomcatRedirectPort', 'ParameterValue': '8443'},
         {'ParameterKey': 'TomcatScheme', 'ParameterValue': 'http'},
         {'ParameterKey': 'TomcatSecure', 'ParameterValue': 'false'},
-        {'ParameterKey': 'VPC', 'ParameterValue':  f"{env_resources['vpc_id']}"}
+        {'ParameterKey': 'VPC', 'ParameterValue':  f"{current_app.config['RESOURCES']['vpc_id']}"}
     ]
 
     @mock_ec2
@@ -77,9 +77,9 @@ class test_aws_stacks(unittest.TestCase):
     def setup(self):
         # not using unittest.setUp/setUpClass here as the created stack does not persist in the moto environment
         # each test must call this at the start
-        env_resources = setup_env_resources()
+        setup_env_resources()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        mystack.create(self.get_stack_params(env_resources), self.TEMPLATE_FILE,
+        mystack.create(self.get_stack_params(), self.TEMPLATE_FILE,
                        'confluence', 'true', 'test_user', REGION, cloned_from=False)
 
     @mock_cloudformation
@@ -100,27 +100,25 @@ class test_aws_stacks(unittest.TestCase):
         stacks = cfn.describe_stacks()
         self.assertEqual(len(stacks['Stacks']), 0)
 
-    # Currently failing with 'NoneType' object has no attribute 'parameters' at cfn.update_stack in Stack.update()
-    # Also not returning a stack in cfn.describe_stacks below
-    # @mock_s3
-    # @mock_cloudformation
-    # def test_update(self):
-    #     self.setup()
-    #     cfn = boto3.client('cloudformation', REGION)
-    #     stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
-    #     mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-    #     params_for_update = self.get_stack_params()
-    #     for param in params_for_update:
-    #         if param['ParameterKey'] == 'TomcatConnectionTimeout':
-    #             param['ParameterValue'] = '20001'
-    #         # for other params, delete the value and set UsePreviousValue to true
-    #         else:
-    #             del param['ParameterValue']
-    #             param['UsePreviousValue'] = True
-    #     result = mystack.update(params_for_update, self.TEMPLATE_FILE, S3_BUCKET)
-    #     cfn = boto3.client('cloudformation', REGION)
-    #     stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
-    #     self.assertEqual([param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'], '20001')
+    @mock_s3
+    @mock_cloudformation
+    def test_update(self):
+        self.setup()
+        cfn = boto3.client('cloudformation', REGION)
+        stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        params_for_update = self.get_stack_params()
+        for param in params_for_update:
+            if param['ParameterKey'] == 'TomcatConnectionTimeout':
+                param['ParameterValue'] = '20001'
+            # for other params, delete the value and set UsePreviousValue to true
+            else:
+                del param['ParameterValue']
+                param['UsePreviousValue'] = True
+        result = mystack.update(params_for_update, self.TEMPLATE_FILE)
+        cfn = boto3.client('cloudformation', REGION)
+        stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
+        self.assertEqual([param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'], '20001')
 
     @mock_cloudformation
     def test_tagging(self):

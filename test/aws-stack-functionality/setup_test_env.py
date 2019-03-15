@@ -1,4 +1,5 @@
 import boto3
+from flask import current_app
 from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53
 
 REGION = 'us-east-1'
@@ -42,4 +43,4 @@ def setup_env_resources():
     resources['subnet_2_id'] = subnet_2.subnet_id
     resources['hosted_zone'] = hosted_zone
 
-    return resources
+    current_app.config['RESOURCES'] = resources
