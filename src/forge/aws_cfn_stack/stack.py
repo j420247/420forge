@@ -328,7 +328,7 @@ class Stack:
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
-            if not self.cleanup_temp_files([instance]):
+            if not self.cleanup_temp_files(str(instance)):
                 self.log_msg('ERROR', f'Failure cleaning up temp files for {instance}')
                 return False
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
@@ -351,7 +351,7 @@ class Stack:
 
     def cleanup_temp_files(self, instance):
         if self.app_type == 'jira':
-            cmd = f'find /opt/atlassian/jira/temp/ -type f -mtime +1 -delete'
+            cmd = f'find /opt/atlassian/jira/temp/ -type f -delete'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
