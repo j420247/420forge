@@ -116,6 +116,7 @@ class test_aws_stacks(unittest.TestCase):
                 del param['ParameterValue']
                 param['UsePreviousValue'] = True
         result = mystack.update(params_for_update, self.TEMPLATE_FILE)
+        self.assertTrue(result)
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
         self.assertEqual([param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'], '20001')
