@@ -3,6 +3,8 @@ sys.path.append('../../src')
 
 import boto3
 import unittest
+from unittest.mock import MagicMock
+
 import forge.aws_cfn_stack.stack as aws_stack
 from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53, mock_ssm
 from setup_test_env import setup_env_resources, REGION, CONF_STACKNAME, S3_BUCKET
@@ -79,6 +81,12 @@ class test_aws_stacks(unittest.TestCase):
         # each test must call this at the start
         setup_env_resources()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+
+        # setup mocks
+        mystack.validate_service_responding = MagicMock(return_value=True)
+        mystack.wait_stack_action_complete = MagicMock(return_value=True)
+
+        # create stack
         mystack.create(self.get_stack_params(), self.TEMPLATE_FILE,
                        'confluence', 'true', 'test_user', REGION, cloned_from=False)
 
@@ -138,12 +146,16 @@ class test_aws_stacks(unittest.TestCase):
     @mock_ssm
     @mock_cloudformation
     def test_restarts(self):
-            self.setup()
-            mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-            rolling_result = mystack.rolling_restart()
-            self.assertTrue(rolling_result)
-            full_result = mystack.full_restart()
-            self.assertTrue(full_result)
+        self.setup()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        # setup mocks
+        mystack.check_service_status = MagicMock(return_value='RUNNING')
+        mystack.check_node_status = MagicMock(return_value='RUNNING')
+        # perform restarts
+        rolling_result = mystack.rolling_restart()
+        self.assertTrue(rolling_result)
+        full_result = mystack.full_restart()
+        self.assertTrue(full_result)
 
 
 if __name__ == '__main__':

@@ -153,10 +153,10 @@ class Stack:
         return False
 
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
-        if 'TESTING' in current_app.config:
-            return True
         self.log_msg(INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
+        if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
+            return True
         while stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
@@ -197,8 +197,6 @@ class Stack:
         return True
 
     def validate_service_responding(self):
-        if 'TESTING' in current_app.config:
-            return True
         self.log_msg(INFO, 'Waiting for service to reply on /status')
         service_state = self.check_service_status()
         while service_state not in ['RUNNING', 'FIRST_RUN']:
@@ -208,8 +206,6 @@ class Stack:
         return True
 
     def check_service_status(self, logMsgs=True):
-        if 'TESTING' in current_app.config:
-            return 'RUNNING'
         self.get_service_url()
         if logMsgs:
             self.log_msg(INFO, f' ==> checking service status at {self.service_url}status')
@@ -239,7 +235,7 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except Exception as e:
-            if 'Throttling' in e or 'Rate exceeded' in e:
+            if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
                 self.log_msg(WARN, f'Stack actions are being throttled: {e}')
                 return 'throttled'
             if 'does not exist' in e.response['Error']['Message']:
@@ -252,8 +248,6 @@ class Stack:
         return state
 
     def check_node_status(self, node_ip, logMsgs=True):
-        if 'TESTING' in current_app.config:
-            return 'RUNNING'
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
@@ -300,24 +294,17 @@ class Stack:
         return True
 
     def get_stacknodes(self):
+        ec2 = boto3.resource('ec2', region_name=self.region)
+        filters = [
+            {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
+            {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']},
+        ]
+        if self.is_app_clustered():
+            filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
-        ec2 = boto3.client('ec2', region_name=self.region)
-        # moto stores and returns ec2 instances differently to boto so we need to retrieve and extract them differently :sigh:
-        if 'TESTING' not in current_app.config:
-            filters = [
-                {'Name': 'tag:aws:cloudformation:stack-name', 'Values': [self.stack_name]},
-                {'Name': 'instance-state-name', 'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']},
-            ]
-            if self.is_app_clustered():
-                filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
-            for reservation in ec2.describe_instances(Filters=filters)['Reservations']:
-                instancedict = {reservation['Instances'][0]['InstanceId']: reservation['Instances'][0]['PrivateIpAddress']}
-                self.instancelist.append(instancedict)
-        else:
-            filters = [{'Name': 'tag:Cluster', 'Values': [self.stack_name]}]
-            for instance in ec2.describe_instances(Filters=filters)['Reservations'][0]['Instances']:
-                instancedict = {instance['InstanceId']: instance['PrivateIpAddress']}
-                self.instancelist.append(instancedict)
+        for i in ec2.instances.filter(Filters=filters):
+            instancedict = {i.instance_id: i.private_ip_address}
+            self.instancelist.append(instancedict)
         return self.instancelist
 
     def shutdown_app(self, instancelist):
