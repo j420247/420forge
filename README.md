@@ -112,7 +112,8 @@ To start the app locally for development do the following in a python3 environme
 
 ```
 pip3 install -r requirements.txt
-python3 acforge.py
+cd src
+python3 run.py
 ```
 
 #### Command-line args
