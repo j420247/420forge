@@ -1,21 +1,20 @@
 # imports
+import glob
+import json
 from datetime import datetime
-from collections import defaultdict
-from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
-from flask_restful import Resource
-from ruamel import yaml
-from pathlib import Path
-from os import path
 from logging import ERROR
+from pathlib import Path
+
 import boto3
 import botocore
-import configparser
-import os
-from forge.version import __version__
-import glob
+from flask import request, session, current_app
+from flask_restful import Resource
+from ruamel import yaml
+
+from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
-import json
+from forge.version import __version__
+
 
 ##
 #### REST Endpoint classes
