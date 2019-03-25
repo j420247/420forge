@@ -4,7 +4,7 @@ Atlassian CloudFormation Forge is a tool which enables the creation and manageme
 
 We (the IT Operations team at Atlassian) built this tool internally to unlock product teams to allow them to manage their own instances of Confluence, Jira, and Crowd without having access to AWS itself (which is managed by our team).
 
-This README outlines how to deploy Forge to AWS and how to run locally for testing and development. For an overview of Forge itself, including a list of actions possible through Forge, see [the public announcement](https://community.atlassian.com/t5/Data-Center-articles/Introducing-Atlassian-CloudFormation-Forge/ba-p/881551).
+This README outlines how to deploy Forge to AWS and how to run it locally for testing and development. For an overview of Forge itself, including a list of actions possible through Forge, see [the public announcement](https://community.atlassian.com/t5/Data-Center-articles/Introducing-Atlassian-CloudFormation-Forge/ba-p/881551).
 
 ## Deploying to AWS
 
@@ -49,7 +49,9 @@ A quick overview of the parameters for Forge's CloudFormation template. We provi
   The size of the EBS volume for Forge's EC2 node(s)
 
 * **Nodes**  
-  The number of Forge nodes to deploy. Note that currently, Forge does not support auto-scaling or running on multiple nodes simultaneously; this is primarily for facilitating easy node replacement (spin down to 0 and then back up to 1).
+  The number of Forge nodes to deploy.
+  
+  _Note that currently, Forge does not support auto-scaling or running on multiple nodes simultaneously; this is primarily for facilitating easy node replacement (spin down to 0 and then back up to 1)._
 
 * **Regions**  
   A list of regions that Forge should allow access to, defined in a comma-delimited list in the format `aws_region: region_name`, where aws_region is an AWS region (e.g. `us-east-1`) and region_name is a display value (e.g. `US East 1` or `Staging`, etc.). The first listed region will be the default.
@@ -136,13 +138,13 @@ Used for configuring SAML permissions by AD group, AWS region, CloudFormation st
 
 ##### AWS Systems Manager Parameter Store
 
-* **atl_forge_secret_key**  
+* **`atl_forge_secret_key`**  
   The secret key passed to Flask to enable sessions ([more info][1])
 
-* **atl_forge_saml_metadata_protocol**  
+* **`atl_forge_saml_metadata_protocol`**  
   The protocol of the metadata URL for your SAML auth provider
 
-* **atl_forge_saml_metadata_url**  
+* **`atl_forge_saml_metadata_url`**  
   The metadata URL for your SAML auth provider
 
 
