@@ -329,6 +329,12 @@ class DoCreate(RestrictedResource):
         return outcome
 
 
+class GetStacks(Resource):
+    def get(self):
+        if 'stacks' not in session:
+             get_forge_settings()
+        return session['stacks']
+
 class GetLogs(Resource):
     def get(self, stack_name):
         log = get_current_log(stack_name)

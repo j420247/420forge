@@ -21,6 +21,7 @@ api.add_resource(DoRunSql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(DoTag, '/dotag/<region>/<stack_name>')
 
 # Stack info
+api.add_resource(GetStacks, '/getStacks')
 api.add_resource(GetLogs, '/getLogs/<stack_name>')
 api.add_resource(ServiceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(StackState, '/stackState/<region>/<stack_name>')
