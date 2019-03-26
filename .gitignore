@@ -7,3 +7,5 @@ stacks/**/*.log
 __pycache__*
 *.db
 .DS_Store
+.vscode
+node_modules
