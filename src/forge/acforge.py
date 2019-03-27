@@ -606,6 +606,17 @@ class GetLockedStacks(Resource):
         return locked_stacks
 
 
+class GetTemplateRepos(Resource):
+    def get(self):
+        templates = ['atlassian-aws-deployment']
+        custom_template_folder = Path('custom-templates')
+        if custom_template_folder.exists():
+            for directory in glob.glob(f'{custom_template_folder}/*'):
+                templates.append(directory)
+        templates.sort()
+        return templates
+
+
 class SetStackLocking(Resource):
     def post(self, lock):
         current_app.config['STACK_LOCKING'] = lock

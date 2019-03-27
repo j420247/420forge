@@ -9,6 +9,9 @@ function onReady() {
     // get locked stacks only
     getLockedStacks();
 
+    // get templates
+    getTemplateRepos();
+
     var actionButton = document.getElementById("action-button");
     actionButton.addEventListener("click", function (data) {
         $("#stackInformation").hide();
@@ -67,6 +70,10 @@ function getLockedStacks() {
     send_http_get_request(baseUrl + "/getLockedStacks", createLockedStacksDropdown);
 }
 
+function getTemplateRepos() {
+    send_http_get_request(baseUrl + "/getTemplateRepos", createTemplatesDropdown);
+}
+
 function updateActionInProgressAdminPage(responseText) {
     var actionInProgress = JSON.parse(responseText);
     $("#lock-state").html("Action in progress: " + getStatusLozenge(actionInProgress, "moved"));
@@ -86,4 +93,43 @@ function setStackLocking() {
     $("#lockStacksCheckBox").disabled = true;
     var url = baseUrl + "/setStackLocking/" + $("#lockStacksCheckBox")[0].checked;
     send_http_post_request(url, {}, function(){$("#lockStacksCheckBox").removeAttr("disabled");});
+}
+
+function createTemplatesDropdown(responseText) {
+    var templatesDropdown = document.getElementById("templateRepoDropdownDiv");
+    if (templatesDropdown) {
+        while (templatesDropdown.firstChild) {
+            templatesDropdown.removeChild(templatesDropdown.firstChild);
+        }
+    }
+
+    var templatesRepos = JSON.parse(responseText);
+    var ul = document.createElement("UL");
+    ul.className = "aui-list-truncate";
+
+    for(var i = 0; i < templatesRepos.length; i++) {
+        var li = document.createElement("LI");
+        var anchor = document.createElement("A");
+        anchor.className = "templateRepoOption";
+        var text = document.createTextNode(templatesRepos[i]);
+        anchor.appendChild(text);
+        li.appendChild(anchor);
+        ul.appendChild(li);
+
+        anchor.addEventListener("click", function (data) {
+            $("#stackInformation").hide();
+            $("#lock-state").hide();
+            $("#unlock-warning").hide();
+            var locked_stack = data.target.text;
+            document.getElementById("templateRepoSelector").text = locked_stack;
+            selectStack(locked_stack);
+            getStackActionInProgress(locked_stack);
+        }, false);
+    }
+    templatesDropdown.appendChild(ul);
+}
+
+function updateTemplates() {
+    send_http_get_request(baseUrl + "/updateTemplates");
+    redirectToLog(stack_name);
 }

@@ -39,6 +39,7 @@ api.add_resource(GetZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name
 api.add_resource(GetEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(GetRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(GetTemplates, '/getTemplates/<template_type>')
+api.add_resource(GetTemplateRepos, '/getTemplateRepos')
 api.add_resource(GetVpcs, '/getVpcs/<region>')
 api.add_resource(GetAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
 api.add_resource(GetSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
