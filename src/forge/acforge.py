@@ -380,6 +380,7 @@ class TemplateParams(Resource):
                     'ParameterKey': param,
                     'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
+                    'MaskedParameter': template_params[param]['NoEcho'] if 'NoEcho' in template_params[param] else '',
                 }
             )
             if 'AllowedValues' in template_params[param]:

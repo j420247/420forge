@@ -62,7 +62,7 @@ export default class ClonePage extends Component {
     >
       {({ fieldProps, error, meta }) => (
           <Fragment>
-          <TextField {...fieldProps}/>
+          <TextField type={cfnParameter.MaskedParameter === true ? "password" : ""} {...fieldProps}/>
           {!error && (
             <HelperMessage>
               {cfnParameter.ParameterDescription}
