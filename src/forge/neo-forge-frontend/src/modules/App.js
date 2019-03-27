@@ -3,26 +3,21 @@
 
 import React, { Component } from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
-import GlobalNavigation from '@atlaskit/global-navigation';
 import DashboardIcon from '@atlaskit/icon/glyph/dashboard';
 import FolderIcon from '@atlaskit/icon/glyph/folder';
 import IssueIcon from '@atlaskit/icon/glyph/issue';
 import PortfolioIcon from '@atlaskit/icon/glyph/portfolio';
 import HomePage from '../pages/HomePage';
-import { AtlassianIcon, AtlassianWordmark } from '@atlaskit/logo';
+import { AtlassianWordmark } from '@atlaskit/logo';
 import {
   LayoutManagerWithViewController,
   NavigationProvider,
   ViewController,
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
+import { ForgeGlobalNavigation } from '../components/Navigation/GlobalNavigation';
 
-const MyGlobalNavigation = () => (
-  <GlobalNavigation
-    productIcon={() => <AtlassianIcon size="medium" />}
-    onProductClick={() => {}}
-  />
-);
+
 
 const LinkItem = ({ components: { Item }, to, ...props }: *) => {
   return (
@@ -197,7 +192,7 @@ class App extends Component<{
     return (
       <LayoutManagerWithViewController
         customComponents={{ LinkItem }}
-        globalNavigation={MyGlobalNavigation}
+        globalNavigation={ForgeGlobalNavigation}
       >
         <Switch>
           <Route path="/issues" component={IssuesAndFiltersRoute} />
