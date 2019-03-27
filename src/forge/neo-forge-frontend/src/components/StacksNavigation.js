@@ -1,7 +1,7 @@
 import { AtlassianWordmark } from '@atlaskit/logo';
 import { LinkItem } from '../components/LinkItem';
 
-const productHomeView = {
+const productStacksView = {
     id: 'product/home',
     type: 'product',
     getItems: () => [
@@ -33,4 +33,4 @@ const productHomeView = {
     ],
   };
 
-  export default productHomeView;
+  export default productStacksView;

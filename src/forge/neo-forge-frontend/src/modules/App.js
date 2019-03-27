@@ -4,7 +4,6 @@
 import React, { Component } from 'react';
 import { Route, Switch } from 'react-router-dom';
 import HomePage from '../pages/HomePage';
-import { AtlassianWordmark } from '@atlaskit/logo';
 import {
   LayoutManagerWithViewController,
   NavigationProvider,
@@ -13,10 +12,10 @@ import {
 } from '@atlaskit/navigation-next';
 import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
 import { LinkItem } from '../components/LinkItem';
-import productHomeView from '../components/StacksNavigation';
-import '@atlaskit/css-reset';
+import productStacksView from '../components/StacksNavigation';
+import '@atlaskit/css-reset'
 
-const productIssuesView = {
+const stacksActionView = {
   id: 'product/issues',
   type: 'product',
   getItems: () => [
@@ -26,7 +25,7 @@ const productIssuesView = {
       items: [
         {
           type: 'Wordmark',
-          wordmark: AtlassianWordmark,
+          wordmark: '../images/ForgeWordmark.svg',
           id: 'atlassian-wordmark',
         },
         {
@@ -78,7 +77,7 @@ class DashboardsRouteBase extends Component<{
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
-    navigationViewController.setView(productHomeView.id);
+    navigationViewController.setView(productStacksView.id);
   }
 
   render() {
@@ -94,7 +93,7 @@ class IssuesAndFiltersRouteBase extends Component<{
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
-    navigationViewController.setView(productIssuesView.id);
+    navigationViewController.setView(stacksActionView.id);
   }
 
   render() {
@@ -114,8 +113,8 @@ class App extends Component<{
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
-    navigationViewController.addView(productHomeView);
-    navigationViewController.addView(productIssuesView);
+    navigationViewController.addView(productStacksView);
+    navigationViewController.addView(stacksActionView);
   }
 
   render() {
