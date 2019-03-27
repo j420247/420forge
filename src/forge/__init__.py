@@ -1,5 +1,6 @@
 import argparse
 from flask import Flask
+from flask_cors import CORS
 import boto3
 import botocore
 import configparser
@@ -25,6 +26,7 @@ def create_app(config_class):
     # create and initialize app
     print(f'Starting Atlassian CloudFormation Forge v{__version__}')
     app = Flask(__name__)
+    CORS(app)
     app.config.from_object(config_class)
 
     app.args = args
