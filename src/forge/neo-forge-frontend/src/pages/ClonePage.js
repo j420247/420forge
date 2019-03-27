@@ -1,13 +1,14 @@
 import React, { Component, Fragment } from 'react';
+import Button from '@atlaskit/button';
 import Page, { Grid, GridColoumn } from '@atlaskit/page';
 import PageHeader from '@atlaskit/page-header';
-import Form, { HelperMessage, Field } from '@atlaskit/form';
+import Form, { HelperMessage, Field, FormFooter } from '@atlaskit/form';
 import Spinner from '@atlaskit/spinner';
 import TextField from '@atlaskit/textfield';
 import Select from '@atlaskit/select';
 import PropTypes from 'prop-types';
 
-import { getTemplateParamsForTemplate } from '../modules/api';
+import api from '../modules/api';
 
 export default class ClonePage extends Component {
 
@@ -26,7 +27,7 @@ export default class ClonePage extends Component {
 
   determineFormFields() {
     this.setState({ templateLoading: true });
-    getTemplateParamsForTemplate('atlassian-aws-deployments', 'JiraDataCenterQuickstartClone.template.yaml')
+    api.getTemplateParamsForTemplate('atlassian-aws-deployments', 'JiraDataCenterQuickstartClone.template.yaml')
     .then(resJson => this.setState({ templateParameters: resJson, templateLoading: false }));
   }
 
@@ -38,7 +39,7 @@ export default class ClonePage extends Component {
     const selectOptions = cfnParameter.AllowedValues.map(value => ({ label: `${value}`, value: `${value}`}));
     return (<Field
       name={cfnParameter.ParameterKey}
-      label={cfnParameter.ParameterKey}
+      label={cfnParameter.ParameterLabel}
       key={cfnParameter.ParameterKey}
       defaultValue={selectOptions.find(option => option.value === `${cfnParameter.ParameterValue}`)}
     >
@@ -53,15 +54,23 @@ export default class ClonePage extends Component {
     );
   }
 
+  submitClone(templateParameters) {
+    api.cloneStack({
+      ...templateParameters,
+      "TemplateName": "atlassian-aws-deployment: JiraDataCenterQuickstartClone.template.yaml",
+      "ClonedFromStackName": "DCD-JIRA-DEV"
+    })
+  }
+
   makeCfnParameterTextInput(cfnParameter) {
     return (<Field
       name={cfnParameter.ParameterKey}
-      label={cfnParameter.ParameterKey}
+      label={cfnParameter.ParameterLabel}
       key={cfnParameter.ParameterKey}
       defaultValue={cfnParameter.ParameterValue}
     >
       {({ fieldProps, error, meta }) => (
-          <Fragment>
+        <Fragment>
           <TextField type={cfnParameter.MaskedParameter === true ? "password" : ""} {...fieldProps}/>
           {!error && (
             <HelperMessage>
@@ -85,11 +94,30 @@ export default class ClonePage extends Component {
             <Spinner size="large" />
             :
             <Form onSubmit={data => console.log('form data', data)}>
-              {({ formProps }) => (
+              {({ formProps, submitting }) => (
                 <form {...formProps}>
-                {
-                  templateParameters.map(parameter => this.makeCfnParamater(parameter))
-                }
+                  <Field
+                    name="StackName"
+                    label="Stack Name"
+                    key="StackName"
+                  >
+                    {({ fieldProps, error, meta }) => (
+                      <Fragment>
+                        <TextField {...fieldProps}/>
+                        {!error && (
+                          <HelperMessage>
+                            The name to give the created stack
+                          </HelperMessage>
+                        )}
+                      </Fragment>
+                    )}
+                  </Field>
+                  {templateParameters.map(parameter => this.makeCfnParamater(parameter))}
+                  <FormFooter>
+                      <Button type="submit" appearance="primary" isLoading={submitting}>
+                        Clone
+                      </Button>
+                  </FormFooter>
                 </form>
               )}
             </Form>
