@@ -1,4 +1,3 @@
-import DashboardIcon from '@atlaskit/icon/glyph/dashboard';
 import { AtlassianWordmark } from '@atlaskit/logo';
 import { LinkItem } from '../components/LinkItem';
 

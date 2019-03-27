@@ -14,8 +14,7 @@ import {
 import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
 import { LinkItem } from '../components/LinkItem';
 import productHomeView from '../components/StacksNavigation';
-
-
+import '@atlaskit/css-reset';
 
 const productIssuesView = {
   id: 'product/issues',
