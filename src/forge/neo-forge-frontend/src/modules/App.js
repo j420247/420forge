@@ -3,10 +3,6 @@
 
 import React, { Component } from 'react';
 import { Route, Switch } from 'react-router-dom';
-import DashboardIcon from '@atlaskit/icon/glyph/dashboard';
-import FolderIcon from '@atlaskit/icon/glyph/folder';
-import IssueIcon from '@atlaskit/icon/glyph/issue';
-import PortfolioIcon from '@atlaskit/icon/glyph/portfolio';
 import HomePage from '../pages/HomePage';
 import { AtlassianWordmark } from '@atlaskit/logo';
 import {
@@ -16,58 +12,10 @@ import {
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
 import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
-import { LinkItem } from '../components/LinkItem'
+import { LinkItem } from '../components/LinkItem';
+import productHomeView from '../components/StacksNavigation';
 
 
-
-const productHomeView = {
-  id: 'product/home',
-  type: 'product',
-  getItems: () => [
-    {
-      type: 'HeaderSection',
-      id: 'product/home:header',
-      items: [
-        {
-          type: 'Wordmark',
-          wordmark: AtlassianWordmark,
-          id: 'atlassian-wordmark',
-        },
-      ],
-    },
-    {
-      type: 'MenuSection',
-      nestedGroupKey: 'menu',
-      id: 'product/home:menu',
-      parentId: null,
-      items: [
-        {
-          // Example: using LinkItem as an inline component
-          type: 'InlineComponent',
-          component: LinkItem,
-          id: 'dashboards',
-          before: DashboardIcon,
-          text: 'Dashboards',
-          to: '/',
-        },
-        { type: 'Item', id: 'projects', before: FolderIcon, text: 'Projects' },
-        {
-          type: 'Item',
-          id: 'issues-and-filters',
-          goTo: 'product/issues',
-          before: IssueIcon,
-          text: 'Issues and filters',
-        },
-        {
-          type: 'Item',
-          id: 'portfolio',
-          before: PortfolioIcon,
-          text: 'Portfolio',
-        },
-      ],
-    },
-  ],
-};
 
 const productIssuesView = {
   id: 'product/issues',
@@ -94,7 +42,7 @@ const productIssuesView = {
       type: 'MenuSection',
       nestedGroupKey: 'menu',
       id: 'product/issues:menu',
-      parentId: 'product/home:menu',
+      parentId: 'product/home:stacks',
       alwaysShowScrollHint: true,
       items: [
         {
