@@ -2,7 +2,7 @@
 /* eslint-disable react/no-multi-comp */
 
 import React, { Component } from 'react';
-import { Link, Route, Switch } from 'react-router-dom';
+import { Route, Switch } from 'react-router-dom';
 import DashboardIcon from '@atlaskit/icon/glyph/dashboard';
 import FolderIcon from '@atlaskit/icon/glyph/folder';
 import IssueIcon from '@atlaskit/icon/glyph/issue';
@@ -16,26 +16,9 @@ import {
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
 import { ForgeGlobalNavigation } from '../components/Navigation/GlobalNavigation';
+import { LinkItem } from '../components/Navigation/LinkItem'
 
 
-
-const LinkItem = ({ components: { Item }, to, ...props }: *) => {
-  return (
-    <Route
-      render={({ location: { pathname } }) => (
-        <Item
-          component={({ children, className }) => (
-            <Link className={className} to={to}>
-              {children}
-            </Link>
-          )}
-          isSelected={pathname === to}
-          {...props}
-        />
-      )}
-    />
-  );
-};
 
 const productHomeView = {
   id: 'product/home',
