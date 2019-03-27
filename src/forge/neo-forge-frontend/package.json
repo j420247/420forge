@@ -27,6 +27,8 @@
     "@atlaskit/navigation-next": "^5.1.0",
     "@atlaskit/page": "^8.0.4",
     "@atlaskit/page-header": "^7.0.2",
+    "@atlaskit/select": "^8.0.4",
+    "@atlaskit/textfield": "^0.4.1",
     "@atlaskit/theme": "^6.0.1",
     "prop-types": "^15.6.0",
     "react": "^16.4.2",
