@@ -15,8 +15,8 @@ import {
   ViewController,
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
-import { ForgeGlobalNavigation } from '../components/Navigation/GlobalNavigation';
-import { LinkItem } from '../components/Navigation/LinkItem'
+import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
+import { LinkItem } from '../components/LinkItem'
 
 
 
