@@ -8,17 +8,18 @@ import DashboardIcon from '@atlaskit/icon/glyph/dashboard';
 import FolderIcon from '@atlaskit/icon/glyph/folder';
 import IssueIcon from '@atlaskit/icon/glyph/issue';
 import PortfolioIcon from '@atlaskit/icon/glyph/portfolio';
-import { NavigationProvider } from '@atlaskit/navigation-next'
-import { JiraIcon, JiraWordmark } from '@atlaskit/logo';
+import HomePage from '../pages/HomePage';
+import { AtlassianIcon, AtlassianWordmark } from '@atlaskit/logo';
 import {
   LayoutManagerWithViewController,
+  NavigationProvider,
   ViewController,
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
 
 const MyGlobalNavigation = () => (
   <GlobalNavigation
-    productIcon={() => <JiraIcon size="medium" />}
+    productIcon={() => <AtlassianIcon size="medium" />}
     onProductClick={() => {}}
   />
 );
@@ -51,8 +52,8 @@ const productHomeView = {
       items: [
         {
           type: 'Wordmark',
-          wordmark: JiraWordmark,
-          id: 'jira-wordmark',
+          wordmark: AtlassianWordmark,
+          id: 'atlassian-wordmark',
         },
       ],
     },
@@ -100,14 +101,14 @@ const productIssuesView = {
       items: [
         {
           type: 'Wordmark',
-          wordmark: JiraWordmark,
-          id: 'jira-wordmark',
+          wordmark: AtlassianWordmark,
+          id: 'atlassian-wordmark',
         },
         {
           type: 'BackItem',
           id: 'back-item',
           goTo: 'product/home',
-          text: 'Back to Jira',
+          text: 'Back to Stacks',
         },
       ],
     },
@@ -157,9 +158,7 @@ class DashboardsRouteBase extends Component<{
 
   render() {
     return (
-      <div css={{ padding: 30 }}>
-        <h1>Dashboards</h1>
-      </div>
+      <HomePage />
     );
   }
 }
@@ -210,10 +209,7 @@ class App extends Component<{
 }
 const AppWithNavigationViewController = withNavigationViewController(App);
 
-
 export default () => (
-  /* Note: in this example we're using HashRouter from react-router, but you
-  can use any routing solution you wish. */
     <NavigationProvider>
       <AppWithNavigationViewController />
     </NavigationProvider>
