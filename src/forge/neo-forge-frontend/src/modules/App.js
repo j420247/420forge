@@ -15,6 +15,9 @@ import {
   ViewController,
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
+import '@atlaskit/css-reset';
+
+import ClonePage from '../pages/ClonePage';
 
 const MyGlobalNavigation = () => (
   <GlobalNavigation
@@ -158,7 +161,7 @@ class DashboardsRouteBase extends Component<{
   render() {
     return (
       <div css={{ padding: 30 }}>
-        <h1>Dashboards</h1>
+        <ClonePage />
       </div>
     );
   }
