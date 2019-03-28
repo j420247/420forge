@@ -1,67 +1,24 @@
 // @flow
 /* eslint-disable react/no-multi-comp */
 
-import React, { Component } from 'react';
-import { Route, Switch } from 'react-router-dom';
-import HomePage from '../pages/HomePage';
+import React, { Component } from "react";
+import { Route, Switch } from "react-router-dom";
 import {
   LayoutManagerWithViewController,
   NavigationProvider,
   ViewController,
-  withNavigationViewController,
-} from '@atlaskit/navigation-next';
-import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
-import { LinkItem } from '../components/LinkItem';
-import productStacksView from '../components/StacksNavigation';
-import '@atlaskit/css-reset'
-import { AtlassianWordmark } from '@atlaskit/logo';
+  withNavigationViewController
+} from "@atlaskit/navigation-next";
+import "@atlaskit/css-reset";
 
-
-const stacksActionView = {
-  id: 'stack/actions',
-  type: 'container',
-  getItems: () => [
-    {
-      type: 'HeaderSection',
-      id: 'stack/actions:header',
-      items: [
-        {
-          type: 'Wordmark',
-          wordmark: AtlassianWordmark,
-          id: 'atlassian-wordmark',
-        },
-        {
-          type: 'BackItem',
-          id: 'back-to-stacks',
-          goTo: 'product/home',
-          text: 'Back to Stacks',
-          to: '/'
-        },
-      ],
-    },
-    {
-      type: 'MenuSection',
-      nestedGroupKey: 'menu',
-      id: 'stack/actions:menu',
-      parentId: 'product/home:menu',
-      items: [
-        {
-          type: 'SectionHeading',
-          text: 'Actions',
-          id: 'stack-actions-heading',
-        },
-        {
-          type: 'Item',
-          text: 'Clone',
-          id: 'clone',
-        },
-      ],
-    },
-  ],
-};
+import { ForgeGlobalNavigation } from "../components/GlobalNavigation";
+import { LinkItem } from "../components/LinkItem";
+import productStacksView from "../components/StacksNavigation";
+import stacksActionView from "../components/ActionsNavigation";
+import HomePage from "../pages/HomePage";
 
 class DashboardsRouteBase extends Component<{
-  navigationViewController: ViewController,
+  navigationViewController: ViewController
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
@@ -69,15 +26,13 @@ class DashboardsRouteBase extends Component<{
   }
 
   render() {
-    return (
-      <HomePage />
-    );
+    return <HomePage />;
   }
 }
 const DashboardsRoute = withNavigationViewController(DashboardsRouteBase);
 
 class IssuesAndFiltersRouteBase extends Component<{
-  navigationViewController: ViewController,
+  navigationViewController: ViewController
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
@@ -93,11 +48,11 @@ class IssuesAndFiltersRouteBase extends Component<{
   }
 }
 const IssuesAndFiltersRoute = withNavigationViewController(
-  IssuesAndFiltersRouteBase,
+  IssuesAndFiltersRouteBase
 );
 
 class App extends Component<{
-  navigationViewController: ViewController,
+  navigationViewController: ViewController
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
@@ -122,7 +77,7 @@ class App extends Component<{
 const AppWithNavigationViewController = withNavigationViewController(App);
 
 export default () => (
-    <NavigationProvider>
-      <AppWithNavigationViewController />
-    </NavigationProvider>
+  <NavigationProvider>
+    <AppWithNavigationViewController />
+  </NavigationProvider>
 );
