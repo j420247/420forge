@@ -14,59 +14,47 @@ import { ForgeGlobalNavigation } from '../components/GlobalNavigation';
 import { LinkItem } from '../components/LinkItem';
 import productStacksView from '../components/StacksNavigation';
 import '@atlaskit/css-reset'
+import { AtlassianWordmark } from '@atlaskit/logo';
+
 
 const stacksActionView = {
-  id: 'product/issues',
-  type: 'product',
+  id: 'stack/actions',
+  type: 'container',
   getItems: () => [
     {
       type: 'HeaderSection',
-      id: 'product/issues:header',
+      id: 'stack/actions:header',
       items: [
         {
           type: 'Wordmark',
-          wordmark: '../images/ForgeWordmark.svg',
+          wordmark: AtlassianWordmark,
           id: 'atlassian-wordmark',
         },
         {
           type: 'BackItem',
-          id: 'back-item',
+          id: 'back-to-stacks',
           goTo: 'product/home',
           text: 'Back to Stacks',
+          to: '/'
         },
       ],
     },
     {
       type: 'MenuSection',
       nestedGroupKey: 'menu',
-      id: 'product/issues:menu',
-      parentId: 'product/home:stacks',
-      alwaysShowScrollHint: true,
+      id: 'stack/actions:menu',
+      parentId: 'product/home:menu',
       items: [
         {
           type: 'SectionHeading',
-          text: 'Issues and filters',
-          id: 'issues-and-filters-heading',
+          text: 'Actions',
+          id: 'stack-actions-heading',
         },
         {
-          // Example: using LinkItem as a custom component type
-          type: 'LinkItem',
-          id: 'search-issues',
-          text: 'Search issues',
-          to: '/issues',
+          type: 'Item',
+          text: 'Clone',
+          id: 'clone',
         },
-        { type: 'GroupHeading', id: 'other-heading', text: 'Other' },
-        { type: 'Item', text: 'My open issues', id: 'my-open-issues' },
-        { type: 'Item', text: 'Reported by me', id: 'reported-by-me' },
-        { type: 'Item', text: 'All issues', id: 'all-issues' },
-        { type: 'Item', text: 'Open issues', id: 'open-issues' },
-        { type: 'Item', text: 'Done issues', id: 'done-issues' },
-        { type: 'Item', text: 'Viewed recently', id: 'viewed-recently' },
-        { type: 'Item', text: 'Created recently', id: 'created-recently' },
-        { type: 'Item', text: 'Resolved recently', id: 'resolved-recently' },
-        { type: 'Item', text: 'Updated recently', id: 'updated-recently' },
-        { type: 'Separator', id: 'separator' },
-        { type: 'Item', text: 'View all filters', id: 'view-all-filters' },
       ],
     },
   ],
@@ -124,7 +112,7 @@ class App extends Component<{
         globalNavigation={ForgeGlobalNavigation}
       >
         <Switch>
-          <Route path="/issues" component={IssuesAndFiltersRoute} />
+          <Route path="/stack-1" component={IssuesAndFiltersRoute} />
           <Route path="/" component={DashboardsRoute} />
         </Switch>
       </LayoutManagerWithViewController>
