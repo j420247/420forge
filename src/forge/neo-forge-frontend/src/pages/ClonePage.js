@@ -31,6 +31,26 @@ export default class ClonePage extends Component {
     .then(resJson => this.setState({ templateParameters: resJson, templateLoading: false }));
   }
 
+  transformFormValuesForClone(formData) {
+    let payload = [];
+    for (let key in formData) {
+      // Value from select inputs is { label, value } tuple and needs to be extracted. Otherwise just take value.
+      const value = formData[key].value !== undefined ? formData[key].value : formData[key]
+      payload.push({
+        "ParameterKey": key,
+        "ParameterValue": value
+      });
+    }
+  }
+
+  submitClone(templateParameters) {
+    api.cloneStack({
+      ...templateParameters,
+      "TemplateName": "atlassian-aws-deployment: JiraDataCenterQuickstartClone.template.yaml",
+      "ClonedFromStackName": "DCD-JIRA-DEV"
+    })
+  }
+
   makeCfnParamater(cfnParameter) {
     return cfnParameter.AllowedValues ? this.makeCfnParameterSelectInput(cfnParameter) : this.makeCfnParameterTextInput(cfnParameter);
   }
@@ -52,14 +72,6 @@ export default class ClonePage extends Component {
       )}
     </Field>
     );
-  }
-
-  submitClone(templateParameters) {
-    api.cloneStack({
-      ...templateParameters,
-      "TemplateName": "atlassian-aws-deployment: JiraDataCenterQuickstartClone.template.yaml",
-      "ClonedFromStackName": "DCD-JIRA-DEV"
-    })
   }
 
   makeCfnParameterTextInput(cfnParameter) {
@@ -93,13 +105,14 @@ export default class ClonePage extends Component {
           { templateLoading ?
             <Spinner size="large" />
             :
-            <Form onSubmit={data => console.log('form data', data)}>
+            <Form onSubmit={data => this.transformFormValuesForClone(data)}>
               {({ formProps, submitting }) => (
                 <form {...formProps}>
                   <Field
                     name="StackName"
                     label="Stack Name"
                     key="StackName"
+                    defaultValue=""
                   >
                     {({ fieldProps, error, meta }) => (
                       <Fragment>
