@@ -1,13 +1,12 @@
 import { AtlassianWordmark } from "@atlaskit/logo";
-import { LinkItem } from "../components/LinkItem";
 
 const productStacksView = {
-  id: "product/home",
+  id: "forge/home",
   type: "product",
   getItems: () => [
     {
       type: "HeaderSection",
-      id: "product/home:header",
+      id: "forge/home:header",
       items: [
         {
           type: "Wordmark",
@@ -18,15 +17,18 @@ const productStacksView = {
     },
     {
       type: "MenuSection",
-      id: "product/home:stacks-menu",
+      id: "forge/home:stacks-menu",
       items: [
-        { type: "SectionHeading", id: "stacks-heading", text: "Stacks" },
         {
-          type: "InlineComponent",
-          component: LinkItem,
+          type: "SectionHeading",
+          id: "stacks-heading",
+          text: "Stacks"
+        },
+        {
+          type: "Item",
           id: "stack-1",
           text: "Stack 1",
-          to: "/stack-1"
+          goTo: "forge/actions"
         }
       ]
     }

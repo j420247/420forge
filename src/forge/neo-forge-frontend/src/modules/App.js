@@ -67,7 +67,7 @@ class App extends Component<{
         globalNavigation={ForgeGlobalNavigation}
       >
         <Switch>
-          <Route path="/stack-1" component={IssuesAndFiltersRoute} />
+          <Route path="/actions" component={IssuesAndFiltersRoute} />
           <Route path="/" component={DashboardsRoute} />
         </Switch>
       </LayoutManagerWithViewController>

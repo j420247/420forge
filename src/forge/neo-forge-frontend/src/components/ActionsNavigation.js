@@ -1,12 +1,12 @@
 import { AtlassianWordmark } from "@atlaskit/logo";
 
 const stacksActionView = {
-  id: "stack/actions",
+  id: "forge/actions",
   type: "container",
   getItems: () => [
     {
       type: "HeaderSection",
-      id: "stack/actions:header",
+      id: "forge/actions:header",
       items: [
         {
           type: "Wordmark",
@@ -16,17 +16,17 @@ const stacksActionView = {
         {
           type: "BackItem",
           id: "back-to-stacks",
-          goTo: "product/home",
+          goTo: "forge/home",
           text: "Back to Stacks",
-          to: "/"
+          href: "/"
         }
       ]
     },
     {
       type: "MenuSection",
       nestedGroupKey: "menu",
-      id: "stack/actions:menu",
-      parentId: "product/home:menu",
+      id: "forge/actions:menu",
+      parentId: "forge/home:menu",
       items: [
         {
           type: "SectionHeading",
