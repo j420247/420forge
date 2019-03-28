@@ -5,8 +5,11 @@
     <script src="{{ get_filename_with_last_update_time('admin.js') }}"></script>
 {% endblock head %}
 
-{% block extraInput %}
 
+
+
+
+{% block extraInput %}
 <div class="aui-panel">
     <h3>Update Templates</h3>
     <div class="aui-panel">
@@ -52,5 +55,22 @@
 </div>
 
 {% endblock extraInput %}
+
+{% block templateRepoStatusPanel %}
+{#    Template Repo Status Panel    #}
+<div class="aui-item">
+    <section class="aui-page-notification aui-page-size-medium aui-page-panel aui-page-panel-content"  style="text-align: left">
+        <h3 id="templateRepoName"></h3>
+        <div id="pleaseSelecttemplateRepoMsg" class="aui-page-notification-description">
+            <p>Please select a template repository to see it's current information</p>
+        </div>
+        <div id="templateRepoInformation">
+            <p id="currentBranch">Current Branch: </p>
+            <p id="commitsBehind">Commits Behind Origin: </p>
+            <p id="currentAction">Action in progress: </p>
+        </div>
+    </section>
+</div>
+{% endblock templateRepoStatusPanel %}
 
 {% block buttonText %}Unlock{% endblock buttonText %}

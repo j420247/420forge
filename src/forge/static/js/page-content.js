@@ -6,7 +6,7 @@ function selectStack(stack_name) {
     $("#stackSelector").text(stack_name);
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
-    $("#stackInformation").show();
+    $("#stackInformation").parent().show();
 
     // clean up stack info
     removeElementsByClass("aui-lozenge");
@@ -20,6 +20,8 @@ function selectStack(stack_name) {
 
     updateStackInfo(stack_name);
 }
+
+
 
 function updateStackInfo(stack_name, stack_region) {
     if (stack_name === 'actionreadytostart') return;
@@ -46,6 +48,8 @@ function updateStackInfo(stack_name, stack_region) {
     send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" + stack_name, displayVersion);
     send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" + stack_name, displayNodes);
 }
+
+
 
 function displayStackStateAndRequestServiceStatus(responseText, functionParams) {
     $("#stackState").html("Stack status: " + getStatusLozenge(responseText));

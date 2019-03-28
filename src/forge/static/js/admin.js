@@ -1,8 +1,9 @@
 function onReady() {
-    $("#stackInformation").hide();
+    $("#stackInformation").parent().hide();
     $("#lock-state").hide();
     $("#unlock-warning").hide();
     $("#stackSelector").hide();
+    $("#templateRepoInformation").parent().hide();
 
     document.getElementById("lockStacksCheckBox").checked = $("meta[name=stack_locking]").attr("value").toLowerCase() === 'true';
 
@@ -120,16 +121,52 @@ function createTemplatesDropdown(responseText) {
             $("#stackInformation").hide();
             $("#lock-state").hide();
             $("#unlock-warning").hide();
-            var locked_stack = data.target.text;
-            document.getElementById("templateRepoSelector").text = locked_stack;
-            selectStack(locked_stack);
-            getStackActionInProgress(locked_stack);
+            var template = data.target.text;
+            document.getElementById("templateRepoSelector").text = template;
+            selectTemplateRepo(template);
         }, false);
     }
     templatesDropdown.appendChild(ul);
 }
 
-function updateTemplates() {
-    send_http_get_request(baseUrl + "/updateTemplates");
-    redirectToLog(stack_name);
+
+function selectTemplateRepo(template_repo) {
+    $("#templateRepoSelector").text(template_repo);
+    $("#templateRepoName").text(template_repo);
+    $("#pleaseSelecttemplateRepoMsg").hide();
+    $("#templateRepoInformation").parent().show();
+
+    // clean up stack info
+    removeElementsByClass("aui-lozenge");
+    $("#currentRevision").html("Current Revision: ");
+    $("#availableRevision").html("Available Revision: ");
+    $("#currentAction").html("Action in progress: ");
+
+    updateTemplateRepoInfo(template_repo);
+}
+
+function updateTemplateRepoInfo(template_repo) {
+    // request template repo info
+    //send_http_get_request(baseUrl + "/getGitRevision/" + template_repo, displayRevision)
+    send_http_get_request(baseUrl + "/getGitBranch/" + template_repo, displayBranch)
+    send_http_get_request(baseUrl + "/getGitCommitsBehind/" + template_repo, displayCommitsBehind)
+    // send_http_get_request(baseUrl  + "/stackState/" + stack_region + "/" + stack_name, displayStackStateAndRequestServiceStatus, functionParams);
+    // send_http_get_request(baseUrl + "/getActionInProgress/" + stack_region + "/" + stack_name, displayActionInProgress);
+    // send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" + stack_name, displayVersion);
+    // send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" + stack_name, displayNodes);
+}
+
+// function displayRevision(responseText) {
+//     var revision = JSON.parse(responseText);
+//     $("#currentRevision").html("Current Revision: " + revision);
+// }
+
+function displayBranch(responseText) {
+    var branch = JSON.parse(responseText);
+    $("#currentBranch").html("Current Branch: " + branch);
+}
+
+function displayCommitsBehind(responseText) {
+    var commitsBehind = JSON.parse(responseText);
+    $("#commitsBehind").html("Commits Behind Origin: " + commitsBehind);
 }

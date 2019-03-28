@@ -16,6 +16,7 @@ from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
+import git
 
 ##
 #### REST Endpoint classes
@@ -336,6 +337,23 @@ class GetLogs(Resource):
         return log if log else f'No current status for {stack_name}'
 
 
+class GetGitBranch(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        return repo.active_branch.name
+
+
+class GetGitCommitsBehind(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        behind = sum(1 for c in repo.iter_commits('HEAD..origin/master'))
+        return behind
+
+
 class ServiceStatus(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
@@ -612,7 +630,7 @@ class GetTemplateRepos(Resource):
         custom_template_folder = Path('custom-templates')
         if custom_template_folder.exists():
             for directory in glob.glob(f'{custom_template_folder}/*'):
-                templates.append(directory)
+                templates.append(directory.split('/')[1])
         templates.sort()
         return templates
 
