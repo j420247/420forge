@@ -21,12 +21,12 @@ const productStacksView = {
       items: [
         {
           type: "SectionHeading",
-          id: "stacks-heading",
+          id: "forge/home:stacks-heading",
           text: "Stacks"
         },
         {
           type: "Item",
-          id: "stack-1",
+          id: "forge/home/stacks:stack-1",
           text: "Stack 1",
           goTo: "forge/actions"
         }

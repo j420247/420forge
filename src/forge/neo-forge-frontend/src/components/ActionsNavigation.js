@@ -15,10 +15,9 @@ const stacksActionView = {
         },
         {
           type: "BackItem",
-          id: "back-to-stacks",
+          id: "forge/actions:back",
           goTo: "forge/home",
-          text: "Back to Stacks",
-          href: "/"
+          text: "Back to Stacks"
         }
       ]
     },
@@ -31,12 +30,12 @@ const stacksActionView = {
         {
           type: "SectionHeading",
           text: "Actions",
-          id: "stack-actions-heading"
+          id: "forge/actions:heading"
         },
         {
           type: "Item",
           text: "Clone",
-          id: "clone"
+          id: "forge/actions:clone"
         }
       ]
     }
