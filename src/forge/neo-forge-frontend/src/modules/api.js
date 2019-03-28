@@ -1,4 +1,4 @@
-const FORGE_API_URL = 'http://localhost:8000';
+import FORGE_API_URL from '../config';
 
 const getTemplateParamsForTemplate = (templateRepo, templateName) => {
   return fetch(`${FORGE_API_URL}/templateParams/${templateRepo}/${templateName}`)
