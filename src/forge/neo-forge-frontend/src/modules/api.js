@@ -6,14 +6,15 @@ const getTemplateParamsForTemplate = (templateRepo, templateName) => {
 };
 
 const cloneStack = (templateParameters) => {
-  return fetch(`${FORGE_API_URL}/doClone`, {
+  // Api JSON array containing a single element which is an array of { ParameterKey, ParamaterValue } tuples.
+  return fetch(`${FORGE_API_URL}/doclone`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(templateParameters)
+    body: JSON.stringify([templateParameters])
   })
-  .then(res => res.json);
+  .then(res => res.json());
 }
 
 export default {

@@ -17,6 +17,7 @@ export default class ClonePage extends Component {
   };
 
   state = {
+    submitting: false,
     templateLoading: false,
     templateParameters: [],
   }
@@ -38,17 +39,30 @@ export default class ClonePage extends Component {
       const value = formData[key].value !== undefined ? formData[key].value : formData[key]
       payload.push({
         "ParameterKey": key,
-        "ParameterValue": value
+        // API expects strings
+        "ParameterValue": `${value}`
       });
     }
+    return payload;
   }
 
   submitClone(templateParameters) {
-    api.cloneStack({
-      ...templateParameters,
-      "TemplateName": "atlassian-aws-deployment: JiraDataCenterQuickstartClone.template.yaml",
-      "ClonedFromStackName": "DCD-JIRA-DEV"
-    })
+    this.setState({ submitting: true });
+    const payload = this.transformFormValuesForClone(templateParameters);
+    api.cloneStack([
+      ...payload,
+      {
+        "ParameterKey": "TemplateName",
+        "ParameterValue": "atlassian-aws-deployment: JiraDataCenterQuickstartClone.template.yaml"
+      },
+      {
+        "ParameterKey": "ClonedFromStackName",
+        "ParameterValue": "DCD-JIRA-DEV"
+      }
+    ]).then(resJson => {
+      this.setState({ submitting: false });
+      console.log(resJson);
+    });
   }
 
   makeCfnParamater(cfnParameter) {
@@ -105,7 +119,7 @@ export default class ClonePage extends Component {
           { templateLoading ?
             <Spinner size="large" />
             :
-            <Form onSubmit={data => this.transformFormValuesForClone(data)}>
+            <Form onSubmit={data => this.submitClone(data)}>
               {({ formProps, submitting }) => (
                 <form {...formProps}>
                   <Field
@@ -120,6 +134,23 @@ export default class ClonePage extends Component {
                         {!error && (
                           <HelperMessage>
                             The name to give the created stack
+                          </HelperMessage>
+                        )}
+                      </Fragment>
+                    )}
+                  </Field>
+                  <Field
+                    name="Region"
+                    label="Region"
+                    key="Region"
+                    defaultValue="us-west-2"
+                  >
+                    {({ fieldProps, error, meta }) => (
+                      <Fragment>
+                        <TextField {...fieldProps}/>
+                        {!error && (
+                          <HelperMessage>
+                            The AWS region to deploy the clone in (must have an existing ASI)
                           </HelperMessage>
                         )}
                       </Fragment>
