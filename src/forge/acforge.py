@@ -60,10 +60,10 @@ class DoClone(RestrictedResource):
                 app_type = 'Jira'
             elif param['ParameterKey'] == 'CrowdVersion':
                 app_type = 'Crowd'
-            elif param['ParameterKey'] == 'EBSSnapshotId':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
-            elif param['ParameterKey'] == 'DBSnapshotName':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
+            # elif param['ParameterKey'] == 'EBSSnapshotId':
+            #     param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
+            # elif param['ParameterKey'] == 'DBSnapshotName':
+            #     param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
         # remove stackName, region and templateName from params to send
         content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
         content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
@@ -371,15 +371,19 @@ class TemplateParams(Resource):
                 if template_name in file:
                     template_file = open(file, 'r')
         yaml.SafeLoader.add_multi_constructor(u'!', general_constructor)
-        template_params = yaml.safe_load(template_file)['Parameters']
+        loaded_template = yaml.safe_load(template_file)
+        template_params = loaded_template['Parameters']
+        param_labels = loaded_template['Metadata']['AWS::CloudFormation::Interface']['ParameterLabels']
 
         params_to_send = []
         for param in template_params:
             params_to_send.append(
                 {
                     'ParameterKey': param,
+                    'ParameterLabel': param_labels[param]['default'] if param in param_labels else param,
                     'ParameterValue': template_params[param]['Default'] if 'Default' in template_params[param] else '',
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
+                    'MaskedParameter': template_params[param]['NoEcho'] if 'NoEcho' in template_params[param] else '',
                 }
             )
             if 'AllowedValues' in template_params[param]:

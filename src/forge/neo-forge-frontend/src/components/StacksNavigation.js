@@ -28,7 +28,7 @@ const productStacksView = {
           type: "Item",
           id: "forge/home/stacks:stack-1",
           text: "Stack 1",
-          goTo: "forge/actions"
+          goTo: "forge/actions",
         }
       ]
     }

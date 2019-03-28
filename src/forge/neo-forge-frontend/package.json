@@ -17,6 +17,7 @@
     "@atlaskit/css-reset": "^3.0.1",
     "@atlaskit/dropdown-menu": "^6.1.10",
     "@atlaskit/flag": "^9.0.7",
+    "@atlaskit/form": "^5.2.4",
     "@atlaskit/global-navigation": "^6.2.0",
     "@atlaskit/icon": "^13.4.0",
     "@atlaskit/inline-edit": "^7.0.7",
@@ -25,6 +26,9 @@
     "@atlaskit/navigation": "^33.1.7",
     "@atlaskit/navigation-next": "^5.1.0",
     "@atlaskit/page": "^8.0.4",
+    "@atlaskit/page-header": "^7.0.2",
+    "@atlaskit/select": "^8.0.4",
+    "@atlaskit/textfield": "^0.4.1",
     "@atlaskit/theme": "^6.0.1",
     "prop-types": "^15.6.0",
     "react": "^16.4.2",
@@ -36,6 +40,7 @@
   },
   "devDependencies": {
     "prettier": "^1.16.4",
-    "react-scripts": "^1.1.1"
+    "react-scripts": "^1.1.1",
+    "serve": "^10.1.2"
   }
 }

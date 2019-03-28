@@ -7,9 +7,11 @@ import {
   LayoutManagerWithViewController,
   NavigationProvider,
   ViewController,
-  withNavigationViewController
-} from "@atlaskit/navigation-next";
-import "@atlaskit/css-reset";
+  withNavigationViewController,
+} from '@atlaskit/navigation-next';
+import '@atlaskit/css-reset';
+
+import ClonePage from '../pages/ClonePage';
 
 import { ForgeGlobalNavigation } from "../components/GlobalNavigation";
 import { LinkItem } from "../components/LinkItem";
@@ -42,13 +44,33 @@ class IssuesAndFiltersRouteBase extends Component<{
   render() {
     return (
       <div css={{ padding: 30 }}>
-        <h1>Issues and filters</h1>
+        Pick an action
       </div>
     );
   }
 }
 const IssuesAndFiltersRoute = withNavigationViewController(
   IssuesAndFiltersRouteBase
+);
+
+class CloneStack extends Component<{
+  navigationViewController: ViewController
+}> {
+  componentDidMount() {
+    const { navigationViewController } = this.props;
+    navigationViewController.setView(stacksActionView.id);
+  }
+
+  render() {
+    return (
+      <div css={{ padding: 30 }}>
+        <ClonePage />
+      </div>
+    );
+  }
+}
+const CloneStackRoute = withNavigationViewController(
+  CloneStack
 );
 
 class App extends Component<{
@@ -67,6 +89,7 @@ class App extends Component<{
         globalNavigation={ForgeGlobalNavigation}
       >
         <Switch>
+          <Route path="/actions/clone" component={CloneStackRoute} />
           <Route path="/actions" component={IssuesAndFiltersRoute} />
           <Route path="/" component={DashboardsRoute} />
         </Switch>

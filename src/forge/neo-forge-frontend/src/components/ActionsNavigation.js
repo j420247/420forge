@@ -33,9 +33,10 @@ const stacksActionView = {
           id: "forge/actions:heading"
         },
         {
-          type: "Item",
+          type: "LinkItem",
           text: "Clone",
-          id: "forge/actions:clone"
+          id: "forge/actions:clone",
+          to: "/actions/clone"
         }
       ]
     }
