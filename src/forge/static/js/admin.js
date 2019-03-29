@@ -147,13 +147,13 @@ function selectTemplateRepo(template_repo) {
 
 function updateTemplateRepoInfo(template_repo) {
     // request template repo info
-    //send_http_get_request(baseUrl + "/getGitRevision/" + template_repo, displayRevision)
     send_http_get_request(baseUrl + "/getGitBranch/" + template_repo, displayBranch)
-    send_http_get_request(baseUrl + "/getGitCommitsBehind/" + template_repo, displayCommitsBehind)
-    // send_http_get_request(baseUrl  + "/stackState/" + stack_region + "/" + stack_name, displayStackStateAndRequestServiceStatus, functionParams);
-    // send_http_get_request(baseUrl + "/getActionInProgress/" + stack_region + "/" + stack_name, displayActionInProgress);
-    // send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" + stack_name, displayVersion);
-    // send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" + stack_name, displayNodes);
+    send_http_get_request(baseUrl + "/getGitCommitDifference/" + template_repo, displayCommitDifference)
+}
+
+function updateTemplates() {
+    let template_repo = $("#StackNameVal").val();
+
 }
 
 // function displayRevision(responseText) {
@@ -163,10 +163,16 @@ function updateTemplateRepoInfo(template_repo) {
 
 function displayBranch(responseText) {
     var branch = JSON.parse(responseText);
-    $("#currentBranch").html("Current Branch: " + branch);
+    let lozenge_type = "moved"
+    if (branch == "master") {
+       lozenge_type = "success"
+    }
+    $("#currentBranch").html("Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type + "\">" + branch + "</span>");
 }
 
-function displayCommitsBehind(responseText) {
-    var commitsBehind = JSON.parse(responseText);
-    $("#commitsBehind").html("Commits Behind Origin: " + commitsBehind);
+function displayCommitDifference(responseText) {
+    let [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
+    $("#commitsDifference").html("Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" + commitsBehind + "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>"+ commitsAhead);
+    $(".commit-tooltip").tooltip();
 }
+

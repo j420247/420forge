@@ -1,17 +1,17 @@
 # imports
 from datetime import datetime
-from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
+from flask import Flask, request, session, current_app
 from flask_restful import Resource
 from ruamel import yaml
 from pathlib import Path
-from os import path
+
 from logging import ERROR
+import logging
+
+# import logging
 import boto3
 import botocore
-import configparser
-import os
 from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
@@ -345,13 +345,25 @@ class GetGitBranch(Resource):
         return repo.active_branch.name
 
 
-class GetGitCommitsBehind(Resource):
+class GetGitCommitDifference(Resource):
     def get(self, template_repo):
         if template_repo != 'atlassian-aws-deployment':
             template_repo = f'custom-templates/{template_repo}'
         repo = git.Repo(Path(template_repo))
-        behind = sum(1 for c in repo.iter_commits('HEAD..origin/master'))
-        return behind
+        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
+        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+        difference = f'{behind},{ahead}'
+        return difference
+
+
+class GitPull(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        logging.info(result)
+        return result
 
 
 class ServiceStatus(Resource):

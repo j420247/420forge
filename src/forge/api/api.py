@@ -48,7 +48,8 @@ api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 
 # Git
 api.add_resource(GetGitBranch, '/getGitBranch/<template_repo>')
-api.add_resource(GetGitCommitsBehind, '/getGitCommitsBehind/<template_repo>')
+api.add_resource(GetGitCommitDifference, '/getGitCommitDifference/<template_repo>')
+api.add_resource(GitPull, '/gitPull/<template_repo>')
 
 # Status endpoint
 api.add_resource(ForgeStatus, '/status')
