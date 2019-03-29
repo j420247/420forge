@@ -10,12 +10,13 @@ import {
   withNavigationViewController,
 } from '@atlaskit/navigation-next';
 import '@atlaskit/css-reset';
+import { AtlassianWordmark } from "@atlaskit/logo";
 
+
+import api from './api';
 import ClonePage from '../pages/ClonePage';
-
 import { ForgeGlobalNavigation } from "../components/GlobalNavigation";
 import { LinkItem } from "../components/LinkItem";
-import productStacksView from "../components/StacksNavigation";
 import stacksActionView from "../components/ActionsNavigation";
 import HomePage from "../pages/HomePage";
 
@@ -24,7 +25,7 @@ class DashboardsRouteBase extends Component<{
 }> {
   componentDidMount() {
     const { navigationViewController } = this.props;
-    navigationViewController.setView(productStacksView.id);
+    navigationViewController.setView("forge/home");
   }
 
   render() {
@@ -76,10 +77,62 @@ const CloneStackRoute = withNavigationViewController(
 class App extends Component<{
   navigationViewController: ViewController
 }> {
+
+  state = {
+    stackNames: [],
+  };
+
+  getStacksView = () => ({
+    id: "forge/home",
+    type: "product",
+    getItems: () => {
+      let stacks = this.state.stackNames.map(
+        name => ({
+          type: "Item",
+          id: "forge/home/stacks:" + name,
+          text: name,
+          goTo: "forge/actions",
+        })
+      );
+      return (
+        [
+          {
+            type: "HeaderSection",
+            id: "forge/home:header",
+            items: [
+              {
+                type: "Wordmark",
+                wordmark: AtlassianWordmark,
+                id: "atlassian-wordmark"
+              }
+            ]
+          },
+          {
+            type: "MenuSection",
+            id: "forge/home:stacks-menu",
+            items: [
+              {
+                type: "SectionHeading",
+                id: "forge/home:stacks-heading",
+                text: "Stacks"
+              },
+              ...stacks
+            ]
+          }
+        ]
+      );
+    }
+  });
+
   componentDidMount() {
     const { navigationViewController } = this.props;
-    navigationViewController.addView(productStacksView);
+    navigationViewController.addView(this.getStacksView());
     navigationViewController.addView(stacksActionView);
+
+    api.getStacks().then(result => {
+      this.setState({ stackNames: result })
+      this.props.navigationViewController.addView(this.getStacksView());
+    });
   }
 
   render() {

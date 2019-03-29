@@ -17,7 +17,15 @@ const cloneStack = (templateParameters) => {
   .then(res => res.json());
 }
 
+const getStacks = () => {
+  return fetch(`${FORGE_API_URL}/getStacks`, {
+    method: "GET",
+  })
+  .then(result => result.json());
+}
+
 export default {
   getTemplateParamsForTemplate,
-  cloneStack
+  cloneStack,
+  getStacks
 };
