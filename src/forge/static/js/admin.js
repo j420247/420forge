@@ -136,14 +136,12 @@ function createTemplatesDropdown(responseText) {
 function selectTemplateRepo(template_repo) {
     $("#templateRepoSelector").text(template_repo);
     $("#templateRepoName").text(template_repo);
-    $("#pleaseSelecttemplateRepoMsg").hide();
     $("#templateRepoInformation").parent().show();
 
-    // clean up stack info
-    removeElementsByClass("aui-lozenge");
-    $("#currentRevision").html("Current Revision: ");
-    $("#availableRevision").html("Available Revision: ");
-    $("#currentAction").html("Action in progress: ");
+    // clean up repo info
+    $("#currentBranch").html("Current Branch: ");
+    $("#commitsDifference").html("Commit Difference to Origin: ");
+    $("#gitUpdateMessage").html("");
 
     updateTemplateRepoInfo(template_repo);
 }
@@ -160,11 +158,6 @@ function updateTemplates() {
     updateTemplateRepoInfo(template_repo);
 }
 
-// function displayRevision(responseText) {
-//     var revision = JSON.parse(responseText);
-//     $("#currentRevision").html("Current Revision: " + revision);
-// }
-
 function displayBranch(responseText) {
     let branch = JSON.parse(responseText);
     let lozenge_type = "moved"
@@ -178,7 +171,7 @@ function displayCommitDifference(responseText) {
     let [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
     $("#commitsDifference").html("Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" + commitsBehind + "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>"+ commitsAhead);
     $(".commit-tooltip").tooltip();
-    if (commitsBehind > 0 | commitsAhead > 0) {
+    if (commitsBehind > 0 || commitsAhead > 0) {
         $("#updateTemplatesBtn").attr("aria-disabled", false);
     } else {
         $("#updateTemplatesBtn").attr("aria-disabled", true);
