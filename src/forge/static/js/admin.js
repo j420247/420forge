@@ -183,5 +183,5 @@ function displayGitUpdateMessage(responseText) {
     let gitUpdateMessage = JSON.parse(responseText).split(',');
     $("#gitUpdateMessage").html(gitUpdateMessage);
     $("#gitUpdateMessage").show();
-
+    send_http_get_request(baseUrl + "/getGitCommitDifference/" + document.getElementById("templateRepoSelector").text, displayCommitDifference);
 }
