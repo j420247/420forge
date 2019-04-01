@@ -31,6 +31,9 @@ function onReady() {
         getStackActionInProgress(stackToAdmin);
         $("#action-button").attr("aria-disabled", true);
     }
+
+    let updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
+    updateTemplatesBtn.addEventListener("click", updateTemplates);
 }
 
 function createLockedStacksDropdown(responseText) {
@@ -121,7 +124,7 @@ function createTemplatesDropdown(responseText) {
             $("#stackInformation").hide();
             $("#lock-state").hide();
             $("#unlock-warning").hide();
-            var template = data.target.text;
+            let template = data.target.text;
             document.getElementById("templateRepoSelector").text = template;
             selectTemplateRepo(template);
         }, false);
@@ -147,13 +150,14 @@ function selectTemplateRepo(template_repo) {
 
 function updateTemplateRepoInfo(template_repo) {
     // request template repo info
-    send_http_get_request(baseUrl + "/getGitBranch/" + template_repo, displayBranch)
-    send_http_get_request(baseUrl + "/getGitCommitDifference/" + template_repo, displayCommitDifference)
+    send_http_get_request(baseUrl + "/getGitBranch/" + template_repo, displayBranch);
+    send_http_get_request(baseUrl + "/getGitCommitDifference/" + template_repo, displayCommitDifference);
 }
 
 function updateTemplates() {
-    let template_repo = $("#StackNameVal").val();
-
+    let template_repo = document.getElementById("templateRepoSelector").text;
+    send_http_get_request(baseUrl + "/gitPull/" + template_repo, displayGitUpdateMessage);
+    updateTemplateRepoInfo(template_repo);
 }
 
 // function displayRevision(responseText) {
@@ -162,7 +166,7 @@ function updateTemplates() {
 // }
 
 function displayBranch(responseText) {
-    var branch = JSON.parse(responseText);
+    let branch = JSON.parse(responseText);
     let lozenge_type = "moved"
     if (branch == "master") {
        lozenge_type = "success"
@@ -174,5 +178,17 @@ function displayCommitDifference(responseText) {
     let [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
     $("#commitsDifference").html("Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" + commitsBehind + "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>"+ commitsAhead);
     $(".commit-tooltip").tooltip();
+    if (commitsBehind > 0 | commitsAhead > 0) {
+        $("#updateTemplatesBtn").attr("aria-disabled", false);
+    } else {
+        $("#updateTemplatesBtn").attr("aria-disabled", true);
+    }
+
 }
 
+function displayGitUpdateMessage(responseText) {
+    let gitUpdateMessage = JSON.parse(responseText).split(',');
+    $("#gitUpdateMessage").html(gitUpdateMessage);
+    $("#gitUpdateMessage").show();
+
+}

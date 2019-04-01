@@ -21,7 +21,11 @@
         <!-- Dropdown -->
         <div id="templateRepoDropdownDiv" class="aui-style-default aui-dropdown2"></div>
     </div>
-    <p><button class="aui-button" id="updateTemplatesBtn" aria-disabled="true" onclick="updateTemplates()" disabled><span class="aui-icon aui-icon-small aui-iconfont-clone-small"></span>Update</button></p>
+    <div class="aui-panel">
+            <button id="updateTemplatesBtn" type="submit" class="aui-button aui-button-primary" aria-disabled="true">
+                <span class="aui-icon aui-icon-small aui-iconfont-clone-small" style="padding-right: 5px"></span>Update</button>
+            </button>
+        </div>
 </div>
 
 <h4 class="component-heading">Stack locking</h4>
@@ -67,6 +71,7 @@
         <div id="templateRepoInformation">
             <p id="currentBranch">Current Branch: </p>
             <p id="commitsDifference">Commit Difference to Origin: </p>
+            <p id="gitUpdateMessage"></p>
         </div>
     </section>
 </div>
