@@ -1,10 +1,12 @@
 behave
 boto3
 flask
+flask_httpauth
+flask_migrate
+flask_restful
 flask_saml
 flask_sessionstore
 flask_sqlalchemy
-flask_restful
 requests
-ruamel.yaml
 requests-toolbelt
+ruamel.yaml

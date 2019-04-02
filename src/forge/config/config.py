@@ -74,6 +74,11 @@ class BaseConfig(object):
     # Lock stack actions so only one can be performed at a time
     STACK_LOCKING = False
 
+    # Create a SQLalchemy db for session and permission storge.
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///acforge.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False  # suppress warning messages
+    SESSION_TYPE = 'sqlalchemy'
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True

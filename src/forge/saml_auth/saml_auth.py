@@ -3,7 +3,6 @@ from flask_restful import Resource
 import flask_saml
 from werkzeug.contrib.fixers import ProxyFix
 import sys
-from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
 from os import path
 import json
@@ -19,11 +18,6 @@ logger.addHandler(handler)
 
 
 def configure_saml(ssm_client, app):
-    # Create a SQLalchemy db for session and permission storge.
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///acforge.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # suppress warning messages
-    app.config['SESSION_TYPE'] = 'sqlalchemy'
-    db = SQLAlchemy(app)
     session_store = Session(app)
     session_store.app.session_interface.db.create_all()
 

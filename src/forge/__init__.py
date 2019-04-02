@@ -2,8 +2,7 @@ import argparse
 from flask import Flask
 import boto3
 import botocore
-import configparser
-from os import path
+from flask_sqlalchemy import SQLAlchemy
 from forge.version import __version__
 from forge.config import config
 
@@ -12,6 +11,7 @@ from forge.api import api_blueprint
 from forge.aws_cfn_stack import aws_cfn_stack_blueprint
 from forge.main import main as main_blueprint
 from forge.saml_auth import saml_blueprint, saml_auth
+from forge.token_auth import token_blueprint, token_auth
 
 
 def create_app(config_class):
@@ -46,10 +46,15 @@ def create_app(config_class):
     else:
         print('SAML auth is not configured')
 
+    from forge.token_auth.models import db
+
+    db.init_app(app)
+
     # Register Blueprints
     app.register_blueprint(api_blueprint)
     app.register_blueprint(main_blueprint)
     app.register_blueprint(aws_cfn_stack_blueprint)
     app.register_blueprint(saml_blueprint, url_prefix='/saml')
+    app.register_blueprint(token_blueprint, url_prefix='/token')
 
     return app

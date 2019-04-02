@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app
 from flask_restful import Api
 from forge.acforge import *
+import forge.token_auth
 
 api_blueprint = Blueprint('api', __name__)
 api = Api(api_blueprint)
@@ -47,3 +48,6 @@ api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 
 # Status endpoint
 api.add_resource(ForgeStatus, '/status')
+
+# Token Auth
+api.add_resource(forge.token_auth.token_auth.DoCreateToken, '/token/createToken')
