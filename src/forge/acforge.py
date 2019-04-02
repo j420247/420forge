@@ -8,8 +8,6 @@ from pathlib import Path
 
 from logging import ERROR
 import logging
-
-# import logging
 import boto3
 import botocore
 from forge.version import __version__
