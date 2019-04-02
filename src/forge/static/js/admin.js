@@ -10,7 +10,7 @@ function onReady() {
     // get locked stacks only
     getLockedStacks();
 
-    // get templates
+    // get template repos
     getTemplateRepos();
 
     var actionButton = document.getElementById("action-button");
