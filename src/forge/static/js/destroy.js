@@ -1,4 +1,4 @@
 function onReady() {
-    addStackDropdown();
-    addDefaultActionButtonListener();
+  addStackDropdown();
+  addDefaultActionButtonListener();
 }
