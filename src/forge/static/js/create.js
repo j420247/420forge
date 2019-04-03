@@ -1,13 +1,13 @@
 function onReady() {
   readyTheTemplate();
-  $("#stack-name-input").hide();
-  var products = document.getElementsByClassName("selectProductOption");
+  $('#stack-name-input').hide();
+  var products = document.getElementsByClassName('selectProductOption');
   for (var i = 0; i < products.length; i++) {
     products[i].addEventListener(
-      "click",
+      'click',
       function(data) {
         var product = data.target.text;
-        $("#productSelector").text(product);
+        $('#productSelector').text(product);
         getTemplates(product);
         resetForm();
       },
@@ -17,8 +17,8 @@ function onReady() {
 }
 
 function resetForm() {
-  $("#templateSelector").text("Select Template");
-  $("#stack-name-input").hide();
-  $("#paramsList").html("");
-  $("#action-button").attr("aria-disabled", true);
+  $('#templateSelector').text('Select Template');
+  $('#stack-name-input').hide();
+  $('#paramsList').html('');
+  $('#action-button').attr('aria-disabled', true);
 }

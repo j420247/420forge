@@ -1,12 +1,12 @@
 function onReady() {
-  var stacks = document.getElementsByClassName("selectStackOption");
-  $("#action-button").hide();
+  var stacks = document.getElementsByClassName('selectStackOption');
+  $('#action-button').hide();
   var params = new URL(window.location).searchParams;
-  var region = params.get("region");
+  var region = params.get('region');
 
   for (var i = 0; i < stacks.length; i++) {
     stacks[i].addEventListener(
-      "click",
+      'click',
       function(data) {
         var stack_name = data.target.text;
         clearTimeout(refreshLogsTimer);

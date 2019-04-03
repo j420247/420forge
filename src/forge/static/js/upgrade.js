@@ -1,18 +1,18 @@
 function onReady() {
-  var stacks = document.getElementsByClassName("selectStackOption");
+  var stacks = document.getElementsByClassName('selectStackOption');
   for (var i = 0; i < stacks.length; i++) {
     stacks[i].addEventListener(
-      "click",
+      'click',
       function(data) {
         var stack_name = data.target.text;
         selectStack(stack_name);
         checkZDUCompatibility(stack_name);
-        $("#upgradeVersionSelector").removeAttr("disabled");
+        $('#upgradeVersionSelector').removeAttr('disabled');
       },
       false
     );
   }
-  $("#action-button").on("click", beginUpgrade);
+  $('#action-button').on('click', beginUpgrade);
 
   // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
   // if (action === "upgrade") {
@@ -40,12 +40,12 @@ function onReady() {
 }
 
 function checkZDUCompatibility(stack_name) {
-  $("#zduCheckDiv").removeAttr("style");
-  $("#zduCheckLbl").text("Checking Zero Downtime Upgrade compatibility ...");
-  $("#performZDUDiv").attr("style", "display:none");
+  $('#zduCheckDiv').removeAttr('style');
+  $('#zduCheckLbl').text('Checking Zero Downtime Upgrade compatibility ...');
+  $('#performZDUDiv').attr('style', 'display:none');
 
   send_http_get_request(
-    baseUrl + "/getZDUCompatibility/" + region + "/" + stack_name,
+    baseUrl + '/getZDUCompatibility/' + region + '/' + stack_name,
     displayZDUCompatibility
   );
 }
@@ -53,36 +53,36 @@ function checkZDUCompatibility(stack_name) {
 function displayZDUCompatibility(responseText) {
   var compatibility = JSON.parse(responseText);
   if (compatibility === true) {
-    $("#zduCheckDiv").attr("style", "display:none");
-    $("#performZDUDiv").removeAttr("style");
+    $('#zduCheckDiv').attr('style', 'display:none');
+    $('#performZDUDiv').removeAttr('style');
   } else {
-    $("#zduCheckLbl").text("Stack is not ZDU compatible: " + compatibility);
+    $('#zduCheckLbl').text('Stack is not ZDU compatible: ' + compatibility);
   }
-  $("#action-button").removeAttr("aria-disabled");
+  $('#action-button').removeAttr('aria-disabled');
 }
 
 function beginUpgrade() {
-  if (document.getElementById("zduCheckBox").checked) {
-    $("#auth-ok-btn").on("click", performUpgrade);
-    AJS.dialog2("#auth-dialog").show();
+  if (document.getElementById('zduCheckBox').checked) {
+    $('#auth-ok-btn').on('click', performUpgrade);
+    AJS.dialog2('#auth-dialog').show();
   } else {
     performUpgrade();
   }
 }
 
 function performUpgrade() {
-  var zdu = document.getElementById("zduCheckBox").checked;
-  var version = $("#upgradeVersionSelector").val();
+  var zdu = document.getElementById('zduCheckBox').checked;
+  var version = $('#upgradeVersionSelector').val();
   var stack_name = scrapePageForStackName();
   var url =
     baseUrl +
-    "/doupgrade/" +
+    '/doupgrade/' +
     region +
-    "/" +
+    '/' +
     stack_name +
-    "/" +
+    '/' +
     version +
-    "/" +
+    '/' +
     zdu;
   send_http_post_request(
     url,
