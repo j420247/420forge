@@ -98,6 +98,11 @@ def admin_stack(stack_name):
     return render_template('admin.html', stackToAdmin=stack_name)
 
 
+@main.route('/token', methods=['GET'])
+def token():
+    return render_template('token_admin.html')
+
+
 @main.route('/error/<error>')
 def error(error):
     return render_template('error.html', code=error), error

@@ -1,18 +1,22 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired
 from flask import current_app
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(32), index=True)
+    username = db.Column(db.String(128), index=True)
+    email = db.Column(db.String(128), index=True)
     token = db.Column(db.String(512))
     granted = db.Column(db.DateTime)
     expiry = db.Column(db.Integer)
 
+    @staticmethod
     def generate_auth_token(self, expiration=600):
         s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': 'test'})

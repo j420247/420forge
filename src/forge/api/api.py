@@ -50,4 +50,4 @@ api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 api.add_resource(ForgeStatus, '/status')
 
 # Token Auth
-api.add_resource(forge.token_auth.token_auth.DoCreateToken, '/token/createToken')
+api.add_resource(forge.token_auth.token_auth.DoCreateToken, '/createToken/<stack_name>')

@@ -1,19 +1,34 @@
-from flask import session, request, Blueprint, current_app, Flask, abort, request, jsonify, g, url_for
+from flask import Blueprint, request, jsonify, g, session
 from forge.saml_auth.saml_auth import RestrictedResource
 from .models import *
+from datetime import datetime
 
 
 token_blueprint = Blueprint('token_auth', __name__)
 
 
 class DoCreateToken(RestrictedResource):
-    def post(self):
+    def post(self, stack_name):
         User.init_db(self)
-        content = request.get_json()
-        user = User(username=content['username'], token=User.generate_auth_token(self))
+
+        try:
+            content = request.get_json()
+            username = content['username']
+        except:
+            username = session['saml']['subject']
+
+        try:
+            expiry = content['expiry']
+        except:
+            expiry = 600
+
+        user = User(
+            username=username, token=User.generate_auth_token(self, expiration=expiry), granted=datetime.now(), email=session['saml']['attributes']['User.Email'][0], expiry=expiry
+        )
         db.session.add(user)
         db.session.commit()
-        return user.token.decode("utf-8")
+        token = user.token.decode("utf-8")
+        return token
 
     @staticmethod
     def get_auth_token(self):

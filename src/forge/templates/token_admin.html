@@ -1,0 +1,22 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+    <script src="{{ get_filename_with_last_update_time('token_admin.js') }}"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<div class="aui-panel">
+    <h3>Create New Token</h3>
+    <div class="aui-panel">
+            <button id="createTokenButton" type="submit" class="aui-button aui-button-primary" aria-disabled="false">
+                <span class="aui-icon aui-icon-small aui-iconfont-clone-small" style="padding-right: 5px"></span>Create</button>
+        </div>
+</div>
+<div id="tokenDisplayMessage" class="aui-message">
+    <p class="title">
+        <strong>Token Created</strong>
+    </p>
+    <p id="tokenContent"></p>
+</div>
+
+{% endblock extraInput %}
