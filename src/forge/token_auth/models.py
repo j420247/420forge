@@ -15,6 +15,7 @@ class User(db.Model):
     token = db.Column(db.String(512))
     granted = db.Column(db.DateTime)
     expiry = db.Column(db.Integer)
+    memberOf = db.Column(db.Text)
 
     @staticmethod
     def generate_auth_token(self, expiration=600):
