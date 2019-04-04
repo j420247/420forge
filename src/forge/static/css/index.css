@@ -4,7 +4,8 @@
     color:#deebff;
     background-color:rgba(9,30,66,.48)
 }
-img {
+
+section.aui-page-panel-content img {
     opacity: 0.3;
     height: 200px;
     position: absolute;
