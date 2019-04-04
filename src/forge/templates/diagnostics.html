@@ -4,7 +4,7 @@
     <script src="{{ get_filename_with_last_update_time('diagnostics.js') }}"></script>
 {% endblock head %}
     {% block descriptionPanel %}
-    Run thread and heap dumps against each node in the cluster
+    Run thread and heap dumps against each node in the cluster. Thread dumps are run concurrently, heap dumps are run sequentially. Note that taking heap dumps can cause the node to stop responding for the duration of the dump; on larger heaps this can cause nodes to be removed from the load balancer briefly.
     {% endblock descriptionPanel %}
 {% block extraInput %}
 <div style="min-height: 50px"></div>

@@ -37,3 +37,11 @@ section.aui-page-panel-content img {
 #rdsSnapshotSelection {
     min-width: 360px;
 }
+
+#descriptionPanel {
+    padding-bottom: 15px;
+    color: #42526E;
+}
+#descriptionPanel code {
+    background-color: #F4F5F7;
+}
