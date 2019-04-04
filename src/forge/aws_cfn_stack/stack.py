@@ -1058,17 +1058,6 @@ class Stack:
         self.log_msg(INFO, "Heap dumps complete")
         return True
 
-    def update_templates(self):
-        self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}')
-        self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        # Wait for each heap dump to finish before starting the next, to avoid downtime
-        for instance in self.instancelist:
-            self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30)  # give node time to recover and rejoin cluster
-        self.log_msg(INFO, "Heap dumps complete")
-        return True
-
     def run_sql(self):
         self.log_msg(INFO, 'Running post clone SQL')
         self.log_change('Running post clone SQL')

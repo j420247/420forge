@@ -10,7 +10,7 @@ function onReady() {
     // get locked stacks only
     getLockedStacks();
 
-    // get templates
+    // get template repos
     getTemplateRepos();
 
     var actionButton = document.getElementById("action-button");
@@ -160,8 +160,8 @@ function updateTemplates() {
 
 function displayBranch(responseText) {
     let branch = JSON.parse(responseText);
-    let lozenge_type = "moved"
-    if (branch == "master") {
+    let lozenge_type = "moved";
+    if (branch === "master") {
        lozenge_type = "success"
     }
     $("#currentBranch").html("Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type + "\">" + branch + "</span>");
@@ -183,5 +183,5 @@ function displayGitUpdateMessage(responseText) {
     let gitUpdateMessage = JSON.parse(responseText).split(',');
     $("#gitUpdateMessage").html(gitUpdateMessage);
     $("#gitUpdateMessage").show();
-    send_http_get_request(baseUrl + "/getGitCommitDifference/" + document.getElementById("templateRepoSelector").text, displayCommitDifference);
+    updateTemplateRepoInfo(document.getElementById("templateRepoSelector").text);
 }

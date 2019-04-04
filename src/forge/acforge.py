@@ -8,8 +8,6 @@ from pathlib import Path
 
 from logging import ERROR
 import logging
-
-# import logging
 import boto3
 import botocore
 from forge.version import __version__
@@ -638,13 +636,13 @@ class GetLockedStacks(Resource):
 
 class GetTemplateRepos(Resource):
     def get(self):
-        templates = ['atlassian-aws-deployment']
+        repos = ['atlassian-aws-deployment']
         custom_template_folder = Path('custom-templates')
         if custom_template_folder.exists():
             for directory in glob.glob(f'{custom_template_folder}/*'):
-                templates.append(directory.split('/')[1])
-        templates.sort()
-        return templates
+                repos.append(directory.split('/')[1])
+        repos.sort()
+        return repos
 
 
 class SetStackLocking(Resource):
