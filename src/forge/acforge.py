@@ -15,6 +15,7 @@ import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
 import git
+from os.path import dirname
 
 ##
 #### REST Endpoint classes
@@ -337,17 +338,23 @@ class GetLogs(Resource):
 
 class GetGitBranch(Resource):
     def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
+        if template_repo == '__forge__':
+            repo = git.Repo(Path(dirname(dirname(current_app.root_path))))
+        else:
+            if template_repo != 'atlassian-aws-deployment':
+                template_repo = f'custom-templates/{template_repo}'
+            repo = git.Repo(Path(template_repo))
         return repo.active_branch.name
 
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
+        if template_repo == '__forge__':
+            repo = git.Repo(Path(dirname(dirname(current_app.root_path))))
+        else:
+            if template_repo != 'atlassian-aws-deployment':
+                template_repo = f'custom-templates/{template_repo}'
+            repo = git.Repo(Path(template_repo))
         behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
         ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
         difference = f'{behind},{ahead}'
@@ -636,7 +643,7 @@ class GetLockedStacks(Resource):
 
 class GetTemplateRepos(Resource):
     def get(self):
-        repos = ['atlassian-aws-deployment']
+        repos = ['atlassian-aws-deployment', '__forge__']
         custom_template_folder = Path('custom-templates')
         if custom_template_folder.exists():
             for directory in glob.glob(f'{custom_template_folder}/*'):
