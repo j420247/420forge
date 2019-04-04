@@ -363,10 +363,14 @@ class GetGitCommitDifference(Resource):
 
 class GitPull(Resource):
     def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
-        result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        if template_repo == '__forge__':
+            repo = git.Repo(Path(dirname(dirname(current_app.root_path))))
+            result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+        else:
+            if template_repo != 'atlassian-aws-deployment':
+                template_repo = f'custom-templates/{template_repo}'
+            repo = git.Repo(Path(template_repo))
+            result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         logging.info(result)
         return result
 
