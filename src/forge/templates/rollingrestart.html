@@ -3,5 +3,7 @@
     {{ super() }}
     <script src="/static/js/restart.js"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Restart all nodes in the cluster one by one
+    {% endblock descriptionPanel %}
 {% block buttonText %}Rolling Restart{% endblock buttonText %}

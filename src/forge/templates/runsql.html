@@ -3,7 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('runsql.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Run a predefined SQL script against an instance(NB: script needs to be added to the service by an administrator - this is not free-form SQL)
+    {% endblock descriptionPanel %}
 {% block buttonText %}Run SQL{% endblock buttonText %}
 
 {% block progress %}

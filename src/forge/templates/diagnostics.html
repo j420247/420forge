@@ -3,7 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('diagnostics.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Run thread and heap dumps against each node in the cluster
+    {% endblock descriptionPanel %}
 {% block extraInput %}
 <div style="min-height: 50px"></div>
 <div class="aui-panel">

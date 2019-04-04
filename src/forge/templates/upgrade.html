@@ -4,7 +4,12 @@
     <script src="{{ get_filename_with_last_update_time('upgrade.js') }}"></script>
 {% endblock head %}
 
+    {% block descriptionPanel %}
+    Enter the version you want to upgrade to, Forge will destroy the current nodes and create new ones on the new version
+    {% endblock descriptionPanel %}
+
 {% block extraInput %}
+
 {#  Upgrade version selector  #}
 <div class="aui-panel">
     <form class="aui top-label">

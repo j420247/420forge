@@ -3,6 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('clone.js') }}"></script>
 {% endblock head %}
+    {% block descriptionPanel %}
+    Create a clone of an instance from database and filesystem snapshots
+    {% endblock descriptionPanel %}
 
 {% block stackSelectorDescription %}
 Select stack to clone
