@@ -1,4 +1,3 @@
-/*global baseUrl region send_http_get_request send_http_post_request selectStack getStatusLozenge countOccurences */
 function onReady() {
   $('#stackInformation').hide();
   $('#lock-state').hide();
