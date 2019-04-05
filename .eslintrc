@@ -1,11 +1,23 @@
 {
-  "extends": "@atlassian/atlassian-fecq",
+  "extends": ["@atlassian/atlassian-fecq",
+    "prettier"
+  ],
   "env": {
     "browser": true,
     "jquery": true
   },
   "plugins": ["prettier"],
   "rules": {
-    "prettier/prettier": "error"
+    // prettier
+    "prettier/prettier": ["error", {
+      "singleQuote": true,
+      "trailingComma": "es5",
+      "tabWidth": 4,
+      "printWidth": 100
+    }],
+
+    // the prettier plugin _should_ disable these but it doesn't for some reason
+    "indent": 0,
+    "no-unexpected-multiline": 0
   }
 }
