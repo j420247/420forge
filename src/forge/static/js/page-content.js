@@ -22,24 +22,32 @@ function selectStack(stack_name) {
 }
 
 function updateStackInfo(stack_name, stack_region) {
-  if (stack_name === 'actionreadytostart') return;
-  if (!stack_region) stack_region = region;
+  if (stack_name === 'actionreadytostart') {
+    return;
+  }
+  if (!stack_region) {
+    stack_region = region;
+  }
 
   // show spinners if no content
-  if ($('#serviceStatus').find('span.aui-lozenge').length == 0)
+  if ($('#serviceStatus').find('span.aui-lozenge').length == 0) {
     $('#serviceStatus').html(
       'Service status: <aui-spinner size="small" ></aui-spinner>'
     );
-  if ($('#stackState').find('span.aui-lozenge').length == 0)
+  }
+  if ($('#stackState').find('span.aui-lozenge').length == 0) {
     $('#stackState').html(
       'Stack status: <aui-spinner size="small" ></aui-spinner>'
     );
-  if ($('#currentVersion').length && $('#currentVersion').html().length <= 17)
+  }
+  if ($('#currentVersion').length && $('#currentVersion').html().length <= 17) {
     $('#currentVersion').html(
       'Current version: <aui-spinner size="small" ></aui-spinner>'
     );
-  if ($('#nodes').length && $('#nodes').html().length <= 4)
+  }
+  if ($('#nodes').length && $('#nodes').html().length <= 4) {
     $('#nodes').html('<aui-spinner size="small" ></aui-spinner>');
+  }
 
   var functionParams = {
     stack_name: stack_name,
@@ -79,7 +87,7 @@ function displayStackStateAndRequestServiceStatus(
     responseText.trim() === '"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"' ||
     responseText.trim() === '"UPDATE_ROLLBACK_IN_PROGRESS"' ||
     responseText.trim() === '"UPDATE_ROLLBACK_COMPLETE"'
-  )
+  ) {
     // only request service status if stack actions are complete and successful
     send_http_get_request(
       baseUrl +
@@ -89,7 +97,9 @@ function displayStackStateAndRequestServiceStatus(
         functionParams.stack_name,
       displayServiceStatus
     );
-  else $('#serviceStatus').html('Service status: ');
+  } else {
+    $('#serviceStatus').html('Service status: ');
+  }
 }
 
 function displayServiceStatus(responseText) {
@@ -132,7 +142,9 @@ function displayNodes(responseText) {
     $('#nodes').append(
       nodes[node].ip + ': ' + getStatusLozenge(nodes[node].status)
     );
-    if (node < nodes.length) $('#nodes').append('<br>');
+    if (node < nodes.length) {
+      $('#nodes').append('<br>');
+    }
   }
 }
 

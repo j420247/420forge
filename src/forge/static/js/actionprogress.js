@@ -6,12 +6,15 @@ function onReady() {
   $('#stackSelector').hide();
 
   // fix action string
-  if (action.indexOf('/') !== -1)
+  if (action.indexOf('/') !== -1) {
     action = action.substr(action.indexOf('/') + 1);
+  }
 
   var params = new URL(window.location).searchParams;
   var stack_name = params.get('stack');
-  if (params.has('region')) region = params.get('region');
+  if (params.has('region')) {
+    region = params.get('region');
+  }
   selectStack(stack_name);
   clearTimeout(refreshLogsTimer);
   clearTimeout(refreshStackInfoTimer);
@@ -40,7 +43,9 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
       ) {
         notify(this_action + ' is complete');
         refreshLogs(stack_name, false, 0, this_action);
-      } else refreshLogs(stack_name, true, 5000, this_action);
+      } else {
+        refreshLogs(stack_name, true, 5000, this_action);
+      }
     }, refresh_interval);
   } else {
     refreshStackInfo(stack_name, region, false);
@@ -63,7 +68,9 @@ function refreshStackInfo(stack_name, region, cont) {
 }
 
 function getLogs(stack_name) {
-  if (stack_name === 'actionreadytostart') return;
+  if (stack_name === 'actionreadytostart') {
+    return;
+  }
 
   $('#log').css('background', 'rgba(0,20,70,.08)');
   send_http_get_request(baseUrl + '/getLogs/' + stack_name, displayLogs);
@@ -80,8 +87,9 @@ function displayLogs(responseText) {
     $('#log')
       .contents()
       .height()
-  )
+  ) {
     userHasScrolled = true;
+  }
 
   $('#log').css('background', 'rgba(0,0,0,0)');
 
@@ -101,8 +109,9 @@ function displayLogs(responseText) {
     ) !== 1 &&
     (countOccurences(responseText, 'No current status for') === 1 ||
       countOccurences(responseText, 'Waiting for logs') === 1)
-  )
+  ) {
     return;
+  }
 
   $('#log')
     .contents()
@@ -119,9 +128,10 @@ function displayLogs(responseText) {
         .trim()
     );
 
-  if (!userHasScrolled)
+  if (!userHasScrolled) {
     $('#log')
       .contents()
       .find('body')
       .scrollTop(9999999999);
+  }
 }

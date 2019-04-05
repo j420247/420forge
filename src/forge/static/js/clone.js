@@ -50,8 +50,11 @@ function applyCloneDefaults(responseText) {
 
   for (var param in params) {
     var element = $('#' + param + 'Val');
-    if (element.is('input')) element.val(params[param]);
-    else if (element.is('a')) element.text(params[param]);
+    if (element.is('input')) {
+      element.val(params[param]);
+    } else if (element.is('a')) {
+      element.text(params[param]);
+    }
   }
   AJS.flag({
     type: 'success',

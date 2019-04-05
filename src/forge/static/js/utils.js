@@ -52,9 +52,11 @@ function send_http_get_request(
         getRequest.readyState === XMLHttpRequest.DONE &&
         getRequest.status === 200
       ) {
-        if (optionalFunctionParams)
+        if (optionalFunctionParams) {
           onreadystatechange(getRequest.responseText, optionalFunctionParams);
-        else onreadystatechange(getRequest.responseText);
+        } else {
+          onreadystatechange(getRequest.responseText);
+        }
       }
     };
   }
@@ -74,8 +76,9 @@ function send_http_post_request(url, data, onreadystatechange) {
       if (
         postRequest.readyState === XMLHttpRequest.DONE &&
         postRequest.status === 200
-      )
+      ) {
         onreadystatechange(postRequest.responseText);
+      }
     };
   }
   postRequest.send(data);
@@ -90,8 +93,11 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
   dropdownAnchor.setAttribute('aria-haspopup', 'true');
   dropdownAnchor.setAttribute('href', '#' + parameterKey + 'DropdownDiv');
   dropdownAnchor.id = parameterKey + 'Val';
-  if (defaultValue.length !== 0) dropdownAnchor.text = defaultValue;
-  else dropdownAnchor.text = 'Select';
+  if (defaultValue.length !== 0) {
+    dropdownAnchor.text = defaultValue;
+  } else {
+    dropdownAnchor.text = 'Select';
+  }
 
   var dropdownDiv = document.createElement('DIV');
   dropdownDiv.id = parameterKey + 'DropdownDiv';
@@ -184,13 +190,15 @@ function createInputParameter(param, fieldset) {
       div
     );
   } else if (param.ParameterKey === 'VPC') {
-    if (action === 'clone')
+    if (action === 'clone') {
       getVPCs(
         $('#regionSelector')
           .text()
           .trim()
       );
-    else getVPCs(region, param.ParameterValue);
+    } else {
+      getVPCs(region, param.ParameterValue);
+    }
   } else {
     var input = document.createElement('INPUT');
     input.className = 'text';
@@ -232,8 +240,9 @@ function createInputParameter(param, fieldset) {
 function updateMultiSelect(parameterKey, defaultValue, multiSelectOptions) {
   var multiSelect = document.getElementById(parameterKey + 'Val');
 
-  while (multiSelect.firstChild)
+  while (multiSelect.firstChild) {
     multiSelect.removeChild(multiSelect.firstChild);
+  }
 
   for (var opt in multiSelectOptions) {
     var option = document.createElement('OPTION');
@@ -265,7 +274,9 @@ function addStackDropdown() {
 
 function addDefaultActionButtonListener() {
   var actionButton = document.getElementById('action-button');
-  if (actionButton) actionButton.addEventListener('click', performAction);
+  if (actionButton) {
+    actionButton.addEventListener('click', performAction);
+  }
 }
 
 // Forge common functions
@@ -304,7 +315,9 @@ function redirectToLog(stack_name, extra_params) {
   setTimeout(function() {
     // Redirect to action progress screen
     var url = baseUrl + '/actionprogress/' + action + '?stack=' + stack_name;
-    if (extra_params) url += extra_params;
+    if (extra_params) {
+      url += extra_params;
+    }
     window.location = url;
   }, 1000);
 }

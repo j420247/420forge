@@ -61,8 +61,11 @@ function displayTemplates(responseText) {
       function(data) {
         var selectedTemplate = data.target.text;
         $('#templateSelector').text(selectedTemplate);
-        if (action === 'create') getTemplateParams(selectedTemplate);
-        else selectTemplateForStack(stack_name, selectedTemplate);
+        if (action === 'create') {
+          getTemplateParams(selectedTemplate);
+        } else {
+          selectTemplateForStack(stack_name, selectedTemplate);
+        }
       },
       false
     );
@@ -91,8 +94,9 @@ function displayTemplateParams(responseText) {
   var fieldset = document.createElement('FIELDSET');
   fieldset.id = 'fieldSet';
 
-  for (var param in origParams)
+  for (var param in origParams) {
     createInputParameter(origParams[param], fieldset);
+  }
 
   var paramsList = document.getElementById('paramsList');
   paramsList.appendChild(fieldset);
@@ -101,7 +105,9 @@ function displayTemplateParams(responseText) {
 }
 
 function selectTemplateForStack(stackToRetrieve, templateName) {
-  if (document.getElementById('clone-params')) $('#clone-params').hide();
+  if (document.getElementById('clone-params')) {
+    $('#clone-params').hide();
+  }
   $('#paramsList').html('<aui-spinner size="large"></aui-spinner>');
 
   $('#stackSelector').text(stackToRetrieve);
@@ -177,13 +183,16 @@ function displayStackParams(responseText) {
     // Store subnets on update
   } else if (action === 'update') {
     for (var param in origParams) {
-      if (origParams[param].ParameterKey === 'ExternalSubnets')
+      if (origParams[param].ParameterKey === 'ExternalSubnets') {
         externalSubnets = origParams[param].ParameterValue.split(',');
-      else if (origParams[param].ParameterKey === 'InternalSubnets')
+      } else if (origParams[param].ParameterKey === 'InternalSubnets') {
         internalSubnets = origParams[param].ParameterValue.split(',');
+      }
     }
   }
-  if (document.getElementById('clone-params')) $('#clone-params').show();
+  if (document.getElementById('clone-params')) {
+    $('#clone-params').show();
+  }
   $('#paramsForm').show();
   $('#action-button').attr('aria-disabled', false);
 }
@@ -293,18 +302,19 @@ function getSubnets(vpc, createOrUpdateList) {
         .text()
         .trim()
     : region;
-  if (vpc !== '')
+  if (vpc !== '') {
     send_http_get_request(
       baseUrl + '/getSubnetsForVpc/' + subnets_region + '/' + vpc,
       displaySubnets,
       functionParams
     );
-  else
+  } else {
     send_http_get_request(
       baseUrl + '/getAllSubnetsForRegion/' + subnets_region,
       displaySubnets,
       functionParams
     );
+  }
 }
 
 function displaySubnets(responseText, functionParams) {
@@ -387,19 +397,25 @@ function sendParamsAsJson() {
     var value;
 
     if (param == 'EBSSnapshotId') {
-      if (action === 'clone')
+      if (action === 'clone') {
         value = document.getElementById('ebsSnapshotSelector').innerText;
-      else value = document.getElementById('EBSSnapshotIdVal').value;
+      } else {
+        value = document.getElementById('EBSSnapshotIdVal').value;
+      }
     } else if (param == 'DBSnapshotName') {
-      if (action === 'clone')
+      if (action === 'clone') {
         value = document.getElementById('rdsSnapshotSelector').innerText;
-      else value = document.getElementById('DBSnapshotNameVal').value;
+      } else {
+        value = document.getElementById('DBSnapshotNameVal').value;
+      }
     } else if (param == 'Region') {
-      if (action === 'clone')
+      if (action === 'clone') {
         value = $('#regionSelector')
           .text()
           .trim();
-      else value = region;
+      } else {
+        value = region;
+      }
     } else {
       var element = document.getElementById(param + 'Val');
       if (element.tagName.toLowerCase() === 'a') {
@@ -422,7 +438,9 @@ function sendParamsAsJson() {
     newParamsArray.push(jsonParam);
   }
   var url = baseUrl + '/do' + action;
-  if (action === 'update') url += '/' + stackNameForAction;
+  if (action === 'update') {
+    url += '/' + stackNameForAction;
+  }
 
   // send the collected data as JSON
   var jsonArray = [];
@@ -432,12 +450,13 @@ function sendParamsAsJson() {
   send_http_post_request(url, JSON.stringify(jsonArray));
 
   var appendRegion = '';
-  if (action === 'clone')
+  if (action === 'clone') {
     appendRegion =
       '&region=' +
       $('#regionSelector')
         .text()
         .trim();
+  }
 
   redirectToLog(stackNameForAction, appendRegion);
 }

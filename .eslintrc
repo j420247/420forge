@@ -1,0 +1,11 @@
+{
+  "extends": "@atlassian/atlassian-fecq",
+  "env": {
+    "browser": true,
+    "jquery": true
+  },
+  "plugins": ["prettier"],
+  "rules": {
+    "prettier/prettier": "error"
+  }
+}
