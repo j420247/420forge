@@ -4,7 +4,14 @@
     <script src="{{ get_filename_with_last_update_time('upgrade.js') }}"></script>
 {% endblock head %}
 
+    {% block descriptionPanel %}
+    Enter the version you want to upgrade to. Forge will destroy all the current nodes immediately, and create new ones on the new version, by first bringing up one node to run the upgrade tasks, then bringing up the rest.
+    </p><p>
+    Upgrades for Jira can be done with zero downtime if you have more than one node in the cluster, are on a ZDU compatible version, and have admin credentials to enter. In this case, each node will be destroyed and replaced one by one.
+    {% endblock descriptionPanel %}
+
 {% block extraInput %}
+
 {#  Upgrade version selector  #}
 <div class="aui-panel">
     <form class="aui top-label">

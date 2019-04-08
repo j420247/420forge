@@ -4,7 +4,9 @@
     <meta name="stackToAdmin" value={{ stackToAdmin }}>
     <script src="{{ get_filename_with_last_update_time('admin.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Allows running of various administrative actions
+    {% endblock descriptionPanel %}
 {% block extraInput %}
 <h4 class="component-heading">Stack locking</h4>
 <p>Locking stacks prevents multiple actions from being performed on a stack at the same time</p>

@@ -3,7 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('tag.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Add tags to the stack, and all its resources
+    {% endblock descriptionPanel %}
 {% block extraInput %}
 <form class="aui" id="tags" hidden>
     <div id="existing-tags">
