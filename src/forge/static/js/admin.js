@@ -32,8 +32,9 @@ function onReady() {
         $("#action-button").attr("aria-disabled", true);
     }
 
-    let updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
+    var updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
     updateTemplatesBtn.addEventListener("click", updateTemplates);
+
 }
 
 function createLockedStacksDropdown(responseText) {
@@ -124,7 +125,7 @@ function createTemplatesDropdown(responseText) {
             $("#stackInformation").hide();
             $("#lock-state").hide();
             $("#unlock-warning").hide();
-            let template = data.target.text;
+            var template = data.target.text;
             document.getElementById("templateRepoSelector").text = template;
             selectTemplateRepo(template);
         }, false);
@@ -153,14 +154,14 @@ function updateTemplateRepoInfo(template_repo) {
 }
 
 function updateTemplates() {
-    let template_repo = document.getElementById("templateRepoSelector").text;
+    var template_repo = document.getElementById("templateRepoSelector").text;
     send_http_get_request(baseUrl + "/gitPull/" + template_repo, displayGitUpdateMessage);
     updateTemplateRepoInfo(template_repo);
 }
 
 function displayBranch(responseText) {
-    let branch = JSON.parse(responseText);
-    let lozenge_type = "moved";
+    var branch = JSON.parse(responseText);
+    var lozenge_type = "moved";
     if (branch === "master") {
        lozenge_type = "success"
     }
@@ -168,7 +169,7 @@ function displayBranch(responseText) {
 }
 
 function displayCommitDifference(responseText) {
-    let [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
+    var [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
     $("#commitsDifference").html("Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" + commitsBehind + "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>"+ commitsAhead);
     $(".commit-tooltip").tooltip();
     if (commitsBehind > 0 || commitsAhead > 0) {
@@ -180,7 +181,7 @@ function displayCommitDifference(responseText) {
 }
 
 function displayGitUpdateMessage(responseText) {
-    let gitUpdateMessage = JSON.parse(responseText).split(',');
+    var gitUpdateMessage = JSON.parse(responseText).split(',');
     $("#gitUpdateMessage").html(gitUpdateMessage);
     $("#gitUpdateMessage").show();
     updateTemplateRepoInfo(document.getElementById("templateRepoSelector").text);
