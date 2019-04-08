@@ -4,7 +4,9 @@
     <meta name="stackToAdmin" value={{ stackToAdmin }}>
     <script src="{{ get_filename_with_last_update_time('admin.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Allows running of various administrative actions
+    {% endblock descriptionPanel %}
 {% block extraInput %}
 <div class="aui-panel">
     <h3>Update Templates</h3>

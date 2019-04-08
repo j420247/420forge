@@ -1,10 +1,18 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{#  Upgrade options  #}
-<div class="aui-group aui-group-split">
+    {#  Upgrade options  #}
+    <div class="aui-group aui-group-split">
     {% block input %}
+
     <div class="aui-item">
+        <div id="descriptionPanel" class="aui-item">
+            <p>
+                {% block descriptionPanel %}
+                {% endblock descriptionPanel %}
+            </p>
+        </div>
+
         {% block stackSelector %}
         {#  Stack selector  #}
         <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"

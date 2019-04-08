@@ -3,7 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('template-params.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Update template parameters for a stack
+    {% endblock descriptionPanel %}
 {% block templateSelector %}
 <a id="templateSelector" href="#templateSelection" aria-owns="templateSelection" aria-haspopup="true"
    class="aui-button aui-style-default aui-dropdown2-trigger">

@@ -4,7 +4,8 @@
     color:#deebff;
     background-color:rgba(9,30,66,.48)
 }
-img {
+
+section.aui-page-panel-content img {
     opacity: 0.3;
     height: 200px;
     position: absolute;
@@ -35,4 +36,12 @@ img {
 
 #rdsSnapshotSelection {
     min-width: 360px;
+}
+
+#descriptionPanel {
+    padding-bottom: 15px;
+    color: #42526E;
+}
+#descriptionPanel code {
+    background-color: #F4F5F7;
 }
