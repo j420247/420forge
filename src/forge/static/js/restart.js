@@ -18,18 +18,9 @@ function onReady() {
 
 function performRestart() {
     var stack_name = scrapePageForStackName();
-    var url =
-        baseUrl +
-        '/do' +
-        action +
-        '/' +
-        region +
-        '/' +
-        stack_name +
-        '/' +
-        document.getElementById('takeThreadDumps').checked +
-        '/' +
-        document.getElementById('takeHeapDumps').checked;
+    var url = `${baseUrl}/do${action}/${region}/${stack_name}/${
+        document.getElementById('takeThreadDumps').checked
+    }/${document.getElementById('takeHeapDumps').checked}`;
 
     send_http_get_request(url);
     redirectToLog(stack_name);
