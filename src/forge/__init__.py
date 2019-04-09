@@ -2,8 +2,6 @@ import argparse
 from flask import Flask
 import boto3
 import botocore
-import configparser
-from os import path
 from forge.version import __version__
 from forge.config import config
 
@@ -19,7 +17,6 @@ def create_app(config_class):
     parser = argparse.ArgumentParser(description='Forge')
     parser.add_argument('--nosaml', action='store_true', help='Start with --nosaml to bypass SAML for local testing')
     parser.add_argument('--region', nargs='?', default='us-east-1', help='The AWS region that Forge is operating in')
-    parser.add_argument('--localSamlUrl', nargs='?', help='The SAML URL to use for local development')
     args = parser.parse_args()
 
     # create and initialize app

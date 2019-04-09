@@ -5,7 +5,7 @@ from werkzeug.contrib.fixers import ProxyFix
 import sys
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
-from os import path
+from os import path, getenv
 import json
 from sys import argv
 import logging
@@ -37,8 +37,8 @@ def configure_saml(ssm_client, app):
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
     logger.info('SAML auth configured')
-    if app.args.localSamlUrl:
-        app.config['SAML_METADATA_URL'] = app.args.localSamlUrl
+    if getenv('SAML_METADATA_URL'):
+        app.config['SAML_METADATA_URL'] = getenv('SAML_METADATA_URL')
     else:
         try:
             saml_protocol = ssm_client.get_parameter(Name='atl_forge_saml_metadata_protocol', WithDecryption=True)
