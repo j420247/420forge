@@ -1,21 +1,20 @@
 # imports
 from datetime import datetime
-from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
+from flask import Flask, request, session, current_app
 from flask_restful import Resource
 from ruamel import yaml
 from pathlib import Path
-from os import path
+
 from logging import ERROR
+import logging
 import boto3
 import botocore
-import configparser
-import os
 from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
+import git
 
 ##
 #### REST Endpoint classes
@@ -336,6 +335,35 @@ class GetLogs(Resource):
         return log if log else f'No current status for {stack_name}'
 
 
+class GetGitBranch(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        return repo.active_branch.name
+
+
+class GetGitCommitDifference(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
+        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+        difference = f'{behind},{ahead}'
+        return difference
+
+
+class GitPull(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        logging.info(result)
+        return result
+
+
 class ServiceStatus(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
@@ -604,6 +632,17 @@ class GetLockedStacks(Resource):
         if 'LOCKS' in current_app.config:
             locked_stacks = list(current_app.config['LOCKS'].keys())
         return locked_stacks
+
+
+class GetTemplateRepos(Resource):
+    def get(self):
+        repos = ['atlassian-aws-deployment']
+        custom_template_folder = Path('custom-templates')
+        if custom_template_folder.exists():
+            for directory in glob.glob(f'{custom_template_folder}/*'):
+                repos.append(directory.split('/')[1])
+        repos.sort()
+        return repos
 
 
 class SetStackLocking(Resource):

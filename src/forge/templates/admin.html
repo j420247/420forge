@@ -8,6 +8,24 @@
     Allows running of various administrative actions
     {% endblock descriptionPanel %}
 {% block extraInput %}
+<div class="aui-panel">
+    <h3>Update Templates</h3>
+    <div class="aui-panel">
+        <a id="templateRepoSelector" href="#templateRepoDropdownDiv" aria-owns="templateRepoDropdownDiv" aria-haspopup="true"
+           class="aui-button aui-style-default aui-dropdown2-trigger">
+            Select Templates Repository
+        </a>
+
+        <!-- Dropdown -->
+        <div id="templateRepoDropdownDiv" class="aui-style-default aui-dropdown2"></div>
+    </div>
+    <div class="aui-panel">
+            <button id="updateTemplatesBtn" type="submit" class="aui-button aui-button-primary" aria-disabled="true">
+                <span class="aui-icon aui-icon-small aui-iconfont-clone-small" style="padding-right: 5px"></span>Update</button>
+            </button>
+        </div>
+</div>
+
 <h4 class="component-heading">Stack locking</h4>
 <p>Locking stacks prevents multiple actions from being performed on a stack at the same time</p>
 <form class="aui">
@@ -34,9 +52,24 @@
 </div>
 <div class="aui-panel" id="unlock-warning" hidden>
     <div class="aui-message aui-message-warning">
-        <p>Only unlock if you are certain the stack is locked in error. Performing mutliple actions against a stack can result in corruption.</p>
+        <p>Only unlock if you are certain the stack is locked in error. Performing multiple actions against a stack can result in corruption.</p>
     </div>
 </div>
+
 {% endblock extraInput %}
+
+{% block templateRepoStatusPanel %}
+{#    Template Repo Status Panel    #}
+<div class="aui-item">
+    <section class="aui-page-notification aui-page-size-medium aui-page-panel aui-page-panel-content"  style="text-align: left">
+        <h3 id="templateRepoName"></h3>
+        <div id="templateRepoInformation">
+            <p id="currentBranch">Current Branch: </p>
+            <p id="commitsDifference">Commit Difference to Origin: </p>
+            <p id="gitUpdateMessage"></p>
+        </div>
+    </section>
+</div>
+{% endblock templateRepoStatusPanel %}
 
 {% block buttonText %}Unlock{% endblock buttonText %}
