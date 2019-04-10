@@ -7,6 +7,7 @@ function selectStack(stack_name) {
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").parent().show();
+    $("#stackInformation").show();
 
     // clean up stack info
     removeElementsByClass("aui-lozenge");
