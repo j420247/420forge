@@ -718,7 +718,7 @@ def get_nice_action_name(action):
         'diagnostics': 'Diagnostics',
         'fullrestart': 'Full restart',
         'rollingrestart': 'Rolling restart',
-        'rollingrebuild': 'Rolling rebuild',
+        'rollingrebuild': 'Rebuild nodes',
         'runsql': 'Run SQL',
         'viewlog': 'Stack logs',
         'tag': 'Tag stack',
