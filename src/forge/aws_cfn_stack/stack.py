@@ -92,7 +92,11 @@ class Stack:
 
     def upload_template(self, file, s3_name):
         s3 = boto3.resource('s3', region_name=self.region)
-        s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
+        try:
+            s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
+        except botocore.exceptions.ClientError as e:
+            print(e)
+            return False
 
     def ssm_send_command(self, instance, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
@@ -111,11 +115,15 @@ class Stack:
 
     def ssm_cmd_check(self, cmd_id):
         ssm = boto3.client('ssm', region_name=self.region)
-        list_command = ssm.list_commands(CommandId=cmd_id)
-        cmd_status = list_command[u'Commands'][0][u'Status']
-        instance = list_command[u'Commands'][0][u'InstanceIds'][0]
-        self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
-        return (cmd_status, instance)
+        try:
+            list_command = ssm.list_commands(CommandId=cmd_id)
+            cmd_status = list_command[u'Commands'][0][u'Status']
+            instance = list_command[u'Commands'][0][u'InstanceIds'][0]
+            self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
+            return cmd_status, instance
+        except botocore.exceptions.ClientError as e:
+            print(e)
+            return False
 
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
@@ -521,7 +529,6 @@ class Stack:
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
                     sql_to_run = f'---- ***** SQL to run for clones of {cloned_from_stack} *****\n\n'
-                    sql_exists = True
                     for file in sql_files:
                         sql_file = open(os.path.join(cloned_from_stack_sql_dir, file), "r")
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
@@ -533,7 +540,6 @@ class Stack:
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
                 sql_to_run = f'{sql_to_run}---- ***** SQL to run for {self.stack_name} *****\n\n'
-                sql_exists = True
                 for file in sql_files:
                     sql_file = open(os.path.join(own_sql_dir, file), "r")
                     sql_to_run = f"{sql_to_run}-- *** SQL from {sql_file.name} ***\n\n{sql_file.read()}\n\n"
