@@ -3,9 +3,11 @@ boto3
 dotenv
 flask
 flask_restful
+flask_restful
 flask_saml
 flask_sessionstore
 flask_sqlalchemy
+gitpython
 gunicorn
 requests
 requests-toolbelt

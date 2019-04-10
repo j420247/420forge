@@ -39,11 +39,17 @@ api.add_resource(GetZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name
 api.add_resource(GetEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
 api.add_resource(GetRdsSnapshots, '/getRdsSnapshots/<region>/<stack_name>')
 api.add_resource(GetTemplates, '/getTemplates/<template_type>')
+api.add_resource(GetTemplateRepos, '/getTemplateRepos')
 api.add_resource(GetVpcs, '/getVpcs/<region>')
 api.add_resource(GetAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
 api.add_resource(GetSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
 api.add_resource(GetLockedStacks, '/getLockedStacks')
 api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
+
+# Git
+api.add_resource(GetGitBranch, '/getGitBranch/<template_repo>')
+api.add_resource(GetGitCommitDifference, '/getGitCommitDifference/<template_repo>')
+api.add_resource(GitPull, '/gitPull/<template_repo>')
 
 # Status endpoint
 api.add_resource(ForgeStatus, '/status')
