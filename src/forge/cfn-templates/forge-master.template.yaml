@@ -458,9 +458,9 @@ Resources:
 
                   script
                     cd /home/forge/atl-cfn-forge
-                    exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/src/run.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
+                    exec sudo -u forge ${noSaml} REGION=${region} /usr/local/bin/gunicorn run:app >> /var/log/forge.log 2>&1
                   end script
-                - noSaml: !If [NoSamlMetadata, "--nosaml", '']
+                - noSaml: !If [NoSamlMetadata, "NO_SAML=1", '']
                   region: !Ref AWS::Region
               mode: "000600"
               owner: root

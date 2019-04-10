@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
 from os import path, getenv
 import json
-from sys import argv
 import logging
 
 saml_blueprint = Blueprint('saml_auth', __name__)
@@ -56,7 +55,7 @@ def configure_saml(ssm_client, app):
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
-        if '--nosaml' in argv:
+        if getenv('NO_SAML'):
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         action = request.endpoint.split('.')[1]
