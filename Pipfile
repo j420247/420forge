@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+behave = "*"
+"boto3" = "*"
+moto = "*"
+requests = "*"
+"ruamel.yaml" = "*"
+requests-toolbelt = "*"
+Flask = "*"
+Flask-SAML = "*"
+Flask-Sessionstore = "*"
+Flask-SQLAlchemy = "*"
+Flask-RESTful = "*"
+pytest = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
