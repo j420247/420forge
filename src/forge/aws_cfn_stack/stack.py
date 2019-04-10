@@ -301,7 +301,11 @@ class Stack:
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
         for i in ec2.instances.filter(Filters=filters):
-            instancedict = {i.instance_id: i.private_ip_address}
+            try:
+                instancedict = {i.instance_id: i.private_ip_address}
+            except botocore.exceptions.ClientError as e:
+                if e.response['Error']['Code'] == 'RequestLimitExceeded':
+                    print('RequestLimitExceeded received during get_stacknodes.')
             self.instancelist.append(instancedict)
         return self.instancelist
 
