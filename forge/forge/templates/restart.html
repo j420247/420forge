@@ -1,0 +1,21 @@
+{% extends "page-content.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('restart.js') }}"></script>
+{% endblock head %}
+
+{% block extraInput %}
+<form class="aui">
+    <fieldset class="group">
+        <legend><span>Diagnostics</span></legend>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeThreadDumps" id="takeThreadDumps" disabled>
+            <label for="takeThreadDumps">Take thread dumps</label>
+        </div>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeHeapDumps" id="takeHeapDumps" disabled>
+            <label for="takeHeapDumps">Take heap dumps</label>
+        </div>
+    </fieldset>
+</form>
+{% endblock extraInput %}
