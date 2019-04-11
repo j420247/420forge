@@ -13,6 +13,7 @@ import json
 from requests_toolbelt.sessions import BaseUrlSession
 from botocore.exceptions import ClientError
 import pprint
+from retry import retry
 
 
 def version_tuple(version):
@@ -299,6 +300,7 @@ class Stack:
             self.log_msg(INFO, "Stack restored to full node count")
         return True
 
+    @retry(botocore.exceptions.ClientError, tries=5, delay=2, backoff=2)
     def get_stacknodes(self):
         ec2 = boto3.resource('ec2', region_name=self.region)
         filters = [
@@ -308,13 +310,15 @@ class Stack:
         if self.is_app_clustered():
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
-        for i in ec2.instances.filter(Filters=filters):
-            try:
+        try:
+            instances = ec2.instances.filter(Filters=filters)
+            for i in instances:
                 instancedict = {i.instance_id: i.private_ip_address}
-            except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == 'RequestLimitExceeded':
-                    print('RequestLimitExceeded received during get_stacknodes.')
-            self.instancelist.append(instancedict)
+                self.instancelist.append(instancedict)
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'RequestLimitExceeded':
+                print('RequestLimitExceeded received during get_stacknodes.')
+                return False
         return self.instancelist
 
     def shutdown_app(self, instancelist):
