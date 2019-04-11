@@ -7,6 +7,7 @@ function selectStack(stack_name) {
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
     $("#stackInformation").parent().show();
+    $("#stackInformation").show();
 
     // clean up stack info
     removeElementsByClass("aui-lozenge");
@@ -93,6 +94,9 @@ function displayNodes(responseText) {
         $("#nodes").html("None");
         return;
     }
+    $('#nodesCount').html(nodes.length);
+    $('#nodesCount').trigger('nodeCountChanged');
+
     for (var node in nodes) {
         $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
         if (node < nodes.length)
