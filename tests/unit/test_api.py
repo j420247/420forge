@@ -39,16 +39,6 @@ def test_api_status(test_client):
     assert response.status_code == 200
     return
 
-# class TestApiActions():
-#     def test_api_do_upgrade(self, test_client):
-#         response = test_client.post('http://localhost:8000/doupgrade/us-east-1/pytest/3.4/false')
-#         assert response.status_code == 200
-#         return
-#     def test_api_do_clone(self, test_client):
-#         response = test_client.post('http://localhost:8000/doclone')
-#         assert response.status_code == 200
-#         return
-
 class TestApiStackInfo():
     def test_api_get_logs(self, test_client):
         return
