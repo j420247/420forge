@@ -94,6 +94,9 @@ function displayNodes(responseText) {
         $("#nodes").html("None");
         return;
     }
+    $('#nodesCount').html(nodes.length);
+    $('#nodesCount').trigger('nodeCountChanged');
+
     for (var node in nodes) {
         $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
         if (node < nodes.length)
