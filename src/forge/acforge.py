@@ -537,7 +537,7 @@ class GetEbsSnapshots(Resource):
 
 class GetRdsSnapshots(Resource):
     def get(self, region, stack_name):
-        cfn = boto3.client('cloudformation', region_name=region)
+        cfn = boto3.client('cloudformation', region_name=request.args.get('clonedfrom_region'))
         rds = boto3.client('rds', region_name=region)
         snapshotIds = []
         try:

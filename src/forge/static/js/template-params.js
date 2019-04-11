@@ -155,7 +155,7 @@ function getSnapshots(clone_region, stackToRetrieve) {
     $("#rdsSnapshots").empty();
 
     send_http_get_request(baseUrl + "/getEbsSnapshots/" + clone_region + "/" + stackToRetrieve, displayEbsSnapshots);
-    send_http_get_request(baseUrl + "/getRdsSnapshots/" + clone_region + "/" + stackToRetrieve, displayRdsSnapshots);
+    send_http_get_request(baseUrl + "/getRdsSnapshots/" + clone_region + "/" + stackToRetrieve + "?clonedfrom_region=" + region, displayRdsSnapshots);
 }
 
 function displayEbsSnapshots(responseText) {
