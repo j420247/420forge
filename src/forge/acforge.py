@@ -537,19 +537,16 @@ class GetEbsSnapshots(Resource):
 
 class GetRdsSnapshots(Resource):
     def get(self, region, stack_name):
-        cfn = boto3.client('cfn', region_name=region)
         rds = boto3.client('rds', region_name=region)
         snapshotIds = []
         try:
-            # get RDS instance from stack resources
-            rds_name = cfn.describe_stack_resource(LogicalResourceId='DB', StackName=stack_name)['StackResourceDetail']['PhysicalResourceId']
             # get snapshots and append ids to list
-            snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
+            snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
             for snap in snapshots_response['DBSnapshots']:
                 snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
-                snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
+                snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
         except botocore.exceptions.ClientError as e:
