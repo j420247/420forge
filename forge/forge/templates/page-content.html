@@ -66,12 +66,17 @@
                 <p id="serviceStatus">Service status: </p>
                 <p id="currentAction">Action in progress: </p>
                 <p id="currentVersion">Current version: </p>
-                <h5>Nodes</h5>
+                <h5 id="nodesHeader">Nodes: <span id="nodesCount"></span></h5>
                 <p id="nodes"></p>
             </div>
         </section>
     </div>
     {% endblock stackStatusPanel %}
+
+    {% block templateRepoStatusPanel %}
+    {% endblock templateRepoStatusPanel %}
+
+
 </div>
 
 <!-- Modal auth prompt -->

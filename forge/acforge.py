@@ -1,21 +1,20 @@
 # imports
 from datetime import datetime
-from collections import defaultdict
 from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, redirect, url_for, current_app, render_template, flash
+from flask import Flask, request, session, current_app
 from flask_restful import Resource
 from ruamel import yaml
 from pathlib import Path
-from os import path
+
 from logging import ERROR
+import logging
 import boto3
 import botocore
-import configparser
-import os
 from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
+import git
 
 ##
 #### REST Endpoint classes
@@ -336,6 +335,35 @@ class GetLogs(Resource):
         return log if log else f'No current status for {stack_name}'
 
 
+class GetGitBranch(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        return repo.active_branch.name
+
+
+class GetGitCommitDifference(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
+        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+        difference = f'{behind},{ahead}'
+        return difference
+
+
+class GitPull(Resource):
+    def get(self, template_repo):
+        if template_repo != 'atlassian-aws-deployment':
+            template_repo = f'custom-templates/{template_repo}'
+        repo = git.Repo(Path(template_repo))
+        result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        logging.info(result)
+        return result
+
+
 class ServiceStatus(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
@@ -509,16 +537,19 @@ class GetEbsSnapshots(Resource):
 
 class GetRdsSnapshots(Resource):
     def get(self, region, stack_name):
+        cfn = boto3.client('cloudformation', region_name=request.args.get('clonedfrom_region'))
         rds = boto3.client('rds', region_name=region)
         snapshotIds = []
         try:
+            # get RDS instance from stack resources
+            rds_name = cfn.describe_stack_resource(LogicalResourceId='DB', StackName=stack_name)['StackResourceDetail']['PhysicalResourceId']
             # get snapshots and append ids to list
-            snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name)
+            snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
-                snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=stack_name, Marker=snapshots_response['Marker'])
+                snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
         except botocore.exceptions.ClientError as e:
@@ -606,6 +637,17 @@ class GetLockedStacks(Resource):
         return locked_stacks
 
 
+class GetTemplateRepos(Resource):
+    def get(self):
+        repos = ['atlassian-aws-deployment']
+        custom_template_folder = Path('custom-templates')
+        if custom_template_folder.exists():
+            for directory in glob.glob(f'{custom_template_folder}/*'):
+                repos.append(directory.split('/')[1])
+        repos.sort()
+        return repos
+
+
 class SetStackLocking(Resource):
     def post(self, lock):
         current_app.config['STACK_LOCKING'] = lock
@@ -676,7 +718,7 @@ def get_nice_action_name(action):
         'diagnostics': 'Diagnostics',
         'fullrestart': 'Full restart',
         'rollingrestart': 'Rolling restart',
-        'rollingrebuild': 'Rolling rebuild',
+        'rollingrebuild': 'Rebuild nodes',
         'runsql': 'Run SQL',
         'viewlog': 'Stack logs',
         'tag': 'Tag stack',
