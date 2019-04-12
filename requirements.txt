@@ -1,6 +1,6 @@
 behave
 boto3
-dotenv
+python-dotenv
 flask
 flask_restful
 flask_restful

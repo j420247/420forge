@@ -25,7 +25,6 @@ Metadata:
         - Label:
             default: Forge config
           Parameters:
-            - Analytics
             - CustomTemplateRepo
             - CustomTemplateGitKey
             - DeployEnvironment
@@ -33,11 +32,8 @@ Metadata:
             - LocalAnsibleGitSshKeyName
             - Nodes
             - FlaskSecretKey
-            - Regions
             - SamlMetadataUrl
       ParameterLabels:
-        Analytics:
-          default: Enable analytics
         CustomTemplateRepo:
           default: Custom Cloudformation template repository
         CustomTemplateGitKey:
@@ -68,21 +64,11 @@ Metadata:
           default: Node Type
         NodeVolumeSize:
           default: Node Volume Size
-        Regions:
-          default: Regions to operate in
         SamlMetadataUrl:
           default: SAML metadata URL
         VPC:
           default: VPC Id
 Parameters:
-  Analytics:
-    Default: true
-    AllowedValues:
-      - true
-      - false
-    ConstraintDescription: Must be true or false
-    Description: Enable analytics to be sent back to Atlassian
-    Type: String
   CidrBlock:
     Default: '0.0.0.0/0'
     AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
@@ -166,11 +152,6 @@ Parameters:
     Default: 50
     Description: Size of the root EBS volume on application nodes
     Type: Number
-  Regions:
-    Default: 'us-east-1: N.Virginia, us-west-2: Oregon'
-    ConstraintDescription: Must be a list of AWS regions
-    Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'. Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
-    Type: CommaDelimitedList
   SamlMetadataUrl:
     Description: Metadata URL for your SAML provider
     Type: String
@@ -393,7 +374,7 @@ Resources:
                       git clone --recurse-submodules https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
                       cd $forgepath
                   fi
-                  /usr/bin/pip-3.6 install pipenv
+                  /usr/bin/pip-3.6 install --upgrade pipenv
                   mv /tmp/update $forgepath/src/forge/config/update --force
                   chown -R forge:forge /home/forge
 
@@ -457,7 +438,7 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && cd src && /usr/local/bin/pipenv run gunicorn run:app" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && cd src && /usr/local/bin/pipenv run gunicorn -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
