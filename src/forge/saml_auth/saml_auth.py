@@ -1,7 +1,7 @@
 from flask import session, request, Blueprint, current_app
 from flask_restful import Resource
 import flask_saml
-from werkzeug.contrib.fixers import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix
 import sys
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session

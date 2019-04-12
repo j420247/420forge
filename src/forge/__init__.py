@@ -1,4 +1,3 @@
-import argparse
 from flask import Flask
 import boto3
 import botocore
