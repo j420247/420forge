@@ -3,6 +3,9 @@
     {{ super() }}
     <script src="{{ get_filename_with_last_update_time('clone.js') }}"></script>
 {% endblock head %}
+    {% block descriptionPanel %}
+    Create a clone of an instance from database and filesystem snapshots. This will first destroy the stack if one exists by the name entered for the clone, then create a new stack from the selected snapshots. If there is a SQL file to run against clones of the instance being cloned, or a SQL file for stacks of this name, they will be run once the service is up, and a restart will be performed. See Run SQL for more information.
+    {% endblock descriptionPanel %}
 
 {% block stackSelectorDescription %}
 Select stack to clone

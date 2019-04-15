@@ -6,6 +6,7 @@ function selectStack(stack_name) {
     $("#stackSelector").text(stack_name);
     $("#stackName").text(stack_name);
     $("#pleaseSelectStackMsg").hide();
+    $("#stackInformation").parent().show();
     $("#stackInformation").show();
 
     // clean up stack info
@@ -20,6 +21,8 @@ function selectStack(stack_name) {
 
     updateStackInfo(stack_name);
 }
+
+
 
 function updateStackInfo(stack_name, stack_region) {
     if (stack_name === 'actionreadytostart') return;
@@ -46,6 +49,8 @@ function updateStackInfo(stack_name, stack_region) {
     send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" + stack_name, displayVersion);
     send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" + stack_name, displayNodes);
 }
+
+
 
 function displayStackStateAndRequestServiceStatus(responseText, functionParams) {
     $("#stackState").html("Stack status: " + getStatusLozenge(responseText));
@@ -89,6 +94,9 @@ function displayNodes(responseText) {
         $("#nodes").html("None");
         return;
     }
+    $('#nodesCount').html(nodes.length);
+    $('#nodesCount').trigger('nodeCountChanged');
+
     for (var node in nodes) {
         $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
         if (node < nodes.length)

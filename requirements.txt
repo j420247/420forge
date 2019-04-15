@@ -4,9 +4,11 @@ flask
 flask_httpauth
 flask_migrate
 flask_restful
+flask_restful
 flask_saml
 flask_sessionstore
 flask_sqlalchemy
+gitpython
 requests
 requests-toolbelt
 ruamel.yaml

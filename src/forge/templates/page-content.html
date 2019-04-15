@@ -1,10 +1,18 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{#  Upgrade options  #}
-<div class="aui-group aui-group-split">
+    {#  Upgrade options  #}
+    <div class="aui-group aui-group-split">
     {% block input %}
+
     <div class="aui-item">
+        <div id="descriptionPanel" class="aui-item">
+            <p>
+                {% block descriptionPanel %}
+                {% endblock descriptionPanel %}
+            </p>
+        </div>
+
         {% block stackSelector %}
         {#  Stack selector  #}
         <a id="stackSelector" href="#stackSelection" aria-owns="stackSelection" aria-haspopup="true"
@@ -58,12 +66,17 @@
                 <p id="serviceStatus">Service status: </p>
                 <p id="currentAction">Action in progress: </p>
                 <p id="currentVersion">Current version: </p>
-                <h5>Nodes</h5>
+                <h5 id="nodesHeader">Nodes: <span id="nodesCount"></span></h5>
                 <p id="nodes"></p>
             </div>
         </section>
     </div>
     {% endblock stackStatusPanel %}
+
+    {% block templateRepoStatusPanel %}
+    {% endblock templateRepoStatusPanel %}
+
+
 </div>
 
 <!-- Modal auth prompt -->
