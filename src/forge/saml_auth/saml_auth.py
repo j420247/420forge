@@ -34,7 +34,7 @@ def configure_saml(ssm_client, app):
     except Exception:
         logger.error('could not open permissions.json; SAML auth will not work!')
 
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
     logger.info('SAML auth configured')
     if getenv('SAML_METADATA_URL'):
         app.config['SAML_METADATA_URL'] = getenv('SAML_METADATA_URL')
