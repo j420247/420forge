@@ -5,7 +5,9 @@ flask_saml
 flask_sessionstore
 flask_sqlalchemy
 flask_restful
+gitpython
 moto
+pytest
 requests
 ruamel.yaml
 requests-toolbelt
