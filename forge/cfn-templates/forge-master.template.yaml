@@ -375,7 +375,7 @@ Resources:
                       cd $forgepath
                   fi
                   /usr/bin/pip-3.6 install --upgrade pipenv
-                  mv /tmp/update $forgepath/src/forge/config/update --force
+                  mv /tmp/update $forgepath/forge/config/update --force
                   chown -R forge:forge /home/forge
 
                   # create s3 bucket for forge objects
@@ -398,7 +398,7 @@ Resources:
                   fi
 
                   chown forge:forge /etc/atl
-                  ./src/forge/config/update
+                  ./forge/config/update
 
                   # upload SAML params for later use
                   if [[ -n "${SamlMetadataUrl}" ]]; then
@@ -409,8 +409,8 @@ Resources:
 
                   # download config files from S3 if they exist
                   cd /home/forge/atl-cfn-forge
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json src/forge/saml_auth/permissions.json
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py src/forge/config/config.py
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json forge/saml_auth/permissions.json
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
                   # final chown for updated files
@@ -438,7 +438,7 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && cd src && /usr/local/bin/pipenv run gunicorn -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
@@ -498,7 +498,7 @@ Resources:
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
                     fi
                     # update the repo
-                    cd /home/forge/atl-cfn-forge/src/forge/custom-templates/*/.
+                    cd /home/forge/atl-cfn-forge/forge/custom-templates/*/.
                     git checkout master
                     git pull
                   fi
