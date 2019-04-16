@@ -1,14 +1,13 @@
 import pytest
 import forge
-import sys
-
+import os
 
 # citation: https://www.patricksoftwareblog.com/testing-a-flask-application-using-pytest/
 
 
 @pytest.fixture(scope='module')
 def test_client():
-    sys.argv = ["--nosaml"]
+    os.environ["NO_SAML"] = "1"
     app = forge.create_app('forge.config.BaseConfig')
     testing_client = app.test_client()
     # Establish an application context before running the tests.
@@ -27,7 +26,7 @@ def test_api_root(test_client):
         WHEN the '/' page is requested (GET)
         THEN check the response is valid
         """
-    response = test_client.get('http://localhost:8000/')
+    response = test_client.get('http://127.0.0.1:8000/')
     assert response.status_code == 302
     return
 
