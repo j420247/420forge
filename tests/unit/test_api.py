@@ -27,7 +27,7 @@ def test_api_root(test_client):
         THEN check the response is valid
         """
     response = test_client.get('http://127.0.0.1:8000/')
-    assert response.status_code == 302
+    assert response.status_code == 200
     return
 
 
@@ -37,7 +37,7 @@ def test_api_status(test_client):
         WHEN the '/status' page is requested (GET)
         THEN check the response is valid
         """
-    response = test_client.get('http://localhost:8000/status')
+    response = test_client.get('http://127.0.0.1:8000/status')
     assert response.status_code == 200
     return
 
