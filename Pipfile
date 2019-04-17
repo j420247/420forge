@@ -16,6 +16,7 @@ Flask-Sessionstore = "*"
 Flask-SQLAlchemy = "*"
 Flask-RESTful = "*"
 pytest = "*"
+gitpython = "*"
 
 [dev-packages]
 
