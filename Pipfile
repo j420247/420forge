@@ -27,6 +27,7 @@ requests-toolbelt = "*"
 retry = "*"
 sh = "*"
 pytest = "*"
+gitpython = "*"
 
 [dev-packages]
 
