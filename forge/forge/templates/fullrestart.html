@@ -1,9 +1,0 @@
-{% extends "restart.html" %}
-{% block head %}
-    {{ super() }}
-    <script src="/static/js/restart.js"></script>
-{% endblock head %}
-    {% block descriptionPanel %}
-    Restart all nodes in the cluster immediately. This will cause downtime to the service
-    {% endblock descriptionPanel %}
-{% block buttonText %}Full Restart{% endblock buttonText %}
