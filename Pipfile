@@ -17,7 +17,7 @@ Flask-RESTful = "*"
 Flask-SAML = "*"
 Flask-Sessionstore = "*"
 Flask-SQLAlchemy = "*"
-GitPython = "*"
+gitpython = "*"
 gunicorn = "*"
 migrate = "*"
 moto = "*"
@@ -27,7 +27,6 @@ requests-toolbelt = "*"
 retry = "*"
 sh = "*"
 pytest = "*"
-
 
 [dev-packages]
 

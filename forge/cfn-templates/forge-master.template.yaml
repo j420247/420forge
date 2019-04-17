@@ -390,6 +390,9 @@ Resources:
                       echo -e $gitkey > $gitkeylocation
                       chmod 600 $gitkeylocation
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                      cp $gitkeylocation /home/forge/gitkey
+                      chown forge:forge /home/forge/gitkey
+                      chmod 400 /home/forge/gitkey
                     fi
                     # clone the repo
                     mkdir $forgepath/custom-templates
@@ -438,7 +441,7 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn --access-logfile /var/log/forge.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
