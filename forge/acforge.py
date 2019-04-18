@@ -20,6 +20,8 @@ import git
 #### REST Endpoint classes
 ##
 
+log = logging.getLogger('app_log')
+
 
 class DoUpgrade(RestrictedResource):
     def post(self, region, stack_name, new_version, zdu):
@@ -33,7 +35,7 @@ class DoUpgrade(RestrictedResource):
             else:
                 mystack.upgrade(new_version)
         except Exception as e:
-            logging.exception('Error occurred upgrading stack')
+            log.exception('Error occurred upgrading stack')
             mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}')
             mystack.log_change('Upgrade failed, see action log for details')
             mystack.clear_current_action()
@@ -106,7 +108,7 @@ class DoUpdate(RestrictedResource):
             if e.response and "does not exist" in e.response['Error']['Message']:
                 print(f'Stack {stack_name} does not exist')
                 return f'Stack {stack_name} does not exist'
-            logging.exception('Error occurred getting stack parameters for update')
+            log.exception('Error occurred getting stack parameters for update')
         template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
         for param in new_params:
             # if param was not in previous template, always pass it in the change set
@@ -162,7 +164,7 @@ class DoFullRestart(RestrictedResource):
                 mystack.heap_dump()
             mystack.full_restart()
         except Exception as e:
-            logging.exception('Error occurred doing full restart')
+            log.exception('Error occurred doing full restart')
             mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}')
             mystack.clear_current_action()
         mystack.clear_current_action()
@@ -181,7 +183,7 @@ class DoRollingRestart(RestrictedResource):
                 mystack.heap_dump()
             mystack.rolling_restart()
         except Exception as e:
-            logging.exception('Error occurred doing rolling restart')
+            log.exception('Error occurred doing rolling restart')
             mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}')
             mystack.clear_current_action()
         mystack.clear_current_action()
@@ -196,7 +198,7 @@ class DoRollingRebuild(RestrictedResource):
         try:
             mystack.rolling_rebuild()
         except Exception as e:
-            logging.exception('Error occurred doing rolling rebuild')
+            log.exception('Error occurred doing rolling rebuild')
             mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}')
             mystack.clear_current_action()
         mystack.clear_current_action()
@@ -211,7 +213,7 @@ class DoDestroy(RestrictedResource):
         try:
             outcome = mystack.destroy()
         except Exception as e:
-            logging.exception('Error occurred destroying stack')
+            log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}')
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
@@ -227,7 +229,7 @@ class DoThreadDumps(RestrictedResource):
         try:
             mystack.thread_dump()
         except Exception as e:
-            logging.exception('Error occurred taking thread dumps')
+            log.exception('Error occurred taking thread dumps')
             mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}')
             mystack.clear_current_action()
         mystack.clear_current_action()
@@ -249,7 +251,7 @@ class DoGetThreadDumpLinks(RestrictedResource):
         except Exception as e:
             if e.response['Error']['Code'] == 'NoSuchBucket':
                 print(f"S3 bucket '{s3_bucket}' has not yet been created")
-            logging.exception('Error occurred getting thread dump links')
+            log.exception('Error occurred getting thread dump links')
         return urls
 
 
@@ -261,7 +263,7 @@ class DoHeapDumps(RestrictedResource):
         try:
             mystack.heap_dump()
         except Exception as e:
-            logging.exception('Error occurred taking heap dumps')
+            log.exception('Error occurred taking heap dumps')
             mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}')
             mystack.clear_current_action()
         mystack.clear_current_action()
@@ -276,7 +278,7 @@ class DoRunSql(RestrictedResource):
         try:
             outcome = mystack.run_sql()
         except Exception as e:
-            logging.exception('Error occurred running SQL')
+            log.exception('Error occurred running SQL')
             mystack.log_msg(ERROR, f'Error occurred running SQL: {e}')
             mystack.clear_current_action()
             return False
@@ -293,7 +295,7 @@ class DoTag(RestrictedResource):
         try:
             outcome = mystack.tag(tags)
         except Exception as e:
-            logging.exception('Error occurred tagging stack')
+            log.exception('Error occurred tagging stack')
             mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}')
             mystack.clear_current_action()
             return False
@@ -360,7 +362,7 @@ class GitPull(Resource):
             template_repo = f'custom-templates/{template_repo}'
         repo = git.Repo(Path(template_repo))
         result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-        logging.info(result)
+        log.info(result)
         return result
 
 
@@ -380,7 +382,7 @@ class StackState(Resource):
             if e.response and "does not exist" in e.response['Error']['Message']:
                 print(f'Stack {stack_name} does not exist')
                 return f'Stack {stack_name} does not exist'
-            logging.exception('Error checking stack state')
+            log.exception('Error checking stack state')
             return f'Error checking stack state: {e}'
         return stack_state['Stacks'][0]['StackStatus']
 
@@ -416,7 +418,7 @@ class TemplateParamsForStack(Resource):
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting stack parameters')
+            log.exception('Error occurred getting stack parameters')
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
         # load the template params
@@ -521,7 +523,7 @@ class GetEbsSnapshots(Resource):
         try:
             snapshots = ec2.describe_snapshots(Filters=[{'Name': 'tag-value', 'Values': [snap_name_format]}])
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting EBS snapshots')
+            log.exception('Error occurred getting EBS snapshots')
             return
         snapshotIds = []
         for snap in snapshots['Snapshots']:
@@ -553,7 +555,7 @@ class GetRdsSnapshots(Resource):
                 for snap in snapshots_response['DBSnapshots']:
                     snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting RDS snapshots')
+            log.exception('Error occurred getting RDS snapshots')
             return
         snapshotIds.sort(reverse=True)
         return snapshotIds
@@ -592,7 +594,7 @@ class GetVpcs(Resource):
         try:
             vpcs = ec2.describe_vpcs()
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting VPCs')
+            log.exception('Error occurred getting VPCs')
             return
         vpc_ids = []
         for vpc in vpcs['Vpcs']:
@@ -606,7 +608,7 @@ class GetSubnetsForVpc(Resource):
         try:
             subnets = ec2.describe_subnets(Filters=[{'Name': 'vpc-id', 'Values': [vpc]}])
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting subnets')
+            log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
         sorted_subnets = sorted(subnets['Subnets'], key=lambda subnet: subnet['AvailabilityZone'])
@@ -621,7 +623,7 @@ class GetAllSubnetsForRegion(Resource):
         try:
             subnets = ec2.describe_subnets()
         except botocore.exceptions.ClientError as e:
-            logging.exception('Error occurred getting subnets')
+            log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
         for subnet in subnets['Subnets']:
@@ -692,7 +694,7 @@ def get_current_log(stack_name):
             try:
                 return logfile.read()
             except Exception as e:
-                logging.exception(f'Error occurred getting log for {stack_name}')
+                log.exception(f'Error occurred getting log for {stack_name}')
     return False
 
 

@@ -25,6 +25,8 @@ ZDU_MINIMUM_SERVICEDESK_VERSION = version_tuple('3.6')
 
 aws_cfn_stack_blueprint = Blueprint('aws_cfn_stack', __name__)
 
+log = logging.getLogger('app_log')
+
 
 class Stack:
     """An object describing an instance of an aws cloudformation stack:
@@ -38,7 +40,7 @@ class Stack:
         self.stack_name = stack_name
         if region == '':
             error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
-            print(f'{datetime.now()} {ERROR} {error_string}')
+            self.log_msg(f'{datetime.now()} {ERROR} {error_string}')
             raise ValueError(error_string)
         self.region = region
         self.logfile = None
@@ -146,7 +148,7 @@ class Stack:
                 self.log_msg(INFO, 'Stack is already at 0 nodes')
                 return True
             else:
-                logging.exception('An error occurred spinning down to 0 nodes')
+                log.exception('An error occurred spinning down to 0 nodes')
                 self.log_msg(ERROR, f'An error occurred spinning down to 0 nodes: {e}')
                 return False
         if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
@@ -224,8 +226,7 @@ class Stack:
             if logMsgs:
                 self.log_msg(INFO, f'Service status check timed out')
         except json.decoder.JSONDecodeError as e:
-            logging.exception('Error checking service status')
-            pprint.pprint(service_status)
+            log.exception(f'Error checking service status: {service_status}')
             if logMsgs:
                 self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty')
         return 'Timed Out'
@@ -241,7 +242,7 @@ class Stack:
             if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(INFO, f'Stack {self.stack_name} does not exist')
                 return
-            logging.exception('Error checking stack state')
+            log.exception('Error checking stack state')
             self.log_msg(ERROR, f'Error checking stack state: {e}')
             return
         state = stack_state['Stacks'][0]['StackStatus']
@@ -252,7 +253,7 @@ class Stack:
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
-            logging.exception('Error checking node status')
+            log.exception('Error checking node status')
             return f'Error checking node status: {e}'
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
@@ -270,8 +271,8 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
             if logMsgs:
                 self.log_msg(INFO, f'Node status check timed out')
-        except Exception:
-            logging.exception('Error checking node status')
+        except Exception as e:
+            log.exception('Error checking node status')
             return f'Error checking node status: {e}'
         return "Timed Out"
 
@@ -287,7 +288,7 @@ class Stack:
         try:
             cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
-            logging.exception('Error occurred spinning up remaining nodes')
+            log.exception('Error occurred spinning up remaining nodes')
             self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}')
             return False
         if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
@@ -433,7 +434,7 @@ class Stack:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
             found_param = [param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']]
         except Exception:
-            logging.exception(f'Error getting parameter {param_to_get}')
+            log.exception(f'Error getting parameter {param_to_get}')
             return 'Error'
         if len(found_param) > 0:
             return found_param[0]['ParameterValue']
@@ -446,7 +447,7 @@ class Stack:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             self.log_msg(ERROR, f'Error getting tags: {e}')
-            logging.exception(f'Error getting tags')
+            log.exception(f'Error getting tags')
             return False
         tags = stack['Stacks'][0]['Tags']
         return tags
@@ -492,18 +493,18 @@ class Stack:
                 self.log_msg(WARN, f'No SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
                 self.log_change(f'No SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
                 return True
-            logging.exception(f'Could not retrieve sql from s3 for stack {stack}')
+            log.exception(f'Could not retrieve sql from s3 for stack {stack}')
             self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}')
             self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {e}')
             return False
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
-            logging.exception(f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
+            log.exception(f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
             self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
             self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
             return False
         except Exception as e:
-            logging.exception(f'Could not retrieve sql from s3 for stack {stack}')
+            log.exception(f'Could not retrieve sql from s3 for stack {stack}')
             self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}')
             self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {e}')
             return False
@@ -547,7 +548,7 @@ class Stack:
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError:
-            logging.exception('Error getting pre-upgrade stack details')
+            log.exception('Error getting pre-upgrade stack details')
             self.log_msg(ERROR, 'Upgrade complete - failed')
             return False
         # get product
@@ -575,10 +576,10 @@ class Stack:
                 return False
             return response.json()['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            logging.exception('ZDU state check timed out')
+            log.exception('ZDU state check timed out')
             self.log_msg(INFO, f'ZDU state check timed out')
         except Exception as e:
-            logging.exception('Error occurred getting ZDU state')
+            log.exception('Error occurred getting ZDU state')
             self.log_msg(ERROR, f'Could not retrieve ZDU state: {e}')
         return False
 
@@ -594,10 +595,10 @@ class Stack:
             self.log_msg(INFO, 'ZDU mode enabled')
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            logging.exception('Could not enable ZDU mode')
+            log.exception('Could not enable ZDU mode')
             self.log_msg(ERROR, f'Could not enable ZDU mode: {e}')
         except Exception as e:
-            logging.exception('Error occurred enabling ZDU mode')
+            log.exception('Error occurred enabling ZDU mode')
             self.log_msg(ERROR, f'Error occurred enabling ZDU mode: {e}')
         return False
 
@@ -613,10 +614,10 @@ class Stack:
             self.log_msg(INFO, 'ZDU mode cancelled')
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
-            logging.exception('Could not cancel ZDU mode')
+            log.exception('Could not cancel ZDU mode')
             self.log_msg(ERROR, f'Could not cancel ZDU mode: {e}')
         except Exception as e:
-            logging.exception('Error occurred cancelling ZDU mode')
+            log.exception('Error occurred cancelling ZDU mode')
             self.log_msg(ERROR, f'Error occurred cancelling ZDU mode: {e}')
         return False
 
@@ -637,10 +638,10 @@ class Stack:
             self.log_msg(INFO, 'Upgrade tasks complete')
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
-            logging.exception('Could not cancel ZDU mode')
+            log.exception('Could not cancel ZDU mode')
             self.log_msg(ERROR, f'Could not approve ZDU mode: {e}')
         except Exception as e:
-            logging.exception('Error occurred approving ZDU mode')
+            log.exception('Error occurred approving ZDU mode')
             self.log_msg(ERROR, f'Error occurred approving ZDU mode: {e}')
         return False
 
@@ -717,7 +718,7 @@ class Stack:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}')
             else:
-                logging.exception('An error occurred updating the version')
+                log.exception('An error occurred updating the version')
                 self.log_msg(ERROR, f'An error occurred updating the version: {e}')
                 return False
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
@@ -763,7 +764,7 @@ class Stack:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}')
             else:
-                logging.exception('An error occurred updating the version')
+                log.exception('An error occurred updating the version')
                 self.log_msg(ERROR, f'An error occurred updating the version: {e}')
                 self.cancel_zdu_mode()
                 return False
@@ -806,7 +807,7 @@ class Stack:
                 self.log_change(f'Stack {self.stack_name} does not exist, destroy not required')
                 return True
             else:
-                logging.exception('An error occurred destroying stack')
+                log.exception('An error occurred destroying stack')
                 self.log_msg(ERROR, f'An error occurred destroying stack: {e}')
                 return False
         stack_id = stack_state['Stacks'][0]['StackId']
@@ -855,7 +856,7 @@ class Stack:
                 Capabilities=['CAPABILITY_IAM'],
             )
         except Exception as e:
-            logging.exception('An error occurred updating stack')
+            log.exception('An error occurred updating stack')
             self.log_msg(ERROR, f'An error occurred updating stack: {e}')
             self.log_msg(INFO, 'Update complete - failed')
             self.log_change('Update complete - failed')
@@ -910,7 +911,7 @@ class Stack:
                 Tags=tags,
             )
         except Exception as e:
-            logging.exception('Error occurred creating stack')
+            log.exception('Error occurred creating stack')
             self.log_msg(WARN, f'Error occurred creating stack: {e}')
             self.log_msg(INFO, 'Create complete - failed')
             self.log_change('Create complete - failed')
@@ -1046,7 +1047,7 @@ class Stack:
             self.log_change(f'Rolling rebuild complete, new nodes are: {new_nodes}')
             return True
         except Exception as e:
-            logging.exception('An error occurred during rolling rebuild')
+            log.exception('An error occurred during rolling rebuild')
             self.log_msg(ERROR, f'An error occurred during rolling rebuild: {e}')
             self.log_change(f'An error occurred during rolling rebuild: {e}')
             return False
@@ -1122,7 +1123,7 @@ class Stack:
             cfn.update_stack(StackName=self.stack_name, Parameters=params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
             self.log_msg(INFO, f'Tagging successfully initiated')
         except Exception as e:
-            logging.exception('An error occurred tagging stack')
+            log.exception('An error occurred tagging stack')
             self.log_msg(ERROR, f'An error occurred tagging stack: {e}')
             self.log_change(f'An error occurred tagging stack: {e}')
             return False
@@ -1148,10 +1149,10 @@ class Stack:
 
     def log_msg(self, level, message):
         if self.logfile is not None:
-            logline = f'{datetime.now().strftime("%Y-%m-%d %X")} {getLevelName(level)} {message} \n'
-            print(logline)
+            logline = f'{datetime.now().strftime("%Y-%m-%d %X")} {getLevelName(level)} {message}'
+            log.log(level, message)
             with open(self.logfile, 'a') as logfile:
-                logfile.write(logline)
+                logfile.write(f'{logline}\n')
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -1162,7 +1163,6 @@ class Stack:
     def log_change(self, message):
         if self.changelogfile is not None:
             logline = f'{datetime.now()} {message} \n'
-            print(logline)
             with open(self.changelogfile, 'a') as logfile:
                 logfile.write(logline)
 
