@@ -78,6 +78,11 @@ def viewlog():
     return render_template('viewlog.html')
 
 
+@main.route('/syslog', methods=['GET'])
+def syslog():
+    return render_template('syslog.html')
+
+
 @main.route('/diagnostics', methods=['GET'])
 def diagnostics():
     return render_template('diagnostics.html')

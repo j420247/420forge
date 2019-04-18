@@ -36,18 +36,20 @@ def create_app(config_class):
     app_log = logging.getLogger('app_log')
     app_log.addHandler(app_log_handler)
 
+    # create and initialize app
+    log.info(f'Starting Atlassian CloudFormation Forge v{__version__}')
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+
+    # write all logging that is not werkzeug (requests) to the app log
+    app.logger.addHandler(app_log_handler)
+
     # get args
     parser = argparse.ArgumentParser(description='Forge')
     parser.add_argument('--nosaml', action='store_true', help='Start with --nosaml to bypass SAML for local testing')
     parser.add_argument('--region', nargs='?', default='us-east-1', help='The AWS region that Forge is operating in')
     parser.add_argument('--localSamlUrl', nargs='?', help='The SAML URL to use for local development')
     args = parser.parse_args()
-
-    # create and initialize app
-    log.info(f'Starting Atlassian CloudFormation Forge v{__version__}')
-    app = Flask(__name__)
-    app.config.from_object(config_class)
-
     app.args = args
 
     # get current region and create SSM client to read parameter store params

@@ -22,6 +22,7 @@ api.add_resource(DoTag, '/dotag/<region>/<stack_name>')
 
 # Stack info
 api.add_resource(GetLogs, '/getLogs/<stack_name>')
+api.add_resource(GetSysLogs, '/getSysLogs/')
 api.add_resource(ServiceStatus, '/serviceStatus/<region>/<stack_name>')
 api.add_resource(StackState, '/stackState/<region>/<stack_name>')
 api.add_resource(TemplateParamsForStack, '/stackParams/<region>/<stack_name>/<template_name>')

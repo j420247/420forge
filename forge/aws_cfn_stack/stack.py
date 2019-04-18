@@ -447,7 +447,7 @@ class Stack:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
             self.log_msg(ERROR, f'Error getting tags: {e}')
-            log.exception(f'Error getting tags')
+            log.exception('Error getting tags')
             return False
         tags = stack['Stacks'][0]['Tags']
         return tags

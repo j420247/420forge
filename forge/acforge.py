@@ -337,6 +337,15 @@ class GetLogs(Resource):
         return log if log else f'No current status for {stack_name}'
 
 
+class GetSysLogs(Resource):
+    def get(self):
+        with open(Path('logs/forge.log'), 'r') as logfile:
+            try:
+                return logfile.read()
+            except Exception:
+                log.exception(f'Error occurred getting system logs')
+
+
 class GetGitBranch(Resource):
     def get(self, template_repo):
         if template_repo != 'atlassian-aws-deployment':
@@ -723,6 +732,7 @@ def get_nice_action_name(action):
         'rollingrebuild': 'Rebuild nodes',
         'runsql': 'Run SQL',
         'viewlog': 'Stack logs',
+        'syslog': 'System logs',
         'tag': 'Tag stack',
         'update': 'Update stack',
         'upgrade': 'Upgrade',
