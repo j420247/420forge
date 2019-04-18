@@ -371,8 +371,12 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git clone --recurse-submodules https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
+                      git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart
+                      sudo -u forge /bin/bash -c 'git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart'
+                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
                       cd $forgepath
+                      git submodule update --init
+                      git submodule foreach git checkout master
                   fi
                   /usr/bin/pip-3.6 install --upgrade pipenv
                   chown -R forge:forge /home/forge
@@ -414,8 +418,11 @@ Resources:
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
+                  touch /var/log/forge.log
+
                   # final chown for updated files
                   chown -R forge:forge /home/forge
+                  chown forge:forge /var/log/forge.log
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
@@ -475,16 +482,16 @@ Resources:
               command: yum-config-manager --enable epel
             002_setup_forge:
               cwd: /root/
-              command: ./setup_forge.sh
-            003_run_forge:
-              command:
-                start forge
-            090_bootstrap_local_ansible:
+              command: ./setup_forge.sh >> /var/log/forge.log 2>&1
+            020_bootstrap_local_ansible:
               command: /tmp/bootstrap_local_ansible > /var/log/bootstrap_local_ansible.log 2>&1
               ignoreErrors: true
-            095_ansible_first_run:
+            025_ansible_first_run:
               command: /usr/local/bin/local-ansible-run
               ignoreErrors: true
+            030_run_forge:
+              command:
+                start forge
     Properties:
       AssociatePublicIpAddress: false
       BlockDeviceMappings:
