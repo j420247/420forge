@@ -375,7 +375,6 @@ Resources:
                       cd $forgepath
                   fi
                   /usr/bin/pip-3.6 install --upgrade pipenv
-                  mv /tmp/update $forgepath/forge/config/update --force
                   chown -R forge:forge /home/forge
 
                   # create s3 bucket for forge objects
@@ -401,7 +400,6 @@ Resources:
                   fi
 
                   chown forge:forge /etc/atl
-                  ./forge/config/update
 
                   # upload SAML params for later use
                   if [[ -n "${SamlMetadataUrl}" ]]; then
@@ -470,44 +468,6 @@ Resources:
                 - LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
                   LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
               mode: "000750"
-              owner: root
-              group: root
-            /tmp/update:
-              content: !Sub
-                - |
-                  #!/usr/bin/env bash
-
-                  # update Forge
-                  cd /home/forge/atl-cfn-forge/
-                  git pull
-
-                  # update the submodules
-                  git submodule update --init --recursive
-                  git submodule foreach git checkout master
-                  git submodule foreach git pull
-
-                  # update custom template repo
-                  if [[ -n "${CustomTemplateRepo}" ]]; then
-                    # apply git key if entered
-                    if [[ -n "${CustomTemplateGitKey}" ]]; then
-                      sshlocation=/home/forge/.ssh
-                      gitkeylocation=$sshlocation/gitkey
-                      gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
-                      mkdir $sshlocation
-                      chmod 770 $sshlocation
-                      echo -e $gitkey > $gitkeylocation
-                      chmod 700 $sshlocation
-                      chmod 600 $gitkeylocation
-                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
-                    fi
-                    # update the repo
-                    cd /home/forge/atl-cfn-forge/forge/custom-templates/*/.
-                    git checkout master
-                    git pull
-                  fi
-                - CustomTemplateRepo: !Ref CustomTemplateRepo
-                  CustomTemplateGitKey: !Ref CustomTemplateGitKey
-              mode: "000700"
               owner: root
               group: root
           commands:
