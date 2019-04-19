@@ -1,22 +1,32 @@
 [[source]]
+name = "pypi"
 url = "https://pypi.python.org/simple"
 verify_ssl = true
-name = "pypi"
 
 [packages]
-behave = "*"
 "boto3" = "*"
-moto = "*"
-requests = "*"
-"ruamel.yaml" = "*"
-requests-toolbelt = "*"
+"cloudtoken-plugin.centrify" = "*"
+"ruamel.yaml" = "==0.15.53"
+awscli = "*"
+behave = "*"
+cloudtoken = "*"
 Flask = "*"
+Flask-HTTPAuth = "*"
+Flask-Migrate = "*"
+Flask-RESTful = "*"
 Flask-SAML = "*"
 Flask-Sessionstore = "*"
 Flask-SQLAlchemy = "*"
-Flask-RESTful = "*"
-pytest = "*"
 gitpython = "*"
+gunicorn = "*"
+migrate = "*"
+moto = "*"
+python-dotenv = "*"
+requests = "*"
+requests-toolbelt = "*"
+retry = "*"
+sh = "*"
+pytest = "*"
 
 [dev-packages]
 

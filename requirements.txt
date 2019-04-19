@@ -1,12 +1,14 @@
 behave
 boto3
 flask
+flask_restful
 flask_saml
 flask_sessionstore
 flask_sqlalchemy
-flask_restful
 gitpython
+gunicorn
 pytest
+python-dotenv
 requests
-ruamel.yaml
 requests-toolbelt
+ruamel.yaml
