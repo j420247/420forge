@@ -1,22 +1,27 @@
-import sys
-sys.path.append('../../src')
-
 import boto3
-import unittest
+from flask import Flask
+import forge.aws_cfn_stack.stack as aws_stack
+import mock
+import moto
+import moto_overrides
+import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
-import forge.aws_cfn_stack.stack as aws_stack
-from moto import mock_cloudformation, mock_ec2, mock_s3, mock_route53, mock_ssm
-from setup_test_env import setup_env_resources, REGION, CONF_STACKNAME, S3_BUCKET
-from pathlib import Path
+CONF_STACKNAME='my-confluence'
+REGION='us-east-1'
 
-from flask import Flask, current_app
+app = Flask(__name__)
+app.config['S3_BUCKET'] = 'mock_bucket'
+app.config['TESTING'] = True
 
+# override buggy moto functions
+moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
+moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
-class test_aws_stacks(unittest.TestCase):
-    TEMPLATE_FILE = Path('../../src/forge/cfn-templates/UnitTest-Confluence.template.yaml')
-    def get_stack_params(self):
-        return [
+TEMPLATE_FILE = Path('../../../forge/cfn-templates/func-test-confluence.template.yaml')
+def get_stack_params():
+    return [
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
         {'ParameterKey': 'AutologinCookieAge', 'ParameterValue': ''},
         {'ParameterKey': 'CatalinaOpts', 'ParameterValue': ''},
@@ -45,9 +50,9 @@ class test_aws_stacks(unittest.TestCase):
         {'ParameterKey': 'DBTimeout', 'ParameterValue': '0'},
         {'ParameterKey': 'DBValidate', 'ParameterValue': 'false'},
         {'ParameterKey': 'DeployEnvironment', 'ParameterValue': 'prod'},
-        {'ParameterKey': 'ExternalSubnets', 'ParameterValue': f"{current_app.config['RESOURCES']['subnet_1_id']},{current_app.config['RESOURCES']['subnet_2_id']}"},
+        {'ParameterKey': 'ExternalSubnets', 'ParameterValue': f"{app.config['RESOURCES']['subnet_1_id']},{app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
-        {'ParameterKey': 'InternalSubnets', 'ParameterValue': f"{current_app.config['RESOURCES']['subnet_1_id']},{current_app.config['RESOURCES']['subnet_2_id']}"},
+        {'ParameterKey': 'InternalSubnets', 'ParameterValue': f"{app.config['RESOURCES']['subnet_1_id']},{app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'JvmHeapOverride', 'ParameterValue': ''},
         {'ParameterKey': 'JvmHeapOverrideSynchrony', 'ParameterValue': ''},
         {'ParameterKey': 'KeyName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
@@ -69,16 +74,14 @@ class test_aws_stacks(unittest.TestCase):
         {'ParameterKey': 'TomcatRedirectPort', 'ParameterValue': '8443'},
         {'ParameterKey': 'TomcatScheme', 'ParameterValue': 'http'},
         {'ParameterKey': 'TomcatSecure', 'ParameterValue': 'false'},
-        {'ParameterKey': 'VPC', 'ParameterValue':  f"{current_app.config['RESOURCES']['vpc_id']}"}
+        {'ParameterKey': 'VPC', 'ParameterValue':  f"{app.config['RESOURCES']['vpc_id']}"}
     ]
 
-    @mock_ec2
-    @mock_s3
-    @mock_route53
-    @mock_cloudformation
-    def setup(self):
-        # not using unittest.setUp/setUpClass here as the created stack does not persist in the moto environment
-        # each test must call this at the start
+
+def setup_stack():
+    # not using pytest.setup_class or a fixture here as the moto environment does not persist - it tears itself down
+    # each test must call this at the start
+    with app.app_context():
         setup_env_resources()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
 
@@ -87,35 +90,82 @@ class test_aws_stacks(unittest.TestCase):
         mystack.wait_stack_action_complete = MagicMock(return_value=True)
 
         # create stack
-        mystack.create(self.get_stack_params(), self.TEMPLATE_FILE,
-                       'confluence', 'true', 'test_user', REGION, cloned_from=False)
+        outcome = mystack.create(get_stack_params(), TEMPLATE_FILE,
+                                 'confluence', 'true', 'test_user', REGION, cloned_from=False)
+        assert outcome
 
-    @mock_cloudformation
+
+def setup_env_resources():
+    # create S3 bucket
+    s3 = boto3.resource('s3', region_name=REGION)
+    s3.create_bucket(Bucket=app.config['S3_BUCKET'])
+
+    # create VPC and subnets
+    ec2 = boto3.resource('ec2', region_name=REGION)
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/24')
+    subnet_1 = vpc.create_subnet(CidrBlock='10.0.0.0/25')
+    subnet_2 = vpc.create_subnet(CidrBlock='10.0.0.0/26')
+
+    # create hosted zone
+    r53 = boto3.client('route53')
+    hosted_zone = r53.create_hosted_zone(
+        Name='wpt.atlassian.com.',
+        VPC={
+            'VPCRegion': REGION,
+            'VPCId': vpc.vpc_id
+        },
+        CallerReference='caller_ref',
+        HostedZoneConfig={
+            'Comment': 'string',
+            'PrivateZone': True
+        },
+        DelegationSetId='string'
+    )
+    resources = {}
+    resources['vpc_id'] = vpc.vpc_id
+    resources['subnet_1_id'] = subnet_1.subnet_id
+    resources['subnet_2_id'] = subnet_2.subnet_id
+    resources['hosted_zone'] = hosted_zone
+
+    app.config['RESOURCES'] = resources
+
+
+@mock.patch.dict(os.environ,{'AWS_ACCESS_KEY_ID':'AWS_ACCESS_KEY_ID'})
+@mock.patch.dict(os.environ,{'AWS_SECRET_ACCESS_KEY':'AWS_SECRET_ACCESS_KEY'})
+class TestAwsStacks():
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_create(self):
-        # the stack is created by setup() so we just test it exists here
-        self.setup()
+        setup_stack()
         stacks = boto3.client('cloudformation', REGION).describe_stacks(StackName=CONF_STACKNAME)
-        self.assertEqual(stacks['Stacks'][0]['StackName'], CONF_STACKNAME)
+        assert stacks['Stacks'][0]['StackName'] == CONF_STACKNAME
 
-    @mock_cloudformation
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_destroy(self):
-        self.setup()
+        setup_stack()
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks()
-        self.assertEqual(len(stacks['Stacks']), 1)
+        assert(len(stacks['Stacks']) == 1)
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         mystack.destroy()
         stacks = cfn.describe_stacks()
-        self.assertEqual(len(stacks['Stacks']), 0)
+        assert len(stacks['Stacks']) == 0
 
-    @mock_s3
-    @mock_cloudformation
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_update(self):
-        self.setup()
+        setup_stack()
         cfn = boto3.client('cloudformation', REGION)
-        stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
+        stack = cfn.describe_stacks(StackName=CONF_STACKNAME)
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        params_for_update = self.get_stack_params()
+        params_for_update = stack['Stacks'][0]['Parameters']
         for param in params_for_update:
             if param['ParameterKey'] == 'TomcatConnectionTimeout':
                 param['ParameterValue'] = '20001'
@@ -123,44 +173,57 @@ class test_aws_stacks(unittest.TestCase):
             else:
                 del param['ParameterValue']
                 param['UsePreviousValue'] = True
-        result = mystack.update(params_for_update, self.TEMPLATE_FILE)
-        self.assertTrue(result)
+        with app.app_context():
+            result = mystack.update(params_for_update, TEMPLATE_FILE)
+        assert(result is True)
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
-        self.assertEqual([param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'], '20001')
+        assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
 
-    @mock_cloudformation
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_tagging(self):
-        self.setup()
+        setup_stack()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         tags_to_add = [
             {'Key': 'Tag1', 'Value': 'Value1'},
             {'Key': 'Tag2', 'Value': 'Value2'}
         ]
         tagged = mystack.tag(tags_to_add)
-        self.assertTrue(tagged)
+        assert tagged
         tags = mystack.get_tags()
-        self.assertEqual(tags, tags_to_add)
+        assert tags == tags_to_add
 
-    @mock_ec2
-    @mock_ssm
-    @mock_cloudformation
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_restarts(self):
-        self.setup()
+        setup_stack()
+
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         # setup mocks
         mystack.check_service_status = MagicMock(return_value='RUNNING')
         mystack.check_node_status = MagicMock(return_value='RUNNING')
-        # perform restarts
-        rolling_result = mystack.rolling_restart()
-        self.assertTrue(rolling_result)
-        full_result = mystack.full_restart()
-        self.assertTrue(full_result)
+        mystack.get_tag = MagicMock(return_value='Confluence')
+        mystack.is_app_clustered = MagicMock(return_value=True)
 
+        with app.app_context():
+            # perform restarts
+            # expect failures as node count is 0
+            rolling_result = mystack.rolling_restart()
+            assert rolling_result is False
+            full_result = mystack.full_restart()
+            assert full_result is False
 
-if __name__ == '__main__':
-    app = Flask(__name__)
-    app.config['S3_BUCKET'] = 'mock_bucket'
-    app.config['TESTING'] = True
-    with app.app_context():
-        unittest.main()
+            # mock nodes
+            mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+
+            # expect restarts to pass
+            rolling_result = mystack.rolling_restart()
+            assert rolling_result is True
+            full_result = mystack.full_restart()
+            assert full_result is True

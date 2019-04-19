@@ -930,7 +930,12 @@ class Stack:
             self.log_msg(ERROR, 'Rolling restart complete - failed')
             self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
             return False
-        if len(instance_list) == 1:
+        if len(instance_list) == 0:
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
+            self.log_msg(ERROR, 'Rolling restart complete - failed')
+            self.log_change('Node count is 0: nothing to restart. Rolling restart failed.')
+            return False
+        elif len(instance_list) == 1:
             self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)')
             self.log_msg(ERROR, 'Rolling restart complete - failed')
             self.log_change('App only has one node - rolling restart not supported (use full restart). Rolling restart failed.')
@@ -974,13 +979,18 @@ class Stack:
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
-        self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        if not self.shutdown_app(self.instancelist):
+        instance_list = self.get_stacknodes()
+        if len(instance_list) == 0:
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
+            self.log_msg(ERROR, 'Full restart complete - failed')
+            self.log_change('Node count is 0: nothing to restart. Full restart failed.')
+            return False
+        self.log_msg(INFO, f'{self.stack_name} nodes are {instance_list}')
+        if not self.shutdown_app(instance_list):
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
-        for instance in self.instancelist:
+        for instance in instance_list:
             self.startup_app([instance])
         self.log_msg(INFO, 'Full restart complete')
         self.log_change('Full restart complete')
