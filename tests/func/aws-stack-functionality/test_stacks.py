@@ -1,6 +1,7 @@
 import boto3
 from flask import Flask
 import forge.aws_cfn_stack.stack as aws_stack
+import inspect
 import mock
 import moto
 import moto_overrides
@@ -19,7 +20,7 @@ app.config['TESTING'] = True
 moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
 moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
-TEMPLATE_FILE = Path('../../../forge/cfn-templates/func-test-confluence.template.yaml')
+TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
 def get_stack_params():
     return [
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
