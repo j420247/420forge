@@ -74,6 +74,9 @@ class BaseConfig(object):
     # Lock stack actions so only one can be performed at a time
     STACK_LOCKING = False
 
+    # disable SAML by default
+    NO_SAML = True
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
