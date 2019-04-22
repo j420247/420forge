@@ -12,3 +12,4 @@ python-dotenv
 requests
 requests-toolbelt
 ruamel.yaml
+werkzeug=0.15.2
