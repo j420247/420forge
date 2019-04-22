@@ -1,9 +1,10 @@
-.idea
-forge.iml
-atl-cfn-forge.iml
-custom-templates
-stacks/**/*.json
-stacks/**/*.log
-__pycache__*
 *.db
 .DS_Store
+.env
+.idea
+__pycache__*
+atl-cfn-forge.iml
+custom-templates
+forge.iml
+stacks/**/*.json
+stacks/**/*.log
