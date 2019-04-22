@@ -14,7 +14,8 @@ from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
-import git
+from git import Repo
+from os import getenv
 
 ##
 #### REST Endpoint classes
@@ -350,7 +351,7 @@ class GetGitBranch(Resource):
     def get(self, template_repo):
         if template_repo != 'atlassian-aws-deployment':
             template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
+        repo = Repo(Path(template_repo))
         return repo.active_branch.name
 
 
@@ -358,7 +359,9 @@ class GetGitCommitDifference(Resource):
     def get(self, template_repo):
         if template_repo != 'atlassian-aws-deployment':
             template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
+        repo = Repo(Path(template_repo))
+        for remote in repo.remotes:
+            remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
         behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
         ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
         difference = f'{behind},{ahead}'
@@ -369,7 +372,7 @@ class GitPull(Resource):
     def get(self, template_repo):
         if template_repo != 'atlassian-aws-deployment':
             template_repo = f'custom-templates/{template_repo}'
-        repo = git.Repo(Path(template_repo))
+        repo = Repo(Path(template_repo))
         result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         log.info(result)
         return result
