@@ -134,6 +134,9 @@
                                     <li {% if session['nice_action_name'] == 'Stack logs' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'System logs' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='syslog') }}" aria-owns="aui-menu-viewlog" id="syslog-link">System Logs</a>
+                                    </li>
                                     <li {% if session['nice_action_name'] == 'Admin' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
                                     </li>

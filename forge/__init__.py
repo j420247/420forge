@@ -39,10 +39,14 @@ def create_app(config_class):
 
     # load .env file
     load_dotenv()
+
     # create and initialize app
     log.info(f'Starting Atlassian CloudFormation Forge v{__version__}')
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # write all logging that is not werkzeug (requests) to the app log
+    app.logger.addHandler(app_log_handler)
 
     # get current region and create SSM client to read parameter store params
     ssm_client = boto3.client('ssm', region_name=getenv('REGION', 'us-east-1'))
