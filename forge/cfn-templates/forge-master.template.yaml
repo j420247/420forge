@@ -465,7 +465,7 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn --access-logfile /var/log/forge.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn --timeout 600 --log-file /home/forge/atl-cfn-forge/logs/forge.log --error-logfile /home/forge/atl-cfn-forge/logs/forge.log --access-logfile /home/forge/atl-cfn-forge/logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
