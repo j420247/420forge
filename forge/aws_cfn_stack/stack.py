@@ -159,6 +159,8 @@ class Stack:
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
         self.log_msg(INFO, "Waiting for stack action to complete")
         stack_state = self.check_stack_state()
+        if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
+            return True
         while stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
@@ -205,7 +207,7 @@ class Stack:
             time.sleep(60)
             service_state = self.check_service_status()
         self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}')
-        return
+        return True
 
     def check_service_status(self, logMsgs=True):
         self.get_service_url()
@@ -236,7 +238,7 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except Exception as e:
-            if 'Throttling' in e or 'Rate exceeded' in e:
+            if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
                 self.log_msg(WARN, f'Stack actions are being throttled: {e}')
                 return 'throttled'
             if 'does not exist' in e.response['Error']['Message']:
@@ -343,7 +345,7 @@ class Stack:
                 self.log_msg('ERROR', f'Startup result for {cmd_id}: {result}')
                 return False
             else:
-                result = ""
+                result = self.check_node_status(node_ip)
                 while result not in ['RUNNING', 'FIRST_RUN']:
                     result = self.check_node_status(node_ip)
                     self.log_msg(INFO, f'Startup result for {cmd_id}: {result}')
@@ -380,7 +382,7 @@ class Stack:
         return True
 
     def wait_for_cmd_result(self, cmd_id):
-        result = ""
+        result, cmd_instance = self.ssm_cmd_check(cmd_id)
         while result != 'Success' and result != 'Failed':
             result, cmd_instance = self.ssm_cmd_check(cmd_id)
             time.sleep(10)
@@ -901,7 +903,8 @@ class Stack:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
             # wait for the template to upload to avoid race conditions
-            time.sleep(5)
+            if 'TESTING' not in current_app.config:
+                time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
@@ -944,7 +947,12 @@ class Stack:
             self.log_msg(ERROR, 'Rolling restart complete - failed')
             self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
             return False
-        if len(instance_list) == 1:
+        if len(instance_list) == 0:
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
+            self.log_msg(ERROR, 'Rolling restart complete - failed')
+            self.log_change('Node count is 0: nothing to restart. Rolling restart failed.')
+            return False
+        elif len(instance_list) == 1:
             self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)')
             self.log_msg(ERROR, 'Rolling restart complete - failed')
             self.log_change('App only has one node - rolling restart not supported (use full restart). Rolling restart failed.')
@@ -971,7 +979,7 @@ class Stack:
                 self.log_change('Rolling restart complete - failed')
                 return False
             node_ip = list(instance.values())[0]
-            result = ""
+            result = self.check_node_status(node_ip, False)
             while result not in ['RUNNING', 'FIRST_RUN']:
                 result = self.check_node_status(node_ip, False)
                 time.sleep(10)
@@ -988,13 +996,18 @@ class Stack:
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
-        self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
-        if not self.shutdown_app(self.instancelist):
+        instance_list = self.get_stacknodes()
+        if len(instance_list) == 0:
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
+            self.log_msg(ERROR, 'Full restart complete - failed')
+            self.log_change('Node count is 0: nothing to restart. Full restart failed.')
+            return False
+        self.log_msg(INFO, f'{self.stack_name} nodes are {instance_list}')
+        if not self.shutdown_app(instance_list):
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
-        for instance in self.instancelist:
+        for instance in instance_list:
             self.startup_app([instance])
         self.log_msg(INFO, 'Full restart complete')
         self.log_change('Full restart complete')
