@@ -710,7 +710,7 @@ def get_current_log(stack_name):
     return False
 
 
-def general_constructor(node):
+def general_constructor(loader, tag_suffix, node):
     return node.value
 
 
