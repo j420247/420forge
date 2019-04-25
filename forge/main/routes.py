@@ -1,6 +1,6 @@
 from flask import redirect, render_template, flash, session, request, url_for, current_app, Blueprint
 from datetime import timedelta
-from os import path, getenv
+from os import path
 from forge.acforge import get_cfn_stacks_for_region, get_forge_settings, get_nice_action_name
 
 main = Blueprint('main', __name__, template_folder='templates')
@@ -11,7 +11,7 @@ main = Blueprint('main', __name__, template_folder='templates')
 def check_loggedin():
     session.permanent = True
     current_app.permanent_session_lifetime = timedelta(minutes=60)
-    if getenv('NO_SAML'):
+    if current_app.args.nosaml:
         return
     if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)

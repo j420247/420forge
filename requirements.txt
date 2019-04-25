@@ -6,10 +6,8 @@ flask_saml
 flask_sessionstore
 flask_sqlalchemy
 gitpython
-gunicorn
 moto
 pytest
-python-dotenv
 requests
 requests-toolbelt
 ruamel.yaml

@@ -1,12 +1,13 @@
 from flask import session, request, Blueprint, current_app
 from flask_restful import Resource
 import flask_saml
-from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.contrib.fixers import ProxyFix
 import sys
 from flask_sqlalchemy import SQLAlchemy
 from flask_sessionstore import Session
-from os import path, getenv
+from os import path
 import json
+from sys import argv
 import logging
 
 saml_blueprint = Blueprint('saml_auth', __name__)
@@ -34,10 +35,10 @@ def configure_saml(ssm_client, app):
     except Exception:
         logger.error('could not open permissions.json; SAML auth will not work!')
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     logger.info('SAML auth configured')
-    if getenv('SAML_METADATA_URL'):
-        app.config['SAML_METADATA_URL'] = getenv('SAML_METADATA_URL')
+    if app.args.localSamlUrl:
+        app.config['SAML_METADATA_URL'] = app.args.localSamlUrl
     else:
         try:
             saml_protocol = ssm_client.get_parameter(Name='atl_forge_saml_metadata_protocol', WithDecryption=True)
@@ -55,7 +56,7 @@ def configure_saml(ssm_client, app):
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
-        if getenv('NO_SAML'):
+        if '--nosaml' in argv:
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         action = request.endpoint.split('.')[1]

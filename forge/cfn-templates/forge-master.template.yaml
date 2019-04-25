@@ -390,14 +390,11 @@ Resources:
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart
-                      sudo -u forge /bin/bash -c 'git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart'
-                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
+                      git clone --recurse-submodules https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
                       cd $forgepath
-                      git submodule update --init
-                      git submodule foreach git checkout master
                   fi
-                  /usr/bin/pip-3.6 install --upgrade pipenv
+                  /usr/bin/pip-3.6 install -r requirements.txt
+                  mv /tmp/update $forgepath/src/forge/config/update --force
                   chown -R forge:forge /home/forge
 
                   # create s3 bucket for forge objects
@@ -412,9 +409,6 @@ Resources:
                       echo -e $gitkey > $gitkeylocation
                       chmod 600 $gitkeylocation
                       export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
-                      cp $gitkeylocation /home/forge/gitkey
-                      chown forge:forge /home/forge/gitkey
-                      chmod 400 /home/forge/gitkey
                     fi
                     # clone the repo
                     mkdir $forgepath/custom-templates
@@ -423,6 +417,7 @@ Resources:
                   fi
 
                   chown forge:forge /etc/atl
+                  ./src/forge/config/update
 
                   # upload SAML params for later use
                   if [[ -n "${SamlMetadataUrl}" ]]; then
@@ -433,15 +428,12 @@ Resources:
 
                   # download config files from S3 if they exist
                   cd /home/forge/atl-cfn-forge
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json forge/saml_auth/permissions.json
-                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py forge/config/config.py
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/permissions.json src/forge/saml_auth/permissions.json
+                  aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py src/forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
-
-                  touch /var/log/forge.log
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge
-                  chown forge:forge /var/log/forge.log
                 - AccountId: !Ref AWS::AccountId
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
@@ -465,9 +457,10 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn --timeout 600 --log-file /home/forge/atl-cfn-forge/logs/forge.log --error-logfile /home/forge/atl-cfn-forge/logs/forge.log --access-logfile /home/forge/atl-cfn-forge/logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
+                    cd /home/forge/atl-cfn-forge
+                    exec sudo -u forge /usr/bin/python3 /home/forge/atl-cfn-forge/src/run.py --region=${region} ${noSaml} >> /var/log/forge.log 2>&1
                   end script
-                - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
+                - noSaml: !If [NoSamlMetadata, "--nosaml", '']
                   region: !Ref AWS::Region
               mode: "000600"
               owner: root
@@ -496,21 +489,59 @@ Resources:
               mode: "000750"
               owner: root
               group: root
+            /tmp/update:
+              content: !Sub
+                - |
+                  #!/usr/bin/env bash
+
+                  # update Forge
+                  cd /home/forge/atl-cfn-forge/
+                  git pull
+
+                  # update the submodules
+                  git submodule update --init --recursive
+                  git submodule foreach git checkout master
+                  git submodule foreach git pull
+
+                  # update custom template repo
+                  if [[ -n "${CustomTemplateRepo}" ]]; then
+                    # apply git key if entered
+                    if [[ -n "${CustomTemplateGitKey}" ]]; then
+                      sshlocation=/home/forge/.ssh
+                      gitkeylocation=$sshlocation/gitkey
+                      gitkey=$(aws --region=${AWS::Region} ssm get-parameters --names "${CustomTemplateGitKey}" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                      mkdir $sshlocation
+                      chmod 770 $sshlocation
+                      echo -e $gitkey > $gitkeylocation
+                      chmod 700 $sshlocation
+                      chmod 600 $gitkeylocation
+                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $gitkeylocation"
+                    fi
+                    # update the repo
+                    cd /home/forge/atl-cfn-forge/src/forge/custom-templates/*/.
+                    git checkout master
+                    git pull
+                  fi
+                - CustomTemplateRepo: !Ref CustomTemplateRepo
+                  CustomTemplateGitKey: !Ref CustomTemplateGitKey
+              mode: "000700"
+              owner: root
+              group: root
           commands:
             001_enable_epel:
               command: yum-config-manager --enable epel
             002_setup_forge:
               cwd: /root/
-              command: ./setup_forge.sh >> /var/log/forge.log 2>&1
-            020_bootstrap_local_ansible:
-              command: /tmp/bootstrap_local_ansible > /var/log/bootstrap_local_ansible.log 2>&1
-              ignoreErrors: true
-            025_ansible_first_run:
-              command: /usr/local/bin/local-ansible-run
-              ignoreErrors: true
-            030_run_forge:
+              command: ./setup_forge.sh
+            003_run_forge:
               command:
                 start forge
+            090_bootstrap_local_ansible:
+              command: /tmp/bootstrap_local_ansible > /var/log/bootstrap_local_ansible.log 2>&1
+              ignoreErrors: true
+            095_ansible_first_run:
+              command: /usr/local/bin/local-ansible-run
+              ignoreErrors: true
     Properties:
       AssociatePublicIpAddress: false
       BlockDeviceMappings:
