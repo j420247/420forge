@@ -12,10 +12,7 @@ import logging
 
 saml_blueprint = Blueprint('saml_auth', __name__)
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(handler)
+log = logging.getLogger('app_log')
 
 
 def configure_saml(ssm_client, app):
@@ -33,10 +30,10 @@ def configure_saml(ssm_client, app):
         with open(path.join(path.dirname(__file__), 'permissions.json')) as json_data:
             app.json_perms = json.load(json_data)
     except Exception:
-        logger.error('could not open permissions.json; SAML auth will not work!')
+        log.error('could not open permissions.json; SAML auth will not work!')
 
     app.wsgi_app = ProxyFix(app.wsgi_app)
-    logger.info('SAML auth configured')
+    log.info('SAML auth configured')
     if app.args.localSamlUrl:
         app.config['SAML_METADATA_URL'] = app.args.localSamlUrl
     else:
@@ -45,7 +42,7 @@ def configure_saml(ssm_client, app):
             saml_url = ssm_client.get_parameter(Name='atl_forge_saml_metadata_url', WithDecryption=True)
             app.config['SAML_METADATA_URL'] = f"{saml_protocol['Parameter']['Value']}://{saml_url['Parameter']['Value']}"
         except Exception:
-            logger.error('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
+            log.error('SAML is configured but there is no SAML metadata URL in the parameter store - exiting')
             sys.exit(1)
     flask_saml.FlaskSAML(app)
 
@@ -66,10 +63,10 @@ class RestrictedResource(Resource):
                     if action in current_app.json_perms[keys]['action'] or '*' in current_app.json_perms[keys]['action']:
                         if action in ('docreate', 'doclone'):
                             # do not check stack_name on stack creation/clone
-                            logger.info(f'User is authorised to perform {action}')
+                            log.info(f'User is authorised to perform {action}')
                             return super().dispatch_request(*args, **kwargs)
                         elif kwargs['stack_name'] in current_app.json_perms[keys]['stack'] or '*' in current_app.json_perms[keys]['stack']:
-                            logger.info(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
+                            log.info(f'User is authorised to perform {action} on {kwargs["stack_name"]}')
                             return super().dispatch_request(*args, **kwargs)
-        logger.error(f'User is not authorised to perform {action} on {kwargs["stack_name"]}')
+        log.error(f'User is not authorised to perform {action} on {kwargs["stack_name"]}')
         return 'Forbidden', 403
