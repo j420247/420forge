@@ -98,8 +98,8 @@ class Stack:
         s3 = boto3.resource('s3', region_name=self.region)
         try:
             s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
-        except botocore.exceptions.ClientError as e:
-            print(e)
+        except botocore.exceptions.ClientError:
+            log.exception('boto ClientError')
             return False
 
     def ssm_send_command(self, instance, cmd):
@@ -125,8 +125,9 @@ class Stack:
             instance = list_command[u'Commands'][0][u'InstanceIds'][0]
             self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
             return cmd_status, instance
-        except botocore.exceptions.ClientError as e:
-            print(e)
+        except botocore.exceptions.ClientError:
+            log.exception('boto ClientError')
+            self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed')
             return False
 
     def ssm_send_and_wait_response(self, instance, cmd):
@@ -322,7 +323,8 @@ class Stack:
                 self.instancelist.append(instancedict)
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'RequestLimitExceeded':
-                print('RequestLimitExceeded received during get_stacknodes.')
+                log.exception('RequestLimitExceeded received during get_stacknodes.')
+                self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes.')
                 return False
         return self.instancelist
 
