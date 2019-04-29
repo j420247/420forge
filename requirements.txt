@@ -6,7 +6,12 @@ flask_saml
 flask_sessionstore
 flask_sqlalchemy
 gitpython
+gunicorn
+moto
+pytest
+python-dotenv
 requests
 requests-toolbelt
 retry
 ruamel.yaml
+werkzeug==0.15.2
