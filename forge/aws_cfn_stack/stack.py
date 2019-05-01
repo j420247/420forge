@@ -5,6 +5,7 @@ import time
 import requests
 from pathlib import Path
 from logging import INFO, WARN, ERROR, getLevelName
+import logging
 import os
 from datetime import datetime
 import itertools
@@ -325,7 +326,7 @@ class Stack:
             if e.response['Error']['Code'] == 'RequestLimitExceeded':
                 log.exception('RequestLimitExceeded received during get_stacknodes.')
                 self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes.')
-                return False
+                raise e
         return self.instancelist
 
     def shutdown_app(self, instancelist):
