@@ -101,6 +101,7 @@ class Stack:
         except botocore.exceptions.ClientError:
             log.exception('boto ClientError')
             return False
+        return True
 
     def ssm_send_command(self, instance, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
@@ -128,7 +129,6 @@ class Stack:
         except botocore.exceptions.ClientError:
             log.exception('boto ClientError')
             self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed')
-            return False
 
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)

@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
-CONF_STACKNAME='my-confluence'
-REGION='us-east-1'
+CONF_STACKNAME = 'my-confluence'
+REGION = 'us-east-1'
 
 app = Flask(__name__)
 app.config['S3_BUCKET'] = 'mock_bucket'
@@ -21,6 +21,8 @@ moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
 moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
 TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
+
+
 def get_stack_params():
     return [
         {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
@@ -75,7 +77,7 @@ def get_stack_params():
         {'ParameterKey': 'TomcatRedirectPort', 'ParameterValue': '8443'},
         {'ParameterKey': 'TomcatScheme', 'ParameterValue': 'http'},
         {'ParameterKey': 'TomcatSecure', 'ParameterValue': 'false'},
-        {'ParameterKey': 'VPC', 'ParameterValue':  f"{app.config['RESOURCES']['vpc_id']}"}
+        {'ParameterKey': 'VPC', 'ParameterValue': f"{app.config['RESOURCES']['vpc_id']}"},
     ]
 
 
@@ -91,8 +93,7 @@ def setup_stack():
         mystack.wait_stack_action_complete = MagicMock(return_value=True)
 
         # create stack
-        outcome = mystack.create(get_stack_params(), TEMPLATE_FILE,
-                                 'confluence', 'true', 'test_user', REGION, cloned_from=False)
+        outcome = mystack.create(get_stack_params(), TEMPLATE_FILE, 'confluence', 'true', 'test_user', REGION, cloned_from=False)
         assert outcome
 
 
@@ -111,16 +112,10 @@ def setup_env_resources():
     r53 = boto3.client('route53')
     hosted_zone = r53.create_hosted_zone(
         Name='wpt.atlassian.com.',
-        VPC={
-            'VPCRegion': REGION,
-            'VPCId': vpc.vpc_id
-        },
+        VPC={'VPCRegion': REGION, 'VPCId': vpc.vpc_id},
         CallerReference='caller_ref',
-        HostedZoneConfig={
-            'Comment': 'string',
-            'PrivateZone': True
-        },
-        DelegationSetId='string'
+        HostedZoneConfig={'Comment': 'string', 'PrivateZone': True},
+        DelegationSetId='string',
     )
     resources = {}
     resources['vpc_id'] = vpc.vpc_id
@@ -131,9 +126,9 @@ def setup_env_resources():
     app.config['RESOURCES'] = resources
 
 
-@mock.patch.dict(os.environ,{'AWS_ACCESS_KEY_ID':'AWS_ACCESS_KEY_ID'})
-@mock.patch.dict(os.environ,{'AWS_SECRET_ACCESS_KEY':'AWS_SECRET_ACCESS_KEY'})
-class TestAwsStacks():
+@mock.patch.dict(os.environ, {'AWS_ACCESS_KEY_ID': 'AWS_ACCESS_KEY_ID'})
+@mock.patch.dict(os.environ, {'AWS_SECRET_ACCESS_KEY': 'AWS_SECRET_ACCESS_KEY'})
+class TestAwsStacks:
     @moto.mock_ec2
     @moto.mock_s3
     @moto.mock_route53
@@ -151,7 +146,7 @@ class TestAwsStacks():
         setup_stack()
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks()
-        assert(len(stacks['Stacks']) == 1)
+        assert len(stacks['Stacks']) == 1
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         mystack.destroy()
         stacks = cfn.describe_stacks()
@@ -176,7 +171,7 @@ class TestAwsStacks():
                 param['UsePreviousValue'] = True
         with app.app_context():
             result = mystack.update(params_for_update, TEMPLATE_FILE)
-        assert(result is True)
+        assert result is True
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
         assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
@@ -188,10 +183,7 @@ class TestAwsStacks():
     def test_tagging(self):
         setup_stack()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        tags_to_add = [
-            {'Key': 'Tag1', 'Value': 'Value1'},
-            {'Key': 'Tag2', 'Value': 'Value2'}
-        ]
+        tags_to_add = [{'Key': 'Tag1', 'Value': 'Value1'}, {'Key': 'Tag2', 'Value': 'Value2'}]
         tagged = mystack.tag(tags_to_add)
         assert tagged
         tags = mystack.get_tags()
