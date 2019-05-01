@@ -34,5 +34,5 @@ pytest = "*"
 python_version = "3.6"
 
 [scripts]
-forge-flask = "python3 /home/forge/atl-cfn-forge/run.py --region=us-west-2"
+forge-flask-dev-server = "python3 /home/forge/atl-cfn-forge/run.py"
 forge-gunicorn = "gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app"
