@@ -60,7 +60,7 @@ def create_app(config_class):
         log.error('No secret key in parameter store')
 
     # create SAML URL if saml enabled
-    if not getenv('NO_SAML') and not app.config['NO_SAML']:
+    if not getenv('NO_SAML') and not app.config.get('NO_SAML'):
         saml_auth.configure_saml(ssm_client, app)
     else:
         log.info('SAML auth is not configured')

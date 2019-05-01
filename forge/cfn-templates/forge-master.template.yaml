@@ -394,6 +394,7 @@ Resources:
                       sudo -u forge /bin/bash -c 'git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart'
                       git clone https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
                       cd $forgepath
+                      git checkout ITOPS-1548-stop-running-the-flask-dev-se
                       git submodule update --init
                       git submodule foreach git checkout master
                   fi
