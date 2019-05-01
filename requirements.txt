@@ -5,6 +5,7 @@ flask_restful
 flask_saml
 flask_sessionstore
 flask_sqlalchemy
+gevent
 gitpython
 gunicorn
 moto

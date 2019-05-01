@@ -4,11 +4,11 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 
 [packages]
-"boto3" = "*"
 "cloudtoken-plugin.centrify" = "*"
 "ruamel.yaml" = "==0.15.53"
 awscli = "*"
 behave = "*"
+boto3 = "*"
 cloudtoken = "*"
 Flask = "*"
 Flask-HTTPAuth = "*"
@@ -17,6 +17,7 @@ Flask-RESTful = "*"
 Flask-SAML = "*"
 Flask-Sessionstore = "*"
 Flask-SQLAlchemy = "*"
+gevent = "*"
 gitpython = "*"
 gunicorn = "*"
 migrate = "*"
@@ -25,10 +26,13 @@ python-dotenv = "*"
 requests = "*"
 requests-toolbelt = "*"
 retry = "*"
-sh = "*"
 pytest = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.6"
+
+[scripts]
+forge-flask = "python3 /home/forge/atl-cfn-forge/run.py --region=us-west-2"
+forge-gunicorn = "gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app"
