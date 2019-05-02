@@ -6,5 +6,6 @@ __pycache__*
 atl-cfn-forge.iml
 custom-templates
 forge.iml
+logs
 stacks/**/*.json
 stacks/**/*.log

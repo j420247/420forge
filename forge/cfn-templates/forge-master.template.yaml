@@ -98,7 +98,7 @@ Parameters:
     Description: If your custom template repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
     Type: String
   DeployEnvironment:
-    Default: stg
+    Default: prod
     AllowedValues:
       - dev
       - dr
@@ -438,6 +438,7 @@ Resources:
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
                   touch /var/log/forge.log
+                  mkdir -p $forgepath/logs
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge
@@ -465,7 +466,7 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install && /usr/local/bin/pipenv run gunicorn --timeout 600 --log-file /home/forge/atl-cfn-forge/logs/forge.log --error-logfile /home/forge/atl-cfn-forge/logs/forge.log --access-logfile /home/forge/atl-cfn-forge/logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install --skip-lock && /usr/local/bin/pipenv run forge-gunicorn" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
