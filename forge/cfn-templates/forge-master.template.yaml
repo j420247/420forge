@@ -98,7 +98,7 @@ Parameters:
     Description: If your custom template repo is private, provide a AWS Systems Manager ParameterStore key name that holds an ssh private key that can access the repo
     Type: String
   DeployEnvironment:
-    Default: stg
+    Default: prod
     AllowedValues:
       - dev
       - dr
