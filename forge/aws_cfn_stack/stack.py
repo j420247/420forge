@@ -5,6 +5,7 @@ import time
 import requests
 from pathlib import Path
 from logging import INFO, WARN, ERROR, getLevelName
+import logging
 import os
 from datetime import datetime
 import itertools
@@ -12,7 +13,7 @@ import errno
 import json
 from requests_toolbelt.sessions import BaseUrlSession
 from botocore.exceptions import ClientError
-import pprint
+from retry import retry
 import logging
 
 
@@ -96,7 +97,12 @@ class Stack:
 
     def upload_template(self, file, s3_name):
         s3 = boto3.resource('s3', region_name=self.region)
-        s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
+        try:
+            s3.meta.client.upload_file(file, current_app.config['S3_BUCKET'], f'forge-templates/{s3_name}')
+        except botocore.exceptions.ClientError:
+            log.exception('boto ClientError')
+            return False
+        return True
 
     def ssm_send_command(self, instance, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
@@ -115,11 +121,15 @@ class Stack:
 
     def ssm_cmd_check(self, cmd_id):
         ssm = boto3.client('ssm', region_name=self.region)
-        list_command = ssm.list_commands(CommandId=cmd_id)
-        cmd_status = list_command[u'Commands'][0][u'Status']
-        instance = list_command[u'Commands'][0][u'InstanceIds'][0]
-        self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
-        return (cmd_status, instance)
+        try:
+            list_command = ssm.list_commands(CommandId=cmd_id)
+            cmd_status = list_command[u'Commands'][0][u'Status']
+            instance = list_command[u'Commands'][0][u'InstanceIds'][0]
+            self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
+            return cmd_status, instance
+        except botocore.exceptions.ClientError:
+            log.exception('boto ClientError')
+            self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed')
 
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
@@ -297,6 +307,7 @@ class Stack:
             self.log_msg(INFO, "Stack restored to full node count")
         return True
 
+    @retry(botocore.exceptions.ClientError, tries=5, delay=2, backoff=2)
     def get_stacknodes(self):
         ec2 = boto3.resource('ec2', region_name=self.region)
         filters = [
@@ -306,9 +317,16 @@ class Stack:
         if self.is_app_clustered():
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
         self.instancelist = []
-        for i in ec2.instances.filter(Filters=filters):
-            instancedict = {i.instance_id: i.private_ip_address}
-            self.instancelist.append(instancedict)
+        try:
+            instances = ec2.instances.filter(Filters=filters)
+            for i in instances:
+                instancedict = {i.instance_id: i.private_ip_address}
+                self.instancelist.append(instancedict)
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'RequestLimitExceeded':
+                log.exception('RequestLimitExceeded received during get_stacknodes.')
+                self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes.')
+                raise e
         return self.instancelist
 
     def shutdown_app(self, instancelist):
@@ -523,7 +541,6 @@ class Stack:
                 sql_files = os.listdir(cloned_from_stack_sql_dir)
                 if len(sql_files) > 0:
                     sql_to_run = f'---- ***** SQL to run for clones of {cloned_from_stack} *****\n\n'
-                    sql_exists = True
                     for file in sql_files:
                         sql_file = open(os.path.join(cloned_from_stack_sql_dir, file), "r")
                         sql_to_run = f"{sql_to_run}-- *** SQL from {cloned_from_stack} {sql_file.name} ***\n\n{sql_file.read()}\n\n"
@@ -535,7 +552,6 @@ class Stack:
             sql_files = os.listdir(own_sql_dir)
             if len(sql_files) > 0:
                 sql_to_run = f'{sql_to_run}---- ***** SQL to run for {self.stack_name} *****\n\n'
-                sql_exists = True
                 for file in sql_files:
                     sql_file = open(os.path.join(own_sql_dir, file), "r")
                     sql_to_run = f"{sql_to_run}-- *** SQL from {sql_file.name} ***\n\n{sql_file.read()}\n\n"
