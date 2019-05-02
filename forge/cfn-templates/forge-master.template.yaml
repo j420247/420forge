@@ -444,7 +444,6 @@ Resources:
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
                   touch /var/log/forge.log
-                  mkdir -p $forgepath/logs
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge
