@@ -281,6 +281,7 @@ function selectDefaultSubnets(vpc) {
 
 function sendParamsAsJson() {
   var newParamsArray = [];
+  var productParam = {};
   var templateNameParam = {};
   var stackNameForAction = "";
   var newParams = document.getElementsByClassName("param-field-group");
@@ -302,6 +303,13 @@ function sendParamsAsJson() {
     clonedFromStackParam["ParameterKey"] = "ClonedFromStackName";
     clonedFromStackParam["ParameterValue"] = $("#stackSelector").text();
     newParamsArray.push(clonedFromStackParam);
+  }
+
+  if ($("#productSelector").is(':visible')) {
+      // Add product to params
+      productParam["ParameterKey"] = "Product";
+      productParam["ParameterValue"] = $("#productSelector").text();
+      newParamsArray.push(productParam);
   }
 
   if ($("#templateSelector").is(':visible')) {

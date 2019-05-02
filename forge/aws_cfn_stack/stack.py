@@ -40,7 +40,7 @@ class Stack:
         self.stack_name = stack_name
         if region == '':
             error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
-            self.log_msg(f'{datetime.now()} {ERROR} {error_string}')
+            self.log_msg(ERROR, error_string)
             raise ValueError(error_string)
         self.region = region
         self.logfile = None
@@ -132,13 +132,13 @@ class Stack:
 
     ## Stack - helper methods
 
-    def spindown_to_zero_appnodes(self):
+    def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.getparms()
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
-        if self.app_type == 'confluence':
+        if app_type == 'confluence':
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
             spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
         try:
@@ -172,21 +172,21 @@ class Stack:
             return False
         return True
 
-    def spinup_to_one_appnode(self, new_version):
+    def spinup_to_one_appnode(self, app_type, new_version):
         self.log_msg(INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
-        if self.app_type == 'jira':
+        if app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
-        elif self.app_type == 'confluence':
+        elif app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
             if hasattr(self, 'preupgrade_synchrony_node_count'):
                 spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
                 spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
-        elif self.app_type == 'crowd':
+        elif app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
@@ -311,15 +311,15 @@ class Stack:
             self.instancelist.append(instancedict)
         return self.instancelist
 
-    def shutdown_app(self, instancelist):
+    def shutdown_app(self, app_type, instancelist):
         cmd_id_list = []
         for i in range(0, len(instancelist)):
             for key in instancelist[i]:
                 instance = key
                 node_ip = instancelist[i][instance]
-            self.log_msg(INFO, f'Shutting down {self.app_type} on {instance} ({node_ip})')
-            self.log_change(f'Shutting down {self.app_type} on {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{self.app_type} stop'
+            self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
+            self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
+            cmd = f'/etc/init.d/{app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
@@ -330,15 +330,16 @@ class Stack:
             self.log_change(f'Shutdown result for {cmd_id}: {result}')
         return True
 
-    def startup_app(self, instancelist):
+    def startup_app(self, app_type, instancelist):
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
-            if not self.cleanup_temp_files(str(instance)):
-                self.log_msg('ERROR', f'Failure cleaning up temp files for {instance}')
+            if app_type == 'jira':
+                if not self.cleanup_jira_temp_files(str(instance)):
+                    self.log_msg('ERROR', f'Failure cleaning up temp files for {instance}')
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{self.app_type} start'
+            cmd = f'/etc/init.d/{app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
@@ -354,15 +355,14 @@ class Stack:
             self.log_change(f'Application started on instance {instance}')
         return True
 
-    def cleanup_temp_files(self, instance):
-        if self.app_type == 'jira':
-            cmd = f'find /opt/atlassian/jira/temp/ -type f -delete'
-            cmd_id = self.ssm_send_command(instance, cmd)
-            result = self.wait_for_cmd_result(cmd_id)
-            if result == 'Failed':
-                self.log_msg('ERROR', f'Cleanup temp files result for {cmd_id}: {result}')
-                return False
-            self.log_msg(INFO, f'Deleted Jira temp files on {instance}')
+    def cleanup_jira_temp_files(self, instance):
+        cmd = f'find /opt/atlassian/jira/temp/ -type f -delete'
+        cmd_id = self.ssm_send_command(instance, cmd)
+        result = self.wait_for_cmd_result(cmd_id)
+        if result == 'Failed':
+            self.log_msg('ERROR', f'Cleanup temp files result for {cmd_id}: {result}')
+            return False
+        self.log_msg(INFO, f'Deleted Jira temp files on {instance}')
         return True
 
     def run_command(self, instancelist, cmd):
@@ -437,7 +437,7 @@ class Stack:
             found_param = [param for param in stack_details['Stacks'][0]['Parameters'] if param_to_get in param['ParameterKey']]
         except Exception:
             log.exception(f'Error getting parameter {param_to_get}')
-            return 'Error'
+            return ''
         if len(found_param) > 0:
             return found_param[0]['ParameterValue']
         else:
@@ -543,7 +543,7 @@ class Stack:
             return sql_to_run
         return 'No SQL script exists for this stack'
 
-    def get_pre_upgrade_information(self):
+    def get_pre_upgrade_information(self, app_type):
         self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}')
         # get pre-upgrade state information
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -553,18 +553,13 @@ class Stack:
             log.exception('Error getting pre-upgrade stack details')
             self.log_msg(ERROR, 'Upgrade complete - failed')
             return False
-        # get product
-        self.app_type = self.get_tag('product')
-        if not self.app_type:
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            return False
         # get preupgrade version and node counts
         self.preupgrade_version = [
             p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
         ][0]
         if self.is_app_clustered():
             self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
-            if self.app_type == 'confluence':
+            if app_type == 'confluence':
                 self.preupgrade_synchrony_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'SynchronyClusterNodeMax'][0]
         # create changelog
         self.log_change(f'Pre upgrade version: {self.preupgrade_version}')
@@ -681,37 +676,47 @@ class Stack:
         return True
 
     def upgrade_dc(self, new_version):
-        self.get_pre_upgrade_information()
+        # get product
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Upgrade complete - failed')
+            return False
+        self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
-        if not self.spindown_to_zero_appnodes():
+        if not self.spindown_to_zero_appnodes(app_type):
             self.log_msg(INFO, 'Upgrade complete - failed')
             self.log_change('Upgrade failed, see action log for details')
             return False
         # spin stack up to 1 node on new release version
-        if not self.spinup_to_one_appnode(new_version):
+        if not self.spinup_to_one_appnode(app_type, new_version):
             self.log_msg(INFO, 'Upgrade complete - failed')
             self.log_change('Change failed, see action log for details')
             return False
         # spinup remaining nodes in stack if needed
         if self.preupgrade_app_node_count > "1":
-            self.spinup_remaining_nodes()
+            self.spinup_remaining_nodes(app_type)
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         return True
 
     def upgrade_server(self, new_version):
-        self.get_pre_upgrade_information()
+        # get product
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Upgrade complete - failed')
+            return False
+        self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # update the version in stack parameters
         stack_params = self.getparms()
-        if self.app_type == 'jira':
+        if app_type == 'jira':
             stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
-        elif self.app_type == 'confluence':
+        elif app_type == 'confluence':
             stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
-        elif self.app_type == 'crowd':
+        elif app_type == 'crowd':
             stack_params = self.update_parmlist(stack_params, 'CrowdVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -878,12 +883,6 @@ class Stack:
         self.log_change('Update successful')
         return True
 
-    #  TODO create like
-    # def create_like(self, like_stack, changeparms):
-    #     # grab stack parms from like stack
-    #     # changedParms = param list with changed parms
-    #     create(parms=changedParms)
-
     def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
         self.log_msg(INFO, f'Creating stack: {self.stack_name}')
         self.log_msg(INFO, f'Creation params: {stack_parms}')
@@ -894,7 +893,7 @@ class Stack:
         tags = [
             {'Key': 'product', 'Value': app_type},
             {'Key': 'clustered', 'Value': clustered},
-            {'Key': 'environment', 'Value': next(parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment')},
+            {'Key': 'environment', 'Value': next((parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
             {'Key': 'created_by', 'Value': creator},
         ]
         if cloned_from:
@@ -933,8 +932,8 @@ class Stack:
     def rolling_restart(self):
         self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}')
         self.log_change(f'Beginning Rolling Restart for {self.stack_name}')
-        self.app_type = self.get_tag('product')
-        if not self.app_type:
+        app_type = self.get_tag('product')
+        if not app_type:
             self.log_msg(ERROR, 'Could not determine product')
             self.log_msg(ERROR, 'Rolling restart complete - failed')
             self.log_change('Could not determine product. Rolling restart failed.')
@@ -968,12 +967,12 @@ class Stack:
                 non_running_nodes.append(node)
         # restart non running nodes first
         for instance in itertools.chain(non_running_nodes, running_nodes):
-            if not self.shutdown_app([instance]):
+            if not self.shutdown_app(app_type, [instance]):
                 self.log_msg(INFO, f'Failed to stop application on instance {instance}')
                 self.log_msg(ERROR, 'Rolling restart complete - failed')
                 self.log_change('Rolling restart complete - failed')
                 return False
-            if not self.startup_app([instance]):
+            if not self.startup_app(app_type, [instance]):
                 self.log_msg(INFO, f'Failed to start application on instance {instance}')
                 self.log_msg(ERROR, 'Rolling restart complete - failed')
                 self.log_change('Rolling restart complete - failed')
@@ -991,8 +990,8 @@ class Stack:
     def full_restart(self):
         self.log_msg(INFO, f'Beginning Full Restart for {self.stack_name}')
         self.log_change(f'Beginning Full Restart for {self.stack_name}')
-        self.app_type = self.get_tag('product')
-        if not self.app_type:
+        app_type = self.get_tag('product')
+        if not app_type:
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
@@ -1003,12 +1002,12 @@ class Stack:
             self.log_change('Node count is 0: nothing to restart. Full restart failed.')
             return False
         self.log_msg(INFO, f'{self.stack_name} nodes are {instance_list}')
-        if not self.shutdown_app(instance_list):
+        if not self.shutdown_app(app_type, instance_list):
             self.log_msg(ERROR, 'Full restart complete - failed')
             self.log_change('Full restart complete - failed')
             return False
         for instance in instance_list:
-            self.startup_app([instance])
+            self.startup_app(app_type, [instance])
         self.log_msg(INFO, 'Full restart complete')
         self.log_change('Full restart complete')
         return True
