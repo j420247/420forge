@@ -52,7 +52,7 @@ def configure_saml(ssm_client, app):
 ##
 class RestrictedResource(Resource):
     def dispatch_request(self, *args, **kwargs):
-        if getenv('NO_SAML'):
+        if getenv('NO_SAML') or current_app.config.get('NO_SAML'):
             return super().dispatch_request(*args, **kwargs)
         # check permissions before returning super
         action = request.endpoint.split('.')[1]

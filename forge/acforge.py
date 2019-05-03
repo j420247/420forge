@@ -14,6 +14,7 @@ from forge.version import __version__
 import glob
 from forge.saml_auth.saml_auth import RestrictedResource
 import json
+import re
 from git import Repo
 from os import getenv
 
@@ -47,7 +48,6 @@ class DoUpgrade(RestrictedResource):
 class DoClone(RestrictedResource):
     def post(self):
         content = request.get_json()[0]
-        app_type = ''  # TODO is there a better way to do this?
         for param in content:
             if param['ParameterKey'] == 'TemplateName':
                 template_name = param['ParameterValue']
@@ -308,22 +308,20 @@ class DoCreate(RestrictedResource):
     def post(self):
         content = request.get_json()[0]
         for param in content:
+            if param['ParameterKey'] == 'Product':
+                app_type = param['ParameterValue']
+                continue
             if param['ParameterKey'] == 'StackName':
                 stack_name = param['ParameterValue']
                 continue
             elif param['ParameterKey'] == 'TemplateName':
                 template_name = param['ParameterValue']
                 continue
-            elif param['ParameterKey'] == 'ConfluenceVersion':
-                app_type = 'confluence'
-            elif param['ParameterKey'] == 'JiraVersion':
-                app_type = 'jira'
-            elif param['ParameterKey'] == 'CrowdVersion':
-                app_type = 'crowd'
         mystack = Stack(stack_name, session['region'] if 'region' in session else '')
         if not mystack.store_current_action('create', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
-        params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName']
+        params_for_create = [param for param in content
+                             if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName' and param['ParameterKey'] != 'Product']
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         outcome = mystack.create(params_for_create, get_template_file(template_name), app_type, clustered, creator, session['region'])
@@ -580,9 +578,9 @@ class GetTemplates(Resource):
         custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
-            default_templates = list(template_folder.glob(f"**/*.yaml"))
+            default_templates = [f for f in template_folder.glob('**/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
         else:
-            default_templates = list(template_folder.glob(f"**/*{template_type}*.yaml"))
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
         for file in default_templates:
             # TODO support Bitbucket?
             if 'Bitbucket' in file.name:
@@ -591,9 +589,9 @@ class GetTemplates(Resource):
         # get custom templates
         if custom_template_folder.exists():
             if template_type == 'all':
-                custom_templates = list(custom_template_folder.glob(f"**/*/*/*.yaml"))
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
             else:
-                custom_templates = list(custom_template_folder.glob(f"**/*/*/*{template_type}*.yaml"))
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
             for file in custom_templates:
                 templates.append((file.parent.parent.name, file.name))
         templates.sort()

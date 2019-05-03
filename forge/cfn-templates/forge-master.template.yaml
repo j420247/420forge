@@ -397,6 +397,12 @@ Resources:
                       git submodule update --init
                       git submodule foreach git checkout master
                   fi
+                  # make the log directory and files if they don't exist so gunicorn can log to them during startup
+                  if [[ ! -d $forgepath/logs ]]; then
+                      mkdir $forgepath/logs
+                      touch $forgepath/logs/forge.log
+                      touch $forgepath/logs/forge_access.log
+                  fi
                   /usr/bin/pip-3.6 install --upgrade pipenv
                   chown -R forge:forge /home/forge
 
@@ -438,7 +444,6 @@ Resources:
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
                   touch /var/log/forge.log
-                  mkdir -p $forgepath/logs
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge

@@ -11,7 +11,7 @@ main = Blueprint('main', __name__, template_folder='templates')
 def check_loggedin():
     session.permanent = True
     current_app.permanent_session_lifetime = timedelta(minutes=60)
-    if getenv('NO_SAML'):
+    if getenv('NO_SAML') or current_app.config.get('NO_SAML'):
         return
     if not request.path.startswith("/saml") and not request.path.startswith("/status") and not session.get('saml'):
         login_url = url_for('login', next=request.url)
