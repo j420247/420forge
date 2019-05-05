@@ -78,7 +78,7 @@ class BaseConfig(object):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///acforge.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # suppress warning messages
     SESSION_TYPE = 'sqlalchemy'
-    
+
     # disable SAML by default
     NO_SAML = True
 

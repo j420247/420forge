@@ -65,6 +65,9 @@ def create_app(config_class):
     else:
         log.info('SAML auth is not configured')
 
+    from forge.token_auth.models import db
+    db.init_app(app)
+
     # Register Blueprints
     app.register_blueprint(api_blueprint)
     app.register_blueprint(main_blueprint)
