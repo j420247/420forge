@@ -111,14 +111,15 @@ For information about enabling SAML auth, see [Forge: enabling SAML](https://con
 To start the app locally for development do the following in a python3 environment: 
 
 ```
-pip3 install -r requirements.txt
-python3 acforge.py
+pip3 install pipenv
+pipenv install
+pipenv run forge-gunicorn
 ```
 
-#### Command-line args
+#### Environment Variables
 
-* `--nosaml` disables SAML auth (for local development)
-* `--region` defines the AWS region that Forge is operating in
+* `NO_SAML=1` disables SAML auth (for local development)
+* `REGION=us-east-1` defines the AWS region that Forge is operating in
 
 #### Configuration
 

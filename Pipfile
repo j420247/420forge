@@ -1,0 +1,38 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[packages]
+"cloudtoken-plugin.centrify" = "*"
+"ruamel.yaml" = "==0.15.53"
+awscli = "*"
+behave = "*"
+boto3 = "*"
+cloudtoken = "*"
+Flask = "*"
+Flask-HTTPAuth = "*"
+Flask-Migrate = "*"
+Flask-RESTful = "*"
+Flask-SAML = "*"
+Flask-Sessionstore = "*"
+Flask-SQLAlchemy = "*"
+gevent = "*"
+gitpython = "*"
+gunicorn = "*"
+migrate = "*"
+moto = "*"
+python-dotenv = "*"
+requests = "*"
+requests-toolbelt = "*"
+retry = "*"
+pytest = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
+
+[scripts]
+forge-flask-dev-server = "python3 /home/forge/atl-cfn-forge/run.py"
+forge-gunicorn = "gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app"

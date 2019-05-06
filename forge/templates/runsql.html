@@ -1,0 +1,20 @@
+{% extends "page-content.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('runsql.js') }}"></script>
+{% endblock head %}
+    {% block descriptionPanel %}
+    Run a predefined SQL script against an instance. Note, the script needs to be added to the service by an administrator - this is not free-form SQL.
+    </p><p>
+    For SQL to be run against any clone of an instance, add a .sql file to <code>stacks/&lt;stackname-to-clone&gt;/&lt;stackname-to-clone&gt;-clones-sql.d/</code>. For SQL to run against a specific instance, add the file to <code>stacks/&lt;stackname&gt;/local-post-clone-sql.d/</code>. Be sure to add the files (including the folder structure) to &lt;your S3 bucket&gt;/config so they are downloaded to newly created Forge nodes.
+    {% endblock descriptionPanel %}
+{% block buttonText %}Run SQL{% endblock buttonText %}
+
+{% block progress %}
+<div class="aui-group">
+    {#    Progress Panel    #}
+    <iframe id="log" src="" width="1000" height="400">
+        Cannot display status because browser does not support iframes.
+    </iframe>
+</div>
+{% endblock progress %}
