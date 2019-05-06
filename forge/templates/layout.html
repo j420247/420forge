@@ -140,6 +140,9 @@
                                     <li {% if session['nice_action_name'] == 'Admin' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'Token Admin' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.setaction', action='token') }}" aria-owns="aui-menu-viewlog" id="admin-link">Token Admin</a>
+                                    </li>
                                     {% endblock %}
                                 </ul>
                             </div>

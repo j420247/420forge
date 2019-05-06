@@ -3,7 +3,9 @@
 {{ super() }}
     <script src="{{ get_filename_with_last_update_time('token_admin.js') }}"></script>
 {% endblock head %}
-
+    {% block descriptionPanel %}
+    Create Authentication tokens
+    {% endblock descriptionPanel %}
 {% block extraInput %}
 <div class="aui-panel">
     <h3>Create New Token</h3>

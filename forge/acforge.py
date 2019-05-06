@@ -735,6 +735,7 @@ def get_nice_action_name(action):
         'viewlog': 'Stack logs',
         'syslog': 'System logs',
         'tag': 'Tag stack',
+        'token': 'Token Admin',
         'update': 'Update stack',
         'upgrade': 'Upgrade',
     }
