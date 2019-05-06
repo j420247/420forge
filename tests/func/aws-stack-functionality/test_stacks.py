@@ -183,7 +183,10 @@ class TestAwsStacks:
     def test_tagging(self):
         setup_stack()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        tags_to_add = [{'Key': 'Tag1', 'Value': 'Value1'}, {'Key': 'Tag2', 'Value': 'Value2'}]
+        tags_to_add = [
+            {'Key': 'Tag1', 'Value': 'Value1'},
+            {'Key': 'Tag2', 'Value': 'Value2'}
+        ]
         tagged = mystack.tag(tags_to_add)
         assert tagged
         tags = mystack.get_tags()
@@ -196,7 +199,6 @@ class TestAwsStacks:
     @moto.mock_cloudformation
     def test_restarts(self):
         setup_stack()
-
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         # setup mocks
         mystack.check_service_status = MagicMock(return_value='RUNNING')
@@ -220,3 +222,18 @@ class TestAwsStacks:
             assert rolling_result is True
             full_result = mystack.full_restart()
             assert full_result is True
+
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_upgrade(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        assert mystack.get_param('Version') == '6.11.0'
+        # mock status
+        mystack.check_service_status = MagicMock(return_value='RUNNING')
+        # upgrade
+        mystack.upgrade('6.11.1')
+        assert mystack.get_param('Version') == '6.11.1'
