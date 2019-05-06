@@ -165,3 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
   onReady();
   checkAuthenticated();
 }, false);
+
+function closeModal() {
+  AJS.dialog2("#modal-dialog").hide();
+}

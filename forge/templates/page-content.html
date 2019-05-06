@@ -79,34 +79,24 @@
 
 </div>
 
-<!-- Modal auth prompt -->
-<section id="auth-dialog" class="aui-dialog2 aui-dialog2-medium aui-layer" role="dialog" aria-hidden="true">
+<!-- Modal prompt -->
+<section id="modal-dialog" class="aui-dialog2 aui-dialog2-medium aui-layer" role="dialog" aria-hidden="true">
     <header class="aui-dialog2-header">
-        <h2 class="aui-dialog2-header-main">Jira Authentication</h2>
+        <h2 class="aui-dialog2-header-main">
+            {% block modalDialogHeader %}
+            {% endblock modalDialogHeader %}
+        </h2>
         <a class="aui-dialog2-header-close">
             <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
         </a>
     </header>
     <div class="aui-dialog2-content">
-        <p>This action requires admin authentication to the Jira server.<br><br>
-            NB: We do NOT recommend entering your credentials unless both Forge and the Jira server use SSL.<br><br>
-            Please enter your Jira administrator username and password:</p>
-        <form class="aui top-label">
-            <fieldset class="top-label">
-                <div class="field-group">
-                    <label for="username">Username</label>
-                    <input class="text" type="text" id="username" name="username">
-                    <label for="username">Password</label>
-                    <input class="password" type="password" id="password" name="password">
-                </div>
-            </fieldset>
-        </form>
+        {% block modalDialogContent %}
+        {% endblock modalDialogContent %}
     </div>
     <footer class="aui-dialog2-footer">
-        <div class="aui-dialog2-footer-actions">
-            <button class="aui-button aui-button-primary" id="auth-ok-btn">Okay</button>
-            <button class="aui-button aui-button-link">Cancel</button>
-        </div>
+        {% block modalDialogFooterContent %}
+        {% endblock modalDialogFooterContent %}
     </footer>
 </section>
 {% block progress %}

@@ -4,7 +4,7 @@
     <script src="{{ get_filename_with_last_update_time('token_admin.js') }}"></script>
 {% endblock head %}
     {% block descriptionPanel %}
-    Create Authentication tokens
+    Create Authentication tokens.
     {% endblock descriptionPanel %}
 {% block extraInput %}
 <div class="aui-panel">
@@ -14,11 +14,25 @@
                 <span class="aui-icon aui-icon-small aui-iconfont-clone-small" style="padding-right: 5px"></span>Create</button>
         </div>
 </div>
+
+{% endblock extraInput %}
+
+{% block modalDialogHeader %}
+Token Created
+{% endblock modalDialogHeader %}
+{% block modalDialogContent %}
+<p><br>
+    A new token has been created, please save it somewhere secure for future use.</p>
 <div id="tokenDisplayMessage" class="aui-message">
     <p class="title">
         <strong>Token Created</strong>
     </p>
     <p id="tokenContent"></p>
 </div>
+{% endblock modalDialogContent %}
 
-{% endblock extraInput %}
+{% block modalDialogFooterContent %}
+<div class="aui-dialog2-footer-actions">
+    <button class="aui-button aui-button-primary" id="auth-ok-btn" onclick="closeModal()">Okay</button>
+</div>
+{% endblock modalDialogFooterContent %}

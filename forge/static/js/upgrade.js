@@ -57,7 +57,7 @@ function displayZDUCompatibility(responseText) {
 function beginUpgrade() {
     if (document.getElementById("zduCheckBox").checked) {
         $("#auth-ok-btn").on("click", performUpgrade);
-        AJS.dialog2("#auth-dialog").show();
+        AJS.dialog2("#modal-dialog").show();
     }
     else {
         performUpgrade();

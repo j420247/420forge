@@ -17,6 +17,8 @@ import json
 import re
 from git import Repo
 from os import getenv
+from retry import retry
+
 
 ##
 #### REST Endpoint classes
@@ -676,7 +678,7 @@ class ForgeStatus(Resource):
 #### Common functions
 ##
 
-
+@retry(botocore.exceptions.ClientError, tries=5, delay=2, backoff=2)
 def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])
     stack_name_list = []
@@ -688,6 +690,10 @@ def get_cfn_stacks_for_region(region=None):
     except (KeyError, botocore.exceptions.NoCredentialsError):
         session['credentials'] = False
         stack_name_list.append('No credentials')
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'RequestLimitExceeded':
+            log.exception('RequestLimitExceeded received during get_cfn_stacks_for_region.')
+            raise e
     return stack_name_list
 
 

@@ -18,4 +18,5 @@ function displayToken(responseText) {
   let token = JSON.parse(responseText);
   $('#tokenContent').html(token);
   $('#tokenDisplayMessage').show();
+  AJS.dialog2("#modal-dialog").show();
 }
