@@ -712,7 +712,7 @@ class Stack:
             return False
         # spinup remaining nodes in stack if needed
         if self.preupgrade_app_node_count > "1":
-            self.spinup_remaining_nodes(app_type)
+            self.spinup_remaining_nodes()
         # TODO wait for remaining nodes to respond ??? ## maybe a LB check for active node count
         # TODO enable traffic at VTM
         return True
