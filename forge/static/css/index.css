@@ -45,3 +45,8 @@ section.aui-page-panel-content img {
 #descriptionPanel code {
     background-color: #F4F5F7;
 }
+
+.aui-dropdown2 {
+    max-height:250px;
+    overflow:scroll;
+}
