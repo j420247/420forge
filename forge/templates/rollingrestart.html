@@ -1,16 +1,9 @@
-{% extends "page-content.html" %}
-{% block head %}
-    {{ super() }}
-    <script src="{{ get_filename_with_last_update_time('rebuild.js') }}"></script>
-{% endblock head %}
+{% extends "restart.html" %}
+    {% block head %}
+        {{ super() }}
+        <script src="{{ get_filename_with_last_update_time('restart.js') }}"></script>
+    {% endblock head %}
     {% block descriptionPanel %}
-    Destroy and rebuild all nodes in the cluster, one at a time.
-    <br />
-    <div id="rebuildSingleNodeWarning" class="aui-message aui-message-error">
-        <p class="title">
-            <strong>Warning!</strong>
-        </p>
-        <p>This action will result in downtime for stacks containing a single node.</p>
-    </div>
+        Restart all nodes in the cluster one by one. This can only be run on stacks with more than one node in the cluster, and will not result in downtime.
     {% endblock descriptionPanel %}
-{% block buttonText %}Rolling Rebuild{% endblock buttonText %}
+{% block buttonText %}Rolling Restart{% endblock buttonText %}
