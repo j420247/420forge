@@ -72,7 +72,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownAnchor.setAttribute("aria-haspopup", "true");
     dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
     dropdownAnchor.id = parameterKey + "Val";
-    if (defaultValue.length !== 0)
+    if (defaultValue && defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
         dropdownAnchor.text = 'Select';
