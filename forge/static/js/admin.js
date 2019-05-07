@@ -150,10 +150,10 @@ function selectTemplateRepo(template_repo) {
   $("#commitsDifference").html("Commit Difference to Origin: ");
   $("#gitUpdateMessage").html("");
 
-  updateTemplateRepoInfo(template_repo);
+  updateRepoInfo(template_repo);
 }
 
-function updateTemplateRepoInfo(template_repo) {
+function updateRepoInfo(template_repo) {
   // request template repo info
   send_http_get_request(baseUrl + "/getGitBranch/" + template_repo,
     displayBranch);
@@ -165,7 +165,12 @@ function updateTemplates() {
   var template_repo = document.getElementById("templateRepoSelector").text;
   send_http_get_request(baseUrl + "/gitPull/" + template_repo,
     displayGitUpdateMessage);
-  updateTemplateRepoInfo(template_repo);
+  updateRepoInfo(template_repo);
+}
+
+function updateUpdateButton(text, color = '#0052cc') {
+  $("#updateTemplatesBtn").html(text);
+  $("#updateTemplatesBtn").css('background-color', color);
 }
 
 function displayBranch(responseText) {
@@ -199,5 +204,5 @@ function displayGitUpdateMessage(responseText) {
   var gitUpdateMessage = JSON.parse(responseText).split(',');
   $("#gitUpdateMessage").html(gitUpdateMessage);
   $("#gitUpdateMessage").show();
-  updateTemplateRepoInfo(document.getElementById("templateRepoSelector").text);
+  updateRepoInfo(document.getElementById("templateRepoSelector").text);
 }
