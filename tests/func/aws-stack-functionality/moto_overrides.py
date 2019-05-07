@@ -1,9 +1,11 @@
+import re
+
+from boto.cloudformation.stack import Output
 from moto.cloudformation.parsing import clean_json
 from moto.core.exceptions import RESTError
 from moto.elbv2.exceptions import InvalidTargetGroupNameError, DuplicateTargetGroupName, InvalidConditionValueError
 from moto.elbv2.models import FakeTargetGroup
 from moto.elbv2.utils import make_arn_for_target_group
-import re
 
 
 # cloudformation parsing.py

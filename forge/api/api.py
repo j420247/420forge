@@ -1,5 +1,6 @@
-from flask import Blueprint, current_app
+from flask import Blueprint
 from flask_restful import Api
+
 from forge.acforge import *
 
 api_blueprint = Blueprint('api', __name__)

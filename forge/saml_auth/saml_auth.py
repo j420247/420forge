@@ -1,13 +1,14 @@
-from flask import session, request, Blueprint, current_app
-from flask_restful import Resource
-import flask_saml
-from werkzeug.middleware.proxy_fix import ProxyFix
-import sys
-from flask_sqlalchemy import SQLAlchemy
-from flask_sessionstore import Session
-from os import path, getenv
 import json
 import logging
+import sys
+from os import path, getenv
+
+import flask_saml
+from flask import session, request, Blueprint, current_app
+from flask_restful import Resource
+from flask_sessionstore import Session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 saml_blueprint = Blueprint('saml_auth', __name__)
 

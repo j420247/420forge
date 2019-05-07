@@ -1,5 +1,6 @@
-from forge.aws_cfn_stack.stack import Stack
 from pprint import pprint
+
+from forge.aws_cfn_stack.stack import Stack
 
 stack_region = 'us-east-1'
 app_type = 'confluence'
