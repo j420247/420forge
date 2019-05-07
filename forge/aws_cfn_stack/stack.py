@@ -1,20 +1,20 @@
-from flask import Blueprint, current_app
-import boto3
-import botocore
-import time
-import requests
-from pathlib import Path
-from logging import INFO, WARN, ERROR, getLevelName
+import errno
+import itertools
+import json
 import logging
 import os
+import time
 from datetime import datetime
-import itertools
-import errno
-import json
-from requests_toolbelt.sessions import BaseUrlSession
+from logging import INFO, WARN, ERROR, getLevelName
+from pathlib import Path
+
+import boto3
+import botocore
+import requests
 from botocore.exceptions import ClientError
+from flask import Blueprint, current_app
+from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
-import logging
 
 
 def version_tuple(version):

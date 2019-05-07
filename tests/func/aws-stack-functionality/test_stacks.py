@@ -1,13 +1,15 @@
-import boto3
-from flask import Flask
-import forge.aws_cfn_stack.stack as aws_stack
 import inspect
-import mock
-import moto
-import moto_overrides
 import os
 from pathlib import Path
 from unittest.mock import MagicMock
+
+import boto3
+import mock
+import moto
+import moto_overrides
+from flask import Flask
+
+import forge.aws_cfn_stack.stack as aws_stack
 
 CONF_STACKNAME = 'my-confluence'
 REGION = 'us-east-1'

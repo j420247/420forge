@@ -1,6 +1,7 @@
+from pprint import pprint
+
 from behave import given, when, then
 from bs4 import BeautifulSoup
-from pprint import pprint
 
 
 @given(u'acforge is set up')
