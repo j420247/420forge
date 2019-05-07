@@ -171,7 +171,7 @@ class Stack:
         stack_state = self.check_stack_state()
         if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
             return True
-        while stack_state in (in_progress_state, 'throttled'):
+        while 'IN_PROGRESS' in stack_state or stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
