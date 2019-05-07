@@ -266,7 +266,7 @@ function displaySubnets(responseText, functionParams) {
   if (action === "update") {
     $("#ExternalSubnetsVal").val(externalSubnets);
     $("#InternalSubnetsVal").val(internalSubnets);
-  } else {
+  } else if ($("#VPCVal")[0].innerText.trim() !== 'Select') {
     selectDefaultSubnets($("#VPCVal")[0].innerText.trim())
   }
 }
@@ -275,8 +275,10 @@ function selectDefaultSubnets(vpc) {
   // get defaults for the vpc
   var default_subnets = JSON.parse($("meta[name=default_subnets]").attr("value")
     .replace(/'/g, "").substr(1));
-  $("#ExternalSubnetsVal").val(default_subnets[vpc]['external'].split(","));
-  $("#InternalSubnetsVal").val(default_subnets[vpc]['internal'].split(","));
+  if (vpc in default_subnets) {
+      $("#ExternalSubnetsVal").val(default_subnets[vpc]['external'].split(","));
+      $("#InternalSubnetsVal").val(default_subnets[vpc]['internal'].split(","));
+  }
 }
 
 function sendParamsAsJson() {
