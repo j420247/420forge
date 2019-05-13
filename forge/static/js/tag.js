@@ -10,6 +10,7 @@ function onReady() {
             var stack_name = data.target.text;
             selectStack(stack_name);
             getTags(stack_name);
+            enableActionButton();
         }, false);
     }
 

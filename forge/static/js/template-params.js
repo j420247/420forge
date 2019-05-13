@@ -10,6 +10,7 @@ function readyTheTemplate() {
       stack_name = data.target.text;
       $("#aui-message-bar").hide();
       selectStack(stack_name);
+      disableActionButton();
     }, false);
   }
 
@@ -86,7 +87,7 @@ function displayTemplateParams(responseText) {
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
   $("#stack-name-input").show();
-  $("#action-button").attr("aria-disabled", false);
+  enableActionButton();
 }
 
 function selectTemplateForStack(stackToRetrieve, templateName) {
@@ -156,7 +157,7 @@ function displayStackParams(responseText) {
   if (document.getElementById("clone-params"))
     $("#clone-params").show();
   $("#paramsForm").show();
-  $("#action-button").attr("aria-disabled", false);
+  enableActionButton();
 }
 
 function getSnapshots(clone_region, stackToRetrieve) {
