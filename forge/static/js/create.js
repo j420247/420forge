@@ -16,5 +16,5 @@ function resetForm() {
     $("#templateSelector").text('Select Template');
     $("#stack-name-input").hide();
     $("#paramsList").html("");
-    $("#action-button").attr("aria-disabled", true);
+    disableActionButton();
 }
