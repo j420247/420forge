@@ -786,7 +786,12 @@ class Stack:
             return False
         self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
-        self.get_pre_upgrade_information()
+        # get product
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Upgrade complete - failed')
+            return False
+        self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # set upgrade mode on
