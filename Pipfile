@@ -22,11 +22,12 @@ gitpython = "*"
 gunicorn = "*"
 migrate = "*"
 moto = "*"
+pytest = "*"
 python-dotenv = "*"
 requests = "*"
 requests-toolbelt = "*"
 retry = "*"
-pytest = "*"
+tenacity="*"
 
 [dev-packages]
 

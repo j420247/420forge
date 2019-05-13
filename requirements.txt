@@ -15,4 +15,5 @@ requests
 requests-toolbelt
 retry
 ruamel.yaml
+tenacity
 werkzeug==0.15.2
