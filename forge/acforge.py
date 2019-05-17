@@ -146,7 +146,7 @@ class DoUpdate(RestrictedResource):
         params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
         env_param = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
         if not env_param:
-            log.warning('Stack is not tagged with environment, assuming production')
+            log.warning('Stack is not tagged with environment, assuming prod')
         else:
             env = env_param['Value']
             if env == 'stg' or env == 'dr':
@@ -631,17 +631,6 @@ class GetSubnetsForVpc(Resource):
         for subnet in sorted_subnets:
             subnet_ids.append(subnet['SubnetId'])
         return subnet_ids
-        # for later
-        # subnets_dict = {}
-        # sorted_subnets = sorted(subnets['Subnets'], key=lambda subnet: subnet['AvailabilityZone'])
-        # for subnet in sorted_subnets:
-        #     if 'Tags' in subnet:
-        #         name_tag = next((tag for tag in subnet['Tags'] if tag['Key'] == 'Name'), None)
-        #         subnets_dict[subnet['SubnetId']] = name_tag['Value'] if name_tag else ''
-        #     else:
-        #         subnets_dict[subnet['SubnetId']] = ''
-        # return subnets_dict
-
 
 
 class GetAllSubnetsForRegion(Resource):
