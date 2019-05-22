@@ -280,7 +280,6 @@ Resources:
                 - kms:ReEncrypt*
                 - kms:ScheduleKeyDeletion
                 - kms:TagResource
-                - kms:UpdateKey
                 - rds:CreateDBInstance
                 - rds:CreateDBInstanceReadReplica
                 - rds:CreateDBSubnetGroup
