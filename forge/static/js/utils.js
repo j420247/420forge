@@ -72,7 +72,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownAnchor.setAttribute("aria-haspopup", "true");
     dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
     dropdownAnchor.id = parameterKey + "Val";
-    if (defaultValue.length !== 0)
+    if (defaultValue && defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
         dropdownAnchor.text = 'Select';
@@ -208,6 +208,7 @@ function addStackDropdown() {
     for (var i = 0; i < stacks.length; i++) {
         stacks[i].addEventListener("click", function (data) {
             selectStack(data.target.text);
+            enableActionButton();
         }, false);
     }
 }
@@ -218,6 +219,13 @@ function addDefaultActionButtonListener() {
         actionButton.addEventListener("click", performAction);
 }
 
+function enableActionButton() {
+    $("#action-button").attr("aria-disabled", false);
+}
+
+function disableActionButton() {
+    $("#action-button").attr("aria-disabled", true);
+}
 // Forge common functions
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");

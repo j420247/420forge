@@ -6,6 +6,7 @@ function onReady() {
             selectStack(stack_name);
             $("#takeThreadDumps").removeAttr("disabled");
             $("#takeHeapDumps").removeAttr("disabled");
+            enableActionButton();
         }, false);
     }
 

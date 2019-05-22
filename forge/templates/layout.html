@@ -9,7 +9,7 @@
         <meta name="hosted_zone" value={{ session['hosted_zone'] }}>
         <meta name="ssh_key_name" value={{ session['ssh_key_name'] }}>
 
-        <link rel="stylesheet" href="/static/css/index.css">
+        <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
         {#    AUI    #}
         <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
@@ -21,8 +21,8 @@
         <script src="/static/aui/js/aui.min.js"></script>
         <script src="/static/aui/js/aui-experimental.min.js"></script>
         <script src="/static/aui/js/aui-soy.min.js"></script>
-        <script src="{{ get_filename_with_last_update_time('page-content.js') }}"></script>
-        <script src="{{ get_filename_with_last_update_time('utils.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/page-content.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/utils.js') }}"></script>
 
         <title>Atlassian Cloudformation Forge</title>
         {% block head %}

@@ -159,9 +159,8 @@ def getparms(action):
 # function to get last modified time of JS files to automatically invalidate them when updated
 @main.context_processor
 def utility_processor():
-    def get_filename_with_last_update_time(js_file):
-        js_file_with_path = f'static/js/{js_file}'
-        mtime = str(path.getmtime(path.join(current_app.root_path, js_file_with_path)))
-        return f"/{js_file_with_path}?v={mtime}"
+    def get_filename_with_last_update_time(file_with_path):
+        mtime = str(path.getmtime(path.join(current_app.root_path, file_with_path)))
+        return f"/{file_with_path}?v={mtime}"
 
     return dict(get_filename_with_last_update_time=get_filename_with_last_update_time)

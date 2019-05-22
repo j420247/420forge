@@ -19,7 +19,7 @@ function onReady() {
     $("#stackInformation").hide();
     $("#lock-state").hide();
     $("#unlock-warning").hide();
-    $("#action-button").attr("aria-disabled", true);
+    disableActionButton();
 
     var url = baseUrl + "/clearActionInProgress/" + region + "/" + document
       .getElementById("lockedStackSelector").text;
@@ -31,7 +31,7 @@ function onReady() {
     document.getElementById("lockedStackSelector").text = stackToAdmin;
     selectStack(stackToAdmin);
     getStackActionInProgress(stackToAdmin);
-    $("#action-button").attr("aria-disabled", true);
+    disableActionButton();
   }
 
   var updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
@@ -68,6 +68,7 @@ function createLockedStacksDropdown(responseText) {
       document.getElementById("lockedStackSelector").text = locked_stack;
       selectStack(locked_stack);
       getStackActionInProgress(locked_stack);
+      enableActionButton();
     }, false);
   }
   lockedStacksDropdown.appendChild(ul);
@@ -89,7 +90,7 @@ function updateActionInProgressAdminPage(responseText) {
   $("#lock-state").show();
   if (countOccurences(actionInProgress.toLowerCase(), 'none') === 0) {
     $("#unlock-warning").show();
-    $("#action-button").attr("aria-disabled", false);
+    enableActionButton();
   }
 }
 
