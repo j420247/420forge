@@ -166,11 +166,11 @@ function updateRepoInfo(template_repo) {
 
 function updateTemplates() {
   var template_repo = document.getElementById("templateRepoSelector").text;
-  send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/forge",
+  send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
     displayGitUpdateMessage);
   updateRepoInfo(template_repo);
   if ( document.getElementById("templateRepoSelector").text == "Update &amp; Restart Forge" ) {
-    send_http_get_request(baseUrl + "/doForgeRestart/forge", console.log("restarting forge..."));
+    send_http_get_request(baseUrl + "/doForgeRestart/__forge__", console.log("restarting forge..."));
   }
 }
 
