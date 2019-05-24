@@ -1,18 +1,19 @@
 # imports
-import boto3
-import botocore
-import git
 import glob
 import json
 import logging
 import re
 from datetime import datetime
-from flask import request, session, current_app
-from flask_restful import Resource
 from logging import ERROR
 from os import getenv, getppid, system
 from os.path import dirname
 from pathlib import Path
+
+import boto3
+import botocore
+import git
+from flask import request, session, current_app
+from flask_restful import Resource
 from ruamel import yaml
 
 from forge.aws_cfn_stack.stack import Stack
@@ -373,8 +374,8 @@ class GetGitCommitDifference(Resource):
         return get_git_commit_difference(repo)
 
 
-class GitPull(Resource):
-    def get(self, template_repo):
+class DoGitPull(RestrictedResource):
+    def get(self, template_repo, stack_name):
         if template_repo == 'Forge (requires restart)':
             repo = git.Repo(Path(dirname(current_app.root_path)))
             result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
@@ -696,12 +697,10 @@ class ForgeStatus(Resource):
         return {'state': 'RUNNING'}
 
 
-class DoForgeRestart(Resource):
-    def get(self, confirm):
-        if confirm:
-            restart_forge()
-        else:
-            return 'Confirmation was not provided, not restarting'
+class DoForgeRestart(RestrictedResource):
+    def get(self, stack_name):
+        logging.warning("Forge restart has been triggered")
+        restart_forge()
 
 ##
 #### Common functions
