@@ -1,19 +1,18 @@
 # imports
+import boto3
+import botocore
+import git
 import glob
 import json
 import logging
 import re
 from datetime import datetime
+from flask import request, session, current_app
+from flask_restful import Resource
 from logging import ERROR
 from os import getenv, getppid, system
 from os.path import dirname
 from pathlib import Path
-
-import boto3
-import botocore
-import git
-from flask import request, session, current_app
-from flask_restful import Resource
 from ruamel import yaml
 
 from forge.aws_cfn_stack.stack import Stack
@@ -352,7 +351,7 @@ class GetSysLogs(Resource):
 
 class GetGitBranch(Resource):
     def get(self, template_repo):
-        if template_repo == '__forge__':
+        if template_repo == 'Forge (requires restart)':
             repo = git.Repo(Path(dirname(current_app.root_path)))
         else:
             if template_repo != 'atlassian-aws-deployment':
@@ -363,7 +362,7 @@ class GetGitBranch(Resource):
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
-        if template_repo == '__forge__':
+        if template_repo == 'Forge (requires restart)':
             repo = git.Repo(Path(dirname(current_app.root_path)))
         else:
             if template_repo != 'atlassian-aws-deployment':
@@ -376,7 +375,7 @@ class GetGitCommitDifference(Resource):
 
 class GitPull(Resource):
     def get(self, template_repo):
-        if template_repo == '__forge__':
+        if template_repo == 'Forge (requires restart)':
             repo = git.Repo(Path(dirname(current_app.root_path)))
             result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
@@ -390,7 +389,7 @@ class GitPull(Resource):
 
 class GitRevision(Resource):
     def get(self, template_repo):
-        if template_repo == '__forge__':
+        if template_repo == 'Forge (requires restart)':
             repo = git.Repo(Path(dirname(current_app.root_path)))
         else:
             if template_repo != 'atlassian-aws-deployment':
@@ -676,7 +675,7 @@ class GetLockedStacks(Resource):
 
 class GetTemplateRepos(Resource):
     def get(self):
-        repos = ['atlassian-aws-deployment', '__forge__']
+        repos = ['atlassian-aws-deployment', 'Forge (requires restart)']
         custom_template_folder = Path('custom-templates')
         if custom_template_folder.exists():
             for directory in glob.glob(f'{custom_template_folder}/*'):

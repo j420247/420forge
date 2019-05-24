@@ -142,6 +142,7 @@ function createTemplatesDropdown(responseText) {
 
 
 function selectTemplateRepo(template_repo) {
+  updateUpdateButton("Update", "#F4F5F7", true)
   $("#templateRepoSelector").text(template_repo);
   $("#templateRepoName").text(template_repo);
   $("#templateRepoInformation").parent().show();
@@ -155,6 +156,7 @@ function selectTemplateRepo(template_repo) {
 }
 
 function updateRepoInfo(template_repo) {
+  $("#commitsDifference").html("<aui-spinner size=\"small\"></aui-spinner>")
   // request template repo info
   send_http_get_request(baseUrl + "/getGitBranch/" + template_repo,
     displayBranch);
@@ -169,9 +171,11 @@ function updateTemplates() {
   updateRepoInfo(template_repo);
 }
 
-function updateUpdateButton(text, color = '#0052cc') {
+function updateUpdateButton(text, color = '#0052cc', disabled = true) {
   $("#updateTemplatesBtn").html(text);
   $("#updateTemplatesBtn").css('background-color', color);
+  $("#updateTemplatesBtn").attr("aria-disabled", disabled);
+  $("#updateTemplatesBtn").attr("disabled", disabled);
 }
 
 function displayBranch(responseText) {
@@ -193,10 +197,19 @@ function displayCommitDifference(responseText) {
     "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>" +
     commitsAhead);
   $(".commit-tooltip").tooltip();
+  var buttonText = "Update";
+  var buttonColor = "#0052CC";
+  if ( document.getElementById("templateRepoSelector").text == "Forge (requires restart)" ) {
+    buttonText = "Update &amp; Restart Forge";
+    buttonColor = "#BF2600";
+  }
+
   if (commitsBehind > 0 || commitsAhead > 0) {
-    $("#updateTemplatesBtn").attr("aria-disabled", false);
+    updateUpdateButton(buttonText, buttonColor, false)
+    // $("#updateTemplatesBtn").attr("aria-disabled", false);
   } else {
-    $("#updateTemplatesBtn").attr("aria-disabled", true);
+    updateUpdateButton(buttonText, "#F4F5F7", true)
+    // $("#updateTemplatesBtn").attr("aria-disabled", true);
   }
 
 }
