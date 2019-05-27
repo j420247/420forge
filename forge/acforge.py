@@ -12,6 +12,7 @@ from pathlib import Path
 import boto3
 import botocore
 import git
+import psutil
 from flask import request, session, current_app
 from flask_restful import Resource
 from ruamel import yaml
@@ -702,6 +703,7 @@ class DoForgeRestart(RestrictedResource):
         logging.warning("Forge restart has been triggered")
         restart_forge()
 
+
 ##
 #### Common functions
 ##
@@ -797,8 +799,12 @@ def stack_locking_enabled():
 
 def restart_forge():
     # get the parent process ID (the gunicorn master, not the worker)
-    log.warning('Forge restarting via admin function')
-    system(f'kill -HUP {getppid()}')
+    log.warning(f'Forge restarting via admin function on pid {getppid()}')
+    process = psutil.Process(getppid())
+    if 'gunicorn' in str(process.cmdline()):
+        system(f'kill -HUP {getppid()}')
+    else:
+        logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
 
 
 def get_forge_settings():
