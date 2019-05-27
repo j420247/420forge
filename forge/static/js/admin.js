@@ -169,7 +169,7 @@ function updateTemplates() {
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
     displayGitUpdateMessage);
   updateRepoInfo(template_repo);
-  if ( document.getElementById("templateRepoSelector").text == "Update &amp; Restart Forge" ) {
+  if ( document.getElementById("templateRepoSelector").text == "Forge (requires restart)" ) {
     send_http_get_request(baseUrl + "/doForgeRestart/__forge__", console.log("restarting forge..."));
   }
 }
