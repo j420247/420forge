@@ -8,7 +8,6 @@ function onReady() {
             $("#regionSelector").text(clone_region);
             $("#ebsSnapshotSelector").text("Select EBS snapshot");
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            $("#KmsKeyArnVal").val("");
             getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
             getVPCs(clone_region);
         }, false);
