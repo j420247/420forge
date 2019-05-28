@@ -1,19 +1,20 @@
-from flask import Flask
+import logging
+import os
+from logging.handlers import RotatingFileHandler
+from os import getenv
+
 import boto3
 import botocore
-from forge.version import __version__
-from forge.config import config
-from logging.handlers import RotatingFileHandler
-import logging
 from dotenv import load_dotenv
-import os
-from os import getenv
+from flask import Flask
 
 # Import Blueprints
 from forge.api import api_blueprint
 from forge.aws_cfn_stack import aws_cfn_stack_blueprint
+from forge.config import config
 from forge.main import main as main_blueprint
 from forge.saml_auth import saml_blueprint, saml_auth
+from forge.version import __version__
 
 log = logging.getLogger('app_log')
 

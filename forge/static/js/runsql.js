@@ -7,6 +7,7 @@ function onReady() {
         stacks[i].addEventListener("click", function (data) {
             $("#log").css("background", "rgba(0,20,70,.08)");
             selectStack(data.target.text);
+            enableActionButton();
             send_http_get_request(baseUrl + "/getsql/" + region + "/" + data.target.text, displaySQL);
         });
     }

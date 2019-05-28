@@ -17,8 +17,6 @@ function selectStack(stack_name) {
   $("#currentVersion").html("Current version: ");
   $("#nodes").html("");
 
-  $("#action-button").attr("aria-disabled", false);
-
   updateStackInfo(stack_name);
 }
 

@@ -51,7 +51,7 @@ function displayZDUCompatibility(responseText) {
     } else {
         $("#zduCheckLbl").text("Stack is not ZDU compatible: " + compatibility);
     }
-    $("#action-button").removeAttr("aria-disabled");
+    enableActionButton();
 }
 
 function beginUpgrade() {

@@ -11,6 +11,7 @@ function onReady() {
             $("#heapDumpBtn").attr("aria-disabled", false);
             $("#heapDumpBtn").removeAttr("disabled");
             selectStack(data.target.text);
+            enableActionButton();
         }, false);
     }
 }

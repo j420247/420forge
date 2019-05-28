@@ -10,6 +10,7 @@ function readyTheTemplate() {
       stack_name = data.target.text;
       $("#aui-message-bar").hide();
       selectStack(stack_name);
+      disableActionButton();
     }, false);
   }
 
@@ -86,7 +87,7 @@ function displayTemplateParams(responseText) {
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
   $("#stack-name-input").show();
-  $("#action-button").attr("aria-disabled", false);
+  enableActionButton();
 }
 
 function selectTemplateForStack(stackToRetrieve, templateName) {
@@ -156,7 +157,7 @@ function displayStackParams(responseText) {
   if (document.getElementById("clone-params"))
     $("#clone-params").show();
   $("#paramsForm").show();
-  $("#action-button").attr("aria-disabled", false);
+  enableActionButton();
 }
 
 function getSnapshots(clone_region, stackToRetrieve) {
@@ -266,7 +267,7 @@ function displaySubnets(responseText, functionParams) {
   if (action === "update") {
     $("#ExternalSubnetsVal").val(externalSubnets);
     $("#InternalSubnetsVal").val(internalSubnets);
-  } else {
+  } else if ($("#VPCVal")[0].innerText.trim() !== 'Select') {
     selectDefaultSubnets($("#VPCVal")[0].innerText.trim())
   }
 }
@@ -275,8 +276,10 @@ function selectDefaultSubnets(vpc) {
   // get defaults for the vpc
   var default_subnets = JSON.parse($("meta[name=default_subnets]").attr("value")
     .replace(/'/g, "").substr(1));
-  $("#ExternalSubnetsVal").val(default_subnets[vpc]['external'].split(","));
-  $("#InternalSubnetsVal").val(default_subnets[vpc]['internal'].split(","));
+  if (vpc in default_subnets) {
+      $("#ExternalSubnetsVal").val(default_subnets[vpc]['external'].split(","));
+      $("#InternalSubnetsVal").val(default_subnets[vpc]['internal'].split(","));
+  }
 }
 
 function sendParamsAsJson() {

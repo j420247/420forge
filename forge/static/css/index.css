@@ -48,3 +48,7 @@ section.aui-page-panel-content img {
 #modal-dialog {
     height: inherit;
 }
+.aui-dropdown2 {
+    max-height:250px;
+    overflow:scroll;
+}

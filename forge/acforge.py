@@ -1,24 +1,24 @@
 # imports
+import glob
+import json
+import logging
+import re
 from datetime import datetime
-from forge.aws_cfn_stack.stack import Stack
-from flask import Flask, request, session, current_app
-from flask_restful import Resource
-from ruamel import yaml
+from logging import ERROR
+from os import getenv
 from pathlib import Path
 
-from logging import ERROR
-import logging
 import boto3
 import botocore
-from forge.version import __version__
-import glob
-from forge.saml_auth.saml_auth import RestrictedResource
-import json
-import re
+from flask import request, session, current_app
+from flask_restful import Resource
 from git import Repo
-from os import getenv
 from retry import retry
+from ruamel import yaml
 
+from forge.aws_cfn_stack.stack import Stack
+from forge.saml_auth.saml_auth import RestrictedResource
+from forge.version import __version__
 
 ##
 #### REST Endpoint classes
@@ -109,9 +109,10 @@ class DoUpdate(RestrictedResource):
             existing_template_params = cfn_resource.Stack(stack_name).parameters
         except Exception as e:
             if e.response and "does not exist" in e.response['Error']['Message']:
-                print(f'Stack {stack_name} does not exist')
+                log.error(f'Stack {stack_name} does not exist')
                 return f'Stack {stack_name} does not exist'
             log.exception('Error occurred getting stack parameters for update')
+            return False
         template_name = next(param for param in new_params if param['ParameterKey'] == 'TemplateName')['ParameterValue']
         for param in new_params:
             # if param was not in previous template, always pass it in the change set
@@ -144,12 +145,16 @@ class DoUpdate(RestrictedResource):
                 else:
                     param['ParameterValue'] = ','.join(subnets_to_send)
         params_for_update = [param for param in new_params if (param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName')]
-        env = next(tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment')['Value']
-        if env == 'stg' or env == 'dr':
-            if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
-                params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-            if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
-                params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
+        env_param = next((tag for tag in stack_details['Stacks'][0]['Tags'] if tag['Key'] == 'environment'), None)
+        if not env_param:
+            log.warning('Stack is not tagged with environment, assuming prod')
+        else:
+            env = env_param['Value']
+            if env == 'stg' or env == 'dr':
+                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+                    params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
+                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+                    params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
         outcome = mystack.update(params_for_update, get_template_file(template_name))
         mystack.clear_current_action()
         return outcome

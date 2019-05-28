@@ -1,20 +1,21 @@
-from flask import Blueprint, current_app
-import boto3
-import botocore
-import time
-import requests
-from pathlib import Path
-from logging import INFO, WARN, ERROR, getLevelName
+import errno
+import itertools
+import json
 import logging
 import os
+import time
 from datetime import datetime
-import itertools
-import errno
-import json
-from requests_toolbelt.sessions import BaseUrlSession
+from logging import INFO, WARN, ERROR, DEBUG, getLevelName
+from pathlib import Path
+
+import boto3
+import botocore
+import requests
+import tenacity
 from botocore.exceptions import ClientError
+from flask import Blueprint, current_app
+from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
-import logging
 
 
 def version_tuple(version):
@@ -48,6 +49,10 @@ class Stack:
         self.changelogfile = None
 
     ## Stack - micro function methods
+    @tenacity.retry(wait=tenacity.wait_exponential(),
+                    stop=tenacity.stop_after_attempt(5),
+                    retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
+                    before=tenacity.after_log(log, DEBUG))
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
@@ -55,12 +60,19 @@ class Stack:
             try:
                 cfn = boto3.client('cloudformation', region_name=self.region)
                 stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                service_url = [p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if p['OutputKey'] == 'ServiceURL'][0] + '/'
+                product = self.get_tag('product')
+                service_url = f"{[p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if p['OutputKey'] == 'ServiceURL'][0]}/"
+                if product == 'crowd':
+                    service_url = f'{service_url}{product}/'
                 self.service_url = service_url
-                return service_url
+                return True
+            except botocore.exceptions.ClientError as e:
+                # log and allow tenacity to retry
+                self.log_msg(ERROR, f'ClientError received during get_service_url. Request will be retried a maximum of 5 times. Exception is: {e}')
+                raise
             except Exception as e:
-                logging.exception('Error checking service status')
-                return f'Error checking service status: {e}'
+                log.exception(f'Exception occurred during get_service_url: {e}')
+                return False
 
     def getparms(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
@@ -171,7 +183,7 @@ class Stack:
         stack_state = self.check_stack_state()
         if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
             return True
-        while stack_state in (in_progress_state, 'throttled'):
+        while 'IN_PROGRESS' in stack_state or stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
@@ -220,7 +232,11 @@ class Stack:
         return True
 
     def check_service_status(self, logMsgs=True):
-        self.get_service_url()
+        try:
+            if not self.get_service_url():
+                return 'Timed Out'
+        except tenacity.RetryError:
+            return 'Timed Out'
         if logMsgs:
             self.log_msg(INFO, f' ==> checking service status at {self.service_url}status')
         try:
@@ -759,7 +775,15 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
-        self.get_service_url()
+        try:
+            if not self.get_service_url():
+                self.log_msg(ERROR, 'Upgrade complete - failed')
+                self.log_change('Upgrade failed - could not get service_url')
+                return False
+        except tenacity.RetryError:
+            self.log_msg(ERROR, 'Upgrade complete - failed')
+            self.log_change('Upgrade failed - could not get service_url')
+            return False
         self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
         self.get_pre_upgrade_information()
