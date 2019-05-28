@@ -777,6 +777,11 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
+        # get product
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Upgrade complete - failed')
+            return False
         try:
             if not self.get_service_url():
                 self.log_msg(ERROR, 'Upgrade complete - failed')
@@ -788,7 +793,7 @@ class Stack:
             return False
         self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
-        self.get_pre_upgrade_information()
+        self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # set upgrade mode on
