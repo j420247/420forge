@@ -301,6 +301,12 @@ class DoTag(RestrictedResource):
             return False
         try:
             outcome = mystack.tag(tags)
+            try:
+                asg_outcome = mystack.tag_instances(tags)
+            except Exception as e:
+                log.exception('Error occurred tagging existing ASG resources')
+                mystack.log_msg(ERROR, f'Error occurred tagging existing ASG resources: {e}')
+                # keep going
         except Exception as e:
             log.exception('Error occurred tagging stack')
             mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}')
@@ -326,8 +332,7 @@ class DoCreate(RestrictedResource):
         mystack = Stack(stack_name, session['region'] if 'region' in session else '')
         if not mystack.store_current_action('create', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
-        params_for_create = [param for param in content
-                             if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName' and param['ParameterKey'] != 'Product']
+        params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName' and param['ParameterKey'] != 'Product']
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         outcome = mystack.create(params_for_create, get_template_file(template_name), app_type, clustered, creator, session['region'])

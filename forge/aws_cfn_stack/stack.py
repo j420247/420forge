@@ -49,10 +49,12 @@ class Stack:
         self.changelogfile = None
 
     ## Stack - micro function methods
-    @tenacity.retry(wait=tenacity.wait_exponential(),
-                    stop=tenacity.stop_after_attempt(5),
-                    retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
-                    before=tenacity.after_log(log, DEBUG))
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(),
+        stop=tenacity.stop_after_attempt(5),
+        retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
+        before=tenacity.after_log(log, DEBUG),
+    )
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
@@ -1182,6 +1184,30 @@ class Stack:
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             self.log_msg(INFO, 'Tag complete')
             self.log_change('Tag complete')
+            return True
+        return False
+
+    def tag_instances(self, tags):
+        self.log_msg(INFO, 'Tagging ASG Compute Nodes')
+        self.log_change('Tagging ASG Compute Nodes')
+        params = self.get_parms_for_update()
+        self.log_change(f'Parameters for update: {params}')
+        instance_list = []
+        for x in self.get_stacknodes():
+            instance_list.extend(x.keys())
+        try:
+            print(instance_list)
+            ec2 = boto3.client('ec2', region_name=self.region)
+            ec2.create_tags(Resources=instance_list, Tags=tags)
+            self.log_msg(INFO, f'Tagging ASG Compute Nodes successfully initiated')
+        except Exception as e:
+            log.exception('An error occurred tagging ASG Compute Nodes')
+            self.log_msg(ERROR, f'An error occurred tagging ASG Compute Nodes: {e}')
+            self.log_change(f'An error occurred tagging ASG Compute Nodes: {e}')
+            return False
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(INFO, 'Tag of ASG Compute Nodes complete')
+            self.log_change('Tag of ASG Compute Nodes complete')
             return True
         return False
 
