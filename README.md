@@ -148,3 +148,6 @@ Used for configuring SAML permissions by AD group, AWS region, CloudFormation st
 
 
 [1]: https://bit.ly/2PRfJRk
+
+##### pre-commit hooks
+run `pre-commit install` within your dev environment to have our pre-commit checks automatically added to your local git repo.
