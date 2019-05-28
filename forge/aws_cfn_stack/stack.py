@@ -49,10 +49,12 @@ class Stack:
         self.changelogfile = None
 
     ## Stack - micro function methods
-    @tenacity.retry(wait=tenacity.wait_exponential(),
-                    stop=tenacity.stop_after_attempt(5),
-                    retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
-                    before=tenacity.after_log(log, DEBUG))
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(),
+        stop=tenacity.stop_after_attempt(5),
+        retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
+        before=tenacity.after_log(log, DEBUG),
+    )
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
@@ -79,7 +81,7 @@ class Stack:
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
             params = stack_details['Stacks'][0]['Parameters']
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             logging.exception('Error getting stack parameters')
             return False
         return params
@@ -253,7 +255,7 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
                 self.log_msg(INFO, f'Service status check timed out')
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log.exception(f'Error checking service status: {service_status}')
             if logMsgs:
                 self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty')
@@ -296,7 +298,7 @@ class Stack:
             if logMsgs:
                 self.log_msg(INFO, f' ==> node status is: {status}')
             return status
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as e:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout):
             if logMsgs:
                 self.log_msg(INFO, f'Node status check timed out')
         except Exception as e:
@@ -623,7 +625,7 @@ class Stack:
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode enabled')
             return True
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             log.exception('Could not enable ZDU mode')
             self.log_msg(ERROR, f'Could not enable ZDU mode: {e}')
         except Exception as e:
@@ -642,7 +644,7 @@ class Stack:
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode cancelled')
             return True
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             log.exception('Could not cancel ZDU mode')
             self.log_msg(ERROR, f'Could not cancel ZDU mode: {e}')
         except Exception as e:
