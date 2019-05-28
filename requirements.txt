@@ -1,4 +1,5 @@
 behave
+black
 boto3
 flask
 flask_restful
@@ -9,6 +10,7 @@ gevent
 gitpython
 gunicorn
 moto
+pre-commit
 pytest
 python-dotenv
 requests
