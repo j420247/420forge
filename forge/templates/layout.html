@@ -64,11 +64,13 @@
                     </ul>
                 </div>
                 {%if session['saml'] %}
+                    <script src="{{ get_filename_with_last_update_time('static/js/gravatar.js') }}"></script>
+                    <script>let UserEmail = "{{ session['saml']['attributes']['User.Email'][0] }}"; </script>
                 <div class="aui-header-secondary">
                     <ul class="aui-nav">
                         <li class="user-dropdown">
                             <a href="#user-nav1" aria-owns="user-nav1" aria-haspopup="true" class="aui-dropdown2-trigger aui-dropdown2-trigger">
-                                <span class="aui-avatar aui-avatar-small"><img src="https://rps-bucket-prod-east.s3.amazonaws.com/directory-services/directory-avatar/256x256/{{ session['saml']['attributes']['User.Email'][0].split("@")[0] }}.png" /></span>
+                                <span class="aui-avatar aui-avatar-small"><img id="avatar-small" src="" /></span>
                             </a>
                             <!-- Dropdown -->
                             <div id="user-nav1" class="aui-dropdown2 aui-style-default aui-dropdown2-in-header" data-dropdown2-alignment="right">
