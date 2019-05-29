@@ -75,7 +75,7 @@ class BaseConfig(object):
     STACK_LOCKING = False
 
     # disable SAML by default
-    NO_SAML = False
+    NO_SAML = True
 
 
 class DevelopmentConfig(BaseConfig):
