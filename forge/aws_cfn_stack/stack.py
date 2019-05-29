@@ -11,6 +11,8 @@ from pathlib import Path
 import boto3
 import botocore
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 import tenacity
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app
@@ -280,6 +282,10 @@ class Stack:
 
     def check_node_status(self, node_ip, logMsgs=True):
         cfn = boto3.client('cloudformation', region_name=self.region)
+        reqsession = requests.Session()
+        reqretry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=reqretry)
+        reqsession.mount('http://', adapter)
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
@@ -290,7 +296,7 @@ class Stack:
         if logMsgs:
             self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
         try:
-            node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).json()
+            node_status = reqsession.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).json()
             if 'state' in node_status:
                 status = node_status['state']
             else:
@@ -301,6 +307,9 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout):
             if logMsgs:
                 self.log_msg(INFO, f'Node status check timed out')
+        except requests.exceptions.ConnectionError as e:
+            if logMsgs:
+                self.log_msg(INFO, f'Node not currently listening on status_check port')
         except Exception as e:
             log.exception('Error checking node status')
             return f'Error checking node status: {e}'
