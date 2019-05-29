@@ -7,8 +7,6 @@ function get_gravatar(email, size) {
 
     // If user is atlassian update src with internal avatar directory
     if (email.substring(email.lastIndexOf("@") +1) == 'atlassian.com') {
-        console.log(email.substring(email.lastIndexOf("@") +1))
-        console.log(email.substring(0, email.lastIndexOf("@")))
         return 'https://staff-avatars.prod.atl-paas.net/avatar/' + email.substring(0, email.lastIndexOf("@")) + '?size=Small'
     }
 
