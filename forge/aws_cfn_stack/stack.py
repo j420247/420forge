@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from datetime import datetime
-from logging import INFO, WARN, ERROR, DEBUG, getLevelName
+from logging import DEBUG, ERROR, INFO, WARN, getLevelName
 from pathlib import Path
 
 import boto3
