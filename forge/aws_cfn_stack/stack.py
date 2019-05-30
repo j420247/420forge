@@ -280,10 +280,10 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip, logMsgs=True):
+    def check_node_status(self, node_ip, logMsgs=True, conretry=1):
         cfn = boto3.client('cloudformation', region_name=self.region)
         reqsession = requests.Session()
-        reqretry = Retry(connect=3, backoff_factor=0.5)
+        reqretry = Retry(connect=conretry, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=reqretry)
         reqsession.mount('http://', adapter)
         try:
@@ -391,9 +391,9 @@ class Stack:
                 self.log_msg('ERROR', f'Startup result for {cmd_id}: {result}')
                 return False
             else:
-                result = self.check_node_status(node_ip)
+                result = self.check_node_status(node_ip, True, 3)
                 while result not in ['RUNNING', 'FIRST_RUN']:
-                    result = self.check_node_status(node_ip)
+                    result = self.check_node_status(node_ip, True, 5)
                     self.log_msg(INFO, f'Startup result for {cmd_id}: {result}')
                     time.sleep(60)
             self.log_msg(INFO, f'Application started on instance {instance}')
@@ -1036,7 +1036,7 @@ class Stack:
             node_ip = list(instance.values())[0]
             result = self.check_node_status(node_ip, False)
             while result not in ['RUNNING', 'FIRST_RUN']:
-                result = self.check_node_status(node_ip, False)
+                result = self.check_node_status(node_ip, False, 3)
                 time.sleep(10)
             self.log_msg(INFO, f'Startup result for {node_ip}: {result}')
         self.log_msg(INFO, 'Rolling restart complete')
@@ -1108,7 +1108,7 @@ class Stack:
                 result = ''
                 while result not in ['RUNNING', 'FIRST_RUN']:
                     node_ip = list(replacement_node.values())[0]
-                    result = self.check_node_status(node_ip)
+                    result = self.check_node_status(node_ip, True, 5)
                     self.log_msg(INFO, f'Startup result for {node_ip}: {result}')
                     time.sleep(30)
             self.log_msg(INFO, 'Rolling rebuild complete')
