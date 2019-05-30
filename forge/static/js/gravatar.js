@@ -15,5 +15,13 @@ function get_gravatar(email, size) {
 }
 
 $(document).ready(function() {
-    $("#avatar-small").attr("src", get_gravatar(UserEmail, 200));
+    $("#avatar-small").attr("src", function() {
+
+        // If found in session return avatar url
+        if(sessionStorage.getItem("avatar")) { return sessionStorage.getItem("avatar") }
+
+        // Setting session url for gravatar
+        sessionStorage.setItem("avatar", get_gravatar(UserEmail, 200));
+        return sessionStorage.getItem("avatar")
+    });
 });
