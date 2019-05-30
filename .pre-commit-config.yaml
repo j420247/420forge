@@ -1,9 +1,14 @@
 repos:
+-   repo: https://github.com/miki725/importanize
+    rev: master
+    hooks:
+    - id: importanize
+      args: [--verbose]
 -   repo: https://github.com/ambv/black
     rev: stable
     hooks:
     - id: black
-      language_version: python3.6
+    language_version: python3.6
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.2.3
     hooks:

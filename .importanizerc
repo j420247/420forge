@@ -1,0 +1,23 @@
+{
+    "exclude": [
+        "*/docs/conf.py",
+        "*/.tox"
+    ],
+    "groups": [
+        {
+            "type": "stdlib"
+        },
+        {
+            "type": "sitepackages",
+            "packages": [
+                "ruamel"
+            ]
+        },
+        {
+            "type": "local"
+        },
+        {
+            "type": "remainder"
+        }
+    ]
+}
