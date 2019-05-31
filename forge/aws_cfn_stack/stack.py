@@ -11,13 +11,13 @@ from pathlib import Path
 import boto3
 import botocore
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
 import tenacity
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app
+from requests.adapters import HTTPAdapter
 from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
+from urllib3.util import Retry
 
 
 def version_tuple(version):
