@@ -65,7 +65,10 @@
                 </div>
                 {%if session['saml'] %}
                     <script src="{{ get_filename_with_last_update_time('static/js/gravatar.js') }}"></script>
-                    <script>let UserEmail = "{{ session['saml']['attributes']['User.Email'][0] }}"; </script>
+                    <script>
+                        let UserEmail = "{{ session['saml']['attributes']['User.Email'][0] }}";
+                        let AvatarUrl = "{{ session['avatar_url'] }}";
+                    </script>
                 <div class="aui-header-secondary">
                     <ul class="aui-nav">
                         <li class="user-dropdown">
