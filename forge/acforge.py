@@ -823,3 +823,4 @@ def get_forge_settings():
     session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ', '').encode(errors='xmlcharrefreplace')
     session['hosted_zone'] = current_app.config['HOSTED_ZONE']
     session['ssh_key_name'] = current_app.config['SSH_KEY_NAME']
+    session['avatar_url'] = current_app.config['AVATAR_URL']
