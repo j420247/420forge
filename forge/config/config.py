@@ -72,7 +72,7 @@ class BaseConfig(object):
     # fmt: on
 
     # Blank ('') to use gravatar or Use URL of avatar directory
-    AVATAR_URL = 'https://staff-avatars.prod.atl-paas.net/avatar/'
+    AVATAR_URL = ''
 
     ## Stack locking
     # Lock stack actions so only one can be performed at a time
