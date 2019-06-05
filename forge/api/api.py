@@ -52,7 +52,7 @@ api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 api.add_resource(GetGitBranch, '/getGitBranch/<template_repo>')
 api.add_resource(GetGitCommitDifference, '/getGitCommitDifference/<template_repo>')
 api.add_resource(DoGitPull, '/doGitPull/<template_repo>/<stack_name>')
-api.add_resource(GitRevision, '/gitRevision/<template_repo>')
+api.add_resource(GetGitRevision, '/getGitRevision/<template_repo>')
 
 # Restart Forge
 api.add_resource(DoForgeRestart, '/doForgeRestart/<stack_name>')

@@ -50,3 +50,14 @@ section.aui-page-panel-content img {
     max-height:250px;
     overflow:scroll;
 }
+
+.button-admin-repo-update-templates {
+    content: "Update";
+    background: #0052CC;
+}
+
+.button-admin-repo-update-forge {
+    content: "Update &amp; Restart Forge";
+    background: #F4F5F7;
+
+}

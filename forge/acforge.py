@@ -353,23 +353,13 @@ class GetSysLogs(Resource):
 
 class GetGitBranch(Resource):
     def get(self, template_repo):
-        if template_repo == 'Forge (requires restart)':
-            repo = git.Repo(Path(dirname(current_app.root_path)))
-        else:
-            if template_repo != 'atlassian-aws-deployment':
-                template_repo = f'custom-templates/{template_repo}'
-            repo = git.Repo(Path(template_repo))
+        repo = get_git_repo_base(template_repo)
         return repo.active_branch.name
 
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
-        if template_repo == 'Forge (requires restart)':
-            repo = git.Repo(Path(dirname(current_app.root_path)))
-        else:
-            if template_repo != 'atlassian-aws-deployment':
-                template_repo = f'custom-templates/{template_repo}'
-            repo = git.Repo(Path(template_repo))
+        repo = get_git_repo_base(template_repo)
         for remote in repo.remotes:
             remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
         return get_git_commit_difference(repo)
@@ -377,26 +367,18 @@ class GetGitCommitDifference(Resource):
 
 class DoGitPull(RestrictedResource):
     def get(self, template_repo, stack_name):
+        repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
-            repo = git.Repo(Path(dirname(current_app.root_path)))
             result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
-            if template_repo != 'atlassian-aws-deployment':
-                template_repo = f'custom-templates/{template_repo}'
-            repo = git.Repo(Path(template_repo))
             result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         logging.info(result)
         return result
 
 
-class GitRevision(Resource):
+class GetGitRevision(Resource):
     def get(self, template_repo):
-        if template_repo == 'Forge (requires restart)':
-            repo = git.Repo(Path(dirname(current_app.root_path)))
-        else:
-            if template_repo != 'atlassian-aws-deployment':
-                template_repo = f'custom-templates/{template_repo}'
-            repo = git.Repo(Path(template_repo))
+        repo = get_git_repo_base(template_repo)
         result = get_git_revision(repo)
         logging.info(result)
         return result[:7]
@@ -747,7 +729,7 @@ def general_constructor(loader, tag_suffix, node):
 def get_git_commit_difference(repo):
     behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
     ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
-    return f'{behind},{ahead}'
+    return [behind, ahead]
 
 
 def get_git_revision(repo):
@@ -764,7 +746,7 @@ def get_template_file(template_name):
 
 def get_forge_revision(repo):
     git_hash = get_git_revision(repo)[:7]
-    diff = get_git_commit_difference(repo).split(',')
+    diff = get_git_commit_difference(repo)
     if int(diff[0]) > 0:
         update_available = '(update available)'
     else:
@@ -805,6 +787,16 @@ def restart_forge():
         system(f'kill -HUP {getppid()}')
     else:
         logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
+
+
+def get_git_repo_base(repo_name):
+    if repo_name == 'Forge (requires restart)':
+        repo = git.Repo(Path(dirname(current_app.root_path)))
+    else:
+        if repo_name != 'atlassian-aws-deployment':
+            repo_name = f'custom-templates/{repo_name}'
+        repo = git.Repo(Path(repo_name))
+    return repo
 
 
 def get_forge_settings():
