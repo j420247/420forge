@@ -142,7 +142,7 @@ function createTemplatesDropdown(responseText) {
 
 
 function selectTemplateRepo(template_repo) {
-  updateUpdateButton("Update", "#F4F5F7", true)
+  setButtonStyle();
   $("#templateRepoSelector").text(template_repo);
   $("#templateRepoName").text(template_repo);
   $("#templateRepoInformation").parent().show();
@@ -165,20 +165,14 @@ function updateRepoInfo(template_repo) {
 }
 
 function updateTemplates() {
-  var template_repo = document.getElementById("templateRepoSelector").text;
+  disableUpdatesButton()
+  var template_repo = $("#templateRepoSelector").text();
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
     displayGitUpdateMessage);
   updateRepoInfo(template_repo);
-  if ($("templateRepoSelector").text() == "Forge (requires restart)") {
+  if (template_repo == "Forge (requires restart)") {
     send_http_get_request(baseUrl + "/doForgeRestart/__forge__");
   }
-}
-
-function updateUpdateButton(text, color = '#0052cc', disabled = true) {
-  $("#updateTemplatesBtn").html(text);
-  $("#updateTemplatesBtn").css('background-color', color);
-  $("#updateTemplatesBtn").attr("aria-disabled", disabled);
-  $("#updateTemplatesBtn").attr("disabled", disabled);
 }
 
 function displayBranch(responseText) {
@@ -192,6 +186,17 @@ function displayBranch(responseText) {
     "\">" + branch + "</span>");
 }
 
+function setButtonStyle() {
+  disableUpdatesButton()
+  if ($("#templateRepoSelector").text() == "Forge (requires restart)") {
+    $("#updateTemplatesBtn").addClass('update-forge');
+    $("#updateTemplatesBtn").removeClass('update-templates');
+  } else {
+    $("#updateTemplatesBtn").addClass('update-templates');
+    $("#updateTemplatesBtn").removeClass('update-forge');
+  }
+}
+
 function displayCommitDifference(responseText) {
   var [commitsBehind, commitsAhead] = [JSON.parse(responseText)[0], JSON.parse(responseText)[1]];
   $("#commitsDifference").html(
@@ -200,22 +205,21 @@ function displayCommitDifference(responseText) {
     "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>" +
     commitsAhead);
   $(".commit-tooltip").tooltip();
-  var buttonText = "Update";
-  var buttonColor = "#0052CC";
-  if ( document.getElementById("templateRepoSelector").text == "Forge (requires restart)" ) {
-    buttonText = "Update &amp; Restart Forge";
-    buttonColor = "#BF2600";
-  }
 
-  if (commitsBehind > 0 || commitsAhead > 0) {
-    updateUpdateButton(buttonText, buttonColor, false)
-    // $("#updateTemplatesBtn").attr("aria-disabled", false);
-  } else {
-    updateUpdateButton(buttonText, "#F4F5F7", true)
-    // $("#updateTemplatesBtn").attr("aria-disabled", true);
+  if (parseInt(commitsBehind) > 0 || parseInt(commitsAhead) > 0) {
+    $("#updateTemplatesBtn").attr("disabled", false);
+    $("#updateTemplatesBtn").attr("aria-disabled", false);
+    $("#updateTemplatesBtn").removeClass('update-disabled');
   }
 
 }
+
+function disableUpdatesButton(){
+    $("#updateTemplatesBtn").attr("disabled", true);
+    $("#updateTemplatesBtn").attr("aria-disabled", true);
+    $("#updateTemplatesBtn").addClass('update-disabled');
+}
+
 
 function displayGitUpdateMessage(responseText) {
   var gitUpdateMessage = JSON.parse(responseText).split(',');
