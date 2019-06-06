@@ -170,7 +170,7 @@ function updateTemplates() {
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
     displayGitUpdateMessage);
   updateRepoInfo(template_repo);
-  if (template_repo == "Forge (requires restart)") {
+  if (template_repo === "Forge (requires restart)") {
     send_http_get_request(baseUrl + "/doForgeRestart/__forge__");
   }
 }
@@ -198,7 +198,8 @@ function setButtonStyle() {
 }
 
 function displayCommitDifference(responseText) {
-  var [commitsBehind, commitsAhead] = [JSON.parse(responseText)[0], JSON.parse(responseText)[1]];
+  var commitsDifference = JSON.parse(responseText);
+  var [commitsBehind, commitsAhead] = [commitsDifference[0], commitsDifference[1]];
   $("#commitsDifference").html(
     "Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" +
     commitsBehind +

@@ -787,6 +787,7 @@ def restart_forge():
         system(f'kill -HUP {getppid()}')
     else:
         logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
+        return False
 
 
 def get_git_repo_base(repo_name):
