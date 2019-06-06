@@ -1,0 +1,8 @@
+**/lib/**
+**/target/**
+**/node_modules/**
+**/bower/**
+**/bower_components/**
+**/docs/**
+**/distribution/**
+**/*.min.*

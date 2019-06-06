@@ -1,0 +1,3 @@
+{
+    "extends": "@atlassian/stylelint-config-atlassian-fecq"
+}
