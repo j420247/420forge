@@ -23,7 +23,7 @@ function onReady() {
 
     var url = baseUrl + "/clearActionInProgress/" + region + "/" + document
       .getElementById("lockedStackSelector").text;
-    send_http_get_request(url, getStackActionInProgress)
+    send_http_get_request(url, getStackActionInProgress);
   });
 
   var stackToAdmin = $("meta[name=stackToAdmin]").attr("value");
@@ -96,7 +96,7 @@ function updateActionInProgressAdminPage(responseText) {
 
 function getStackActionInProgress(locked_stack) {
   var url = baseUrl + "/getActionInProgress/" + region + "/" + locked_stack;
-  send_http_get_request(url, updateActionInProgressAdminPage)
+  send_http_get_request(url, updateActionInProgressAdminPage);
 }
 
 function setStackLocking() {
@@ -156,7 +156,7 @@ function selectTemplateRepo(template_repo) {
 }
 
 function updateRepoInfo(template_repo) {
-  $("#commitsDifference").html("<aui-spinner size=\"small\"></aui-spinner>")
+  $("#commitsDifference").html("<aui-spinner size=\"small\"></aui-spinner>");
   // request template repo info
   send_http_get_request(baseUrl + "/getGitBranch/" + template_repo,
     displayBranch);
@@ -165,7 +165,7 @@ function updateRepoInfo(template_repo) {
 }
 
 function updateTemplates() {
-  disableUpdatesButton()
+  disableUpdatesButton();
   var template_repo = $("#templateRepoSelector").text();
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
     displayGitUpdateMessage);
@@ -179,7 +179,7 @@ function displayBranch(responseText) {
   var branch = JSON.parse(responseText);
   var lozenge_type = "moved";
   if (branch === "master") {
-    lozenge_type = "success"
+    lozenge_type = "success";
   }
   $("#currentBranch").html(
     "Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type +
@@ -187,7 +187,7 @@ function displayBranch(responseText) {
 }
 
 function setButtonStyle() {
-  disableUpdatesButton()
+  disableUpdatesButton();
   if ($("#templateRepoSelector").text() == "Forge (requires restart)") {
     $("#updateTemplatesBtn").addClass('update-forge');
     $("#updateTemplatesBtn").removeClass('update-templates');
