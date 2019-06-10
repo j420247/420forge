@@ -71,8 +71,10 @@ class BaseConfig(object):
     }
     # fmt: on
 
-    # Blank ('') to use gravatar or Use URL of avatar directory
-    AVATAR_URL = ''
+    # Default URL for gravatar
+    # To use a custom URL, specify the username, md5_of_email, email_address parameter in {}s for it to be injected for the user, eg
+    # https://mycompany.com/avatars/{username}?size=Small
+    AVATAR_URL = 'https://www.gravatar.com/avatar/{md5_of_email}.jpg?s=80'
 
     ## Stack locking
     # Lock stack actions so only one can be performed at a time
