@@ -354,14 +354,18 @@ class GetSysLogs(Resource):
 class GetGitBranch(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
-        return repo.active_branch.name
+        if get_git_repo_status(repo):
+            return repo.active_branch.name
+        else:
+            return 'Detached HEAD'
 
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
-        for remote in repo.remotes:
-            remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
+        if get_git_repo_status(repo):
+            for remote in repo.remotes:
+                remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
         return get_git_commit_difference(repo)
 
 
@@ -728,8 +732,12 @@ def general_constructor(loader, tag_suffix, node):
 
 
 def get_git_commit_difference(repo):
-    behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
-    ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+    try:
+        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
+        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+    except TypeError:
+        behind = -1
+        ahead = -1
     return [behind, ahead]
 
 
@@ -800,6 +808,14 @@ def get_git_repo_base(repo_name):
             repo_name = f'custom-templates/{repo_name}'
         repo = git.Repo(Path(repo_name))
     return repo
+
+
+def get_git_repo_status(repo):
+    print(repo)
+    if repo.head.is_detached:
+        return False
+    else:
+        return True
 
 
 def get_forge_settings():
