@@ -354,16 +354,16 @@ class GetSysLogs(Resource):
 class GetGitBranch(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
-        if get_git_repo_status(repo):
-            return repo.active_branch.name
-        else:
+        if repo.head.is_detached:
             return 'Detached HEAD'
+        else:
+            return repo.active_branch.name
 
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
-        if get_git_repo_status(repo):
+        if not repo.head.is_detached:
             for remote in repo.remotes:
                 remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
         return get_git_commit_difference(repo)
@@ -808,14 +808,6 @@ def get_git_repo_base(repo_name):
             repo_name = f'custom-templates/{repo_name}'
         repo = git.Repo(Path(repo_name))
     return repo
-
-
-def get_git_repo_status(repo):
-    print(repo)
-    if repo.head.is_detached:
-        return False
-    else:
-        return True
 
 
 def get_forge_settings():

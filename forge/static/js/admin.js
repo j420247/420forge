@@ -181,6 +181,8 @@ function displayBranch(responseText) {
   var lozenge_type = "moved";
   if (branch === "master") {
     lozenge_type = "success";
+  } else if (branch === "Detached HEAD") {
+    lozenge_type = "error"
   }
   $("#currentBranch").html(
     "Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type +
