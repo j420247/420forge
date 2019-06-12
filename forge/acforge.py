@@ -682,8 +682,9 @@ class ForgeStatus(Resource):
 
 class DoForgeRestart(RestrictedResource):
     def get(self, stack_name):
-        logging.warning("Forge restart has been triggered")
-        restart_forge()
+        logging.warning('Forge restart has been triggered')
+        if not restart_forge():
+            return 'unsupported'
 
 
 ##
@@ -785,6 +786,7 @@ def restart_forge():
     process = psutil.Process(getppid())
     if 'gunicorn' in str(process.cmdline()):
         system(f'kill -HUP {getppid()}')
+        return True
     else:
         logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
         return False

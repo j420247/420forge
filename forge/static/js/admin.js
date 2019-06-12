@@ -171,7 +171,8 @@ function updateTemplates() {
     displayGitUpdateMessage);
   updateRepoInfo(template_repo);
   if (template_repo === "Forge (requires restart)") {
-    send_http_get_request(baseUrl + "/doForgeRestart/__forge__");
+    displayAUIFlag('Updating and restarting forge', 'info')
+    send_http_get_request(baseUrl + "/doForgeRestart/__forge__", displayRestartResult);
   }
 }
 
@@ -227,4 +228,14 @@ function displayGitUpdateMessage(responseText) {
   $("#gitUpdateMessage").html(gitUpdateMessage);
   $("#gitUpdateMessage").show();
   updateRepoInfo(document.getElementById("templateRepoSelector").text);
+}
+
+
+function displayRestartResult(responseText) {
+  var result = JSON.parse(responseText);
+  if (String(result) === 'unsupported') {
+    displayAUIFlag('Forge restarts are only supported in gunicorn, please restart/reload manually', 'error');
+  } else {
+    displayAUIFlag('Forge restart complete', 'success');
+  }
 }

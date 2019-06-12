@@ -273,3 +273,16 @@ function processResponse() {
         window.location = baseUrl + "/error/" + this.status;
     }
 }
+
+function displayAUIFlag(message, category) {
+    // useful when we don't want a page reload which is required for flask's 'flash'
+    var closes = 'auto';
+    if (category === 'error') {
+        closes = '';
+    }
+    AJS.flag({
+         type: category,
+         body: message,
+         close: closes
+    });
+}
