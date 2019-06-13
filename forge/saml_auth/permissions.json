@@ -30,7 +30,7 @@
     "action": ["doclone","dofullrestart","dorollingrestart","doupgrade","dothreaddumps","doheapdumps","doupdate","dorunsql","dodestroy", "docreate", "dotag"]
   },
   "6": {
-    "group": ["forge-system-admins"],
+    "group": ["it-operations"],
     "region": ["*"],
     "stack": ["*"],
     "action": ["*"]
