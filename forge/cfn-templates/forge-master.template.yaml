@@ -270,13 +270,16 @@ Resources:
                 - kms:CreateAlias
                 - kms:CreateGrant
                 - kms:CreateKey
+                - kms:Decrypt
                 - kms:DeleteAlias
                 - kms:DescribeKey
+                - kms:Encrypt
+                - kms:GenerateDataKey*
                 - kms:ListAliases
                 - kms:PutKeyPolicy
+                - kms:ReEncrypt*
                 - kms:ScheduleKeyDeletion
                 - kms:TagResource
-                - kms:UpdateKey
                 - rds:CreateDBInstance
                 - rds:CreateDBInstanceReadReplica
                 - rds:CreateDBSubnetGroup
