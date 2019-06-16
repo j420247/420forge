@@ -1,0 +1,26 @@
+image: python:3.6
+
+pipelines:
+  default:
+    - step:
+        script:
+          - echo 'CI only runs on ITOPS branches for now'
+  branches:
+    ITOPS-*:
+        - parallel:
+            - step:
+                name: 'cfn-lint'
+                script:
+                  - pip3 install awscli cfn-lint
+                  - cfn-lint -u
+                  - cfn-lint forge/cfn-templates/forge-master.template.yaml
+            - step:
+                name: 'pytest unit'
+                script:
+                  - pip3 install -r requirements.txt
+                  - python -m pytest -v tests/unit
+            - step:
+                name: 'pytest func'
+                script:
+                  - pip3 install -r requirements.txt
+                  - python -m pytest -v tests/func
