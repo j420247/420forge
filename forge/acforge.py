@@ -5,19 +5,20 @@ import logging
 import re
 from datetime import datetime
 from logging import ERROR
-from os import getenv
+from os import getenv, getppid, system
+from os.path import dirname
 from pathlib import Path
 
 import boto3
 import botocore
+import git
+import psutil
 from flask import request, session, current_app
 from flask_restful import Resource
-from git import Repo
 from ruamel import yaml
 
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
-from forge.version import __version__
 
 ##
 #### REST Endpoint classes
@@ -326,8 +327,7 @@ class DoCreate(RestrictedResource):
         mystack = Stack(stack_name, session['region'] if 'region' in session else '')
         if not mystack.store_current_action('create', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
-        params_for_create = [param for param in content
-                             if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName' and param['ParameterKey'] != 'Product']
+        params_for_create = [param for param in content if param['ParameterKey'] != 'StackName' and param['ParameterKey'] != 'TemplateName' and param['ParameterKey'] != 'Product']
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
         outcome = mystack.create(params_for_create, get_template_file(template_name), app_type, clustered, creator, session['region'])
@@ -353,33 +353,39 @@ class GetSysLogs(Resource):
 
 class GetGitBranch(Resource):
     def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = Repo(Path(template_repo))
-        return repo.active_branch.name
+        repo = get_git_repo_base(template_repo)
+        if repo.head.is_detached:
+            return 'Detached HEAD'
+        else:
+            return repo.active_branch.name
 
 
 class GetGitCommitDifference(Resource):
     def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = Repo(Path(template_repo))
-        for remote in repo.remotes:
-            remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
-        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
-        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
-        difference = f'{behind},{ahead}'
-        return difference
+        repo = get_git_repo_base(template_repo)
+        if not repo.head.is_detached:
+            for remote in repo.remotes:
+                remote.fetch(env=dict(GIT_SSH_COMMAND=getenv('GIT_SSH_COMMAND', 'ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey')))
+        return get_git_commit_difference(repo)
 
 
-class GitPull(Resource):
-    def get(self, template_repo):
-        if template_repo != 'atlassian-aws-deployment':
-            template_repo = f'custom-templates/{template_repo}'
-        repo = Repo(Path(template_repo))
-        result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-        log.info(result)
+class DoGitPull(RestrictedResource):
+    def get(self, template_repo, stack_name):
+        repo = get_git_repo_base(template_repo)
+        if template_repo == 'Forge (requires restart)':
+            result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+        else:
+            result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        logging.info(result)
         return result
+
+
+class GetGitRevision(Resource):
+    def get(self, template_repo):
+        repo = get_git_repo_base(template_repo)
+        result = get_git_revision(repo)
+        logging.info(result)
+        return result[:7]
 
 
 class ServiceStatus(Resource):
@@ -657,7 +663,7 @@ class GetLockedStacks(Resource):
 
 class GetTemplateRepos(Resource):
     def get(self):
-        repos = ['atlassian-aws-deployment']
+        repos = ['atlassian-aws-deployment', 'Forge (requires restart)']
         custom_template_folder = Path('custom-templates')
         if custom_template_folder.exists():
             for directory in glob.glob(f'{custom_template_folder}/*'):
@@ -676,6 +682,13 @@ class SetStackLocking(Resource):
 class ForgeStatus(Resource):
     def get(self):
         return {'state': 'RUNNING'}
+
+
+class DoForgeRestart(RestrictedResource):
+    def get(self, stack_name):
+        logging.warning('Forge restart has been triggered')
+        if not restart_forge():
+            return 'unsupported'
 
 
 ##
@@ -718,12 +731,36 @@ def general_constructor(loader, tag_suffix, node):
     return node.value
 
 
+def get_git_commit_difference(repo):
+    try:
+        behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
+        ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
+    except TypeError:
+        behind = -1
+        ahead = -1
+    return [behind, ahead]
+
+
+def get_git_revision(repo):
+    return repo.head.object.hexsha
+
+
 def get_template_file(template_name):
     if 'atlassian-aws-deployment' in template_name:
         template_folder = Path('atlassian-aws-deployment/templates')
     else:
         template_folder = Path('custom-templates')
     return list(template_folder.glob(f"**/{template_name.split(': ')[1]}"))[0]
+
+
+def get_forge_revision(repo):
+    git_hash = get_git_revision(repo)[:7]
+    diff = get_git_commit_difference(repo)
+    if int(diff[0]) > 0:
+        update_available = '(update available)'
+    else:
+        update_available = '(up to date)'
+    return f'{git_hash} {update_available}'
 
 
 def get_nice_action_name(action):
@@ -751,6 +788,28 @@ def stack_locking_enabled():
     return current_app.config['STACK_LOCKING']
 
 
+def restart_forge():
+    # get the parent process ID (the gunicorn master, not the worker)
+    log.warning(f'Forge restarting via admin function on pid {getppid()}')
+    process = psutil.Process(getppid())
+    if 'gunicorn' in str(process.cmdline()):
+        system(f'kill -HUP {getppid()}')
+        return True
+    else:
+        logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
+        return False
+
+
+def get_git_repo_base(repo_name):
+    if repo_name == 'Forge (requires restart)':
+        repo = git.Repo(Path(dirname(current_app.root_path)))
+    else:
+        if repo_name != 'atlassian-aws-deployment':
+            repo_name = f'custom-templates/{repo_name}'
+        repo = git.Repo(Path(repo_name))
+    return repo
+
+
 def get_forge_settings():
     # use first region in config.py if no region selected (eg first load)
     if 'region' not in session:
@@ -759,7 +818,7 @@ def get_forge_settings():
     session['products'] = current_app.config['PRODUCTS']
     session['regions'] = current_app.config['REGIONS']
     session['stack_locking'] = current_app.config['STACK_LOCKING']
-    session['forge_version'] = __version__
+    session['forge_version'] = session.get('forge_version') or f'{get_forge_revision(git.Repo(Path(dirname(current_app.root_path))))}'
     session['default_vpcs'] = json.dumps(current_app.config['DEFAULT_VPCS']).replace(' ', '').encode(errors='xmlcharrefreplace')
     session['default_subnets'] = json.dumps(current_app.config['DEFAULT_SUBNETS']).replace(' ', '').encode(errors='xmlcharrefreplace')
     session['hosted_zone'] = current_app.config['HOSTED_ZONE']

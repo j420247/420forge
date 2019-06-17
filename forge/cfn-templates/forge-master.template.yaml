@@ -347,14 +347,16 @@ Resources:
         config:
           packages:
             yum:
-              python36: []
-              python36-pip: []
               amazon-ssm-agent: []
-              xmlstarlet: []
-              jq: []
+              gcc: []
               git: []
-              xmlsec1: []
+              jq: []
+              python36-devel: []
+              python36-pip: []
+              python36: []
               xmlsec1-openssl: []
+              xmlsec1: []
+              xmlstarlet: []
           files:
             /etc/atl:
               content: !Sub

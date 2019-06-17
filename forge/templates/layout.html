@@ -158,12 +158,8 @@
                             {% if messages %}
                             {% for category, message in messages %}
                             <script>
-                                 AJS.flag({
-                                     type: '{{ category }}',
-                                     body: '{{ message }}',
-                                     close: "{% if category != 'error' %}auto{% endif %}"
-                                 });
-                             </script>
+                                displayAUIFlag('{{ message }}', '{{ category }}', "{% if category != 'error' %}auto{% endif %}");
+                            </script>
                             {% endfor %}
                             {% endif %}
                             {% endwith %}
@@ -180,7 +176,7 @@
                         <li>Copyright &#169; 2009-<script>document.write(new Date().getUTCFullYear());</script> Atlassian</li>
                         <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li>
                         <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li>
-                        <li>{{ session['forge_version'] }}</li>
+                        <li><a href="/admin">Revision: {{ session['forge_version'] }}</a></li>
                     </ul>
                     <div id="footer-logo"><a href="https://www.atlassian.com/">Atlassian</a></div>
                 </section>
