@@ -127,6 +127,11 @@ function displayStackParams(responseText) {
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
 
+  // Clear KMS key arn if the stack is encrypted
+  if (action === 'clone') {
+   document.getElementById("KmsKeyArnVal").value = ""
+  }
+
   // Disable mail by default on clones
   if (action === 'clone') {
     var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +

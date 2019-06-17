@@ -9,6 +9,7 @@ flask_sqlalchemy
 gevent
 gitpython
 gunicorn
+importanize
 moto
 psutil
 pre-commit
