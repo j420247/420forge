@@ -158,12 +158,8 @@
                             {% if messages %}
                             {% for category, message in messages %}
                             <script>
-                                 AJS.flag({
-                                     type: '{{ category }}',
-                                     body: '{{ message }}',
-                                     close: "{% if category != 'error' %}auto{% endif %}"
-                                 });
-                             </script>
+                                displayAUIFlag('{{ message }}', '{{ category }}', "{% if category != 'error' %}auto{% endif %}");
+                            </script>
                             {% endfor %}
                             {% endif %}
                             {% endwith %}

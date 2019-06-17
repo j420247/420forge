@@ -236,7 +236,7 @@ function displayGitUpdateMessage(responseText) {
 function displayRestartResult(responseText) {
   var result = JSON.parse(responseText);
   if (String(result) === 'unsupported') {
-    displayAUIFlag('Forge restarts are only supported in gunicorn, please restart/reload manually', 'error');
+    displayAUIFlag('Forge restarts are only supported in gunicorn, please restart/reload manually', 'error', 'manual');
   } else {
     displayAUIFlag('Forge restart complete', 'success');
   }

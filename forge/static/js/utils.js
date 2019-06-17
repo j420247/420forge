@@ -230,11 +230,7 @@ function disableActionButton() {
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
     if (stacks.length === 1 && stacks[0].text === 'No credentials') {
-        AJS.flag({
-            type: 'error',
-            body: 'No credentials - please authenticate with Cloudtoken',
-            close: 'manual'
-        });
+        displayAUIFlag('No credentials - please authenticate with Cloudtoken', 'error', 'manual');
     }
 }
 
@@ -274,12 +270,8 @@ function processResponse() {
     }
 }
 
-function displayAUIFlag(message, category) {
+function displayAUIFlag(message, category, closes = 'auto') {
     // useful when we don't want a page reload which is required for flask's 'flash'
-    var closes = 'auto';
-    if (category === 'error') {
-        closes = '';
-    }
     AJS.flag({
          type: category,
          body: message,
