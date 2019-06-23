@@ -127,11 +127,6 @@ function displayStackParams(responseText) {
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
 
-  // Clear KMS key arn if the stack is encrypted
-  if (action === 'clone') {
-   document.getElementById("KmsKeyArnVal").value = ""
-  }
-
   // Disable mail by default on clones
   if (action === 'clone') {
     var commonMailDisableParams = "-Datlassian.mail.senddisabled=true " +
@@ -384,4 +379,18 @@ function sendParamsAsJson() {
     appendRegion = "&region=" + $("#regionSelector").text().trim();
 
   redirectToLog(stackNameForAction, appendRegion);
+}
+
+function getKmsKeyArn(region) {
+  $("#KmsKeyArnVal").remove();
+  $("#KmsKeyArnDropdownDiv").remove();
+
+  send_http_get_request(baseUrl + "/getKmsKeyArn/" + region, displayKmsKeyArn);
+}
+
+function displayKmsKeyArn(responseText) {
+  var kmsKeyArn = JSON.parse(responseText);
+
+  var defaultKmsKeyArn = 'Select Kms Key';
+  createDropdown("KmsKeyArn", defaultKmsKeyArn, kmsKeyArn, document.getElementById("KmsKeyArnDiv"));
 }
