@@ -10,6 +10,7 @@ function onReady() {
             $("#rdsSnapshotSelector").text("Select RDS snapshot");
             getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
             getVPCs(clone_region);
+            getKmsKeyArn(clone_region)
         }, false);
     }
 }
