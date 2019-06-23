@@ -46,6 +46,7 @@ api.add_resource(GetVpcs, '/getVpcs/<region>')
 api.add_resource(GetAllSubnetsForRegion, '/getAllSubnetsForRegion/<region>')
 api.add_resource(GetSubnetsForVpc, '/getSubnetsForVpc/<region>/<vpc>')
 api.add_resource(GetLockedStacks, '/getLockedStacks')
+api.add_resource(GetKmsKeyArn, '/getKmsKeyArn/<region>/')
 api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 
 # Git
