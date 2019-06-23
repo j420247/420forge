@@ -666,6 +666,13 @@ class GetTemplateRepos(Resource):
         return repos
 
 
+class GetKmsKeyArn(Resource):
+    def get(self, region):
+        client = boto3.client('kms', region)
+        kms_keys = client.list_aliases()
+        return [key['AliasName'] for key in kms_keys['Aliases'] if key.get('TargetKeyId')]
+
+
 class SetStackLocking(Resource):
     def post(self, lock):
         current_app.config['STACK_LOCKING'] = lock
