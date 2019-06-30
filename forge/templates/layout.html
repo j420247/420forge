@@ -8,8 +8,10 @@
         <meta name="default_subnets" value={{ session['default_subnets'] }}>
         <meta name="hosted_zone" value={{ session['hosted_zone'] }}>
         <meta name="ssh_key_name" value={{ session['ssh_key_name'] }}>
+        {%if session['saml'] %}
         <meta name="email" value={{ session['saml']['attributes']['User.Email'][0] }}>
         <meta name="avatar_url" value={{ session['avatar_url'] }}>
+        {%endif %}
 
         <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
         {#    AUI    #}
