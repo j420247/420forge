@@ -937,14 +937,16 @@ class Stack:
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
-        repo = template.split('/')
+        template_path_components = template.split('/')
+        if template_path_components[0] != 'atlassian-aws-deployment':
+            template_path_components.pop(0)
         tags = [
             {'Key': 'product', 'Value': app_type},
             {'Key': 'clustered', 'Value': clustered},
             {'Key': 'environment', 'Value': next((parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
             {'Key': 'created_by', 'Value': creator},
-            {'Key': 'Repository', 'Value': f'{repo[0]}:{repo[1]}'},
-            {'Key': 'Template', 'Value': repo[-1]},
+            {'Key': 'Repository', 'Value': template_path_components[0]},
+            {'Key': 'Template', 'Value': template_path_components[-1]},
         ]
         if cloned_from:
             tags.append({'Key': 'cloned_from', 'Value': cloned_from})
