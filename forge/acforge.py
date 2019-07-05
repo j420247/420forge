@@ -668,9 +668,16 @@ class GetTemplateRepos(Resource):
 
 class GetKmsKeyArn(Resource):
     def get(self, region):
+        keys = []
         client = boto3.client('kms', region)
-        kms_keys = client.list_aliases()
-        return [key['AliasName'] for key in kms_keys['Aliases'] if key.get('TargetKeyId')]
+        kms_keys_aliases = client.list_aliases(Limit=100)
+        for key in kms_keys_aliases['Aliases']:
+            if key.get('TargetKeyId'):
+                key_dict = dict()
+                key_dict['AliasName'] = key['AliasName'].replace('alias/', '')
+                key_dict["AliasArn"] = ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']
+                keys.append(key_dict)
+        return keys
 
 
 class SetStackLocking(Resource):
