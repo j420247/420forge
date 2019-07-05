@@ -342,6 +342,8 @@ function sendParamsAsJson() {
         value = $("#regionSelector").text().trim();
       else
         value = region;
+    } else if (param == "KmsKeyArn") {
+        value = $('#selectKmsKeyArns :selected').val();
     } else {
       var element = document.getElementById(param + "Val");
       if (element.tagName.toLowerCase() === "a") {
@@ -382,15 +384,36 @@ function sendParamsAsJson() {
 }
 
 function getKmsKeyArn(region) {
-  $("#KmsKeyArnVal").remove();
-  $("#KmsKeyArnDropdownDiv").remove();
 
   send_http_get_request(baseUrl + "/getKmsKeyArn/" + region, displayKmsKeyArn);
 }
 
 function displayKmsKeyArn(responseText) {
-  var kmsKeyArn = JSON.parse(responseText);
+  var kmsKeyArns = JSON.parse(responseText);
 
-  var defaultKmsKeyArn = 'Select Kms Key';
-  createDropdown("KmsKeyArn", defaultKmsKeyArn, kmsKeyArn, document.getElementById("KmsKeyArnDiv"));
+  // Find Kms key div to modify
+  var kmsDiv = document.getElementById("KmsKeyArnDiv");
+
+  // Create select list element
+  var selectList = document.createElement("select");
+      selectList.className = "aui-button aui-style-default";
+      selectList.id = "selectKmsKeyArns";
+
+  // First and Default Child of select
+  var option = document.createElement("option");
+      option.selected = true;
+      option.text = "Select KmsKey Alias";
+      option.value = ' ';
+      selectList.appendChild(option);
+
+  //Create options element and append into select list
+  for (var keyArn in kmsKeyArns) {
+      var option = document.createElement("option");
+      option.value = kmsKeyArns[keyArn]['AliasArn'];
+      option.text = kmsKeyArns[keyArn]['AliasName'];
+      selectList.appendChild(option);
+  }
+
+  // Insert element before the description
+  kmsDiv.insertBefore(selectList, kmsDiv.lastChild);
 }
