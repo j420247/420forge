@@ -170,7 +170,7 @@ Parameters:
     Default: 'us-east-1: N.Virginia, us-west-2: Oregon'
     ConstraintDescription: Must be a list of AWS regions
     Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'. Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region."
-    Type: CommaDelimitedList
+    Type: String
   SamlMetadataUrl:
     Description: Metadata URL for your SAML provider
     Type: String
@@ -220,6 +220,10 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, '']]
   NoSamlMetadata:
     !Equals [!Ref SamlMetadataUrl, '']
+  SetAnalytics:
+    !Equals [!Ref Analytics, true]
+  NoRegions:
+    !Equals [!Ref Regions, '']
 
 Resources:
   ForgeRole:
@@ -361,7 +365,9 @@ Resources:
             /etc/atl:
               content: !Sub
                 - |
+                  ATL_AWS_ANALYTICS=${Analytics}
                   ATL_AWS_REGION=${AWS::Region}
+                  ATL_AWS_REGIONS_ALLOWED=${Regions}
                   ATL_AWS_STACK_NAME=${AWS::StackName}
                   ATL_AUTOSCALING_GROUP_NAME=ForgeNodeGroup
                   ATL_CUSTOM_TEMPLATE_REPO=${CustomTemplateRepo}
@@ -370,12 +376,14 @@ Resources:
                   ATL_HOSTEDZONE=${HostedZone}
                   ATL_LOCAL_ANSIBLE_REPO=${LocalAnsibleGitRepo}
                   ATL_LOCAL_ANSIBLE_GITSSHKEY_NAME=${LocalAnsibleGitSshKeyName}
-                - CustomTemplateRepo: !Ref CustomTemplateRepo
+                - Analytics: !Ref Analytics
+                  CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
                   DeployEnvironment: !Ref DeployEnvironment
                   HostedZone: !Ref HostedZone
                   LocalAnsibleGitSshKeyName: !Ref LocalAnsibleGitSshKeyName
                   LocalAnsibleGitRepo: !Ref LocalAnsibleGitRepo
+                  Regions: !Ref Regions
               group: root
               mode: "000640"
               owner: root
@@ -476,10 +484,12 @@ Resources:
                   respawn limit 3 5
 
                   script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install --skip-lock && /usr/local/bin/pipenv run forge-gunicorn" >> /var/log/forge.log 2>&1
+                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} ${Regions} ${Analytics} && /usr/local/bin/pipenv install --skip-lock && /usr/local/bin/pipenv run forge-gunicorn" >> /var/log/forge.log 2>&1
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
+                  Regions: !If [NoRegions, '', !Sub '&& export ATL_AWS_REGIONS_ALLOWED=${Regions}']
+                  Analytics: !If [SetAnalytics, !Sub '&& export ATL_AWS_ANALYTICS=${Analytics}', '']
               mode: "000600"
               owner: root
               group: root
