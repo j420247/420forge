@@ -1,3 +1,7 @@
+from os import getenv
+import re
+
+
 class BaseConfig(object):
     ########
     ## Defaults
@@ -20,9 +24,18 @@ class BaseConfig(object):
         'UPDATE_ROLLBACK_IN_PROGRESS',
     ]
     ########
-    ## User configuration properties
+    # User configuration properties
+
+    # Regions Default
     REGIONS = [('us-east-1', 'N.Virginia'), ('us-west-2', 'Oregon'), ('ap-southeast-2', 'Sydney')]
-    ANALYTICS = True
+
+    #  If found in from environment variable.
+    if getenv('ATL_AWS_REGIONS_ALLOWED'):
+        REGIONS = [tuple(reg.strip().split(': ')) for reg in getenv('ATL_AWS_REGIONS_ALLOWED').split(',')]
+
+    # Analytics Default true else from environment variable.
+    ANALYTICS = True if re.match(r'TRUE|[^0false^]', getenv('ATL_AWS_ANALYTICS', 1), flags=re.IGNORECASE) else False
+
     S3_BUCKET = 'atl-cfn-forge-515798882395'
 
     ########
