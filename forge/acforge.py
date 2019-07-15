@@ -670,13 +670,15 @@ class GetKmsKeyArn(Resource):
     def get(self, region):
         keys = []
         client = boto3.client('kms', region)
-        kms_keys_aliases = client.list_aliases(Limit=100)
-        for key in kms_keys_aliases['Aliases']:
-            if key.get('TargetKeyId'):
-                key_dict = dict()
-                key_dict['AliasName'] = key['AliasName'].replace('alias/', '')
-                key_dict["AliasArn"] = ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']
-                keys.append(key_dict)
+        paginator = client.get_paginator('list_aliases')
+        response_iterator = paginator.paginate()
+        for kms_keys_aliases in response_iterator:
+            for key in kms_keys_aliases['Aliases']:
+                if key.get('TargetKeyId'):
+                    keys.append({
+                        'AliasName': key['AliasName'].replace('alias/', ''),
+                        'AliasArn': ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']
+                    })
         return keys
 
 
