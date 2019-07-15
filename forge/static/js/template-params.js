@@ -384,7 +384,6 @@ function sendParamsAsJson() {
 }
 
 function getKmsKeyArn(region) {
-
   send_http_get_request(baseUrl + "/getKmsKeyArn/" + region, displayKmsKeyArn);
 }
 
