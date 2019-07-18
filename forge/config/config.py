@@ -34,7 +34,7 @@ class BaseConfig(object):
         REGIONS = [tuple(reg.strip().split(': ')) for reg in getenv('ATL_AWS_REGIONS_ALLOWED').split(',')]
 
     # Analytics Default true else from environment variable.
-    ANALYTICS = True if re.match(r'TRUE|[^0false^]', getenv('ATL_AWS_ANALYTICS', 1), flags=re.IGNORECASE) else False
+    ANALYTICS = True if getenv('ATL_AWS_ANALYTICS') == 'true' else False
 
     S3_BUCKET = 'atl-cfn-forge-515798882395'
 
