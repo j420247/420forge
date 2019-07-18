@@ -219,7 +219,7 @@ class DoDestroy(RestrictedResource):
         if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            outcome = mystack.destroy()
+            mystack.destroy()
         except Exception as e:
             log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}')
@@ -396,7 +396,6 @@ class ServiceStatus(Resource):
 
 class StackState(Resource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
@@ -439,7 +438,7 @@ class TemplateParamsForStack(Resource):
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting stack parameters')
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
@@ -544,7 +543,7 @@ class GetEbsSnapshots(Resource):
             snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[{'Name': 'tag-value', 'Values': [snap_name_format]}])
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting EBS snapshots')
             return
         snapshotIds = []
@@ -576,7 +575,7 @@ class GetRdsSnapshots(Resource):
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
         snapshotIds.sort(reverse=True)
@@ -590,9 +589,9 @@ class GetTemplates(Resource):
         custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
-            default_templates = [f for f in template_folder.glob('**/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
         else:
-            default_templates = [f for f in template_folder.glob('**/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
         for file in default_templates:
             # TODO support Bitbucket?
             if 'Bitbucket' in file.name:
@@ -601,9 +600,9 @@ class GetTemplates(Resource):
         # get custom templates
         if custom_template_folder.exists():
             if template_type == 'all':
-                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
             else:
-                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
             for file in custom_templates:
                 templates.append((file.parent.parent.name, file.name))
         templates.sort()
@@ -615,7 +614,7 @@ class GetVpcs(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             vpcs = ec2.describe_vpcs()
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting VPCs')
             return
         vpc_ids = []
@@ -629,7 +628,7 @@ class GetSubnetsForVpc(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             subnets = ec2.describe_subnets(Filters=[{'Name': 'vpc-id', 'Values': [vpc]}])
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
@@ -644,7 +643,7 @@ class GetAllSubnetsForRegion(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             subnets = ec2.describe_subnets()
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
@@ -715,14 +714,14 @@ def get_current_log(stack_name):
     logs_by_time = {}
     if len(logs) > 0:
         for log in logs:
-            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name) : log.rfind('_')]
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name): log.rfind('_')]
             datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
             logs_by_time[log] = datetime_timestamp
         sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
         with open(sorted_logs[0], 'r') as logfile:
             try:
                 return logfile.read()
-            except Exception as e:
+            except Exception:
                 log.exception(f'Error occurred getting log for {stack_name}')
     return False
 
