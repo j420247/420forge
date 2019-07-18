@@ -367,7 +367,7 @@ Resources:
                 - |
                   ATL_AWS_ANALYTICS=${Analytics}
                   ATL_AWS_REGION=${AWS::Region}
-                  ATL_AWS_REGIONS_ALLOWED=${Regions}
+                  ATL_AWS_REGIONS_ALLOWED='${Regions}'
                   ATL_AWS_STACK_NAME=${AWS::StackName}
                   ATL_AUTOSCALING_GROUP_NAME=ForgeNodeGroup
                   ATL_CUSTOM_TEMPLATE_REPO=${CustomTemplateRepo}
@@ -488,8 +488,8 @@ Resources:
                   end script
                 - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
                   region: !Ref AWS::Region
-                  Regions: !If [NoRegions, '', !Sub '&& export ATL_AWS_REGIONS_ALLOWED=${Regions}']
-                  Analytics: !If [SetAnalytics, !Sub '&& export ATL_AWS_ANALYTICS=${Analytics}', '']
+                  Regions: !If [NoRegions, '', !Sub "&& export ATL_AWS_REGIONS_ALLOWED='${Regions}'"]
+                  Analytics: !If [SetAnalytics, !Sub "&& export ATL_AWS_ANALYTICS=${Analytics}", '']
               mode: "000600"
               owner: root
               group: root
