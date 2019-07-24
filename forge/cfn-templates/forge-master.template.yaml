@@ -76,10 +76,10 @@ Metadata:
           default: VPC Id
 Parameters:
   Analytics:
-    Default: True
+    Default: true
     AllowedValues:
-      - True
-      - False
+      - true
+      - false
     ConstraintDescription: Must be true or false
     Description: Enable analytics to be sent back to Atlassian
     Type: String
@@ -453,15 +453,28 @@ Resources:
                   aws s3 cp s3://atl-cfn-forge-${AccountId}/config/config.py forge/config/config.py
                   aws s3 cp --recursive s3://atl-cfn-forge-${AccountId}/config/stacks stacks/
 
+                  # String to Tupal conversion
+                  REGNS=$(echo ${Regions} |
+                    awk -F', '  '{for(i = 1; i <= NF; i++) {if ($i == $NF) printf "("$i")"; else printf "("$i"), "}}' |
+                    awk '{gsub(/: /,"'\'', '\''",$0); gsub(/\(/,"'\(\''",$0);gsub(/\)/,"'\'\)'",$0); print $0}' |
+                  	sed -e 's/\(.*\)/\[\1\]/')
+
+                  ANLTICS=$([[ $Analytics == 'true' ]] && echo "True" || echo "False")
+
+                  # Config.py Update
+                  sed -ic -e "s/ANALYTICS.*/ANALYTICS = $ANLTICS/" -e "s/REGIONS.*/REGIONS = $REGNS/" forge/config/config.py
+
                   touch /var/log/forge.log
 
                   # final chown for updated files
                   chown -R forge:forge /home/forge
                   chown forge:forge /var/log/forge.log
                 - AccountId: !Ref AWS::AccountId
+                  Analytics: !Ref Analytics
                   CustomTemplateRepo: !Ref CustomTemplateRepo
                   CustomTemplateGitKey: !Ref CustomTemplateGitKey
                   region: !Ref AWS::Region
+                  Regions: !Ref Regions
                   SamlProtocol: !If [NoSamlMetadata, '', !Select [0, !Split ['://', !Ref SamlMetadataUrl]]]
                   SamlUrl: !If [NoSamlMetadata, '', !Select [1, !Split ['://', !Ref SamlMetadataUrl]]]
               mode: "000700"
