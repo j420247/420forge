@@ -76,10 +76,10 @@ Metadata:
           default: VPC Id
 Parameters:
   Analytics:
-    Default: true
+    Default: True
     AllowedValues:
-      - true
-      - false
+      - True
+      - False
     ConstraintDescription: Must be true or false
     Description: Enable analytics to be sent back to Atlassian
     Type: String
