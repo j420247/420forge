@@ -167,7 +167,7 @@ Parameters:
     Description: Size of the root EBS volume on application nodes
     Type: Number
   Regions:
-    Default: 'us-east-2: Ohio, us-east-1: N. Virginia, us-west-1: N. California'
+    Default: 'us-east-1: N.Virginia-Stg, us-west-2: Oregon-Prod'
     AllowedPattern: '((\w\w-\w+-\d: \p{L}+(\.?-? ?\w?)+)(,? ?))+'
     ConstraintDescription: Must be a list of AWS regions
     Description: "Comma delimited list of the regions you want Forge to operate in, including display names for the region, in format 'aws_region: region_name'. Names are for reference only, so can be AWS region names or Staging/Production etc. First region will be the default region. AllowedPattern: ((\\w\\w-\\w+-\\d: \\p{L}+(\\.?-? ?\\w?)+)(,? ?))+"
@@ -457,7 +457,7 @@ Resources:
                   REGNS=$(echo ${Regions} |
                     awk -F', '  '{for(i = 1; i <= NF; i++) {if ($i == $NF) printf "("$i")"; else printf "("$i"), "}}' |
                     awk '{gsub(/: /,"'\'', '\''",$0); gsub(/\(/,"'\(\''",$0);gsub(/\)/,"'\'\)'",$0); print $0}' |
-                  	sed -e 's/\(.*\)/\[\1\]/')
+                    sed -e 's/\(.*\)/\[\1\]/')
 
                   ANLTICS=$([[ $Analytics == 'true' ]] && echo "True" || echo "False")
 
