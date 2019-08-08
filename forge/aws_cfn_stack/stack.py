@@ -301,6 +301,9 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout):
             if logMsgs:
                 self.log_msg(INFO, f'Node status check timed out')
+        except requests.exceptions.ConnectionError:
+            if logMsgs:
+                self.log_msg(INFO, f'Node not currently listening on {port}')
         except Exception as e:
             log.exception('Error checking node status')
             return f'Error checking node status: {e}'
