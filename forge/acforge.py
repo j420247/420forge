@@ -13,12 +13,12 @@ import boto3
 import botocore
 import git
 import psutil
-from flask import request, session, current_app
+from flask import current_app, request, session
 from flask_restful import Resource
-from ruamel import yaml
-
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
+from ruamel import yaml
+
 
 ##
 #### REST Endpoint classes
@@ -569,12 +569,14 @@ class GetRdsSnapshots(Resource):
             # get snapshots and append ids to list
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
-                snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
+                if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
+                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
-                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
+                    if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
+                        snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
@@ -714,7 +716,7 @@ def get_current_log(stack_name):
     logs_by_time = {}
     if len(logs) > 0:
         for log in logs:
-            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name): log.rfind('_')]
+            str_timestamp = log[log.index(f'logs/{stack_name}') + 6 + len(stack_name) : log.rfind('_')]
             datetime_timestamp = datetime.strptime(str_timestamp, '%Y%m%d-%H%M%S')
             logs_by_time[log] = datetime_timestamp
         sorted_logs = sorted(logs_by_time, key=logs_by_time.get, reverse=True)
