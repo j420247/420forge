@@ -380,7 +380,7 @@ class DoGitPull(RestrictedResource):
         return result
 
 
-# comment
+# comment 2
 
 
 class GetGitRevision(Resource):
