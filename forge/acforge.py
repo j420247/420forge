@@ -373,14 +373,14 @@ class DoGitPull(RestrictedResource):
     def get(self, template_repo, stack_name):
         repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
-            result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+            repo.git.stash()
+            repo.git.pull()
+            repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json')
+            # result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
             result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         logging.info(result)
         return result
-
-
-# comment 2
 
 
 class GetGitRevision(Resource):
