@@ -383,6 +383,9 @@ class DoGitPull(RestrictedResource):
         return result
 
 
+# nothing
+
+
 class GetGitRevision(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
