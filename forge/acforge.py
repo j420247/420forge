@@ -736,7 +736,7 @@ def get_git_commit_difference(repo):
     try:
         behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
         ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
-    except TypeError:
+    except (TypeError, git.exc.GitCommandError):
         behind = -1
         ahead = -1
     return [behind, ahead]
