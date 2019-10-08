@@ -374,9 +374,11 @@ class DoGitPull(RestrictedResource):
         repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
             log.info('Updating Forge')
-            log.info(f'Stashing: {repo.git.stash()}')
-            log.info(f'Pulling: {repo.git.pull()}')
-            log.info('Checking out config:')
+            log.info(f'Stashing')
+            log.info(repo.git.stash())
+            log.info(f'Pulling')
+            log.info(repo.git.pull())
+            log.info('Reapplying config')
             log.info(repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json'))
             # result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
