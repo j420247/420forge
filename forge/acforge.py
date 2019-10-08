@@ -381,9 +381,10 @@ class DoGitPull(RestrictedResource):
             log.info(repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json'))
             # result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
-            result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+            # result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+            repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         # log.info(result)
-        return result
+        return "true"
 
 
 # nothing
