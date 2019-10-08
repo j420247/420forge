@@ -373,7 +373,12 @@ class DoGitPull(RestrictedResource):
     def get(self, template_repo, stack_name):
         repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
-            result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+            log.info('Updating Forge')
+            log.info(f'Stashing: {repo.git.stash()}')
+            log.info(f'Pulling: {repo.git.pull()}')
+            log.info('Reapplying config')
+            log.info(repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json'))
+            result = 'Forge updated successfully'
         else:
             result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
         log.info(result)
