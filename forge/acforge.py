@@ -378,12 +378,11 @@ class DoGitPull(RestrictedResource):
             log.info(f'Pulling: {repo.git.pull()}')
             log.info('Reapplying config')
             log.info(repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json'))
-            # result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+            result = 'Forge updated successfully'
         else:
-            # result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-            repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-        # log.info(result)
-        return "true"
+            result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
+        log.info(result)
+        return result
 
 
 class GetGitRevision(Resource):
