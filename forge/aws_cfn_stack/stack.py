@@ -82,7 +82,7 @@ class Stack:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
             params = stack_details['Stacks'][0]['Parameters']
         except botocore.exceptions.ClientError:
-            logging.exception('Error getting stack parameters')
+            log.exception('Error getting stack parameters')
             return False
         return params
 

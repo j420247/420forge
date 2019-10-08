@@ -376,7 +376,7 @@ class DoGitPull(RestrictedResource):
             result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
         else:
             result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-        logging.info(result)
+        log.info(result)
         return result
 
 
@@ -384,7 +384,7 @@ class GetGitRevision(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
         result = get_git_revision(repo)
-        logging.info(result)
+        log.info(result)
         return result[:7]
 
 
@@ -687,7 +687,7 @@ class ForgeStatus(Resource):
 
 class DoForgeRestart(RestrictedResource):
     def get(self, stack_name):
-        logging.warning('Forge restart has been triggered')
+        log.warning('Forge restart has been triggered')
         if not restart_forge():
             return 'unsupported'
 
@@ -797,7 +797,7 @@ def restart_forge():
         system(f'kill -HUP {getppid()}')
         return True
     else:
-        logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
+        log.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
         return False
 
 
