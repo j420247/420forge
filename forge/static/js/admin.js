@@ -167,10 +167,7 @@ function updateTemplates() {
   disableUpdatesButton();
   var template_repo = $("#templateRepoSelector").text();
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
-    displayGitUpdateMessage);
-  updateRepoInfo(template_repo);
-  if (template_repo === "Forge (requires restart)")
-    restartForge();
+      displayGitUpdateMessageAndOptionallyRestart);
 }
 
 function displayBranch(responseText) {
@@ -227,11 +224,14 @@ function disableUpdatesButton(){
 }
 
 
-function displayGitUpdateMessage(responseText) {
+function  displayGitUpdateMessageAndOptionallyRestart(responseText) {
   var gitUpdateMessage = JSON.parse(responseText).split(',');
   $("#gitUpdateMessage").html(gitUpdateMessage);
   $("#gitUpdateMessage").show();
-  updateRepoInfo(document.getElementById("templateRepoSelector").text);
+  var template_repo = $("#templateRepoSelector").text();
+  updateRepoInfo(template_repo);
+  if (template_repo === "Forge (requires restart)")
+    restartForge();
 }
 
 
