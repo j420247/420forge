@@ -374,7 +374,7 @@ class DoGitPull(RestrictedResource):
         repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
             log.info('Updating Forge')
-            log.info(f'Stashing')
+            log.info(f'Stashing..')
             log.info(repo.git.stash())
             log.info(f'Pulling')
             log.info(repo.git.pull())
