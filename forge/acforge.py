@@ -155,7 +155,17 @@ class DoUpdate(RestrictedResource):
                     params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
                 if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
                     params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        outcome = mystack.update(params_for_update, get_template_file(template_name))
+        outcome = mystack.create_change_set(params_for_update, get_template_file(template_name))
+        mystack.clear_current_action()
+        return outcome
+
+
+class DoExecuteChangeset(RestrictedResource):
+    def post(self, stack_name, change_set_name):
+        mystack = Stack(stack_name, session['region'] if 'region' in session else '')
+        if not mystack.store_current_action('update', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        outcome = mystack.execute_change_set(change_set_name)
         mystack.clear_current_action()
         return outcome
 
@@ -538,6 +548,12 @@ class GetZDUCompatibility(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.get_zdu_compatibility()
+
+
+class GetChangeSetDetails(Resource):
+    def get(self, region, stack_name, change_set_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_change_set_details(change_set_name)
 
 
 class GetEbsSnapshots(Resource):

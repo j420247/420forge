@@ -62,6 +62,7 @@ function send_http_post_request(url, data, onreadystatechange) {
         };
     }
     postRequest.send(data);
+    return postRequest;
 }
 
 // Create/modify page elements
@@ -277,4 +278,12 @@ function displayAUIFlag(message, category, closes = 'auto') {
          body: message,
          close: closes
     });
+}
+
+function setModalSize(selector, size) {
+    $(selector)
+        .removeClass(function (index, className) {
+            return (className.match (/(^|\s)aui-dialog2-(small|medium|large|xlarge)/g) || []).join(' ');
+        })
+        .addClass('aui-dialog2-' + size);
 }
