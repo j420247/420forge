@@ -76,6 +76,10 @@ section.aui-page-panel-content img {
     transition: all 0.5s ease-in-out;
 }
 
+#modal-dialog .aui-progress-indicator {
+    outline: 0;
+}
+
 #modal-dialog #changesetError {
     margin-top: 0;
 }
