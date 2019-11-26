@@ -119,7 +119,7 @@ function displayStackParams(responseText) {
 
   for (var param in origParams) {
     createInputParameter(origParams[param], fieldset);
-    if (origParams[param].ParameterKey === "ConfluenceVersion") {
+    if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
     }
   }
