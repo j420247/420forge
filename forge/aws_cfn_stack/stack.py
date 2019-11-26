@@ -358,7 +358,7 @@ class Stack:
                 node_ip = instancelist[i][instance]
             self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
             self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} stop'
+            cmd = f'service {app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
@@ -378,7 +378,7 @@ class Stack:
                     self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}')
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} start'
+            cmd = f'service {app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
