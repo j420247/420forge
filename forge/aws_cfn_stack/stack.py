@@ -203,15 +203,17 @@ class Stack:
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
-        if app_type == 'jira':
+        if any(param for param in spinup_parms if param['ParameterKey'] == 'ProductVersion'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            if hasattr(self, 'preupgrade_synchrony_node_count'):
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
+        if hasattr(self, 'preupgrade_synchrony_node_count'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
@@ -592,7 +594,7 @@ class Stack:
             return False
         # get preupgrade version and node counts
         self.preupgrade_version = [
-            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ProductVersion', 'ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
         ][0]
         if self.is_app_clustered():
             self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
@@ -749,7 +751,9 @@ class Stack:
         self.log_change('Upgrade is underway')
         # update the version in stack parameters
         stack_params = self.getparms()
-        if app_type == 'jira':
+        if any(param for param in stack_params if param['ParameterKey'] == 'ProductVersion'):
+            stack_params = self.update_parmlist(stack_params, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
