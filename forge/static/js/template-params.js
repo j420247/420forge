@@ -305,12 +305,17 @@ function sendParamsAsJson() {
     stackNameForAction = document.getElementById("StackNameVal").value
   }
 
-  // add cloned_from stackname
+  // add cloned_from stackname and region
   if (action === 'clone') {
     var clonedFromStackParam = {};
     clonedFromStackParam["ParameterKey"] = "ClonedFromStackName";
     clonedFromStackParam["ParameterValue"] = $("#stackSelector").text();
     newParamsArray.push(clonedFromStackParam);
+
+    var clonedFromRegionParam = {};
+    clonedFromRegionParam["ParameterKey"] = "ClonedFromRegion";
+    clonedFromRegionParam["ParameterValue"] = region;
+    newParamsArray.push(clonedFromRegionParam);
   }
 
   if ($("#productSelector").is(':visible')) {

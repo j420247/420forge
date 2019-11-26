@@ -59,16 +59,16 @@ class DoClone(RestrictedResource):
                 cloned_from = param['ParameterValue']
             elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
-            elif param['ParameterKey'] == 'ConfluenceVersion':
-                app_type = 'Confluence'
-            elif param['ParameterKey'] == 'JiraVersion':
-                app_type = 'Jira'
-            elif param['ParameterKey'] == 'CrowdVersion':
-                app_type = 'Crowd'
             elif param['ParameterKey'] == 'EBSSnapshotId':
                 param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
             elif param['ParameterKey'] == 'DBSnapshotName':
                 param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
+        # find product type for source stack
+        source_stack = Stack(
+            next(param for param in content if param['ParameterKey'] == 'ClonedFromStackName')['ParameterValue'],
+            next(param for param in content if param['ParameterKey'] == 'ClonedFromRegion')['ParameterValue'],
+        )
+        app_type = source_stack.get_tag('product')
         # remove stackName, region and templateName from params to send
         content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
         content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
@@ -81,13 +81,13 @@ class DoClone(RestrictedResource):
         for param in content:
             if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
                 params_to_send.append(param)
-        mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+        clone_stack = Stack(stack_name, region)
+        if not clone_stack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
-        mystack.clear_current_action()
+        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
+        clone_stack.clear_current_action()
         return outcome
 
 
