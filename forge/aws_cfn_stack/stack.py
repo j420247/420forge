@@ -1153,7 +1153,7 @@ class Stack:
             # on node, grab cloned_from sql from s3
             self.run_command(
                 [self.instancelist[0]],
-                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d",
+                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d /tmp/{cloned_from_stack}-clones-sql.d",
             )
             # run that sql
             if not self.run_command(
@@ -1164,11 +1164,11 @@ class Stack:
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
-                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d"
+                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d /tmp/local-post-clone-sql.d"
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
