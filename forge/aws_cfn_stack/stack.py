@@ -1161,7 +1161,8 @@ class Stack:
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
