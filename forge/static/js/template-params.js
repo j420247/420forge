@@ -119,7 +119,7 @@ function displayStackParams(responseText) {
 
   for (var param in origParams) {
     createInputParameter(origParams[param], fieldset);
-    if (origParams[param].ParameterKey === "ConfluenceVersion") {
+    if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
     }
   }
@@ -305,12 +305,17 @@ function sendParamsAsJson() {
     stackNameForAction = document.getElementById("StackNameVal").value
   }
 
-  // add cloned_from stackname
+  // add cloned_from stackname and region
   if (action === 'clone') {
     var clonedFromStackParam = {};
     clonedFromStackParam["ParameterKey"] = "ClonedFromStackName";
     clonedFromStackParam["ParameterValue"] = $("#stackSelector").text();
     newParamsArray.push(clonedFromStackParam);
+
+    var clonedFromRegionParam = {};
+    clonedFromRegionParam["ParameterKey"] = "ClonedFromRegion";
+    clonedFromRegionParam["ParameterValue"] = region;
+    newParamsArray.push(clonedFromRegionParam);
   }
 
   if ($("#productSelector").is(':visible')) {

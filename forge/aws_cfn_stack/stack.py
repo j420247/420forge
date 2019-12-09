@@ -203,15 +203,17 @@ class Stack:
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
-        if app_type == 'jira':
+        if any(param for param in spinup_parms if param['ParameterKey'] == 'ProductVersion'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            if hasattr(self, 'preupgrade_synchrony_node_count'):
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
+        if hasattr(self, 'preupgrade_synchrony_node_count'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
@@ -358,7 +360,7 @@ class Stack:
                 node_ip = instancelist[i][instance]
             self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
             self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} stop'
+            cmd = f'service {app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
@@ -378,7 +380,7 @@ class Stack:
                     self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}')
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} start'
+            cmd = f'service {app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
@@ -592,7 +594,7 @@ class Stack:
             return False
         # get preupgrade version and node counts
         self.preupgrade_version = [
-            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ProductVersion', 'ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
         ][0]
         if self.is_app_clustered():
             self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
@@ -749,7 +751,9 @@ class Stack:
         self.log_change('Upgrade is underway')
         # update the version in stack parameters
         stack_params = self.getparms()
-        if app_type == 'jira':
+        if any(param for param in stack_params if param['ParameterKey'] == 'ProductVersion'):
+            stack_params = self.update_parmlist(stack_params, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
@@ -1153,22 +1157,23 @@ class Stack:
             # on node, grab cloned_from sql from s3
             self.run_command(
                 [self.instancelist[0]],
-                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d",
+                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d /tmp/{cloned_from_stack}-clones-sql.d",
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
-                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d"
+                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d /tmp/local-post-clone-sql.d"
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
