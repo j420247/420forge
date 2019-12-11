@@ -19,8 +19,8 @@ pipelines:
                 script:
                   - pip3 install -r requirements.txt
                   - python -m pytest -v tests/unit
-            - step:
-                name: 'pytest func'
-                script:
-                  - pip3 install -r requirements.txt
-                  - python -m pytest -v tests/func
+#            - step:
+#                name: 'pytest func'
+#                script:
+#                  - pip3 install -r requirements.txt
+#                  - python -m pytest -v tests/func
