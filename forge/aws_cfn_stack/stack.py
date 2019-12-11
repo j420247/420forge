@@ -894,6 +894,7 @@ class Stack:
             return False
         self.log_change('Create complete, looking for post-clone SQL')
         if self.run_sql():
+            self.run_liquibase()
             self.log_change('SQL complete, restarting {self.stack_name}')
             self.full_restart()
         else:
@@ -1184,6 +1185,17 @@ class Stack:
         self.log_msg(INFO, 'Run SQL complete')
         self.log_change('Run SQL complete')
         return True
+
+    def run_liquibase(self):
+        self.log_msg(INFO, 'Running post clone Liquibase')
+        self.log_change('Running post clone Liquibase')
+        self.get_stacknodes()
+        cloned_from_stack = self.get_tag('cloned_from')
+        cloned_stack_env = self.get_tag('environment')
+        if not self.run_command([self.instancelist[0]], f"/usr/local/bin/run-liquibase -s {cloned_from_stack}-{cloned_stack_env}"):
+            return False
+        else:
+            return True
 
     def tag(self, tags):
         self.log_msg(INFO, 'Tagging stack')
