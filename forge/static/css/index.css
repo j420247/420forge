@@ -71,3 +71,15 @@ section.aui-page-panel-content img {
     background: #F4F5F7;
     color: #A5ADBA;
 }
+
+#modal-dialog {
+    transition: all 0.5s ease-in-out;
+}
+
+#modal-dialog .aui-progress-indicator {
+    outline: 0;
+}
+
+#modal-dialog #changesetError {
+    margin-top: 0;
+}
