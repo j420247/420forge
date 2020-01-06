@@ -196,6 +196,23 @@ class Stack:
             return False
         return True
 
+    def wait_stack_change_set_creation_complete(self, change_set_arn):
+        self.log_msg(INFO, "Waiting for change set creation to complete")
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        waiter = cfn.get_waiter('change_set_create_complete')
+        try:
+            waiter.wait(ChangeSetName=change_set_arn, StackName=self.stack_name)
+        except tenacity.RetryError:
+            self.log_msg(ERROR, 'Change set creation complete - failed (timed out)')
+            self.log_change('Change set creation complete - failed (timed out)')
+            return False
+        except Exception as e:
+            log.exception('An error occurred waiting for change set to create')
+            self.log_msg(ERROR, f'An error occurred waiting for change set to create: {e}')
+            return False
+        self.log_msg(INFO, 'Change set creation complete')
+        return True
+
     def spinup_to_one_appnode(self, app_type, new_version):
         self.log_msg(INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
@@ -903,39 +920,78 @@ class Stack:
         self.log_change('Clone complete')
         return True
 
-    def update(self, stack_parms, template_file):
-        self.log_msg(INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
-        self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+    def create_change_set(self, stack_parms, template_file):
+        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+        self.log_change(f"Changes are: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
         template = str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(
+            change_set = cfn.create_change_set(
+                ChangeSetName=f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}',
+                ChangeSetType='UPDATE',
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
                 Capabilities=['CAPABILITY_IAM'],
             )
+        except botocore.exceptions.ClientError as e:
+            log.exception('An error occurred creating change set')
+            self.log_msg(ERROR, f'An error occurred creating change set: {e}')
+            self.log_msg(INFO, 'Change set creation complete - failed')
+            self.log_change('Change set creation complete - failed')
+            return e.response['Error']['Message']
+        if not self.wait_stack_change_set_creation_complete(change_set['Id']):
+            # reasons we might get here?
+            #  - changeset doesn't exist (if creation failed, should've been caught in previous block)
+            #  - waiter timed out; changeset creation is taking too long
+            self.log_msg(INFO, 'Change set creation complete - failed')
+            self.log_change('Change set creation - failed')
+            return False
+        self.log_msg(INFO, f'Change set created {change_set["Id"]}')
+        self.log_change(f'Change set created: {change_set["Id"]}')
+        return change_set
+
+    def get_change_set_details(self, change_set_name):
+        self.log_msg(INFO, f'Retrieving details for change set: {change_set_name}')
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        change_set_changes = []
+        try:
+            paginator = cfn.get_paginator('describe_change_set')
+            page_iterator = paginator.paginate(ChangeSetName=change_set_name, StackName=self.stack_name)
+            for page in page_iterator:
+                change_set_changes.extend(page['Changes'])
         except Exception as e:
-            log.exception('An error occurred updating stack')
-            self.log_msg(ERROR, f'An error occurred updating stack: {e}')
-            self.log_msg(INFO, 'Update complete - failed')
-            self.log_change('Update complete - failed')
+            log.exception('An error occurred retrieving change set details')
+            self.log_msg(ERROR, f'An error occurred retrieving change set details: {e}')
+            return False
+        self.log_msg(INFO, 'Change set details retrieved')
+        return change_set_changes
+
+    def execute_change_set(self, change_set_name):
+        self.log_msg(INFO, f'Updating stack with changeset: {change_set_name}')
+        self.log_change(f"Changeset is: {change_set_name}")
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.execute_change_set(ChangeSetName=change_set_name, StackName=self.stack_name)
+        except Exception as e:
+            log.exception('An error occurred applying change set to stack')
+            self.log_msg(ERROR, f'An error occurred applying change set to stack: {e}')
+            self.log_msg(INFO, 'Changeset execution complete - failed')
+            self.log_change('Changeset execution complete - failed')
             return False
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Update complete - failed')
-            self.log_change('Update complete - failed')
+            self.log_msg(INFO, 'Changeset execution complete - failed')
+            self.log_change('Changeset execution complete - failed')
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
-        if not self.is_app_clustered() or (
-            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
-            and int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0
-        ):
+        cluster_node_count = self.getparamvalue('ClusterNodeMax') or 0
+        if not self.is_app_clustered() or int(cluster_node_count) > 0:
             self.log_msg(INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
-        self.log_msg(INFO, 'Update complete')
-        self.log_change('Update successful')
+        self.log_msg(INFO, 'Changeset execution complete')
+        self.log_change('Changeset execution successful')
         return True
 
     def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
