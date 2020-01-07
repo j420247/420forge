@@ -910,9 +910,13 @@ class Stack:
             self.clear_current_action()
             return False
         self.log_change('Create complete, looking for post-clone SQL')
+
+        # Running postclone SQL from S3
         if self.run_sql():
-            self.run_liquibase()
             self.log_change('SQL complete, restarting {self.stack_name}')
+
+        if self.run_liquibase():
+            self.log_change('Liquibase complete, restarting {self.stack_name}')
             self.full_restart()
         else:
             self.clear_current_action()
@@ -1246,9 +1250,7 @@ class Stack:
         self.log_msg(INFO, 'Running post clone Liquibase')
         self.log_change('Running post clone Liquibase')
         self.get_stacknodes()
-        cloned_from_stack = self.get_tag('cloned_from')
-        cloned_stack_env = self.get_tag('environment')
-        if not self.run_command([self.instancelist[0]], f"/usr/local/bin/run-liquibase -s {cloned_from_stack}-{cloned_stack_env}"):
+        if not self.run_command([self.instancelist[0]], f"/usr/local/bin/run-liquibase -f && /usr/local/bin/run-liquibase -s {self.stack_name}"):
             return False
         else:
             return True
