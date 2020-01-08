@@ -8,8 +8,8 @@ import mock
 import moto
 import moto_overrides
 from flask import Flask
+from forge.aws_cfn_stack import stack as aws_stack
 
-import forge.aws_cfn_stack.stack as aws_stack
 
 CONF_STACKNAME = 'my-confluence'
 REGION = 'us-east-1'
@@ -106,9 +106,9 @@ def setup_env_resources():
 
     # create VPC and subnets
     ec2 = boto3.resource('ec2', region_name=REGION)
-    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/24')
-    subnet_1 = vpc.create_subnet(CidrBlock='10.0.0.0/25')
-    subnet_2 = vpc.create_subnet(CidrBlock='10.0.0.0/26')
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/22')
+    subnet_1 = vpc.create_subnet(CidrBlock='10.0.0.0/24')
+    subnet_2 = vpc.create_subnet(CidrBlock='10.0.1.0/24')
 
     # create hosted zone
     r53 = boto3.client('route53')
@@ -185,10 +185,7 @@ class TestAwsStacks:
     def test_tagging(self):
         setup_stack()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        tags_to_add = [
-            {'Key': 'Tag1', 'Value': 'Value1'},
-            {'Key': 'Tag2', 'Value': 'Value2'}
-        ]
+        tags_to_add = [{'Key': 'Tag1', 'Value': 'Value1'}, {'Key': 'Tag2', 'Value': 'Value2'}]
         tagged = mystack.tag(tags_to_add)
         assert tagged
         tags = mystack.get_tags()
@@ -224,7 +221,6 @@ class TestAwsStacks:
             assert rolling_result is True
             full_result = mystack.full_restart()
             assert full_result is True
-
 
     @moto.mock_ec2
     @moto.mock_s3
