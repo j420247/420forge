@@ -13,12 +13,12 @@ import boto3
 import botocore
 import git
 import psutil
-from flask import request, session, current_app
+from flask import current_app, request, session
 from flask_restful import Resource
-from ruamel import yaml
-
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
+from ruamel import yaml
+
 
 ##
 #### REST Endpoint classes
@@ -59,16 +59,16 @@ class DoClone(RestrictedResource):
                 cloned_from = param['ParameterValue']
             elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
-            elif param['ParameterKey'] == 'ConfluenceVersion':
-                app_type = 'Confluence'
-            elif param['ParameterKey'] == 'JiraVersion':
-                app_type = 'Jira'
-            elif param['ParameterKey'] == 'CrowdVersion':
-                app_type = 'Crowd'
             elif param['ParameterKey'] == 'EBSSnapshotId':
                 param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
             elif param['ParameterKey'] == 'DBSnapshotName':
                 param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
+        # find product type for source stack
+        source_stack = Stack(
+            next(param for param in content if param['ParameterKey'] == 'ClonedFromStackName')['ParameterValue'],
+            next(param for param in content if param['ParameterKey'] == 'ClonedFromRegion')['ParameterValue'],
+        )
+        app_type = source_stack.get_tag('product')
         # remove stackName, region and templateName from params to send
         content.remove(next(param for param in content if param['ParameterKey'] == 'StackName'))
         content.remove(next(param for param in content if param['ParameterKey'] == 'Region'))
@@ -81,13 +81,13 @@ class DoClone(RestrictedResource):
         for param in content:
             if next((template_param for template_param in template_params if template_param == param['ParameterKey']), None):
                 params_to_send.append(param)
-        mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+        clone_stack = Stack(stack_name, region)
+        if not clone_stack.store_current_action('clone', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = mystack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
-        mystack.clear_current_action()
+        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
+        clone_stack.clear_current_action()
         return outcome
 
 
@@ -155,7 +155,17 @@ class DoUpdate(RestrictedResource):
                     params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
                 if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
                     params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
-        outcome = mystack.update(params_for_update, get_template_file(template_name))
+        outcome = mystack.create_change_set(params_for_update, get_template_file(template_name))
+        mystack.clear_current_action()
+        return outcome
+
+
+class DoExecuteChangeset(RestrictedResource):
+    def post(self, stack_name, change_set_name):
+        mystack = Stack(stack_name, session['region'] if 'region' in session else '')
+        if not mystack.store_current_action('update', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        outcome = mystack.execute_change_set(change_set_name)
         mystack.clear_current_action()
         return outcome
 
@@ -219,7 +229,7 @@ class DoDestroy(RestrictedResource):
         if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            outcome = mystack.destroy()
+            mystack.destroy()
         except Exception as e:
             log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}')
@@ -373,10 +383,15 @@ class DoGitPull(RestrictedResource):
     def get(self, template_repo, stack_name):
         repo = get_git_repo_base(template_repo)
         if template_repo == 'Forge (requires restart)':
-            result = repo.git.reset('--soft', f'origin/{repo.active_branch.name}')
+            log.info('Updating Forge')
+            log.info(f'Stashing: {repo.git.stash()}')
+            log.info(f'Pulling: {repo.git.pull()}')
+            log.info('Reapplying config')
+            log.info(repo.git.checkout('stash', '--', 'forge/config/config.py', 'forge/saml_auth/permissions.json'))
+            result = 'Forge updated successfully'
         else:
             result = repo.git.reset('--hard', f'origin/{repo.active_branch.name}')
-        logging.info(result)
+        log.info(result)
         return result
 
 
@@ -384,7 +399,7 @@ class GetGitRevision(Resource):
     def get(self, template_repo):
         repo = get_git_repo_base(template_repo)
         result = get_git_revision(repo)
-        logging.info(result)
+        log.info(result)
         return result[:7]
 
 
@@ -396,7 +411,6 @@ class ServiceStatus(Resource):
 
 class StackState(Resource):
     def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_state = cfn.describe_stacks(StackName=stack_name)
@@ -439,7 +453,7 @@ class TemplateParamsForStack(Resource):
         cfn = boto3.client('cloudformation', region_name=region)
         try:
             stack_details = cfn.describe_stacks(StackName=stack_name)
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting stack parameters')
             return
         stack_params = stack_details['Stacks'][0]['Parameters']
@@ -536,6 +550,12 @@ class GetZDUCompatibility(Resource):
         return mystack.get_zdu_compatibility()
 
 
+class GetChangeSetDetails(Resource):
+    def get(self, region, stack_name, change_set_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_change_set_details(change_set_name)
+
+
 class GetEbsSnapshots(Resource):
     def get(self, region, stack_name):
         ec2 = boto3.client('ec2', region_name=region)
@@ -544,7 +564,7 @@ class GetEbsSnapshots(Resource):
             snap_name_format = f'dr_{snap_name_format}'
         try:
             snapshots = ec2.describe_snapshots(Filters=[{'Name': 'tag-value', 'Values': [snap_name_format]}])
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting EBS snapshots')
             return
         snapshotIds = []
@@ -570,13 +590,15 @@ class GetRdsSnapshots(Resource):
             # get snapshots and append ids to list
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
-                snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
+                if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
+                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
-                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.').__getitem__(0) + ": " + snap['DBSnapshotIdentifier'])
-        except botocore.exceptions.ClientError as e:
+                    if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
+                        snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
         snapshotIds.sort(reverse=True)
@@ -590,9 +612,9 @@ class GetTemplates(Resource):
         custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
-            default_templates = [f for f in template_folder.glob('**/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
         else:
-            default_templates = [f for f in template_folder.glob('**/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
         for file in default_templates:
             # TODO support Bitbucket?
             if 'Bitbucket' in file.name:
@@ -601,9 +623,9 @@ class GetTemplates(Resource):
         # get custom templates
         if custom_template_folder.exists():
             if template_type == 'all':
-                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match("^.*\.yaml$", f.name, flags=re.IGNORECASE)]
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
             else:
-                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(f"^.*{template_type}.*\.yaml$", f.name, flags=re.IGNORECASE)]
+                custom_templates = [f for f in custom_template_folder.glob('**/*/*/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
             for file in custom_templates:
                 templates.append((file.parent.parent.name, file.name))
         templates.sort()
@@ -615,7 +637,7 @@ class GetVpcs(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             vpcs = ec2.describe_vpcs()
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting VPCs')
             return
         vpc_ids = []
@@ -629,7 +651,7 @@ class GetSubnetsForVpc(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             subnets = ec2.describe_subnets(Filters=[{'Name': 'vpc-id', 'Values': [vpc]}])
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
@@ -644,7 +666,7 @@ class GetAllSubnetsForRegion(Resource):
         ec2 = boto3.client('ec2', region_name=region)
         try:
             subnets = ec2.describe_subnets()
-        except botocore.exceptions.ClientError as e:
+        except botocore.exceptions.ClientError:
             log.exception('Error occurred getting subnets')
             return
         subnet_ids = []
@@ -686,7 +708,7 @@ class ForgeStatus(Resource):
 
 class DoForgeRestart(RestrictedResource):
     def get(self, stack_name):
-        logging.warning('Forge restart has been triggered')
+        log.warning('Forge restart has been triggered')
         if not restart_forge():
             return 'unsupported'
 
@@ -722,7 +744,7 @@ def get_current_log(stack_name):
         with open(sorted_logs[0], 'r') as logfile:
             try:
                 return logfile.read()
-            except Exception as e:
+            except Exception:
                 log.exception(f'Error occurred getting log for {stack_name}')
     return False
 
@@ -735,7 +757,7 @@ def get_git_commit_difference(repo):
     try:
         behind = sum(1 for c in repo.iter_commits(f'HEAD..origin/{repo.active_branch.name}'))
         ahead = sum(1 for d in repo.iter_commits(f'origin/{repo.active_branch.name}..HEAD'))
-    except TypeError:
+    except (TypeError, git.exc.GitCommandError):
         behind = -1
         ahead = -1
     return [behind, ahead]
@@ -796,7 +818,7 @@ def restart_forge():
         system(f'kill -HUP {getppid()}')
         return True
     else:
-        logging.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
+        log.warning('*** Restarting only supported in gunicorn. Please restart/reload manually ***')
         return False
 
 

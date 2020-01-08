@@ -34,9 +34,8 @@ function onReady() {
     disableActionButton();
   }
 
-  var updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
-  updateTemplatesBtn.addEventListener("click", updateTemplates);
-
+  $("#updateTemplatesBtn").on("click", updateTemplates);
+  $("#restartForgeBtn").on("click", restartForge);
 }
 
 function createLockedStacksDropdown(responseText) {
@@ -168,12 +167,7 @@ function updateTemplates() {
   disableUpdatesButton();
   var template_repo = $("#templateRepoSelector").text();
   send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
-    displayGitUpdateMessage);
-  updateRepoInfo(template_repo);
-  if (template_repo === "Forge (requires restart)") {
-    displayAUIFlag('Updating and restarting forge', 'info')
-    send_http_get_request(baseUrl + "/doForgeRestart/__forge__", displayRestartResult);
-  }
+      displayGitUpdateMessageAndOptionallyRestart);
 }
 
 function displayBranch(responseText) {
@@ -187,6 +181,11 @@ function displayBranch(responseText) {
   $("#currentBranch").html(
     "Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type +
     "\">" + branch + "</span>");
+}
+
+function restartForge()  {
+  displayAUIFlag('Updating and restarting forge', 'info');
+  send_http_get_request(baseUrl + "/doForgeRestart/__forge__", displayRestartResult);
 }
 
 function setButtonStyle() {
@@ -225,11 +224,14 @@ function disableUpdatesButton(){
 }
 
 
-function displayGitUpdateMessage(responseText) {
+function  displayGitUpdateMessageAndOptionallyRestart(responseText) {
   var gitUpdateMessage = JSON.parse(responseText).split(',');
   $("#gitUpdateMessage").html(gitUpdateMessage);
   $("#gitUpdateMessage").show();
-  updateRepoInfo(document.getElementById("templateRepoSelector").text);
+  var template_repo = $("#templateRepoSelector").text();
+  updateRepoInfo(template_repo);
+  if (template_repo === "Forge (requires restart)")
+    restartForge();
 }
 
 

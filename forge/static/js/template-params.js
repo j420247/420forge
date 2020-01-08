@@ -2,6 +2,7 @@ var origParams;
 var stack_name;
 var externalSubnets;
 var internalSubnets;
+var changesetRequest;
 
 function readyTheTemplate() {
   var stacks = document.getElementsByClassName("selectStackOption");
@@ -22,6 +23,12 @@ function readyTheTemplate() {
   AJS.$('#paramsForm').on('aui-valid-submit', function(event) {
     sendParamsAsJson();
     event.preventDefault();
+  });
+
+  // allows modals to be dismissed via the "Cancel" button
+  AJS.$(document).on("click", "#modal-cancel-btn", function (e) {
+      e.preventDefault();
+      AJS.dialog2("#modal-dialog").hide();
   });
 }
 
@@ -119,7 +126,7 @@ function displayStackParams(responseText) {
 
   for (var param in origParams) {
     createInputParameter(origParams[param], fieldset);
-    if (origParams[param].ParameterKey === "ConfluenceVersion") {
+    if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
     }
   }
@@ -287,6 +294,41 @@ function selectDefaultSubnets(vpc) {
   }
 }
 
+function createChangeset(stackName, url, data) {
+  resetChangesetModal();
+  AJS.dialog2("#modal-dialog").show();
+  if (typeof changesetRequest !== "undefined") {
+    changesetRequest.abort();
+  }
+  changesetRequest = send_http_post_request(url, data, function (response) {
+    try {
+      changesetArn = JSON.parse(response)['Id'];
+      changesetName = changesetArn.split('/')[1];
+    } catch(e) {
+      showChangesetErrorModal('Unexpected response from server: ' + response);
+      return;
+    }
+    if (changesetName === undefined) {
+      showChangesetErrorModal('Unexpected response from server: ' + response);
+      return;
+    }
+    presentChangesetForExecution(stackName, changesetName);
+  });
+}
+
+function presentChangesetForExecution(stackName, changesetName) {
+  url = [baseUrl, 'getChangeSetDetails', region, stackName, changesetName].join('/');
+  send_http_get_request(url, function (response) {
+    changesetDetails = JSON.parse(response)
+    populateChangesetModal(changesetDetails);
+    $("#modal-ok-btn").off("click");
+    $("#modal-ok-btn").on("click", function() {
+      send_http_post_request([baseUrl, 'doexecutechangeset', stackName, changesetName].join('/'), {});
+      redirectToLog(stackName, '');
+    });
+  });
+}
+
 function sendParamsAsJson() {
   var newParamsArray = [];
   var productParam = {};
@@ -305,12 +347,17 @@ function sendParamsAsJson() {
     stackNameForAction = document.getElementById("StackNameVal").value
   }
 
-  // add cloned_from stackname
+  // add cloned_from stackname and region
   if (action === 'clone') {
     var clonedFromStackParam = {};
     clonedFromStackParam["ParameterKey"] = "ClonedFromStackName";
     clonedFromStackParam["ParameterValue"] = $("#stackSelector").text();
     newParamsArray.push(clonedFromStackParam);
+
+    var clonedFromRegionParam = {};
+    clonedFromRegionParam["ParameterKey"] = "ClonedFromRegion";
+    clonedFromRegionParam["ParameterValue"] = region;
+    newParamsArray.push(clonedFromRegionParam);
   }
 
   if ($("#productSelector").is(':visible')) {
@@ -368,6 +415,7 @@ function sendParamsAsJson() {
     jsonParam["ParameterValue"] = value;
     newParamsArray.push(jsonParam);
   }
+
   var url = baseUrl + "/do" + action;
   if (action === 'update')
     url += "/" + stackNameForAction;
@@ -377,11 +425,15 @@ function sendParamsAsJson() {
   jsonArray.push(newParamsArray);
   jsonArray.push(origParams);
 
-  send_http_post_request(url, JSON.stringify(jsonArray));
+  if (action === 'update') {
+    createChangeset(stackNameForAction, url, JSON.stringify(jsonArray));
+  } else {
+    send_http_post_request(url, JSON.stringify(jsonArray));
 
-  var appendRegion = "";
-  if (action === 'clone')
-    appendRegion = "&region=" + $("#regionSelector").text().trim();
+    var appendRegion = "";
+    if (action === 'clone')
+      appendRegion = "&region=" + $("#regionSelector").text().trim();
 
-  redirectToLog(stackNameForAction, appendRegion);
+    redirectToLog(stackNameForAction, appendRegion);
+  }
 }

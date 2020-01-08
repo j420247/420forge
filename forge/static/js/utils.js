@@ -62,6 +62,7 @@ function send_http_post_request(url, data, onreadystatechange) {
         };
     }
     postRequest.send(data);
+    return postRequest;
 }
 
 // Create/modify page elements
@@ -72,7 +73,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownAnchor.setAttribute("aria-haspopup", "true");
     dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
     dropdownAnchor.id = parameterKey + "Val";
-    if (defaultValue && defaultValue.length !== 0)
+    if (defaultValue !== undefined && defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
         dropdownAnchor.text = 'Select';
@@ -277,4 +278,12 @@ function displayAUIFlag(message, category, closes = 'auto') {
          body: message,
          close: closes
     });
+}
+
+function setModalSize(selector, size) {
+    $(selector)
+        .removeClass(function (index, className) {
+            return (className.match (/(^|\s)aui-dialog2-(small|medium|large|xlarge)/g) || []).join(' ');
+        })
+        .addClass('aui-dialog2-' + size);
 }
