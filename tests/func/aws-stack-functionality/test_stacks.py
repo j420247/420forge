@@ -20,6 +20,7 @@ app.config['TESTING'] = True
 
 # override buggy moto functions
 moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
+moto.cloudformation.responses.CloudFormationResponse.create_change_set = moto_overrides.create_change_set
 moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
 TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
@@ -158,7 +159,7 @@ class TestAwsStacks:
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
-    def test_update(self):
+    def test_create_changeset(self):
         setup_stack()
         cfn = boto3.client('cloudformation', REGION)
         stack = cfn.describe_stacks(StackName=CONF_STACKNAME)
@@ -172,7 +173,34 @@ class TestAwsStacks:
                 del param['ParameterValue']
                 param['UsePreviousValue'] = True
         with app.app_context():
-            result = mystack.update(params_for_update, TEMPLATE_FILE)
+            result = mystack.create_change_set(params_for_update, TEMPLATE_FILE)
+        assert result['ResponseMetadata']['HTTPStatusCode'] == 200
+        cfn = boto3.client('cloudformation', REGION)
+        change_set = cfn.describe_change_set(ChangeSetName=result['Id'], StackName=CONF_STACKNAME)
+        assert [param for param in change_set['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_execute_changeset(self):
+        setup_stack()
+        cfn = boto3.client('cloudformation', REGION)
+        stack = cfn.describe_stacks(StackName=CONF_STACKNAME)
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        params_for_update = stack['Stacks'][0]['Parameters']
+        for param in params_for_update:
+            if param['ParameterKey'] == 'TomcatConnectionTimeout':
+                param['ParameterValue'] = '20001'
+            # for other params, delete the value and set UsePreviousValue to true
+            else:
+                del param['ParameterValue']
+                param['UsePreviousValue'] = True
+        with app.app_context():
+            change_set = mystack.create_change_set(params_for_update, TEMPLATE_FILE)
+            change_set_name = change_set['Id']
+            mystack.validate_service_responding = MagicMock(return_value=True)
+            result = mystack.execute_change_set(change_set_name)
         assert result is True
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
