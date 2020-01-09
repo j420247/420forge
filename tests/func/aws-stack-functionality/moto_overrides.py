@@ -1,7 +1,6 @@
 import json
 import re
 
-from boto.cloudformation.stack import Output
 from moto.cloudformation.parsing import clean_json
 from moto.cloudformation.responses import CREATE_CHANGE_SET_RESPONSE_TEMPLATE
 from moto.core.exceptions import RESTError
@@ -77,14 +76,14 @@ def create_change_set(self):
 def create_target_group(self, name, **kwargs):
     if len(name) > 32:
         raise InvalidTargetGroupNameError("Target group name '%s' cannot be longer than '32' characters" % name)
-    if not re.match('^[a-zA-Z0-9\-]+$', name):
+    if not re.match(r'^[a-zA-Z0-9\-]+$', name):
         raise InvalidTargetGroupNameError("Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)" % name)
 
     # undocumented validation
     if not re.match('(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$', name):
         raise InvalidTargetGroupNameError(
-            "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$"
-            % name
+            "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' "
+            "failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$" % name
         )
 
     if name.startswith('-') or name.endswith('-'):
