@@ -913,7 +913,10 @@ class Stack:
 
         # Running postclone SQL from S3
         if self.run_sql():
-            self.log_change('SQL complete, restarting {self.stack_name}')
+            self.log_change('SQL complete {self.stack_name}')
+        else:
+            self.log_change('SQL Run Failed')
+            self.log_msg('SQL Run Failed')
 
         if self.run_liquibase():
             self.log_change('Liquibase complete, restarting {self.stack_name}')
