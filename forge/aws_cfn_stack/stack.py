@@ -913,23 +913,25 @@ class Stack:
 
         # Running postclone SQL from S3
         if self.run_sql():
-            self.log_change(f'SQL complete {self.stack_name}')
+            self.log_change(f'SQL complete')
         else:
             self.log_change('SQL Run Failed')
             self.log_msg('SQL Run Failed')
 
         # Sanitizing data of source stack
         if self.run_liquibase(cloned_from):
-            self.log_change(f'Liquibase Data Sanitization complete for {cloned_from}')
+            self.log_change(f'Data sanitization finished for source stack {cloned_from}')
         else:
-            self.log_change('Data Sanitization Failed')
-            self.log_msg('Data Sanitization Failed')
+            self.log_change(f'Data sanitization failed for source stack {cloned_from}')
+            self.log_msg(f'Data sanitization failed for source stack {cloned_from}')
 
         # Post clone liquibase run
         if self.run_liquibase(self.stack_name):
-            self.log_change(f'Liquibase complete, restarting {self.stack_name}')
+            self.log_change(f'Liquibase run complete, restarting {self.stack_name}')
             self.full_restart()
         else:
+            self.log_change('Liquibase Run Failed')
+            self.log_msg('Liquibase Run Failed')
             self.clear_current_action()
             return False
 
@@ -1263,10 +1265,9 @@ class Stack:
         self.log_msg(INFO, 'Running post clone Liquibase')
         self.log_change('Running post clone Liquibase')
         self.get_stacknodes()
-        if not self.run_command([self.instancelist[0]], f"/usr/local/bin/run-liquibase -s {stack_name}"):
-            return False
-        else:
-            return True
+        if self.run_command([self.instancelist[0]], f'/usr/local/bin/run-liquibase -s {stack_name}'):
+            True
+        return False
 
     def tag(self, tags):
         self.log_msg(INFO, 'Tagging stack')
