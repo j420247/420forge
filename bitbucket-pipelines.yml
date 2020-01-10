@@ -6,7 +6,7 @@ pipelines:
         script:
           - echo 'CI only runs on ITOPS branches for now'
   branches:
-    ITOPS-*:
+    ITOPS*:
         - parallel:
             - step:
                 name: 'cfn-lint'
