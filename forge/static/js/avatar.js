@@ -2,6 +2,9 @@ var email = $("meta[name=email]").attr("value");
 var username = email.substring(0, email.lastIndexOf("@"));
 var avatar_url = $("meta[name=avatar_url]").attr("value");
 
+// Check for undefined email
+email = typeof email !== 'undefined' ? email : '';
+
 // Generate src for image tag
 function getAvatarUrl(email, url) {
 
