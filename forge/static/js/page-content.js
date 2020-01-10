@@ -162,4 +162,5 @@ document.addEventListener('DOMContentLoaded', function() {
   $("#stackInformation").hide();
   onReady();
   checkAuthenticated();
+  displayAvatar();
 }, false);
