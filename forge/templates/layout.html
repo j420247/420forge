@@ -8,6 +8,10 @@
         <meta name="default_subnets" value={{ session['default_subnets'] }}>
         <meta name="hosted_zone" value={{ session['hosted_zone'] }}>
         <meta name="ssh_key_name" value={{ session['ssh_key_name'] }}>
+        {%if session['saml'] %}
+        <meta name="email" value={{ session['saml']['attributes']['User.Email'][0] }}>
+        <meta name="avatar_url" value={{ session['avatar_url'] }}>
+        {%endif %}
 
         <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
         {#    AUI    #}
@@ -23,6 +27,7 @@
         <script src="/static/aui/js/aui-soy.min.js"></script>
         <script src="{{ get_filename_with_last_update_time('static/js/page-content.js') }}"></script>
         <script src="{{ get_filename_with_last_update_time('static/js/utils.js') }}"></script>
+        <script src="{{ get_filename_with_last_update_time('static/js/avatar.js') }}"></script>
 
         <title>Atlassian Cloudformation Forge</title>
         {% block head %}
@@ -68,7 +73,7 @@
                     <ul class="aui-nav">
                         <li class="user-dropdown">
                             <a href="#user-nav1" aria-owns="user-nav1" aria-haspopup="true" class="aui-dropdown2-trigger aui-dropdown2-trigger">
-                                <span class="aui-avatar aui-avatar-small"><img src="https://rps-bucket-prod-east.s3.amazonaws.com/directory-services/directory-avatar/256x256/{{ session['saml']['attributes']['User.Email'][0].split("@")[0] }}.png" /></span>
+                                <span class="aui-avatar aui-avatar-small"><img id="avatar-small" src="" /></span>
                             </a>
                             <!-- Dropdown -->
                             <div id="user-nav1" class="aui-dropdown2 aui-style-default aui-dropdown2-in-header" data-dropdown2-alignment="right">
@@ -158,12 +163,8 @@
                             {% if messages %}
                             {% for category, message in messages %}
                             <script>
-                                 AJS.flag({
-                                     type: '{{ category }}',
-                                     body: '{{ message }}',
-                                     close: "{% if category != 'error' %}auto{% endif %}"
-                                 });
-                             </script>
+                                displayAUIFlag('{{ message }}', '{{ category }}', "{% if category != 'error' %}auto{% endif %}");
+                            </script>
                             {% endfor %}
                             {% endif %}
                             {% endwith %}
@@ -180,7 +181,7 @@
                         <li>Copyright &#169; 2009-<script>document.write(new Date().getUTCFullYear());</script> Atlassian</li>
                         <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/LICENSE">License</a></li>
                         <li><a href="https://bitbucket.org/atlassian/aui/src/7.4.0/changelog.md">Changelog</a></li>
-                        <li>{{ session['forge_version'] }}</li>
+                        <li><a href="/admin">Revision: {{ session['forge_version'] }}</a></li>
                     </ul>
                     <div id="footer-logo"><a href="https://www.atlassian.com/">Atlassian</a></div>
                 </section>

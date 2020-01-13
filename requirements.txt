@@ -11,6 +11,7 @@ gitpython
 gunicorn
 importanize
 moto
+psutil
 pre-commit
 pytest
 python-dotenv

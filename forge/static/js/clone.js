@@ -18,11 +18,7 @@ function onReady() {
 function getCloneDefaults(){
     var stack_name = $("#StackNameVal").val();
     if (!stack_name) {
-        AJS.flag({
-            type: 'error',
-            body: 'Please enter a stack name',
-            close: 'auto'
-        });
+        displayAUIFlag('Please enter a stack name', 'error');
         return;
     }
     send_http_get_request(baseUrl + "/getCloneDefaults/" + stack_name, applyCloneDefaults);
@@ -31,11 +27,7 @@ function getCloneDefaults(){
 function applyCloneDefaults(responseText) {
     var params = JSON.parse(responseText);
     if (params.length === 0) {
-        AJS.flag({
-            type: 'error',
-            body: 'No defaults exist for ' + $("#StackNameVal").val(),
-            close: 'auto'
-        });
+        displayAUIFlag('No defaults exist for ' + $("#StackNameVal").val(), 'error');
         return;
     }
 
@@ -46,9 +38,5 @@ function applyCloneDefaults(responseText) {
         else if (element.is("a"))
             element.text(params[param]);
     }
-    AJS.flag({
-        type: 'success',
-        body: 'Defaults for ' + $("#StackNameVal").val() + ' have been applied',
-        close: 'auto'
-    });
+    displayAUIFlag('Defaults for ' + $("#StackNameVal").val() + ' have been applied', 'success');
 }

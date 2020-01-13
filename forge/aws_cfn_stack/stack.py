@@ -82,7 +82,7 @@ class Stack:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
             params = stack_details['Stacks'][0]['Parameters']
         except botocore.exceptions.ClientError:
-            logging.exception('Error getting stack parameters')
+            log.exception('Error getting stack parameters')
             return False
         return params
 
@@ -196,6 +196,23 @@ class Stack:
             return False
         return True
 
+    def wait_stack_change_set_creation_complete(self, change_set_arn):
+        self.log_msg(INFO, "Waiting for change set creation to complete")
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        waiter = cfn.get_waiter('change_set_create_complete')
+        try:
+            waiter.wait(ChangeSetName=change_set_arn, StackName=self.stack_name)
+        except tenacity.RetryError:
+            self.log_msg(ERROR, 'Change set creation complete - failed (timed out)')
+            self.log_change('Change set creation complete - failed (timed out)')
+            return False
+        except Exception as e:
+            log.exception('An error occurred waiting for change set to create')
+            self.log_msg(ERROR, f'An error occurred waiting for change set to create: {e}')
+            return False
+        self.log_msg(INFO, 'Change set creation complete')
+        return True
+
     def spinup_to_one_appnode(self, app_type, new_version):
         self.log_msg(INFO, "Spinning stack up to one appnode")
         # for connie 1 app node and 1 synchrony
@@ -203,15 +220,17 @@ class Stack:
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
-        if app_type == 'jira':
+        if any(param for param in spinup_parms if param['ParameterKey'] == 'ProductVersion'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
-            if hasattr(self, 'preupgrade_synchrony_node_count'):
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         elif app_type == 'crowd':
             spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
+        if hasattr(self, 'preupgrade_synchrony_node_count'):
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+            spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
@@ -301,6 +320,9 @@ class Stack:
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout):
             if logMsgs:
                 self.log_msg(INFO, f'Node status check timed out')
+        except requests.exceptions.ConnectionError:
+            if logMsgs:
+                self.log_msg(INFO, f'Node not currently listening on {port}')
         except Exception as e:
             log.exception('Error checking node status')
             return f'Error checking node status: {e}'
@@ -355,7 +377,7 @@ class Stack:
                 node_ip = instancelist[i][instance]
             self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
             self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} stop'
+            cmd = f'service {app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
@@ -372,14 +394,14 @@ class Stack:
             node_ip = list(instancedict.values())[0]
             if app_type == 'jira':
                 if not self.cleanup_jira_temp_files(str(instance)):
-                    self.log_msg('ERROR', f'Failure cleaning up temp files for {instance}')
+                    self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}')
             self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
             self.log_change(f'Starting up {instance} ({node_ip})')
-            cmd = f'/etc/init.d/{app_type} start'
+            cmd = f'service {app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.log_msg('ERROR', f'Startup result for {cmd_id}: {result}')
+                self.log_msg(ERROR, f'Startup result for {cmd_id}: {result}')
                 return False
             else:
                 result = self.check_node_status(node_ip)
@@ -396,7 +418,7 @@ class Stack:
         cmd_id = self.ssm_send_command(instance, cmd)
         result = self.wait_for_cmd_result(cmd_id)
         if result == 'Failed':
-            self.log_msg('ERROR', f'Cleanup temp files result for {cmd_id}: {result}')
+            self.log_msg(ERROR, f'Cleanup temp files result for {cmd_id}: {result}')
             return False
         self.log_msg(INFO, f'Deleted Jira temp files on {instance}')
         return True
@@ -589,7 +611,7 @@ class Stack:
             return False
         # get preupgrade version and node counts
         self.preupgrade_version = [
-            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
+            p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] in ('ProductVersion', 'ConfluenceVersion', 'JiraVersion', 'CrowdVersion')
         ][0]
         if self.is_app_clustered():
             self.preupgrade_app_node_count = [p['ParameterValue'] for p in stack_details['Stacks'][0]['Parameters'] if p['ParameterKey'] == 'ClusterNodeMax'][0]
@@ -746,7 +768,9 @@ class Stack:
         self.log_change('Upgrade is underway')
         # update the version in stack parameters
         stack_params = self.getparms()
-        if app_type == 'jira':
+        if any(param for param in stack_params if param['ParameterKey'] == 'ProductVersion'):
+            stack_params = self.update_parmlist(stack_params, 'ProductVersion', new_version)
+        elif app_type == 'jira':
             stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
@@ -895,39 +919,78 @@ class Stack:
         self.log_change('Clone complete')
         return True
 
-    def update(self, stack_parms, template_file):
-        self.log_msg(INFO, f"Updating stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
-        self.log_change(f"Changeset is: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+    def create_change_set(self, stack_parms, template_file):
+        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+        self.log_change(f"Changes are: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
         template_filename = template_file.name
         template = str(template_file)
         self.upload_template(template, template_filename)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(
+            change_set = cfn.create_change_set(
+                ChangeSetName=f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}',
+                ChangeSetType='UPDATE',
                 StackName=self.stack_name,
                 Parameters=stack_parms,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
                 Capabilities=['CAPABILITY_IAM'],
             )
+        except botocore.exceptions.ClientError as e:
+            log.exception('An error occurred creating change set')
+            self.log_msg(ERROR, f'An error occurred creating change set: {e}')
+            self.log_msg(INFO, 'Change set creation complete - failed')
+            self.log_change('Change set creation complete - failed')
+            return e.response['Error']['Message']
+        if not self.wait_stack_change_set_creation_complete(change_set['Id']):
+            # reasons we might get here?
+            #  - changeset doesn't exist (if creation failed, should've been caught in previous block)
+            #  - waiter timed out; changeset creation is taking too long
+            self.log_msg(INFO, 'Change set creation complete - failed')
+            self.log_change('Change set creation - failed')
+            return False
+        self.log_msg(INFO, f'Change set created {change_set["Id"]}')
+        self.log_change(f'Change set created: {change_set["Id"]}')
+        return change_set
+
+    def get_change_set_details(self, change_set_name):
+        self.log_msg(INFO, f'Retrieving details for change set: {change_set_name}')
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        change_set_changes = []
+        try:
+            paginator = cfn.get_paginator('describe_change_set')
+            page_iterator = paginator.paginate(ChangeSetName=change_set_name, StackName=self.stack_name)
+            for page in page_iterator:
+                change_set_changes.extend(page['Changes'])
         except Exception as e:
-            log.exception('An error occurred updating stack')
-            self.log_msg(ERROR, f'An error occurred updating stack: {e}')
-            self.log_msg(INFO, 'Update complete - failed')
-            self.log_change('Update complete - failed')
+            log.exception('An error occurred retrieving change set details')
+            self.log_msg(ERROR, f'An error occurred retrieving change set details: {e}')
+            return False
+        self.log_msg(INFO, 'Change set details retrieved')
+        return change_set_changes
+
+    def execute_change_set(self, change_set_name):
+        self.log_msg(INFO, f'Updating stack with changeset: {change_set_name}')
+        self.log_change(f"Changeset is: {change_set_name}")
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            cfn.execute_change_set(ChangeSetName=change_set_name, StackName=self.stack_name)
+        except Exception as e:
+            log.exception('An error occurred applying change set to stack')
+            self.log_msg(ERROR, f'An error occurred applying change set to stack: {e}')
+            self.log_msg(INFO, 'Changeset execution complete - failed')
+            self.log_change('Changeset execution complete - failed')
             return False
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Update complete - failed')
-            self.log_change('Update complete - failed')
+            self.log_msg(INFO, 'Changeset execution complete - failed')
+            self.log_change('Changeset execution complete - failed')
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
-        if not self.is_app_clustered() or (
-            'ParameterValue' in [param for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]
-            and int([param['ParameterValue'][0] for param in stack_parms if param['ParameterKey'] == 'ClusterNodeMax'][0]) > 0
-        ):
+        cluster_node_count = self.getparamvalue('ClusterNodeMax') or 0
+        if not self.is_app_clustered() or int(cluster_node_count) > 0:
             self.log_msg(INFO, 'Waiting for stack to respond')
             self.validate_service_responding()
-        self.log_msg(INFO, 'Update complete')
-        self.log_change('Update successful')
+        self.log_msg(INFO, 'Changeset execution complete')
+        self.log_change('Changeset execution successful')
         return True
 
     def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
@@ -937,11 +1000,16 @@ class Stack:
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
+        template_path_components = template.split('/')
+        if template_path_components[0] != 'atlassian-aws-deployment':
+            template_path_components.pop(0)
         tags = [
             {'Key': 'product', 'Value': app_type},
             {'Key': 'clustered', 'Value': clustered},
             {'Key': 'environment', 'Value': next((parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
             {'Key': 'created_by', 'Value': creator},
+            {'Key': 'Repository', 'Value': template_path_components[0]},
+            {'Key': 'Template', 'Value': template_path_components[-1]},
         ]
         if cloned_from:
             tags.append({'Key': 'cloned_from', 'Value': cloned_from})
@@ -1145,22 +1213,23 @@ class Stack:
             # on node, grab cloned_from sql from s3
             self.run_command(
                 [self.instancelist[0]],
-                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d {cloned_from_stack}-clones-sql.d",
+                f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d /tmp/{cloned_from_stack}-clones-sql.d",
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]],
+                f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
-                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d local-post-clone-sql.d"
+                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d /tmp/local-post-clone-sql.d"
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [self.instancelist[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
                 self.log_msg(ERROR, f'Running SQL script failed')
                 self.log_change(f'An error occurred running SQL for {self.stack_name}')
