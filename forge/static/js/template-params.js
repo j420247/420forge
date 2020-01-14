@@ -5,16 +5,6 @@ var internalSubnets;
 var changesetRequest;
 
 function readyTheTemplate() {
-  var stacks = document.getElementsByClassName("selectStackOption");
-  for (var i = 0; i < stacks.length; i++) {
-    stacks[i].addEventListener("click", function(data) {
-      stack_name = data.target.text;
-      $("#aui-message-bar").hide();
-      selectStack(stack_name);
-      disableActionButton();
-    }, false);
-  }
-
   var actionButton = document.getElementById("action-button");
   actionButton.addEventListener("click", function(data) {
     $("#paramsForm").submit();
@@ -32,6 +22,18 @@ function readyTheTemplate() {
   });
 }
 
+function templateHandler(selected_stack_name) {
+  stack_name = selected_stack_name;
+  $("#aui-message-bar").hide();
+  selectStack(stack_name);
+  disableActionButton();
+}
+
+function templateHandlerWithDefaultSelected(selected_stack_name) {
+  templateHandler(selected_stack_name);
+  send_http_get_request(baseUrl + "/getTags/" + region + "/" + selected_stack_name, selectDefaultTemplate);
+}
+
 function getTemplates(template_type) {
   send_http_get_request(baseUrl + "/getTemplates/" + template_type,
     displayTemplates);
@@ -39,10 +41,13 @@ function getTemplates(template_type) {
 
 function displayTemplates(responseText) {
   var templateDropdown = document.getElementById("templates");
+
+  // Remove existing templates
   while (templateDropdown.firstChild) {
     templateDropdown.removeChild(templateDropdown.firstChild);
   }
 
+  // Add each template to dropdown
   var templates = JSON.parse(responseText);
   for (var template in templates) {
     var li = document.createElement("LI");
@@ -55,6 +60,7 @@ function displayTemplates(responseText) {
     templateDropdown.appendChild(li);
   }
 
+  // Add onClick event listener to each template
   var templateOptions = document.getElementsByClassName("selectTemplateOption");
   for (var i = 0; i < templateOptions.length; i++) {
     templateOptions[i].addEventListener("click", function(data) {
@@ -66,6 +72,33 @@ function displayTemplates(responseText) {
         selectTemplateForStack(stack_name, selectedTemplate);
     }, false);
   }
+}
+
+function selectDefaultTemplate(responseText) {
+  var tags = JSON.parse(responseText);
+
+  // Get templates for the product and call back to display them
+  var product = getObjectFromArrayByValue(tags, 'Key', "product");
+  var functionParams = {
+    tags: tags
+  };
+  send_http_get_request(baseUrl + "/getTemplates/" + product,
+      displayTemplatesAndSelectDefault, functionParams);
+}
+
+function displayTemplatesAndSelectDefault(responseText, functionParams) {
+  displayTemplates(responseText);
+
+  // Find template that the stack was created with
+  var repo = getObjectFromArrayByValue(functionParams.tags, 'Key', "repository");
+  var template = getObjectFromArrayByValue(functionParams.tags, 'Key', "template");
+  var templateString = repo + ": " + template;
+
+  // Search each template in the list, when matched perform its click() function
+  $.each($('.selectTemplateOption'), function () {
+    if (this.textContent === templateString)
+      this.click();
+  });
 }
 
 function getTemplateParams(template) {

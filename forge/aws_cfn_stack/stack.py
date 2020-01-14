@@ -1008,8 +1008,8 @@ class Stack:
             {'Key': 'clustered', 'Value': clustered},
             {'Key': 'environment', 'Value': next((parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
             {'Key': 'created_by', 'Value': creator},
-            {'Key': 'Repository', 'Value': template_path_components[0]},
-            {'Key': 'Template', 'Value': template_path_components[-1]},
+            {'Key': 'repository', 'Value': template_path_components[0]},
+            {'Key': 'template', 'Value': template_path_components[-1]},
         ]
         if cloned_from:
             tags.append({'Key': 'cloned_from', 'Value': cloned_from})

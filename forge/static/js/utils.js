@@ -31,6 +31,14 @@ function notify(message) {
     }
 }
 
+// Find and return the value from a JSON object inside an array of JSON objects (case insensitive)
+var getObjectFromArrayByValue = function (array, key, value) {
+    var obj = array.filter(function (object) {
+        return object[key].toLowerCase() === value.toLowerCase();
+    });
+    return obj[0].Value;
+};
+
 // API helpers
 function send_http_get_request(url, onreadystatechange, optionalFunctionParams) {
     var getRequest = new XMLHttpRequest();
