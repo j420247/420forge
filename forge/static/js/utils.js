@@ -167,10 +167,17 @@ function createInputParameter(param, fieldset) {
             input.type = "password";
             input.value = "";
             input.required = true;
+            input.pattern = param.AllowedPattern;
+            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
         } else if ((param.ParameterKey === "KeyName" || param.ParameterKey === "KeyPairName") && $("meta[name=ssh_key_name]").attr("value") !== "") {
             input.value = $("meta[name=ssh_key_name]").attr("value");
         } else if (param.ParameterKey === "HostedZone" && $("meta[name=hosted_zone]").attr("value") !== "") {
             input.value = $("meta[name=hosted_zone]").attr("value");
+        }
+        if (param.AllowedPattern) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.pattern = param.AllowedPattern;
+            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
         }
         div.appendChild(input);
     }

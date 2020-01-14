@@ -15,6 +15,7 @@ import git
 import psutil
 from flask import current_app, request, session
 from flask_restful import Resource
+
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
 from ruamel import yaml
@@ -443,8 +444,11 @@ class TemplateParams(Resource):
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
                 }
             )
+            # Add allowed values and allowed pattern to params to send to the front end
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
+            if 'AllowedPattern' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedPattern'] = template_params[param]['AllowedPattern']
         return params_to_send
 
 
@@ -483,6 +487,10 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
                     )
+                if 'AllowedPattern' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params[param][
+                        'AllowedPattern'
+                    ]
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
@@ -612,7 +620,7 @@ class GetTemplates(Resource):
         custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
-            default_templates = [f for f in template_folder.glob('**/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(r"^.*\.yaml$", f.name, flags=re.IGNORECASE)]
         else:
             default_templates = [f for f in template_folder.glob('**/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
         for file in default_templates:
