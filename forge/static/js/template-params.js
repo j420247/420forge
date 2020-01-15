@@ -444,11 +444,12 @@ function sendParamsAsJson() {
   }
 }
 
-function getKmsKeyArn(region) {
+function getKmsKeys(region) {
   send_http_get_request(baseUrl + "/getKmsKeyArn/" + region, displayKmsKeyArn);
+  send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys);
 }
 
-function displayKmsKeyArn(responseText) {
+function displayKmsKeys(responseText) {
   var kmsKeyArns = JSON.parse(responseText);
 
   // Find Kms key div to modify

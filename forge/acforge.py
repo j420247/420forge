@@ -695,7 +695,7 @@ class GetTemplateRepos(Resource):
         return repos
 
 
-class GetKmsKeyArn(Resource):
+class GetKmsKeys(Resource):
     def get(self, region):
         keys = []
         account_id = boto3.client('sts').get_caller_identity().get('Account')

@@ -128,9 +128,9 @@ function createInputParameter(param, fieldset) {
             getVPCs(region, param.ParameterValue);
     } else if (param.ParameterKey === "KmsKeyArn") {
         if (action === 'clone')
-            getKmsKeyArn($("#regionSelector")[0].value);
+            getKmsKeys($("#regionSelector")[0].value);
         else
-            getKmsKeyArn(region);
+            getKmsKeys(region);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
