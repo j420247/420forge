@@ -705,7 +705,7 @@ class GetKmsKeys(Resource):
         for kms_keys_aliases in response_iterator:
             for key in kms_keys_aliases['Aliases']:
                 if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
-                    keys.append({'AliasName': key['AliasName'].replace('alias/', ''), 'AliasArn': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
+                    keys.append({'label': key['AliasName'].replace('alias/', ''), 'value': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
         return keys
 
 

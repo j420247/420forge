@@ -130,7 +130,7 @@ function createInputParameter(param, fieldset) {
         if (action === 'clone')
             getKmsKeys($("#regionSelector")[0].value);
         else
-            getKmsKeys(region);
+            getKmsKeys(region, param.ParameterValue);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
