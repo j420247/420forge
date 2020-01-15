@@ -15,6 +15,7 @@ import git
 import psutil
 from flask import current_app, request, session
 from flask_restful import Resource
+
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
 from ruamel import yaml
@@ -471,7 +472,7 @@ class TemplateParamsForStack(Resource):
                 print("Parameter not found: " + stack_param['ParameterKey'])
         # Add new params from the template to the stack params
         for param in template_params['Parameters']:
-            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+            if param not in ('DBSnapshotName', 'EBSSnapshotId'):
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
                     compared_params.append(
                         {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
@@ -703,10 +704,7 @@ class GetKmsKeyArn(Resource):
         for kms_keys_aliases in response_iterator:
             for key in kms_keys_aliases['Aliases']:
                 if key.get('TargetKeyId'):
-                    keys.append({
-                        'AliasName': key['AliasName'].replace('alias/', ''),
-                        'AliasArn': ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']
-                    })
+                    keys.append({'AliasName': key['AliasName'].replace('alias/', ''), 'AliasArn': ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']})
         return keys
 
 
