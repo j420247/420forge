@@ -698,13 +698,14 @@ class GetTemplateRepos(Resource):
 class GetKmsKeyArn(Resource):
     def get(self, region):
         keys = []
+        account_id = boto3.client('sts').get_caller_identity().get('Account')
         client = boto3.client('kms', region)
         paginator = client.get_paginator('list_aliases')
         response_iterator = paginator.paginate()
         for kms_keys_aliases in response_iterator:
             for key in kms_keys_aliases['Aliases']:
-                if key.get('TargetKeyId'):
-                    keys.append({'AliasName': key['AliasName'].replace('alias/', ''), 'AliasArn': ':'.join(key['AliasArn'].split(':')[:-1]) + ':key/' + key['TargetKeyId']})
+                if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
+                    keys.append({'AliasName': key['AliasName'].replace('alias/', ''), 'AliasArn': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
         return keys
 
 
