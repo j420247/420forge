@@ -125,6 +125,11 @@ function displayStackParams(responseText) {
   fieldset.id = "fieldSet";
 
   for (var param in origParams) {
+    if (action === 'clone' && origParams[param].ParameterKey === "DBSnapshotName") {
+      // prevent DBSnapshotName param from prod template
+      // from showing up as duplicate field on clone
+      continue;
+    }
     createInputParameter(origParams[param], fieldset);
     if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
