@@ -451,11 +451,18 @@ function sendParamsAsJson() {
 
 function getKmsKeys(region, existingKmsKeyArn) {
   $("#KmsKeyArnVal").remove();
+  var placeholder = $("<aui-select/>", {
+    id: "KmsKeyArnVal",
+    name: "KmsKeyArnDropdownDiv",
+    placeholder: "Loading..."
+  });
+  $(placeholder).insertBefore($("#KmsKeyArnDiv :last-child"));
   send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys, existingKmsKeyArn);
 }
 
 function displayKmsKeys(responseText, existingKmsKeyArn) {
   var kmsKeys = JSON.parse(responseText);
+  $("#KmsKeyArnVal").remove();
   var existingKmsKey = kmsKeys.find(key => key.value === existingKmsKeyArn);
   var existingKmsKeyAlias = typeof existingKmsKey !== 'undefined' ? existingKmsKey.label : '';
   var input = createSingleSelect("KmsKeyArn", existingKmsKeyAlias, kmsKeys);
