@@ -82,7 +82,7 @@ function createSingleSelect(parameterKey, defaultValue, dropdownOptions) {
         singleSelect.append($("<aui-option/>", {
             text: complexData ? value['label'] : value,
             value: complexData ? value['value'] : value,
-            selected: defaultValue === (complexData ? value['label'] : value) ? true : false
+            selected: defaultValue === (complexData ? value['label'] : value).toString() ? true : false
         }));
     });
 
