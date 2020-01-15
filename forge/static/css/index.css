@@ -30,12 +30,14 @@ section.aui-page-panel-content img {
     min-width: 500px;
 }
 
-#ebsSnapshotSelection {
-    min-width: 350px;
-}
-
-#rdsSnapshotSelection {
-    min-width: 360px;
+form.aui .aui-select2-container .select2-choices,
+form.aui .multi-select,
+form.aui .password,
+form.aui .select,
+form.aui .text,
+form.aui .textarea,
+form.aui aui-select {
+    max-width: 370px;
 }
 
 #descriptionPanel {
@@ -46,9 +48,10 @@ section.aui-page-panel-content img {
     background-color: #F4F5F7;
 }
 
-.aui-dropdown2 {
-    max-height:250px;
-    overflow:scroll;
+.aui-dropdown2,
+div.aui-popover[role=listbox] {
+    max-height: 250px;
+    overflow: scroll;
 }
 
 #updateTemplatesBtn.update-templates {

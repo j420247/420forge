@@ -13,11 +13,11 @@
         <meta name="avatar_url" value={{ session['avatar_url'] }}>
         {%endif %}
 
-        <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
         {#    AUI    #}
         <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-iconfonts.min.css" media="all">
+        <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
 
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
