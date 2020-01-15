@@ -1,4 +1,5 @@
 behave
+black
 boto3
 flask
 flask_httpauth
@@ -10,7 +11,10 @@ flask_sqlalchemy
 gevent
 gitpython
 gunicorn
+importanize
 moto
+psutil
+pre-commit
 pytest
 python-dotenv
 requests

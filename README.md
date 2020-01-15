@@ -6,6 +6,11 @@ We (the IT Operations team at Atlassian) built this tool internally to unlock pr
 
 This README outlines how to deploy Forge to AWS and how to run locally for testing and development. For an overview of Forge itself, including a list of actions possible through Forge, see [the public announcement](https://community.atlassian.com/t5/Data-Center-articles/Introducing-Atlassian-CloudFormation-Forge/ba-p/881551).
 
+
+**NOTE**:
+
+Forge is an unsupported application developed by Atlassian for creation and management of CloudFormation stacks for our products.  Atlassian takes no responsibility for your use of Forge. The apps are often developed in conjunction with Atlassian hack-a-thons and ShipIt days and are provided to you completely “as-is”, with all bugs and errors, and are not supported by Atlassian. Unless licensed otherwise by Atlassian, Forge is subject to Section 14 of the Cloud Terms of Service – https://www.atlassian.com/legal/cloud-terms-of-service – or Section 8 of the Software License Agreement – https://www.atlassian.com/legal/software-license-agreement, as applicable, and are "No-Charge Products" as defined therein.
+
 ## Deploying to AWS
 
 We've provided a CloudFormation template for deploying Forge to your AWS account. To deploy Forge using the template, you'll either need to create a dedicated IAM role for Forge, or just make sure the user deploying the template has an appropriate level of permissions (e.g., the "AdministratorAccess" managed policy). The template will spin up an instance of Forge via an EC2 node in a VPC of your choosing, configured via the parameters below.
@@ -108,7 +113,7 @@ For information about enabling SAML auth, see [Forge: enabling SAML](https://con
 
 ### Run
 
-To start the app locally for development do the following in a python3 environment: 
+To start the app locally for development do the following in a python3 environment:
 
 ```
 pip3 install pipenv
@@ -148,3 +153,6 @@ Used for configuring SAML permissions by AD group, AWS region, CloudFormation st
 
 
 [1]: https://bit.ly/2PRfJRk
+
+##### pre-commit hooks
+run `pre-commit install` within your dev environment to have our pre-commit checks automatically added to your local git repo.

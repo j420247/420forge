@@ -270,13 +270,16 @@ Resources:
                 - kms:CreateAlias
                 - kms:CreateGrant
                 - kms:CreateKey
+                - kms:Decrypt
                 - kms:DeleteAlias
                 - kms:DescribeKey
+                - kms:Encrypt
+                - kms:GenerateDataKey*
                 - kms:ListAliases
                 - kms:PutKeyPolicy
+                - kms:ReEncrypt*
                 - kms:ScheduleKeyDeletion
                 - kms:TagResource
-                - kms:UpdateKey
                 - rds:CreateDBInstance
                 - rds:CreateDBInstanceReadReplica
                 - rds:CreateDBSubnetGroup
@@ -344,14 +347,16 @@ Resources:
         config:
           packages:
             yum:
-              python36: []
-              python36-pip: []
               amazon-ssm-agent: []
-              xmlstarlet: []
-              jq: []
+              gcc: []
               git: []
-              xmlsec1: []
+              jq: []
+              python36-devel: []
+              python36-pip: []
+              python36: []
               xmlsec1-openssl: []
+              xmlsec1: []
+              xmlstarlet: []
           files:
             /etc/atl:
               content: !Sub
@@ -380,6 +385,8 @@ Resources:
                   #!/usr/bin/env bash
 
                   # long paths are required for the atlassian-aws-deployment submodule to clone correctly
+                  git config --global user.email "forge-server@example.com"
+                  git config --global user.name "Forge Server"
                   git config --global core.longpaths true
 
                   forgepath=/home/forge/atl-cfn-forge

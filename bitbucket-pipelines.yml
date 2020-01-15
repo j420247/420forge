@@ -1,0 +1,51 @@
+image: amazonlinux:2
+
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: 'pre-commit'
+            caches:
+              - pip
+            script:
+              - yum install -y python3 git gcc python3-devel
+              - /usr/bin/python3 -m venv /usr/lib/ansible-venv
+              - source /usr/lib/ansible-venv/bin/activate
+              - pip install --upgrade pip
+              - pip install -r requirements.txt
+              - pre-commit install
+              - pre-commit run --all-files
+        - step:
+            name: 'cfn-lint'
+            caches:
+              - pip
+            script:
+              - yum install -y python3 git
+              - /usr/bin/python3 -m venv /usr/lib/ansible-venv
+              - source /usr/lib/ansible-venv/bin/activate
+              - pip install --upgrade pip
+              - pip install awscli cfn-lint
+              - cfn-lint -u
+              - cfn-lint forge/cfn-templates/forge-master.template.yaml
+        - step:
+            name: 'pytest unit'
+            caches:
+              - pip
+            script:
+              - yum install -y python3 git gcc python3-devel
+              - /usr/bin/python3 -m venv /usr/lib/ansible-venv
+              - source /usr/lib/ansible-venv/bin/activate
+              - pip install --upgrade pip
+              - pip install -r requirements.txt
+              - python -m pytest -v tests/unit
+        - step:
+            name: 'pytest func'
+            caches:
+              - pip
+            script:
+              - yum install -y python3 git gcc python3-devel
+              - /usr/bin/python3 -m venv /usr/lib/ansible-venv
+              - source /usr/lib/ansible-venv/bin/activate
+              - pip install --upgrade pip
+              - pip install -r requirements.txt
+              - python -m pytest -v tests/func

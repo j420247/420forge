@@ -9,21 +9,31 @@
     {% endblock descriptionPanel %}
 {% block extraInput %}
 <div class="aui-panel">
-    <h3>Update Templates</h3>
+    <h3>Updates</h3>
+    <p>Allows you to pull changes from upstream git repositories for CloudFormation templates or Forge itself.</p>
     <div class="aui-panel">
         <a id="templateRepoSelector" href="#templateRepoDropdownDiv" aria-owns="templateRepoDropdownDiv" aria-haspopup="true"
            class="aui-button aui-style-default aui-dropdown2-trigger">
-            Select Templates Repository
+            Select Repository
         </a>
 
         <!-- Dropdown -->
         <div id="templateRepoDropdownDiv" class="aui-style-default aui-dropdown2"></div>
     </div>
     <div class="aui-panel">
-            <button id="updateTemplatesBtn" type="submit" class="aui-button aui-button-primary" aria-disabled="true">
-                <span class="aui-icon aui-icon-small aui-iconfont-clone-small" style="padding-right: 5px"></span>Update</button>
+            <button id="updateTemplatesBtn" type="submit" class="aui-button aui-button-primary update-templates update-disabled" aria-disabled="true" disabled="true">
             </button>
         </div>
+</div>
+
+<div class="aui-panel">
+    <h3>Restart Forge</h3>
+    <p>Restart the Forge application. This will stop any in progress actions in Forge, but will not affect any actions that are in progress in Cloudformation.</p>
+    <div class="aui-panel">
+        <button id="restartForgeBtn" type="submit" class="aui-button aui-button-primary">
+            Restart Forge
+        </button>
+    </div>
 </div>
 
 <h4 class="component-heading">Stack locking</h4>

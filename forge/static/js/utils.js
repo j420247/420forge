@@ -62,6 +62,7 @@ function send_http_post_request(url, data, onreadystatechange) {
         };
     }
     postRequest.send(data);
+    return postRequest;
 }
 
 // Create/modify page elements
@@ -72,7 +73,7 @@ function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
     dropdownAnchor.setAttribute("aria-haspopup", "true");
     dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
     dropdownAnchor.id = parameterKey + "Val";
-    if (defaultValue && defaultValue.length !== 0)
+    if (defaultValue !== undefined && defaultValue.length !== 0)
         dropdownAnchor.text = defaultValue;
     else
         dropdownAnchor.text = 'Select';
@@ -230,11 +231,7 @@ function disableActionButton() {
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
     if (stacks.length === 1 && stacks[0].text === 'No credentials') {
-        AJS.flag({
-            type: 'error',
-            body: 'No credentials - please authenticate with Cloudtoken',
-            close: 'manual'
-        });
+        displayAUIFlag('No credentials - please authenticate with Cloudtoken', 'error', 'manual');
     }
 }
 
@@ -272,4 +269,21 @@ function processResponse() {
     if (this.status !== 200) {
         window.location = baseUrl + "/error/" + this.status;
     }
+}
+
+function displayAUIFlag(message, category, closes = 'auto') {
+    // useful when we don't want a page reload which is required for flask's 'flash'
+    AJS.flag({
+         type: category,
+         body: message,
+         close: closes
+    });
+}
+
+function setModalSize(selector, size) {
+    $(selector)
+        .removeClass(function (index, className) {
+            return (className.match (/(^|\s)aui-dialog2-(small|medium|large|xlarge)/g) || []).join(' ');
+        })
+        .addClass('aui-dialog2-' + size);
 }

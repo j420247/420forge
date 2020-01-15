@@ -1,9 +1,10 @@
+import json
 import re
 
-from boto.cloudformation.stack import Output
 from moto.cloudformation.parsing import clean_json
+from moto.cloudformation.responses import CREATE_CHANGE_SET_RESPONSE_TEMPLATE
 from moto.core.exceptions import RESTError
-from moto.elbv2.exceptions import InvalidTargetGroupNameError, DuplicateTargetGroupName, InvalidConditionValueError
+from moto.elbv2.exceptions import DuplicateTargetGroupName, InvalidConditionValueError, InvalidTargetGroupNameError
 from moto.elbv2.models import FakeTargetGroup
 from moto.elbv2.utils import make_arn_for_target_group
 
@@ -33,18 +34,56 @@ def parse_condition(condition, resources_map, condition_map):
         return any([parse_condition(condition_value, resources_map, condition_map) for condition_value in condition_values])
 
 
+# cloudformation responses.py
+# adds support for "use_previous_value"
+def create_change_set(self):
+    stack_name = self._get_param("StackName")
+    change_set_name = self._get_param("ChangeSetName")
+    stack_body = self._get_param("TemplateBody")
+    stack = self.cloudformation_backend.get_stack(stack_name)
+    if self._get_param('UsePreviousTemplate') == "true":
+        stack_body = stack.template
+    template_url = self._get_param("TemplateURL")
+    role_arn = self._get_param("RoleARN")
+    update_or_create = self._get_param("ChangeSetType", "CREATE")
+    parameters_list = self._get_list_prefix("Parameters.member")
+    tags = dict((item["key"], item["value"]) for item in self._get_list_prefix("Tags.member"))
+    parameters = {param["parameter_key"]: param["parameter_value"] for param in parameters_list if "parameter_value" in param}
+    previous = dict([(param["parameter_key"], stack.parameters[param["parameter_key"]]) for param in parameters_list if "use_previous_value" in param])
+    parameters.update(previous)
+    if template_url:
+        stack_body = self._get_stack_from_s3_url(template_url)
+    stack_notification_arns = self._get_multi_param("NotificationARNs.member")
+    change_set_id, stack_id = self.cloudformation_backend.create_change_set(
+        stack_name=stack_name,
+        change_set_name=change_set_name,
+        template=stack_body,
+        parameters=parameters,
+        region_name=self.region,
+        notification_arns=stack_notification_arns,
+        tags=tags,
+        role_arn=role_arn,
+        change_set_type=update_or_create,
+    )
+    if self.request_json:
+        return json.dumps({"CreateChangeSetResponse": {"CreateChangeSetResult": {"Id": change_set_id, "StackId": stack_id}}})
+    else:
+        template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
+        return template.render(stack_id=stack_id, change_set_id=change_set_id)
+
+
 # elbv2 models.py
 def create_target_group(self, name, **kwargs):
     if len(name) > 32:
         raise InvalidTargetGroupNameError("Target group name '%s' cannot be longer than '32' characters" % name)
-    if not re.match('^[a-zA-Z0-9\-]+$', name):
+    if not re.match(r'^[a-zA-Z0-9\-]+$', name):
         raise InvalidTargetGroupNameError("Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)" % name)
 
     # undocumented validation
     if not re.match('(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$', name):
         raise InvalidTargetGroupNameError(
-            "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$"
-            % name
+            "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' "
+            "failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$" % name
         )
 
     if name.startswith('-') or name.endswith('-'):

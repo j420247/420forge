@@ -83,20 +83,20 @@
 <section id="modal-dialog" class="aui-dialog2 aui-dialog2-medium aui-layer" role="dialog" aria-hidden="true">
     <header class="aui-dialog2-header">
         <h2 class="aui-dialog2-header-main">
-            {% block modalDialogHeader %}
-            {% endblock modalDialogHeader %}
+            {% block modalTitle %}
+            {% endblock modalTitle %}
         </h2>
         <a class="aui-dialog2-header-close">
             <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
         </a>
     </header>
     <div class="aui-dialog2-content">
-        {% block modalDialogContent %}
-        {% endblock modalDialogContent %}
+        {% block modalContents %}
+        {% endblock modalContents %}
     </div>
     <footer class="aui-dialog2-footer">
-        {% block modalDialogFooterContent %}
-        {% endblock modalDialogFooterContent %}
+        {% block modalFooterContents %}
+        {% endblock modalFooterContents %}
     </footer>
 </section>
 {% block progress %}

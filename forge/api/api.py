@@ -1,8 +1,8 @@
 from flask import Blueprint
 from flask_restful import Api
-
 from forge.acforge import *
 import forge.token_auth
+
 
 api_blueprint = Blueprint('api', __name__)
 api = Api(api_blueprint)
@@ -16,6 +16,7 @@ api.add_resource(DoRollingRebuild, '/dorollingrebuild/<region>/<stack_name>')
 api.add_resource(DoCreate, '/docreate')
 api.add_resource(DoDestroy, '/dodestroy/<region>/<stack_name>')
 api.add_resource(DoUpdate, '/doupdate/<stack_name>')
+api.add_resource(DoExecuteChangeset, '/doexecutechangeset/<stack_name>/<change_set_name>')
 api.add_resource(DoThreadDumps, '/dothreaddumps/<region>/<stack_name>')
 api.add_resource(DoGetThreadDumpLinks, '/dogetthreaddumplinks/<stack_name>')
 api.add_resource(DoHeapDumps, '/doheapdumps/<region>/<stack_name>')
@@ -37,6 +38,7 @@ api.add_resource(GetNodes, '/getNodes/<region>/<stack_name>')
 api.add_resource(GetTags, '/getTags/<region>/<stack_name>')
 api.add_resource(GetCloneDefaults, '/getCloneDefaults/<stack_name>')
 api.add_resource(GetZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
+api.add_resource(GetChangeSetDetails, '/getChangeSetDetails/<region>/<stack_name>/<change_set_name>')
 
 # Helpers
 api.add_resource(GetEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')
@@ -52,7 +54,11 @@ api.add_resource(SetStackLocking, '/setStackLocking/<lock>')
 # Git
 api.add_resource(GetGitBranch, '/getGitBranch/<template_repo>')
 api.add_resource(GetGitCommitDifference, '/getGitCommitDifference/<template_repo>')
-api.add_resource(GitPull, '/gitPull/<template_repo>')
+api.add_resource(DoGitPull, '/doGitPull/<template_repo>/<stack_name>')
+api.add_resource(GetGitRevision, '/getGitRevision/<template_repo>')
+
+# Restart Forge
+api.add_resource(DoForgeRestart, '/doForgeRestart/<stack_name>')
 
 # Status endpoint
 api.add_resource(ForgeStatus, '/status')

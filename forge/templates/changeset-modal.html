@@ -1,0 +1,31 @@
+{% extends "template-params.html" %}
+{% block modalTitle %}Changeset Details{% endblock modalTitle %}
+{% block modalContents %}
+<div id="changesetWaiter">
+    <p>Please wait while the changeset is generated...</p>
+    <p><aui-progressbar indeterminate></aui-progressbar></p>
+</div>
+<div id="changesetError" class="aui-message aui-message-error">
+    <p class="title">Whoops!</p>
+    <p>We've encountered an error creating this changeset:</p>
+    <p><code id='changesetErrorReason'></code></p>
+</div>
+<div id="changesetDescription">
+    <p>The following changes will be made to this stack; please review and confirm you wish to proceed.</p>
+    <div id='changesetDeletionWarning' class="aui-message aui-message-warning">
+        <p class="title">Review this changeset carefully!</p>
+        <p>This changeset includes replacement and/or deletion of some resources; proceed with caution.</p>
+    </div>
+    <table class="aui">
+        <thead>
+            <tr>
+                <th id="resource-id">Id</th>
+                <th id="resource-type">Type</th>
+                <th id="resource-action">Action</th>
+                <th id="resource-replacment">Replacement</th>
+            </tr>
+        </thead>
+        <tbody/>
+    </table>
+</div>
+{% endblock modalContents %}

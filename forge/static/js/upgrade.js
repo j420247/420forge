@@ -10,6 +10,12 @@ function onReady() {
     }
     $("#action-button").on("click", beginUpgrade);
 
+    // allows the modal to be dismissed via the "Cancel" button
+    AJS.$(document).on("click", "#modal-cancel-btn", function (e) {
+        e.preventDefault();
+        AJS.dialog2("#modal-dialog").hide();
+    });
+
     // Version checking not currently working (and only worked for Confluence in the past). Leaving so we can fix for public.
     // if (action === "upgrade") {
     //     document.getElementById("versionCheckButton").addEventListener("click", function (data) {
@@ -56,7 +62,7 @@ function displayZDUCompatibility(responseText) {
 
 function beginUpgrade() {
     if (document.getElementById("zduCheckBox").checked) {
-        $("#auth-ok-btn").on("click", performUpgrade);
+        $("#modal-ok-btn").on("click", performUpgrade);
         AJS.dialog2("#modal-dialog").show();
     }
     else {

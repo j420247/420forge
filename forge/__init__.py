@@ -7,14 +7,12 @@ import boto3
 import botocore
 from dotenv import load_dotenv
 from flask import Flask
-
-# Import Blueprints
 from forge.api import api_blueprint
 from forge.aws_cfn_stack import aws_cfn_stack_blueprint
-from forge.config import config
 from forge.main import main as main_blueprint
-from forge.saml_auth import saml_blueprint, saml_auth
+from forge.saml_auth import saml_auth, saml_blueprint
 from forge.version import __version__
+
 
 log = logging.getLogger('app_log')
 
@@ -36,6 +34,7 @@ def create_app(config_class):
     log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', '%Y-%m-%d %H:%M:%S')
     app_log_handler.setFormatter(log_formatter)
     app_log = logging.getLogger('app_log')
+    app_log.setLevel(logging.INFO)
     app_log.addHandler(app_log_handler)
 
     # load .env file
@@ -55,7 +54,7 @@ def create_app(config_class):
     try:
         key = ssm_client.get_parameter(Name='atl_forge_secret_key', WithDecryption=True)
         app.config['SECRET_KEY'] = key['Parameter']['Value']
-    except botocore.exceptions.NoCredentialsError as e:
+    except botocore.exceptions.NoCredentialsError:
         log.error('No credentials - please authenticate with Cloudtoken')
     except Exception:
         log.error('No secret key in parameter store')

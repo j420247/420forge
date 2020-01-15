@@ -23,7 +23,7 @@ function onReady() {
 
     var url = baseUrl + "/clearActionInProgress/" + region + "/" + document
       .getElementById("lockedStackSelector").text;
-    send_http_get_request(url, getStackActionInProgress)
+    send_http_get_request(url, getStackActionInProgress);
   });
 
   var stackToAdmin = $("meta[name=stackToAdmin]").attr("value");
@@ -34,9 +34,8 @@ function onReady() {
     disableActionButton();
   }
 
-  var updateTemplatesBtn = document.getElementById("updateTemplatesBtn");
-  updateTemplatesBtn.addEventListener("click", updateTemplates);
-
+  $("#updateTemplatesBtn").on("click", updateTemplates);
+  $("#restartForgeBtn").on("click", restartForge);
 }
 
 function createLockedStacksDropdown(responseText) {
@@ -96,7 +95,7 @@ function updateActionInProgressAdminPage(responseText) {
 
 function getStackActionInProgress(locked_stack) {
   var url = baseUrl + "/getActionInProgress/" + region + "/" + locked_stack;
-  send_http_get_request(url, updateActionInProgressAdminPage)
+  send_http_get_request(url, updateActionInProgressAdminPage);
 }
 
 function setStackLocking() {
@@ -142,6 +141,7 @@ function createTemplatesDropdown(responseText) {
 
 
 function selectTemplateRepo(template_repo) {
+  setButtonStyle();
   $("#templateRepoSelector").text(template_repo);
   $("#templateRepoName").text(template_repo);
   $("#templateRepoInformation").parent().show();
@@ -151,10 +151,11 @@ function selectTemplateRepo(template_repo) {
   $("#commitsDifference").html("Commit Difference to Origin: ");
   $("#gitUpdateMessage").html("");
 
-  updateTemplateRepoInfo(template_repo);
+  updateRepoInfo(template_repo);
 }
 
-function updateTemplateRepoInfo(template_repo) {
+function updateRepoInfo(template_repo) {
+  $("#commitsDifference").html("<aui-spinner size=\"small\"></aui-spinner>");
   // request template repo info
   send_http_get_request(baseUrl + "/getGitBranch/" + template_repo,
     displayBranch);
@@ -163,42 +164,82 @@ function updateTemplateRepoInfo(template_repo) {
 }
 
 function updateTemplates() {
-  var template_repo = document.getElementById("templateRepoSelector").text;
-  send_http_get_request(baseUrl + "/gitPull/" + template_repo,
-    displayGitUpdateMessage);
-  updateTemplateRepoInfo(template_repo);
+  disableUpdatesButton();
+  var template_repo = $("#templateRepoSelector").text();
+  send_http_get_request(baseUrl + "/doGitPull/" + template_repo + "/__forge__",
+      displayGitUpdateMessageAndOptionallyRestart);
 }
 
 function displayBranch(responseText) {
   var branch = JSON.parse(responseText);
   var lozenge_type = "moved";
   if (branch === "master") {
-    lozenge_type = "success"
+    lozenge_type = "success";
+  } else if (branch === "Detached HEAD") {
+    lozenge_type = "error"
   }
   $("#currentBranch").html(
     "Current Branch: <span class=\"aui-lozenge aui-lozenge-" + lozenge_type +
     "\">" + branch + "</span>");
 }
 
+function restartForge()  {
+  displayAUIFlag('Updating and restarting forge', 'info');
+  send_http_get_request(baseUrl + "/doForgeRestart/__forge__", displayRestartResult);
+}
+
+function setButtonStyle() {
+  disableUpdatesButton();
+  if ($("#templateRepoSelector").text() == "Forge (requires restart)") {
+    $("#updateTemplatesBtn").addClass('update-forge');
+    $("#updateTemplatesBtn").removeClass('update-templates');
+  } else {
+    $("#updateTemplatesBtn").addClass('update-templates');
+    $("#updateTemplatesBtn").removeClass('update-forge');
+  }
+}
+
 function displayCommitDifference(responseText) {
-  var [commitsBehind, commitsAhead] = JSON.parse(responseText).split(',');
+  var commitsDifference = JSON.parse(responseText);
+  var [commitsBehind, commitsAhead] = [commitsDifference[0], commitsDifference[1]];
   $("#commitsDifference").html(
     "Commit Difference to Origin: <span class=\"aui-icon aui-icon-small aui-iconfont-down commit-tooltip\" title=\"The number of commits behind origin\"></span>" +
     commitsBehind +
     "<span class=\"aui-icon aui-icon-small aui-iconfont-up commit-tooltip\" title=\"The number of commits ahead of origin. WARNING: if you update via forge, these changes will be lost!\"></span>" +
     commitsAhead);
   $(".commit-tooltip").tooltip();
-  if (commitsBehind > 0 || commitsAhead > 0) {
+
+  if (parseInt(commitsBehind) > 0 || parseInt(commitsAhead) > 0) {
+    $("#updateTemplatesBtn").attr("disabled", false);
     $("#updateTemplatesBtn").attr("aria-disabled", false);
-  } else {
-    $("#updateTemplatesBtn").attr("aria-disabled", true);
+    $("#updateTemplatesBtn").removeClass('update-disabled');
   }
 
 }
 
-function displayGitUpdateMessage(responseText) {
+function disableUpdatesButton(){
+    $("#updateTemplatesBtn").attr("disabled", true);
+    $("#updateTemplatesBtn").attr("aria-disabled", true);
+    $("#updateTemplatesBtn").addClass('update-disabled');
+}
+
+
+function  displayGitUpdateMessageAndOptionallyRestart(responseText) {
   var gitUpdateMessage = JSON.parse(responseText).split(',');
   $("#gitUpdateMessage").html(gitUpdateMessage);
   $("#gitUpdateMessage").show();
-  updateTemplateRepoInfo(document.getElementById("templateRepoSelector").text);
+  var template_repo = $("#templateRepoSelector").text();
+  updateRepoInfo(template_repo);
+  if (template_repo === "Forge (requires restart)")
+    restartForge();
+}
+
+
+function displayRestartResult(responseText) {
+  var result = JSON.parse(responseText);
+  if (String(result) === 'unsupported') {
+    displayAUIFlag('Forge restarts are only supported in gunicorn, please restart/reload manually', 'error', 'manual');
+  } else {
+    displayAUIFlag('Forge restart complete', 'success');
+  }
 }

@@ -52,3 +52,36 @@ section.aui-page-panel-content img {
     max-height:250px;
     overflow:scroll;
 }
+
+#updateTemplatesBtn.update-templates {
+    background: #0052CC;
+}
+
+#updateTemplatesBtn.update-templates:after {
+    content: "Update Templates";
+}
+
+#updateTemplatesBtn.update-forge {
+    background: #BF2600;
+}
+
+#updateTemplatesBtn.update-forge:after {
+    content: "Update & Restart Forge";
+}
+
+#updateTemplatesBtn.update-disabled {
+    background: #F4F5F7;
+    color: #A5ADBA;
+}
+
+#modal-dialog {
+    transition: all 0.5s ease-in-out;
+}
+
+#modal-dialog .aui-progress-indicator {
+    outline: 0;
+}
+
+#modal-dialog #changesetError {
+    margin-top: 0;
+}
