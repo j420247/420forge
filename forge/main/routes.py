@@ -1,21 +1,9 @@
 from datetime import timedelta
 from os import getenv, path
 
-from flask import (
-    Blueprint,
-    current_app,
-    flash,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
-from forge.acforge import (
-    get_cfn_stacks_for_region,
-    get_forge_settings,
-    get_nice_action_name,
-)
+
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from forge.acforge import get_cfn_stacks_for_region, get_forge_settings, get_nice_action_name
 
 
 main = Blueprint('main', __name__, template_folder='templates')
