@@ -164,11 +164,11 @@ function createInputParameter(param, fieldset) {
         if ((action === 'clone' || action === 'create')
             && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
             input.setAttribute("data-aui-validation-field", "");
+            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
             input.type = "password";
             input.value = "";
             input.required = true;
             input.pattern = param.AllowedPattern;
-            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
         } else if ((param.ParameterKey === "KeyName" || param.ParameterKey === "KeyPairName") && $("meta[name=ssh_key_name]").attr("value") !== "") {
             input.value = $("meta[name=ssh_key_name]").attr("value");
         } else if (param.ParameterKey === "HostedZone" && $("meta[name=hosted_zone]").attr("value") !== "") {
@@ -176,8 +176,22 @@ function createInputParameter(param, fieldset) {
         }
         if (param.AllowedPattern) {
             input.setAttribute("data-aui-validation-field", "");
-            input.pattern = param.AllowedPattern;
             input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
+            input.pattern = param.AllowedPattern;
+        }
+        if (param.MinValue) {
+            input.type = "number";
+            input.min = param.MinValue;
+        }
+        if (param.MaxValue) {
+            input.type = "number";
+            input.max = param.MaxValue;
+        }
+        if (param.MinLength) {
+            input.minLength = param.MinLength;
+        }
+        if (param.MaxLength) {
+            input.maxLength = param.MaxLength;
         }
         div.appendChild(input);
     }

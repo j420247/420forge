@@ -444,11 +444,19 @@ class TemplateParams(Resource):
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
                 }
             )
-            # Add allowed values and allowed pattern to params to send to the front end
+            # Add validation values to params to send to the front end
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
             if 'AllowedPattern' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedPattern'] = template_params[param]['AllowedPattern']
+            if 'MinValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
+            if 'MaxValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
+            if 'MinLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
+            if 'MaxLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
         return params_to_send
 
 
@@ -491,6 +499,14 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params[param][
                         'AllowedPattern'
                     ]
+                if 'MinValue' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
+                if 'MaxValue' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
+                if 'MinLength' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
+                if 'MaxLength' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
