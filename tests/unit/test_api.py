@@ -1,8 +1,7 @@
 import os
 
-import pytest
-
 import forge
+import pytest
 
 
 # citation: https://www.patricksoftwareblog.com/testing-a-flask-application-using-pytest/

@@ -1,5 +1,6 @@
 import forge
 
+
 app = forge.create_app('forge.config.BaseConfig')
 
 if __name__ == '__main__':
