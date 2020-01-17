@@ -1,17 +1,12 @@
 function onReady() {
     readyTheTemplate();
     getTemplates("Clone");
-    var regions = document.getElementsByClassName("selectRegionOption");
-    for (var i = 0; i < regions.length; i++) {
-        regions[i].addEventListener("click", function (data) {
-            var clone_region = data.target.text;
-            $("#regionSelector").text(clone_region);
-            $("#ebsSnapshotSelector").text("Select EBS snapshot");
-            $("#rdsSnapshotSelector").text("Select RDS snapshot");
-            getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
-            getVPCs(clone_region);
-        }, false);
-    }
+    $('#regionSelector').change(function() {
+        var clone_region = this.value;
+        getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
+        getVPCs(clone_region);
+        getKmsKeys(clone_region);
+    });
 }
 
 function getCloneDefaults(){
@@ -36,6 +31,8 @@ function applyCloneDefaults(responseText) {
             element.val(params[param]);
         else if (element.is("a"))
             element.text(params[param]);
+        else if (element.is("aui-select"))
+            element[0].value = params[param];
     }
     displayAUIFlag('Defaults for ' + $("#StackNameVal").val() + ' have been applied', 'success');
 }

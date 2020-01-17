@@ -23,45 +23,22 @@ Select stack to clone
     </div>
     <div class="field-group param-field-group">
         <label for="regionSelector" class="paramLbl">Region</label>
-        <a id="regionSelector" href="#regionSelection" aria-owns="regionSelection" aria-haspopup="true"
-           class="aui-button aui-style-default aui-dropdown2-trigger">
-            {{ session['regions'][0][0] }}
-        </a>
-        <!-- Dropdown -->
-        <div id="regionSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate" id="region">
-                {% for region in session['regions'] %}
-                <li><a class="selectRegionOption">{{ region[0] }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
+        <aui-select id="regionSelector" name="regionSelector">
+            {% for region in session['regions'] %}
+            <aui-option class="selectRegionOption" {% if loop.first == true %}selected{% endif %}>{{ region[0] }}</aui-option>
+            {% endfor %}
+        </aui-select>
     </div>
     <!-- Snapshot selectors -->
     {#  EBS snapshot selector  #}
-    <div class="field-group param-field-group">
+    <div id="ebsSnapshotSelectorDiv" class="field-group param-field-group">
         <label for="ebsSnapshotSelector" class="paramLbl">EBSSnapshotId</label>
-        <a id="ebsSnapshotSelector" href="#ebsSnapshotSelection" aria-owns="ebsSnapshotSelection" aria-haspopup="true"
-           class="aui-button aui-style-default aui-dropdown2-trigger">
-            Select EBS snapshot
-        </a>
-        <!-- Dropdown -->
-        <div id="ebsSnapshotSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate" id="ebsSnapshots">
-            </ul>
-        </div>
+        <aui-select id="ebsSnapshotSelector" name="ebsSnapshotSelector" placeholder="Loading..." />
     </div>
     {#  RDS snapshot selector  #}
-    <div class="field-group param-field-group">
+    <div id="rdsSnapshotSelectorDiv" class="field-group param-field-group">
         <label for="rdsSnapshotSelector" class="paramLbl">DBSnapshotName</label>
-        <a id="rdsSnapshotSelector" href="#rdsSnapshotSelection" aria-owns="rdsSnapshotSelection" aria-haspopup="true"
-           class="aui-button aui-style-default aui-dropdown2-trigger">
-            Select RDS snapshot
-        </a>
-        <!-- Dropdown -->
-        <div id="rdsSnapshotSelection" class="aui-style-default aui-dropdown2">
-            <ul class="aui-list-truncate" id="rdsSnapshots">
-            </ul>
-        </div>
+        <aui-select id="rdsSnapshotSelector" name="rdsSnapshotSelector" placeholder="Loading..." />
     </div>
 </div>
 {% endblock extraParams %}
