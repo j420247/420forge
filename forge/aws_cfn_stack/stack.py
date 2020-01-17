@@ -42,7 +42,7 @@ class Stack:
         self.stack_name = stack_name
         if region == '':
             error_string = 'No region defined for stack - your session may have timed out. Go back and retry the operation.'
-            self.log_msg(ERROR, error_string)
+            self.log_msg(ERROR, error_string, log_change=False)
             raise ValueError(error_string)
         self.region = region
         self.logfile = None
@@ -70,10 +70,10 @@ class Stack:
                 return True
             except botocore.exceptions.ClientError as e:
                 # log and allow tenacity to retry
-                self.log_msg(ERROR, f'ClientError received during get_service_url. Request will be retried a maximum of 5 times. Exception is: {e}')
+                self.log_msg(ERROR, f'ClientError received during get_service_url. Request will be retried a maximum of 5 times. Exception is: {e}', log_change=False)
                 raise
             except Exception as e:
-                log.exception(f'Exception occurred during get_service_url: {e}')
+                log.exception(f'Exception occurred during get_service_url')
                 return False
 
     def getparms(self):
@@ -128,7 +128,7 @@ class Stack:
             OutputS3BucketName=logs_bucket,
             OutputS3KeyPrefix='run-command-logs',
         )
-        self.log_msg(INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}')
+        self.log_msg(INFO, f'for command: {cmd}, command_id is {ssm_command["Command"]["CommandId"]}', log_change=False)
         if ssm_command['ResponseMetadata']['HTTPStatusCode'] == requests.codes.ok:
             return ssm_command['Command']['CommandId']
         return False
@@ -139,16 +139,16 @@ class Stack:
             list_command = ssm.list_commands(CommandId=cmd_id)
             cmd_status = list_command[u'Commands'][0][u'Status']
             instance = list_command[u'Commands'][0][u'InstanceIds'][0]
-            self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}')
+            self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}', log_change=False)
             return cmd_status, instance
         except botocore.exceptions.ClientError:
             log.exception('boto ClientError')
-            self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed')
+            self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed', log_change=False)
 
     def ssm_send_and_wait_response(self, instance, cmd):
         cmd_id = self.ssm_send_command(instance, cmd)
         if not cmd_id:
-            self.log_msg(ERROR, f'Command {cmd} on instance {instance} failed to send')
+            self.log_msg(ERROR, f'Command {cmd} on instance {instance} failed to send', log_change=False)
             return False
         else:
             result = self.wait_for_cmd_result(cmd_id)
@@ -157,7 +157,7 @@ class Stack:
     ## Stack - helper methods
 
     def spindown_to_zero_appnodes(self, app_type):
-        self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes')
+        self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes', log_change=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.getparms()
         spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
@@ -169,19 +169,19 @@ class Stack:
             cfn.update_stack(StackName=self.stack_name, Parameters=spindown_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e:
-                self.log_msg(INFO, 'Stack is already at 0 nodes')
+                self.log_msg(INFO, 'Stack is already at 0 nodes', log_change=True)
                 return True
             else:
                 log.exception('An error occurred spinning down to 0 nodes')
-                self.log_msg(ERROR, f'An error occurred spinning down to 0 nodes: {e}')
+                self.log_msg(ERROR, f'An error occurred spinning down to 0 nodes: {e}', log_change=True)
                 return False
         if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
-            self.log_msg(INFO, "Successfully spun down to 0 nodes")
+            self.log_msg(INFO, "Successfully spun down to 0 nodes", log_change=True)
             return True
         return False
 
     def wait_stack_action_complete(self, in_progress_state, stack_id=None):
-        self.log_msg(INFO, "Waiting for stack action to complete")
+        self.log_msg(INFO, "Waiting for stack action to complete", log_change=False)
         stack_state = self.check_stack_state()
         if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
             return True
@@ -189,32 +189,31 @@ class Stack:
             time.sleep(10)
             stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
         if 'ROLLBACK' in stack_state:
-            self.log_msg(ERROR, f'Stack action was rolled back: {stack_state}')
+            self.log_msg(ERROR, f'Stack action was rolled back: {stack_state}', log_change=True)
             return False
         elif 'FAILED' in stack_state:
-            self.log_msg(ERROR, f'Stack action failed: {stack_state}')
+            self.log_msg(ERROR, f'Stack action failed: {stack_state}', log_change=False)
             return False
         return True
 
     def wait_stack_change_set_creation_complete(self, change_set_arn):
-        self.log_msg(INFO, "Waiting for change set creation to complete")
+        self.log_msg(INFO, "Waiting for change set creation to complete", log_change=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         waiter = cfn.get_waiter('change_set_create_complete')
         try:
             waiter.wait(ChangeSetName=change_set_arn, StackName=self.stack_name)
         except tenacity.RetryError:
-            self.log_msg(ERROR, 'Change set creation complete - failed (timed out)')
-            self.log_change('Change set creation complete - failed (timed out)')
+            self.log_msg(ERROR, 'Change set creation complete - failed (timed out)', log_change=True)
             return False
         except Exception as e:
             log.exception('An error occurred waiting for change set to create')
-            self.log_msg(ERROR, f'An error occurred waiting for change set to create: {e}')
+            self.log_msg(ERROR, f'An error occurred waiting for change set to create: {e}', log_change=True)
             return False
-        self.log_msg(INFO, 'Change set creation complete')
+        self.log_msg(INFO, 'Change set creation complete', log_change=True)
         return True
 
     def spinup_to_one_appnode(self, app_type, new_version):
-        self.log_msg(INFO, "Spinning stack up to one appnode")
+        self.log_msg(INFO, "Spinning stack up to one app node", log_change=True)
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
@@ -234,22 +233,22 @@ class Stack:
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
-            self.log_msg(INFO, f'Stack spinup failed: {e}')
+            self.log_msg(INFO, f'Stack spinup failed: {e}', log_change=True)
             return False
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             return False
-        self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond')
+        self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond', log_change=False)
         self.validate_service_responding()
-        self.log_msg(INFO, f'Updated stack: {update_stack}')
+        self.log_msg(INFO, f'Updated stack: {update_stack}', log_change=True)
         return True
 
     def validate_service_responding(self):
-        self.log_msg(INFO, 'Waiting for service to reply on /status')
+        self.log_msg(INFO, 'Waiting for service to reply on /status', log_change=False)
         service_state = self.check_service_status()
         while service_state not in ['RUNNING', 'FIRST_RUN']:
             time.sleep(60)
             service_state = self.check_service_status()
-        self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}')
+        self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}', log_change=True)
         return True
 
     def check_service_status(self, logMsgs=True):
@@ -259,7 +258,7 @@ class Stack:
         except tenacity.RetryError:
             return 'Timed Out'
         if logMsgs:
-            self.log_msg(INFO, f' ==> checking service status at {self.service_url}status')
+            self.log_msg(INFO, f' ==> checking service status at {self.service_url}status', log_change=False)
         try:
             service_status = requests.get(self.service_url + 'status', timeout=5)
             if service_status.status_code == requests.codes.ok:
@@ -269,15 +268,15 @@ class Stack:
             else:
                 status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
             if logMsgs:
-                self.log_msg(INFO, f' ==> service status is: {status}')
+                self.log_msg(INFO, f' ==> service status is: {status}', log_change=False)
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             if logMsgs:
-                self.log_msg(INFO, f'Service status check timed out')
+                self.log_msg(INFO, f'Service status check timed out', log_change=False)
         except json.decoder.JSONDecodeError:
             log.exception(f'Error checking service status: {service_status}')
             if logMsgs:
-                self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty')
+                self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty', log_change=False)
         return 'Timed Out'
 
     def check_stack_state(self, stack_id=None):
@@ -286,13 +285,13 @@ class Stack:
             stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
         except Exception as e:
             if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
-                self.log_msg(WARN, f'Stack actions are being throttled: {e}')
+                self.log_msg(WARN, f'Stack actions are being throttled: {e}', log_change=False)
                 return 'throttled'
             if 'does not exist' in e.response['Error']['Message']:
-                self.log_msg(INFO, f'Stack {self.stack_name} does not exist')
+                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', log_change=False)
                 return
             log.exception('Error checking stack state')
-            self.log_msg(ERROR, f'Error checking stack state: {e}')
+            self.log_msg(ERROR, 'Error checking stack state', log_change=False)
             return
         state = stack_state['Stacks'][0]['StackStatus']
         return state
@@ -307,29 +306,29 @@ class Stack:
         context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
         port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
         if logMsgs:
-            self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status')
+            self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status', log_change=False)
         try:
             node_status = requests.get(f'http://{node_ip}:{port}{context_path}/status', timeout=5).json()
             if 'state' in node_status:
                 status = node_status['state']
             else:
-                self.log_msg(ERROR, f'Node status not in expected format: {node_status}')
+                self.log_msg(ERROR, f'Node status not in expected format: {node_status}', log_change=False)
             if logMsgs:
-                self.log_msg(INFO, f' ==> node status is: {status}')
+                self.log_msg(INFO, f' ==> node status is: {status}', log_change=False)
             return status
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout):
             if logMsgs:
-                self.log_msg(INFO, f'Node status check timed out')
+                self.log_msg(INFO, f'Node status check timed out', log_change=False)
         except requests.exceptions.ConnectionError:
             if logMsgs:
-                self.log_msg(INFO, f'Node not currently listening on {port}')
+                self.log_msg(INFO, f'Node not currently listening on {port}', log_change=False)
         except Exception as e:
             log.exception('Error checking node status')
             return f'Error checking node status: {e}'
-        return "Timed Out"
+        return 'Timed Out'
 
     def spinup_remaining_nodes(self):
-        self.log_msg(INFO, 'Spinning up any remaining nodes in stack')
+        self.log_msg(INFO, 'Spinning up any remaining nodes in stack', log_change=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.getparms()
         spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
@@ -341,10 +340,10 @@ class Stack:
             cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             log.exception('Error occurred spinning up remaining nodes')
-            self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}')
+            self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}', log_change=True)
             return False
         if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
-            self.log_msg(INFO, "Stack restored to full node count")
+            self.log_msg(INFO, "Stack restored to full node count", log_change=True)
         return True
 
     @retry(botocore.exceptions.ClientError, tries=5, delay=2, backoff=2)
@@ -364,8 +363,8 @@ class Stack:
                 self.instancelist.append(instancedict)
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'RequestLimitExceeded':
-                log.exception('RequestLimitExceeded received during get_stacknodes.')
-                self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes.')
+                log.exception('RequestLimitExceeded received during get_stacknodes')
+                self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes', log_change=False)
                 raise e
         return self.instancelist
 
@@ -375,17 +374,15 @@ class Stack:
             for key in instancelist[i]:
                 instance = key
                 node_ip = instancelist[i][instance]
-            self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})')
-            self.log_change(f'Shutting down {app_type} on {instance} ({node_ip})')
+            self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})', log_change=True)
             cmd = f'service {app_type} stop'
             cmd_id_list.append(self.ssm_send_command(instance, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.log_msg(ERROR, f'Shutdown result for {cmd_id}: {result}')
+                self.log_msg(ERROR, f'Shutdown result for {cmd_id}: {result}', log_change=True)
             else:
-                self.log_msg(INFO, f'Shutdown result for {cmd_id}: {result}')
-            self.log_change(f'Shutdown result for {cmd_id}: {result}')
+                self.log_msg(INFO, f'Shutdown result for {cmd_id}: {result}', log_change=True)
         return True
 
     def startup_app(self, app_type, instancelist):
@@ -394,23 +391,21 @@ class Stack:
             node_ip = list(instancedict.values())[0]
             if app_type == 'jira':
                 if not self.cleanup_jira_temp_files(str(instance)):
-                    self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}')
-            self.log_msg(INFO, f'Starting up {instance} ({node_ip})')
-            self.log_change(f'Starting up {instance} ({node_ip})')
+                    self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}', log_change=False)
+            self.log_msg(INFO, f'Starting up {instance} ({node_ip})', log_change=True)
             cmd = f'service {app_type} start'
             cmd_id = self.ssm_send_command(instance, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.log_msg(ERROR, f'Startup result for {cmd_id}: {result}')
+                self.log_msg(ERROR, f'Startup result for {cmd_id}: {result}', log_change=True)
                 return False
             else:
                 result = self.check_node_status(node_ip)
                 while result not in ['RUNNING', 'FIRST_RUN']:
                     result = self.check_node_status(node_ip)
-                    self.log_msg(INFO, f'Startup result for {cmd_id}: {result}')
+                    self.log_msg(INFO, f'Startup result for {cmd_id}: {result}', log_change=False)
                     time.sleep(60)
-            self.log_msg(INFO, f'Application started on instance {instance}')
-            self.log_change(f'Application started on instance {instance}')
+            self.log_msg(INFO, f'Application started on instance {instance}', log_change=True)
         return True
 
     def cleanup_jira_temp_files(self, instance):
@@ -418,9 +413,9 @@ class Stack:
         cmd_id = self.ssm_send_command(instance, cmd)
         result = self.wait_for_cmd_result(cmd_id)
         if result == 'Failed':
-            self.log_msg(ERROR, f'Cleanup temp files result for {cmd_id}: {result}')
+            self.log_msg(ERROR, f'Cleanup temp files result for {cmd_id}: {result}', log_change=False)
             return False
-        self.log_msg(INFO, f'Deleted Jira temp files on {instance}')
+        self.log_msg(INFO, f'Deleted Jira temp files on {instance}', log_change=False)
         return True
 
     def run_command(self, instancelist, cmd):
@@ -428,15 +423,15 @@ class Stack:
         for instancedict in instancelist:
             instance = list(instancedict.keys())[0]
             node_ip = list(instancedict.values())[0]
-            self.log_msg(INFO, f'Running command {cmd} on {node_ip}')
+            self.log_msg(INFO, f'Running command {cmd} on {node_ip}', log_change=False)
             cmd_id_dict[self.ssm_send_command(instance, cmd)] = node_ip
         for cmd_id in cmd_id_dict:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
-                self.log_msg(ERROR, f'Command result for {cmd_id}: {result}')
+                self.log_msg(ERROR, f'Command result for {cmd_id}: {result}', log_change=True)
                 return False
             else:
-                self.log_msg(INFO, f'Command result for {cmd_id}: {result}')
+                self.log_msg(INFO, f'Command result for {cmd_id}: {result}', log_change=True)
         return True
 
     def wait_for_cmd_result(self, cmd_id):
@@ -456,7 +451,7 @@ class Stack:
         if locking_enabled:
             action_already_in_progress = self.get_stack_action_in_progress()
             if action_already_in_progress:
-                self.log_msg(ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}')
+                self.log_msg(ERROR, f'Cannot begin action: {action}. Another action is in progress: {action_already_in_progress}', log_change=False)
                 return False
         if 'LOCKS' not in current_app.config:
             current_app.config['LOCKS'] = {}
@@ -506,7 +501,7 @@ class Stack:
         try:
             stack = cfn.describe_stacks(StackName=self.stack_name)
         except Exception as e:
-            self.log_msg(ERROR, f'Error getting tags: {e}')
+            self.log_msg(ERROR, f'Error getting tags: {e}', log_change=True)
             log.exception('Error getting tags')
             return False
         tags = stack['Stacks'][0]['Tags']
@@ -519,16 +514,16 @@ class Stack:
             if tag:
                 tag_value = tag[0]['Value']
                 if log_msgs and hasattr(self, 'logfile'):
-                    self.log_msg(INFO, f'Tag \'{tag_name}\' is \'{tag_value}\'')
+                    self.log_msg(INFO, f'Tag \'{tag_name}\' is \'{tag_value}\'', log_change=False)
                 return tag_value.lower()
         if log_msgs and hasattr(self, 'logfile'):
-            self.log_msg(WARN, f'Tag {tag_name} not found')
+            self.log_msg(WARN, f'Tag {tag_name} not found', log_change=True)
         return False
 
     def is_app_clustered(self):
         clustered = self.get_tag('clustered', False)
         if not clustered:
-            self.log_msg(WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true')
+            self.log_msg(WARN, 'App clustering status is unknown (tag is missing from stack); proceeding as if clustered = true', log_change=False)
             return True
         return True if clustered == 'true' else False
 
@@ -546,27 +541,23 @@ class Stack:
                     if bucket_item['Size'] > 0:  # this is to catch when s3 sometimes weirdly returns the path as an object
                         sql_file_name = os.path.basename(bucket_item['Key'])
                         s3.meta.client.download_file(s3_bucket, bucket_item['Key'], f'{sql_dir}{sql_file_name}')
-            self.log_msg(INFO, f'Retrieved latest SQL for {stack} from {sql_dir}')
+            self.log_msg(INFO, f'Retrieved latest SQL for {stack} from {sql_dir}', log_change=False)
             return True
         except KeyError as e:
             if e.args[0] == 'Contents':
-                self.log_msg(WARN, f'No SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
-                self.log_change(f'No SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}')
+                self.log_msg(WARN, f'No SQL files exist at s3://{s3_bucket}/config/{sql_dir} for stack {stack}', log_change=True)
                 return True
             log.exception(f'Could not retrieve sql from s3 for stack {stack}')
-            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}')
-            self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}', log_change=False)
             return False
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             log.exception(f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
-            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
-            self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {error_code}')
+            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {error_code}', log_change=False)
             return False
         except Exception as e:
             log.exception(f'Could not retrieve sql from s3 for stack {stack}')
-            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}')
-            self.log_change(f'Could not retrieve sql from s3 for stack {stack}: {e}')
+            self.log_msg(ERROR, f'Could not retrieve sql from s3 for stack {stack}: {e}', log_change=True)
             return False
 
     def get_sql(self):
@@ -600,14 +591,15 @@ class Stack:
         return 'No SQL script exists for this stack'
 
     def get_pre_upgrade_information(self, app_type):
-        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}')
+        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}', log_change=False)
         # get pre-upgrade state information
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_details = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError:
             log.exception('Error getting pre-upgrade stack details')
-            self.log_msg(ERROR, 'Upgrade complete - failed')
+            self.log_msg(ERROR, 'Error getting pre-upgrade stack details', log_change=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         # get preupgrade version and node counts
         self.preupgrade_version = [
@@ -624,78 +616,74 @@ class Stack:
         try:
             response = self.session.get('rest/api/2/cluster/zdu/state', timeout=5)
             if response.status_code != requests.codes.ok:
-                self.log_msg(ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}')
-                self.log_change('Unable to get ZDU state')
+                self.log_msg(ERROR, f'Unable to get ZDU state: /rest/api/2/cluster/zdu/state returned status code: {response.status_code}', log_change=True)
                 return False
             return response.json()['state']
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
             log.exception('ZDU state check timed out')
-            self.log_msg(INFO, f'ZDU state check timed out')
+            self.log_msg(INFO, f'ZDU state check timed out', log_change=False)
         except Exception as e:
             log.exception('Error occurred getting ZDU state')
-            self.log_msg(ERROR, f'Could not retrieve ZDU state: {e}')
+            self.log_msg(ERROR, f'Could not retrieve ZDU state: {e}', log_change=True)
         return False
 
     def enable_zdu_mode(self):
         try:
             response = self.session.post('rest/api/2/cluster/zdu/start', timeout=5)
             if response.status_code != requests.codes.created:
-                self.log_msg(ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}')
-                self.log_change('Unable to enable ZDU mode')
+                self.log_msg(ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}', log_change=True)
                 return False
             while self.get_zdu_state() != 'READY_TO_UPGRADE':
                 time.sleep(5)
-            self.log_msg(INFO, 'ZDU mode enabled')
+            self.log_msg(INFO, 'ZDU mode enabled', log_change=True)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             log.exception('Could not enable ZDU mode')
-            self.log_msg(ERROR, f'Could not enable ZDU mode: {e}')
+            self.log_msg(ERROR, f'Could not enable ZDU mode: {e}', log_change=True)
         except Exception as e:
             log.exception('Error occurred enabling ZDU mode')
-            self.log_msg(ERROR, f'Error occurred enabling ZDU mode: {e}')
+            self.log_msg(ERROR, f'Error occurred enabling ZDU mode: {e}', log_change=True)
         return False
 
     def cancel_zdu_mode(self):
         try:
             response = self.session.post('rest/api/2/cluster/zdu/cancel', timeout=5)
             if response.status_code != requests.codes.ok:
-                self.log_msg(ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}')
-                self.log_change('Unable to cancel ZDU mode')
+                self.log_msg(ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}', log_change=True)
                 return False
             while self.get_zdu_state() != 'STABLE':
                 time.sleep(5)
-            self.log_msg(INFO, 'ZDU mode cancelled')
+            self.log_msg(INFO, 'ZDU mode cancelled', log_change=True)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             log.exception('Could not cancel ZDU mode')
-            self.log_msg(ERROR, f'Could not cancel ZDU mode: {e}')
+            self.log_msg(ERROR, f'Could not cancel ZDU mode: {e}', log_change=True)
         except Exception as e:
             log.exception('Error occurred cancelling ZDU mode')
-            self.log_msg(ERROR, f'Error occurred cancelling ZDU mode: {e}')
+            self.log_msg(ERROR, f'Error occurred cancelling ZDU mode: {e}', log_change=True)
         return False
 
     def approve_zdu_upgrade(self):
-        self.log_msg(INFO, 'Approving upgrade and running upgrade tasks')
+        self.log_msg(INFO, 'Approving upgrade and running upgrade tasks', log_change=True)
         try:
             response = self.session.post('rest/api/2/cluster/zdu/approve', timeout=30)
             if response.status_code != requests.codes.ok:
-                self.log_msg(ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}')
-                self.log_change('Unable to approve upgrade')
+                self.log_msg(ERROR, f'Unable to approve upgrade: /rest/api/2/cluster/zdu/approve returned status code: {response.status_code}', log_change=True)
                 return False
-            self.log_msg(INFO, 'Upgrade tasks are running, waiting for STABLE state')
+            self.log_msg(INFO, 'Upgrade tasks are running, waiting for STABLE state', log_change=True)
             state = self.get_zdu_state()
             while state != 'STABLE':
-                self.log_msg(INFO, f'ZDU state is {state}')
+                self.log_msg(INFO, f'ZDU state is {state}', log_change=False)
                 time.sleep(5)
                 state = self.get_zdu_state()
-            self.log_msg(INFO, 'Upgrade tasks complete')
+            self.log_msg(INFO, 'Upgrade tasks complete', log_change=True)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
             log.exception('Could not cancel ZDU mode')
-            self.log_msg(ERROR, f'Could not approve ZDU mode: {e}')
+            self.log_msg(ERROR, f'Could not approve ZDU mode: {e}', log_change=True)
         except Exception as e:
             log.exception('Error occurred approving ZDU mode')
-            self.log_msg(ERROR, f'Error occurred approving ZDU mode: {e}')
+            self.log_msg(ERROR, f'Error occurred approving ZDU mode: {e}', log_change=True)
         return False
 
     def get_zdu_compatibility(self):
@@ -718,37 +706,32 @@ class Stack:
     def upgrade(self, new_version):
         if self.is_app_clustered():
             if not self.upgrade_dc(new_version):
-                self.log_msg(INFO, 'Upgrade complete - failed')
-                self.log_change('Upgrade failed, see action log for details')
+                self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
                 return False
         else:
             if not self.upgrade_server(new_version):
-                self.log_msg(INFO, 'Upgrade complete - failed')
-                self.log_change('Upgrade failed, see action log for details')
+                self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
                 return False
-        self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-        self.log_msg(INFO, 'Upgrade complete')
-        self.log_change('Upgrade successful')
+        self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}', log_change=False)
+        self.log_msg(INFO, 'Upgrade complete', log_change=True)
         return True
 
     def upgrade_dc(self, new_version):
         # get product
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Upgrade complete - failed')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
         self.log_change('Upgrade is underway')
         # spin stack down to 0 nodes
         if not self.spindown_to_zero_appnodes(app_type):
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed, see action log for details')
+            self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
             return False
         # spin stack up to 1 node on new release version
         if not self.spinup_to_one_appnode(app_type, new_version):
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change('Change failed, see action log for details')
+            self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
             return False
         # spinup remaining nodes in stack if needed
         if self.preupgrade_app_node_count > "1":
@@ -761,7 +744,7 @@ class Stack:
         # get product
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Upgrade complete - failed')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         self.get_pre_upgrade_information(app_type)
         self.log_change(f'New version: {new_version}')
@@ -781,22 +764,20 @@ class Stack:
             cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
-                self.log_msg(INFO, f'Stack is already at {new_version}')
+                self.log_msg(INFO, f'Stack is already at {new_version}', log_change=True)
             else:
                 log.exception('An error occurred updating the version')
-                self.log_msg(ERROR, f'An error occurred updating the version: {e}')
+                self.log_msg(ERROR, f'An error occurred updating the version: {e}', log_change=True)
                 return False
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Successfully updated version in stack parameters')
+            self.log_msg(INFO, 'Successfully updated version in stack parameters', log_change=False)
         else:
-            self.log_msg(INFO, 'Could not update version in stack parameters')
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed - could not update version in stack parameters')
+            self.log_msg(INFO, 'Could not update version in stack parameters', log_change=True)
+            self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
             return False
         # terminate the node and allow new one to spin up
         if not self.rolling_rebuild():
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            self.log_change(f'Upgrade failed.')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         return True
 
@@ -804,16 +785,14 @@ class Stack:
         # get product
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Upgrade complete - failed')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         try:
             if not self.get_service_url():
-                self.log_msg(ERROR, 'Upgrade complete - failed')
-                self.log_change('Upgrade failed - could not get service_url')
+                self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
                 return False
         except tenacity.RetryError:
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed - could not get service_url')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
@@ -823,14 +802,12 @@ class Stack:
         # set upgrade mode on
         zdu_state = self.get_zdu_state()
         if zdu_state != 'STABLE':
-            self.log_msg(INFO, f'Expected STABLE but ZDU state is {zdu_state}')
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change(f'Could not begin upgrade, expected STABLE but ZDU state is {zdu_state}')
+            self.log_msg(INFO, f'Expected STABLE but ZDU state is {zdu_state}', log_change=True)
+            self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
             return False
         if not self.enable_zdu_mode():
-            self.log_msg(ERROR, 'Could not enable ZDU mode')
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed - Could not enable ZDU mode')
+            self.log_msg(ERROR, 'Could not enable ZDU mode', log_change=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
             return False
         # update the version in stack parameters
         stack_params = self.getparms()
@@ -840,49 +817,44 @@ class Stack:
             cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
-                self.log_msg(INFO, f'Stack is already at {new_version}')
+                self.log_msg(INFO, f'Stack is already at {new_version}', log_change=True)
             else:
                 log.exception('An error occurred updating the version')
-                self.log_msg(ERROR, f'An error occurred updating the version: {e}')
+                self.log_msg(ERROR, f'An error occurred updating the version: {e}', log_change=True)
                 self.cancel_zdu_mode()
                 return False
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Successfully updated version in stack parameters')
+            self.log_msg(INFO, 'Successfully updated version in stack parameters', log_change=False)
         else:
-            self.log_msg(INFO, 'Could not update version in stack parameters')
-            self.log_msg(INFO, 'Upgrade complete - failed')
-            self.log_change('Upgrade failed - could not update version in stack parameters')
+            self.log_msg(INFO, 'Could not update version in stack parameters', log_change=True)
+            self.log_msg(INFO, 'Upgrade complete - failed', log_change=True)
             self.cancel_zdu_mode()
             return False
         # terminate the nodes and allow new ones to spin up
         if not self.rolling_rebuild():
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            self.log_change(f'Upgrade failed.')
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
         state = self.get_zdu_state()
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
             time.sleep(5)
             state = self.get_zdu_state()
         # approve the upgrade and allow upgrade tasks to run
         if self.approve_zdu_upgrade():
-            self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}')
-            self.log_msg(INFO, 'Upgrade complete')
-            self.log_change('Upgrade successful')
+            self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}', log_change=False)
+            self.log_msg(INFO, 'Upgrade complete', log_change=True)
             return True
         else:
-            self.log_msg(ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.')
-            self.log_msg(ERROR, 'Upgrade complete - failed')
-            self.log_change(f'Could not approve upgrade. Upgrade failed.')
+            self.log_msg(ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.', log_change=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', log_change=True)
 
     def destroy(self):
-        self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}')
+        self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', log_change=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
             if "does not exist" in e.response['Error']['Message']:
-                self.log_msg(INFO, f'Stack {self.stack_name} does not exist')
-                self.log_msg(INFO, "Destroy complete - not required")
-                self.log_change(f'Stack {self.stack_name} does not exist, destroy not required')
+                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', log_change=True)
+                self.log_msg(INFO, 'Destroy complete - not required', log_change=True)
                 return True
             else:
                 log.exception('An error occurred destroying stack')
@@ -891,22 +863,18 @@ class Stack:
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
-            self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}')
-            self.log_change(f'Destroy successful for stack {self.stack_name}')
-        self.log_msg(INFO, 'Destroy complete')
+            self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', log_change=True)
+        self.log_msg(INFO, 'Destroy complete', log_change=False)
         return True
 
     def clone(self, stack_parms, template_file, app_type, clustered, region, creator, cloned_from):
-        self.log_msg(INFO, 'Initiating clone')
-        self.log_change('Initiating clone')
+        self.log_msg(INFO, 'Initiating clone', log_change=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy():
-            self.log_msg(INFO, 'Clone complete - failed')
-            self.log_change('Clone complete - failed')
+            self.log_msg(INFO, 'Clone complete - failed', log_change=True)
             self.clear_current_action()
         if not self.create(stack_parms, template_file, app_type, clustered, creator, region, cloned_from):
-            self.log_msg(INFO, 'Clone complete - failed')
-            self.log_change('Clone complete - failed')
+            self.log_msg(INFO, 'Clone complete - failed', log_change=True)
             self.clear_current_action()
             return False
         self.log_change('Create complete, looking for post-clone SQL')
@@ -915,13 +883,11 @@ class Stack:
             self.full_restart()
         else:
             self.clear_current_action()
-        self.log_msg(INFO, 'Clone complete')
-        self.log_change('Clone complete')
+        self.log_msg(INFO, 'Clone complete', log_change=True)
         return True
 
     def create_change_set(self, stack_parms, template_file):
-        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
-        self.log_change(f"Changes are: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}")
+        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}", log_change=True)
         template_filename = template_file.name
         template = str(template_file)
         self.upload_template(template, template_filename)
@@ -937,23 +903,20 @@ class Stack:
             )
         except botocore.exceptions.ClientError as e:
             log.exception('An error occurred creating change set')
-            self.log_msg(ERROR, f'An error occurred creating change set: {e}')
-            self.log_msg(INFO, 'Change set creation complete - failed')
-            self.log_change('Change set creation complete - failed')
+            self.log_msg(ERROR, f'An error occurred creating change set: {e}', log_change=True)
+            self.log_msg(INFO, 'Change set creation complete - failed', log_change=True)
             return e.response['Error']['Message']
         if not self.wait_stack_change_set_creation_complete(change_set['Id']):
             # reasons we might get here?
             #  - changeset doesn't exist (if creation failed, should've been caught in previous block)
             #  - waiter timed out; changeset creation is taking too long
-            self.log_msg(INFO, 'Change set creation complete - failed')
-            self.log_change('Change set creation - failed')
+            self.log_msg(INFO, 'Change set creation complete - failed', log_change=True)
             return False
-        self.log_msg(INFO, f'Change set created {change_set["Id"]}')
-        self.log_change(f'Change set created: {change_set["Id"]}')
+        self.log_msg(INFO, f'Change set created {change_set["Id"]}', log_change=True)
         return change_set
 
     def get_change_set_details(self, change_set_name):
-        self.log_msg(INFO, f'Retrieving details for change set: {change_set_name}')
+        self.log_msg(INFO, f'Retrieving details for change set: {change_set_name}', log_change=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         change_set_changes = []
         try:
@@ -963,40 +926,35 @@ class Stack:
                 change_set_changes.extend(page['Changes'])
         except Exception as e:
             log.exception('An error occurred retrieving change set details')
-            self.log_msg(ERROR, f'An error occurred retrieving change set details: {e}')
+            self.log_msg(ERROR, f'An error occurred retrieving change set details: {e}', log_change=True)
             return False
-        self.log_msg(INFO, 'Change set details retrieved')
+        self.log_msg(INFO, 'Change set details retrieved', log_change=False)
         return change_set_changes
 
     def execute_change_set(self, change_set_name):
-        self.log_msg(INFO, f'Updating stack with changeset: {change_set_name}')
-        self.log_change(f"Changeset is: {change_set_name}")
+        self.log_msg(INFO, f'Updating stack with changeset: {change_set_name}', log_change=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             cfn.execute_change_set(ChangeSetName=change_set_name, StackName=self.stack_name)
         except Exception as e:
             log.exception('An error occurred applying change set to stack')
-            self.log_msg(ERROR, f'An error occurred applying change set to stack: {e}')
-            self.log_msg(INFO, 'Changeset execution complete - failed')
-            self.log_change('Changeset execution complete - failed')
+            self.log_msg(ERROR, f'An error occurred applying change set to stack: {e}', log_change=True)
+            self.log_msg(INFO, 'Changeset execution complete - failed', log_change=True)
             return False
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Changeset execution complete - failed')
-            self.log_change('Changeset execution complete - failed')
+            self.log_msg(INFO, 'Changeset execution complete - failed', log_change=True)
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
         cluster_node_count = self.getparamvalue('ClusterNodeMax') or 0
         if not self.is_app_clustered() or int(cluster_node_count) > 0:
-            self.log_msg(INFO, 'Waiting for stack to respond')
+            self.log_msg(INFO, 'Waiting for stack to respond', log_change=False)
             self.validate_service_responding()
-        self.log_msg(INFO, 'Changeset execution complete')
-        self.log_change('Changeset execution successful')
+        self.log_msg(INFO, 'Changeset execution complete', log_change=True)
         return True
 
     def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
-        self.log_msg(INFO, f'Creating stack: {self.stack_name}')
-        self.log_msg(INFO, f'Creation params: {stack_parms}')
-        self.log_change(f'Creating stack {self.stack_name} with parameters: {stack_parms}')
+        self.log_msg(INFO, f'Creating stack: {self.stack_name}', log_change=True)
+        self.log_msg(INFO, f'Creation params: {stack_parms}', log_change=True)
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
@@ -1029,47 +987,39 @@ class Stack:
             )
         except Exception as e:
             log.exception('Error occurred creating stack')
-            self.log_msg(WARN, f'Error occurred creating stack: {e}')
-            self.log_msg(INFO, 'Create complete - failed')
-            self.log_change('Create complete - failed')
+            self.log_msg(WARN, f'Error occurred creating stack: {e}', log_change=True)
+            self.log_msg(INFO, 'Create complete - failed', log_change=True)
             return False
-        self.log_msg(INFO, f'Create has begun: {created_stack}')
+        self.log_msg(INFO, f'Create has begun: {created_stack}', log_change=False)
         if not self.wait_stack_action_complete('CREATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Create complete - failed')
-            self.log_change('Create complete - failed')
+            self.log_msg(INFO, 'Create complete - failed', log_change=True)
             return False
-        self.log_msg(INFO, f'Stack {self.stack_name} created, waiting on service responding')
+        self.log_msg(INFO, f'Stack {self.stack_name} created, waiting on service responding', log_change=False)
         self.validate_service_responding()
-        self.log_msg(INFO, 'Create complete')
-        self.log_change('Create complete')
+        self.log_msg(INFO, 'Create complete', log_change=True)
         return True
 
     def rolling_restart(self):
-        self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}')
-        self.log_change(f'Beginning Rolling Restart for {self.stack_name}')
+        self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}', log_change=True)
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Could not determine product')
-            self.log_msg(ERROR, 'Rolling restart complete - failed')
-            self.log_change('Could not determine product. Rolling restart failed.')
+            self.log_msg(ERROR, 'Could not determine product', log_change=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
             return False
         instance_list = self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', log_change=False)
         # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
         if not self.is_app_clustered():
-            self.log_msg(ERROR, 'App is not clustered - rolling restart not supported (use full restart)')
-            self.log_msg(ERROR, 'Rolling restart complete - failed')
-            self.log_change('App is not clustered; rolling restart not supported. Rolling restart failed.')
+            self.log_msg(ERROR, 'App is not clustered - rolling restart not supported (use full restart)', log_change=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
             return False
         if len(instance_list) == 0:
-            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
-            self.log_msg(ERROR, 'Rolling restart complete - failed')
-            self.log_change('Node count is 0: nothing to restart. Rolling restart failed.')
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart', log_change=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
             return False
         elif len(instance_list) == 1:
-            self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)')
-            self.log_msg(ERROR, 'Rolling restart complete - failed')
-            self.log_change('App only has one node - rolling restart not supported (use full restart). Rolling restart failed.')
+            self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)', log_change=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
             return False
         # determine if the nodes are running or not
         running_nodes = []
@@ -1083,64 +1033,53 @@ class Stack:
         # restart non running nodes first
         for instance in itertools.chain(non_running_nodes, running_nodes):
             if not self.shutdown_app(app_type, [instance]):
-                self.log_msg(INFO, f'Failed to stop application on instance {instance}')
-                self.log_msg(ERROR, 'Rolling restart complete - failed')
-                self.log_change('Rolling restart complete - failed')
+                self.log_msg(INFO, f'Failed to stop application on instance {instance}', log_change=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
                 return False
             if not self.startup_app(app_type, [instance]):
-                self.log_msg(INFO, f'Failed to start application on instance {instance}')
-                self.log_msg(ERROR, 'Rolling restart complete - failed')
-                self.log_change('Rolling restart complete - failed')
+                self.log_msg(INFO, f'Failed to start application on instance {instance}', log_change=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', log_change=True)
                 return False
             node_ip = list(instance.values())[0]
             result = self.check_node_status(node_ip, False)
             while result not in ['RUNNING', 'FIRST_RUN']:
                 result = self.check_node_status(node_ip, False)
                 time.sleep(10)
-            self.log_msg(INFO, f'Startup result for {node_ip}: {result}')
-        self.log_msg(INFO, 'Rolling restart complete')
-        self.log_change('Rolling restart complete')
+            self.log_msg(INFO, f'Startup result for {node_ip}: {result}', log_change=False)
+        self.log_msg(INFO, 'Rolling restart complete', log_change=True)
         return True
 
     def full_restart(self):
-        self.log_msg(INFO, f'Beginning Full Restart for {self.stack_name}')
-        self.log_change(f'Beginning Full Restart for {self.stack_name}')
+        self.log_msg(INFO, f'Beginning Full Restart for {self.stack_name}', log_change=True)
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Full restart complete - failed')
-            self.log_change('Full restart complete - failed')
+            self.log_msg(ERROR, 'Full restart complete - failed', log_change=True)
             return False
         instance_list = self.get_stacknodes()
         if len(instance_list) == 0:
-            self.log_msg(ERROR, 'Node count is 0: nothing to restart')
-            self.log_msg(ERROR, 'Full restart complete - failed')
-            self.log_change('Node count is 0: nothing to restart. Full restart failed.')
+            self.log_msg(ERROR, 'Node count is 0: nothing to restart', log_change=True)
+            self.log_msg(ERROR, 'Full restart complete - failed', log_change=True)
             return False
         self.log_msg(INFO, f'{self.stack_name} nodes are {instance_list}')
         if not self.shutdown_app(app_type, instance_list):
-            self.log_msg(ERROR, 'Full restart complete - failed')
-            self.log_change('Full restart complete - failed')
+            self.log_msg(ERROR, 'Full restart complete - failed', log_change=True)
             return False
         for instance in instance_list:
             self.startup_app(app_type, [instance])
-        self.log_msg(INFO, 'Full restart complete')
-        self.log_change('Full restart complete')
+        self.log_msg(INFO, 'Full restart complete', log_change=True)
         return True
 
     def rolling_rebuild(self):
-        self.log_msg(INFO, 'Rolling rebuild has begun')
-        self.log_change('Rolling rebuild has begun')
+        self.log_msg(INFO, 'Rolling rebuild has begun', log_change=True)
         ec2 = boto3.client('ec2', region_name=self.region)
         self.get_stacknodes()
         old_nodes = self.instancelist
-        self.log_msg(INFO, f'Old nodes: {old_nodes}')
-        self.log_change(f'Old nodes: {old_nodes}')
+        self.log_msg(INFO, f'Old nodes: {old_nodes}', log_change=True)
         new_nodes = []
         try:
             for node in old_nodes:
                 # destroy each node and wait for another to be created to replace it
-                self.log_msg(INFO, f'Replacing node {node}')
-                self.log_change(f'Replacing node {node}')
+                self.log_msg(INFO, f'Replacing node {node}', log_change=True)
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
                 current_instances = self.get_stacknodes()
@@ -1157,8 +1096,7 @@ class Stack:
                                     break
                                 # otherwise, store the node and proceed
                                 replacement_node = instance
-                                self.log_msg(INFO, f'New node: {replacement_node}')
-                                self.log_change(f'New node: {replacement_node}')
+                                self.log_msg(INFO, f'New node: {replacement_node}', log_change=True)
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node = False
                     time.sleep(30)
@@ -1168,43 +1106,41 @@ class Stack:
                 while result not in ['RUNNING', 'FIRST_RUN']:
                     node_ip = list(replacement_node.values())[0]
                     result = self.check_node_status(node_ip)
-                    self.log_msg(INFO, f'Startup result for {node_ip}: {result}')
+                    self.log_msg(INFO, f'Startup result for {node_ip}: {result}', log_change=False)
                     time.sleep(30)
-            self.log_msg(INFO, 'Rolling rebuild complete')
-            self.log_change(f'Rolling rebuild complete, new nodes are: {new_nodes}')
+            self.log_msg(INFO, 'Rolling rebuild complete', log_change=True)
+            self.log_change(f'New nodes are: {new_nodes}')
             return True
         except Exception as e:
             log.exception('An error occurred during rolling rebuild')
-            self.log_msg(ERROR, f'An error occurred during rolling rebuild: {e}')
-            self.log_change(f'An error occurred during rolling rebuild: {e}')
+            self.log_msg(ERROR, f'An error occurred during rolling rebuild: {e}', log_change=True)
             return False
 
     def thread_dump(self, alsoHeaps=False):
         heaps_to_come_log_line = ''
         if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
-        self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}')
+        self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}', log_change=False)
         self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', log_change=False)
         self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
-        self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page')
-        self.log_msg(INFO, 'Thread dumps complete')
+        self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', log_change=False)
+        self.log_msg(INFO, 'Thread dumps complete', log_change=False)
         return True
 
     def heap_dump(self):
-        self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}')
+        self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}', log_change=False)
         self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}')
+        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', log_change=False)
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for instance in self.instancelist:
             self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
             time.sleep(30)  # give node time to recover and rejoin cluster
-        self.log_msg(INFO, "Heap dumps complete")
+        self.log_msg(INFO, 'Heap dumps complete', log_change=False)
         return True
 
     def run_sql(self):
-        self.log_msg(INFO, 'Running post clone SQL')
-        self.log_change('Running post clone SQL')
+        self.log_msg(INFO, 'Running post clone SQL', log_change=True)
         self.get_stacknodes()
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
@@ -1220,8 +1156,7 @@ class Stack:
                 [self.instancelist[0]],
                 f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
             ):
-                self.log_msg(ERROR, f'Running SQL script failed')
-                self.log_change(f'An error occurred running SQL for {self.stack_name}')
+                self.log_msg(ERROR, f'Running SQL script failed', log_change=True)
                 return False
             # on node, grab local-stack sql from s3
             self.run_command(
@@ -1231,33 +1166,27 @@ class Stack:
             if not self.run_command(
                 [self.instancelist[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
-                self.log_msg(ERROR, f'Running SQL script failed')
-                self.log_change(f'An error occurred running SQL for {self.stack_name}')
+                self.log_msg(ERROR, f'Running SQL script failed', log_change=True)
         else:
-            self.log_msg(INFO, 'No post clone SQL files found')
-            self.log_change('No post clone SQL files found')
+            self.log_msg(INFO, 'No post clone SQL files found', log_change=True)
             return False
-        self.log_msg(INFO, 'Run SQL complete')
-        self.log_change('Run SQL complete')
+        self.log_msg(INFO, 'Run SQL complete', log_change=True)
         return True
 
     def tag(self, tags):
-        self.log_msg(INFO, 'Tagging stack')
-        self.log_change('Tagging stack')
+        self.log_msg(INFO, 'Tagging stack', log_change=True)
         params = self.get_parms_for_update()
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
             cfn.update_stack(StackName=self.stack_name, Parameters=params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
-            self.log_msg(INFO, f'Tagging successfully initiated')
+            self.log_msg(INFO, f'Tagging successfully initiated', log_change=False)
         except Exception as e:
             log.exception('An error occurred tagging stack')
-            self.log_msg(ERROR, f'An error occurred tagging stack: {e}')
-            self.log_change(f'An error occurred tagging stack: {e}')
+            self.log_msg(ERROR, f'An error occurred tagging stack: {e}', log_change=True)
             return False
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-            self.log_msg(INFO, 'Tag complete')
-            self.log_change('Tag complete')
+            self.log_msg(INFO, 'Tag complete', log_change=True)
             return True
         return False
 
@@ -1275,12 +1204,16 @@ class Stack:
         open(filename, 'w').close()
         self.logfile = filename
 
-    def log_msg(self, level, message):
+    def log_msg(self, level, message, log_change):
         if self.logfile is not None:
             logline = f'{datetime.now().strftime("%Y-%m-%d %X")} {getLevelName(level)} {message}'
             log.log(level, message)
             with open(self.logfile, 'a') as logfile:
                 logfile.write(f'{logline}\n')
+        # consider carefully whether this msg needs to go into the changelog
+        # if more appropriate, use log_change directly to log an altered message to the changelog
+        if log_change:
+            log_change(message)
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
