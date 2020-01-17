@@ -40,7 +40,7 @@ class DoUpgrade(RestrictedResource):
                 mystack.upgrade(new_version)
         except Exception as e:
             log.exception('Error occurred upgrading stack')
-            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -182,7 +182,7 @@ class DoFullRestart(RestrictedResource):
             mystack.full_restart()
         except Exception as e:
             log.exception('Error occurred doing full restart')
-            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -201,7 +201,7 @@ class DoRollingRestart(RestrictedResource):
             mystack.rolling_restart()
         except Exception as e:
             log.exception('Error occurred doing rolling restart')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -216,7 +216,7 @@ class DoRollingRebuild(RestrictedResource):
             mystack.rolling_rebuild()
         except Exception as e:
             log.exception('Error occurred doing rolling rebuild')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -231,7 +231,7 @@ class DoDestroy(RestrictedResource):
             mystack.destroy()
         except Exception as e:
             log.exception('Error occurred destroying stack')
-            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
@@ -247,7 +247,7 @@ class DoThreadDumps(RestrictedResource):
             mystack.thread_dump()
         except Exception as e:
             log.exception('Error occurred taking thread dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -281,7 +281,7 @@ class DoHeapDumps(RestrictedResource):
             mystack.heap_dump()
         except Exception as e:
             log.exception('Error occurred taking heap dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -296,7 +296,7 @@ class DoRunSql(RestrictedResource):
             outcome = mystack.run_sql()
         except Exception as e:
             log.exception('Error occurred running SQL')
-            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -313,7 +313,7 @@ class DoTag(RestrictedResource):
             outcome = mystack.tag(tags)
         except Exception as e:
             log.exception('Error occurred tagging stack')
-            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}', log_change=True)
+            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
