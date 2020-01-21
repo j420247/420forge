@@ -15,6 +15,7 @@ import git
 import psutil
 from flask import current_app, request, session
 from flask_restful import Resource
+
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
 from ruamel import yaml
@@ -40,8 +41,7 @@ class DoUpgrade(RestrictedResource):
                 mystack.upgrade(new_version)
         except Exception as e:
             log.exception('Error occurred upgrading stack')
-            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}')
-            mystack.log_change('Upgrade failed, see action log for details')
+            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -59,10 +59,6 @@ class DoClone(RestrictedResource):
                 cloned_from = param['ParameterValue']
             elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
-            elif param['ParameterKey'] == 'EBSSnapshotId':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
-            elif param['ParameterKey'] == 'DBSnapshotName':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
         # find product type for source stack
         source_stack = Stack(
             next(param for param in content if param['ParameterKey'] == 'ClonedFromStackName')['ParameterValue'],
@@ -183,7 +179,7 @@ class DoFullRestart(RestrictedResource):
             mystack.full_restart()
         except Exception as e:
             log.exception('Error occurred doing full restart')
-            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -202,7 +198,7 @@ class DoRollingRestart(RestrictedResource):
             mystack.rolling_restart()
         except Exception as e:
             log.exception('Error occurred doing rolling restart')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -217,7 +213,7 @@ class DoRollingRebuild(RestrictedResource):
             mystack.rolling_rebuild()
         except Exception as e:
             log.exception('Error occurred doing rolling rebuild')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -232,7 +228,7 @@ class DoDestroy(RestrictedResource):
             mystack.destroy()
         except Exception as e:
             log.exception('Error occurred destroying stack')
-            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}')
+            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
@@ -248,7 +244,7 @@ class DoThreadDumps(RestrictedResource):
             mystack.thread_dump()
         except Exception as e:
             log.exception('Error occurred taking thread dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}')
+            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -282,7 +278,7 @@ class DoHeapDumps(RestrictedResource):
             mystack.heap_dump()
         except Exception as e:
             log.exception('Error occurred taking heap dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}')
+            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -297,7 +293,7 @@ class DoRunSql(RestrictedResource):
             outcome = mystack.run_sql()
         except Exception as e:
             log.exception('Error occurred running SQL')
-            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}')
+            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -314,7 +310,7 @@ class DoTag(RestrictedResource):
             outcome = mystack.tag(tags)
         except Exception as e:
             log.exception('Error occurred tagging stack')
-            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}')
+            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -443,8 +439,19 @@ class TemplateParams(Resource):
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
                 }
             )
+            # Add validation values to params to send to the front end
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
+            if 'AllowedPattern' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedPattern'] = template_params[param]['AllowedPattern']
+            if 'MinValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
+            if 'MaxValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
+            if 'MinLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
+            if 'MaxLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
         return params_to_send
 
 
@@ -471,7 +478,7 @@ class TemplateParamsForStack(Resource):
                 print("Parameter not found: " + stack_param['ParameterKey'])
         # Add new params from the template to the stack params
         for param in template_params['Parameters']:
-            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+            if param not in ('DBSnapshotName', 'EBSSnapshotId'):
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
                     compared_params.append(
                         {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
@@ -483,6 +490,18 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
                     )
+                if 'AllowedPattern' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params[param][
+                        'AllowedPattern'
+                    ]
+                if 'MinValue' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
+                if 'MaxValue' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
+                if 'MinLength' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
+                if 'MaxLength' in template_params[param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
@@ -574,8 +593,8 @@ class GetEbsSnapshots(Resource):
                 start_time = start_time.split('.')[0]
             else:
                 start_time = start_time.split('+')[0]
-            snapshotIds.append(start_time + ": " + snap['SnapshotId'])
-        snapshotIds.sort(reverse=True)
+            snapshotIds.append({'label': start_time, 'value': snap['SnapshotId']})
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -591,17 +610,17 @@ class GetRdsSnapshots(Resource):
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                    snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                        snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                        snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
-        snapshotIds.sort(reverse=True)
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -692,6 +711,20 @@ class GetTemplateRepos(Resource):
                 repos.append(directory.split('/')[1])
         repos.sort()
         return repos
+
+
+class GetKmsKeys(Resource):
+    def get(self, region):
+        keys = []
+        account_id = boto3.client('sts').get_caller_identity().get('Account')
+        client = boto3.client('kms', region)
+        paginator = client.get_paginator('list_aliases')
+        response_iterator = paginator.paginate()
+        for kms_keys_aliases in response_iterator:
+            for key in kms_keys_aliases['Aliases']:
+                if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
+                    keys.append({'label': key['AliasName'].replace('alias/', ''), 'value': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
+        return keys
 
 
 class SetStackLocking(Resource):

@@ -13,11 +13,11 @@
         <meta name="avatar_url" value={{ session['avatar_url'] }}>
         {%endif %}
 
-        <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
         {#    AUI    #}
         <link rel="stylesheet" href="/static/aui/css/aui.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-experimental.min.css" media="all">
         <link rel="stylesheet" href="/static/aui/css/aui-iconfonts.min.css" media="all">
+        <link rel="stylesheet" href="{{ get_filename_with_last_update_time('static/css/index.css') }}">
 
         <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
@@ -99,51 +99,46 @@
                                 <ul class="aui-nav">
                                     {% block vnavitems %}
                                     <li {% if session['nice_action_name'] == 'Upgrade' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='upgrade') }}" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
+                                        <a href="{{ url_for('main.upgrade') }}" aria-owns="aui-menu-upgrade" id="upgrade-link">Upgrade</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Full restart' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='fullrestart') }}" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
+                                        <a href="{{ url_for('main.fullrestart') }}" aria-owns="aui-menu-fullrestart" id="fullrestart-link">Full Restart</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Rolling restart' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='rollingrestart') }}" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
+                                        <a href="{{ url_for('main.rollingrestart') }}" aria-owns="aui-menu-rollingrestart" id="rollingrestart-link">Rolling Restart</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Rebuild nodes' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='rollingrebuild') }}" aria-owns="aui-menu-rollingrebuild" id="rollingrebuild-link">Rebuild Nodes</a>
+                                        <a href="{{ url_for('main.rollingrebuild') }}" aria-owns="aui-menu-rollingrebuild" id="rollingrebuild-link">Rebuild Nodes</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Create stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='create') }}" aria-owns="aui-menu-create" id="create-link">Create</a>
+                                        <a href="{{ url_for('main.create') }}" aria-owns="aui-menu-create" id="create-link">Create</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Destroy stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
+                                        <a href="{{ url_for('main.destroy') }}" aria-owns="aui-menu-destroy" id="destroy-link">Destroy</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Clone stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
+                                        <a href="{{ url_for('main.clone') }}" aria-owns="aui-menu-clone" id="clone-link">Clone Stack</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Update stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack Configuration</a>
+                                        <a href="{{ url_for('main.update') }}" aria-owns="aui-menu-update" id="update-link">Update Stack Configuration</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Tag stack' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='tag') }}" aria-owns="aui-menu-tag" id="tag-link">Tag Stack</a>
+                                        <a href="{{ url_for('main.tag') }}" aria-owns="aui-menu-tag" id="tag-link">Tag Stack</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Diagnostics' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
+                                        <a href="{{ url_for('main.diagnostics') }}" aria-owns="aui-menu-diagnostics" id="diagnostics-link">Diagnostics</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Run SQL' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
+                                        <a href="{{ url_for('main.runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
                                     </li>
-                                    <!-- commenting backup out until it works
-                                    <li {% if session['nice_action_name'] == 'Backup' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='backup') }}" aria-owns="aui-menu-backup" id="backup-link">Trigger Backup Manually</a>
-                                    </li>
-                                    -->
                                     <li {% if session['nice_action_name'] == 'Stack logs' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
+                                        <a href="{{ url_for('main.viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'System logs' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='syslog') }}" aria-owns="aui-menu-viewlog" id="syslog-link">System Logs</a>
+                                        <a href="{{ url_for('main.syslog') }}" aria-owns="aui-menu-viewlog" id="syslog-link">System Logs</a>
                                     </li>
                                     <li {% if session['nice_action_name'] == 'Admin' %} class="aui-nav-selected" {% endif %} >
-                                        <a href="{{ url_for('main.setaction', action='admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
+                                        <a href="{{ url_for('main.admin') }}" aria-owns="aui-menu-viewlog" id="admin-link">Admin</a>
                                     </li>
                                     {% endblock %}
                                 </ul>
