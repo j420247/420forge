@@ -106,7 +106,7 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
   $("#stackName").text(stackToRetrieve);
 
   if (action == 'clone') {
-    getSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
+    getSnapshots($("#regionSelector")[0].value, stackToRetrieve);
   }
 
   send_http_get_request(baseUrl + "/stackParams/" + region + "/" +
@@ -125,6 +125,11 @@ function displayStackParams(responseText) {
   fieldset.id = "fieldSet";
 
   for (var param in origParams) {
+    if (action === 'clone' && origParams[param].ParameterKey === "DBSnapshotName") {
+      // prevent DBSnapshotName param from prod template
+      // from showing up as duplicate field on clone
+      continue;
+    }
     createInputParameter(origParams[param], fieldset);
     if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
@@ -133,11 +138,6 @@ function displayStackParams(responseText) {
 
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
-
-  // Clear KMS key arn if the stack is encrypted
-  if (action === 'clone') {
-   document.getElementById("KmsKeyArnVal").value = ""
-  }
 
   // Disable mail by default on clones
   if (action === 'clone') {
@@ -173,8 +173,22 @@ function displayStackParams(responseText) {
 }
 
 function getSnapshots(clone_region, stackToRetrieve) {
-  $("#ebsSnapshots").empty();
-  $("#rdsSnapshots").empty();
+  // we can't update the values inside the aui-select dynamically, so we
+  // remove the existing input and replace it with a blank one, which will
+  // momentarily be replaced and removed again with the updated values
+  $("#ebsSnapshotSelector").remove();
+  $("#ebsSnapshotSelectorDiv").append($("<aui-select/>", {
+    id: "ebsSnapshotSelector",
+    name: "ebsSnapshotSelector",
+    placeholder: "Loading..."
+  }));
+
+  $("#rdsSnapshotSelector").remove();
+  $("#rdsSnapshotSelectorDiv").append($("<aui-select/>", {
+    id: "rdsSnapshotSelector",
+    name: "rdsSnapshotSelector",
+    placeholder: "Loading..."
+  }));
 
   send_http_get_request(baseUrl + "/getEbsSnapshots/" + clone_region + "/" +
     stackToRetrieve, displayEbsSnapshots);
@@ -184,42 +198,36 @@ function getSnapshots(clone_region, stackToRetrieve) {
 
 function displayEbsSnapshots(responseText) {
   var ebsSnaps = JSON.parse(responseText);
-  for (var snap in ebsSnaps) {
-    var li = document.createElement("LI");
-    var anchor = document.createElement("A");
-    anchor.className = "selectEbsSnapshotOption";
-    var text = document.createTextNode(ebsSnaps[snap]);
-    anchor.appendChild(text);
-    li.appendChild(anchor);
-    $("#ebsSnapshots").append(li);
-  }
-
-  var ebsSnaps = document.getElementsByClassName("selectEbsSnapshotOption");
-  for (var i = 0; i < ebsSnaps.length; i++) {
-    ebsSnaps[i].addEventListener("click", function(data) {
-      $("#ebsSnapshotSelector").text(data.target.text);
-    }, false);
-  }
+  $("#ebsSnapshotSelector").remove();
+  var input = $("<aui-select/>", {
+    id: "ebsSnapshotSelector",
+    name: "ebsSnapshotSelector",
+    placeholder: "Select EBS snapshot"
+  });
+  $.each(ebsSnaps, function(index, snap) {
+    input.append($("<aui-option/>", {
+      text: snap["label"] + " (" + snap["value"] + ")",
+      value: snap["value"]
+    }));
+  });
+  $("#ebsSnapshotSelectorDiv").append(input);
 }
 
 function displayRdsSnapshots(responseText) {
   var rdsSnaps = JSON.parse(responseText);
-  for (var snap in rdsSnaps) {
-    var li = document.createElement("LI");
-    var anchor = document.createElement("A");
-    anchor.className = "selectRdsSnapshotOption";
-    var text = document.createTextNode(rdsSnaps[snap]);
-    anchor.appendChild(text);
-    li.appendChild(anchor);
-    $("#rdsSnapshots").append(li);
-  }
-
-  var rdsSnaps = document.getElementsByClassName("selectRdsSnapshotOption");
-  for (var i = 0; i < rdsSnaps.length; i++) {
-    rdsSnaps[i].addEventListener("click", function(data) {
-      $("#rdsSnapshotSelector").text(data.target.text);
-    }, false);
-  }
+  $("#rdsSnapshotSelector").remove();
+  var input = $("<aui-select/>", {
+    id: "rdsSnapshotSelector",
+    name: "rdsSnapshotSelector",
+    placeholder: "Select RDS snapshot"
+  });
+  $.each(rdsSnaps, function(index, snap) {
+    input.append($("<aui-option/>", {
+      text: snap["label"] + "(" + snap["value"] + ")",
+      value: snap["value"]
+    }));
+  });
+  $("#rdsSnapshotSelectorDiv").append(input);
 }
 
 function getVPCs(vpc_region, existingVpc) {
@@ -244,7 +252,8 @@ function displayVPCs(responseText, functionParams) {
 
   // Set default VPC and subnets for region
   var defaultVpc = existingVpc ? existingVpc : default_vpcs[vpc_region];
-  createDropdown("VPC", defaultVpc, vpcs, document.getElementById("VPCDiv"));
+  var input = createSingleSelect("VPC", defaultVpc, vpcs);
+  $(input).insertBefore($("#VPCDiv :last-child"));
   getSubnets(defaultVpc, 'create');
 }
 
@@ -253,8 +262,8 @@ function getSubnets(vpc, createOrUpdateList) {
     createOrUpdateList: createOrUpdateList
   };
 
-  var subnets_region = $("#regionSelector").length ? $("#regionSelector").text()
-    .trim() : region;
+  var regionSelector = $("#regionSelector");
+  var subnets_region = typeof regionSelector[0] !== 'undefined' ? regionSelector[0].value : region;
   if (vpc !== "")
     send_http_get_request(baseUrl + "/getSubnetsForVpc/" + subnets_region + "/" +
       vpc, displaySubnets, functionParams);
@@ -279,8 +288,8 @@ function displaySubnets(responseText, functionParams) {
   if (action === "update") {
     $("#ExternalSubnetsVal").val(externalSubnets);
     $("#InternalSubnetsVal").val(internalSubnets);
-  } else if ($("#VPCVal")[0].innerText.trim() !== 'Select') {
-    selectDefaultSubnets($("#VPCVal")[0].innerText.trim())
+  } else if ($("#VPCVal")[0].value !== '') {
+    selectDefaultSubnets($("#VPCVal")[0].value)
   }
 }
 
@@ -381,17 +390,17 @@ function sendParamsAsJson() {
 
     if (param == "EBSSnapshotId") {
       if (action === 'clone')
-        value = document.getElementById("ebsSnapshotSelector").innerText;
+        value = document.getElementById("ebsSnapshotSelector").value;
       else
         value = document.getElementById("EBSSnapshotIdVal").value;
     } else if (param == "DBSnapshotName") {
       if (action === 'clone')
-        value = document.getElementById("rdsSnapshotSelector").innerText;
+        value = document.getElementById("rdsSnapshotSelector").value;
       else
         value = document.getElementById("DBSnapshotNameVal").value;
     } else if (param == "Region") {
       if (action === 'clone')
-        value = $("#regionSelector").text().trim();
+        value = $("#regionSelector")[0].value;
       else
         value = region;
     } else {
@@ -399,6 +408,8 @@ function sendParamsAsJson() {
       if (element.tagName.toLowerCase() === "a") {
         value = element.text;
       } else if (element.tagName.toLowerCase() === "input") {
+        value = element.value;
+      } else if (element.tagName.toLowerCase() === "aui-select") {
         value = element.value;
       } else if (element.tagName.toLowerCase() === "select") {
         value = "";
@@ -432,8 +443,28 @@ function sendParamsAsJson() {
 
     var appendRegion = "";
     if (action === 'clone')
-      appendRegion = "&region=" + $("#regionSelector").text().trim();
+      appendRegion = "&region=" + $("#regionSelector")[0].value;
 
     redirectToLog(stackNameForAction, appendRegion);
   }
+}
+
+function getKmsKeys(region, existingKmsKeyArn) {
+  $("#KmsKeyArnVal").remove();
+  var placeholder = $("<aui-select/>", {
+    id: "KmsKeyArnVal",
+    name: "KmsKeyArnDropdownDiv",
+    placeholder: "Loading..."
+  });
+  $(placeholder).insertBefore($("#KmsKeyArnDiv :last-child"));
+  send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys, existingKmsKeyArn);
+}
+
+function displayKmsKeys(responseText, existingKmsKeyArn) {
+  var kmsKeys = JSON.parse(responseText);
+  $("#KmsKeyArnVal").remove();
+  var existingKmsKey = kmsKeys.find(key => key.value === existingKmsKeyArn);
+  var existingKmsKeyAlias = typeof existingKmsKey !== 'undefined' ? existingKmsKey.label : '';
+  var input = createSingleSelect("KmsKeyArn", existingKmsKeyAlias, kmsKeys);
+  $(input).insertBefore($("#KmsKeyArnDiv :last-child"));
 }

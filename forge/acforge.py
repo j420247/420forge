@@ -60,10 +60,6 @@ class DoClone(RestrictedResource):
                 cloned_from = param['ParameterValue']
             elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
-            elif param['ParameterKey'] == 'EBSSnapshotId':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
-            elif param['ParameterKey'] == 'DBSnapshotName':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
         # find product type for source stack
         source_stack = Stack(
             next(param for param in content if param['ParameterKey'] == 'ClonedFromStackName')['ParameterValue'],
@@ -483,7 +479,7 @@ class TemplateParamsForStack(Resource):
                 print("Parameter not found: " + stack_param['ParameterKey'])
         # Add new params from the template to the stack params
         for param in template_params['Parameters']:
-            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+            if param not in ('DBSnapshotName', 'EBSSnapshotId'):
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
                     compared_params.append(
                         {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
@@ -598,8 +594,8 @@ class GetEbsSnapshots(Resource):
                 start_time = start_time.split('.')[0]
             else:
                 start_time = start_time.split('+')[0]
-            snapshotIds.append(start_time + ": " + snap['SnapshotId'])
-        snapshotIds.sort(reverse=True)
+            snapshotIds.append({'label': start_time, 'value': snap['SnapshotId']})
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -615,17 +611,17 @@ class GetRdsSnapshots(Resource):
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                    snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                        snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                        snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
-        snapshotIds.sort(reverse=True)
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -716,6 +712,20 @@ class GetTemplateRepos(Resource):
                 repos.append(directory.split('/')[1])
         repos.sort()
         return repos
+
+
+class GetKmsKeys(Resource):
+    def get(self, region):
+        keys = []
+        account_id = boto3.client('sts').get_caller_identity().get('Account')
+        client = boto3.client('kms', region)
+        paginator = client.get_paginator('list_aliases')
+        response_iterator = paginator.paginate()
+        for kms_keys_aliases in response_iterator:
+            for key in kms_keys_aliases['Aliases']:
+                if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
+                    keys.append({'label': key['AliasName'].replace('alias/', ''), 'value': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
+        return keys
 
 
 class SetStackLocking(Resource):
