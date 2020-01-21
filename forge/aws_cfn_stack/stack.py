@@ -246,13 +246,12 @@ class Stack:
     def validate_service_responding(self):
         self.log_msg(INFO, 'Waiting for service to reply on /status', write_to_changelog=False)
         service_state = self.check_service_status()
-        time_since_begun = 0
+        action_start = time.time()
         while service_state not in ['RUNNING', 'FIRST_RUN']:
-            if time_since_begun > 60 * 60:
+            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['validate_service_responding']:
                 self.log_msg(ERROR, f'{self.stack_name} failed to come up after 60 minutes. Status endpoint is returning: {service_state}', write_to_changelog=True)
                 return False
             time.sleep(60)
-            time_since_begun += 60
             service_state = self.check_service_status()
         self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}', write_to_changelog=True)
         return True
@@ -260,14 +259,13 @@ class Stack:
     def validate_node_responding(self, node_ip):
         self.log_msg(INFO, f'Waiting for node {node_ip} to reply on /status', write_to_changelog=False)
         result = self.check_node_status(node_ip, False)
-        time_since_begun = 0
+        action_start = time.time()
         while result not in ['RUNNING', 'FIRST_RUN']:
-            if time_since_begun > 60 * 60:
+            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['validate_node_responding']:
                 self.log_msg(ERROR, f'{node_ip} failed to come up after 60 minutes. Status endpoint is returning: {result}', write_to_changelog=True)
                 return False
             result = self.check_node_status(node_ip, False)
             time.sleep(10)
-            time_since_begun += 10
         self.log_msg(INFO, f'Startup result for {node_ip}: {result}', write_to_changelog=False)
         return True
 
@@ -650,13 +648,12 @@ class Stack:
             if response.status_code != requests.codes.created:
                 self.log_msg(ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}', write_to_changelog=True)
                 return False
-            time_since_begun = 0
+            action_start = time.time()
             while self.get_zdu_state() != 'READY_TO_UPGRADE':
-                if time_since_begun > 60 * 5:
+                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['enable_zdu_mode']:
                     self.log_msg(ERROR, 'Stack is not in READY_TO_UPGRADE mode after 5 minutes - aborting', write_to_changelog=True)
                     return False
                 time.sleep(5)
-                time_since_begun += 5
             self.log_msg(INFO, 'ZDU mode enabled', write_to_changelog=True)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
@@ -673,13 +670,12 @@ class Stack:
             if response.status_code != requests.codes.ok:
                 self.log_msg(ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}', write_to_changelog=True)
                 return False
-            time_since_begun = 0
+            action_start = time.time()
             while self.get_zdu_state() != 'STABLE':
-                if time_since_begun > 60 * 5:
+                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['cancel_zdu_mode']:
                     self.log_msg(ERROR, 'Stack is not in STABLE mode after 5 minutes - ZDU mode cancel failed', write_to_changelog=True)
                     return False
                 time.sleep(5)
-                time_since_begun += 5
             self.log_msg(INFO, 'ZDU mode cancelled', write_to_changelog=True)
             return True
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
@@ -699,14 +695,13 @@ class Stack:
                 return False
             self.log_msg(INFO, 'Upgrade tasks are running, waiting for STABLE state', write_to_changelog=True)
             state = self.get_zdu_state()
-            time_since_begun = 0
+            action_start = time.time()
             while state != 'STABLE':
-                if time_since_begun > 60 * 60:
+                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']:
                     self.log_msg(ERROR, 'Stack is not in STABLE mode after 1 hour - upgrade tasks may still be running but Forge is aborting', write_to_changelog=True)
                     return False
                 self.log_msg(INFO, f'ZDU state is {state}', write_to_changelog=False)
                 time.sleep(5)
-                time_since_begun += 5
                 state = self.get_zdu_state()
             self.log_msg(INFO, 'Upgrade tasks complete', write_to_changelog=True)
             return True
@@ -866,14 +861,12 @@ class Stack:
         if not self.rolling_rebuild():
             self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
         state = self.get_zdu_state()
-        time_since_begun = 0
+        action_start = time.time()
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
-            if time_since_begun > 60 * 10:
-                self.log_msg(ERROR, 'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after 10 minutes - aborting')
-                self.log_change('Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after 10 minutes - aborting')
+            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['zdu_ready_to_run_upgrade_tasks']:
+                self.log_msg(ERROR, 'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after 10 minutes - aborting', write_to_changelog=True)
                 return False
             time.sleep(5)
-            time_since_begun += 5
             state = self.get_zdu_state()
         # approve the upgrade and allow upgrade tasks to run
         if self.approve_zdu_upgrade():
@@ -890,13 +883,13 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
-            if "does not exist" in e.response['Error']['Message']:
+            if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=True)
                 self.log_msg(INFO, 'Destroy complete - not required', write_to_changelog=True)
                 return True
             else:
                 log.exception('An error occurred destroying stack')
-                self.log_msg(ERROR, f'An error occurred destroying stack: {e}')
+                self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
                 return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
@@ -1125,7 +1118,7 @@ class Stack:
                 current_instances = self.get_stacknodes()
                 waiting_for_new_node_creation = True
                 replacement_node = {}
-                time_since_begun = 0
+                action_start = time.time()
                 while waiting_for_new_node_creation:
                     for instance in current_instances:
                         # check the instance id against the old nodes
@@ -1140,12 +1133,10 @@ class Stack:
                                 self.log_msg(INFO, f'New node: {replacement_node}', write_to_changelog=True)
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node_creation = False
-                    if time_since_begun > 60 * 60:
-                        self.log_msg(ERROR, 'New node failed to be created after 60 minutes - aborting')
-                        self.log_change('New node failed to be created after 60 minutes - aborting')
+                    if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['node_initialisation']:
+                        self.log_msg(ERROR, 'New node failed to be created after 60 minutes - aborting', write_to_changelog=True)
                         return False
                     time.sleep(30)
-                    time_since_begun += 30
                     current_instances = self.get_stacknodes()
                 # wait for the new node to come up
                 node_ip = list(replacement_node.values())[0]
