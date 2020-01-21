@@ -636,7 +636,7 @@ class GetTemplates(Resource):
         custom_template_folder = Path('custom-templates')
         # get default templates
         if template_type == 'all':
-            default_templates = [f for f in template_folder.glob('**/*') if re.match(r"^.*\.yaml$", f.name, flags=re.IGNORECASE)]
+            default_templates = [f for f in template_folder.glob('**/*') if re.match(r'^.*\.yaml$', f.name, flags=re.IGNORECASE)]
         else:
             default_templates = [f for f in template_folder.glob('**/*') if re.match(rf'^.*{template_type}.*\.yaml$', f.name, flags=re.IGNORECASE)]
         for file in default_templates:

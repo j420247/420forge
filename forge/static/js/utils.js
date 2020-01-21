@@ -180,17 +180,21 @@ function createInputParameter(param, fieldset) {
             input.pattern = param.AllowedPattern;
         }
         if (param.MinValue) {
+            input.setAttribute("data-aui-validation-field", "");
             input.type = "number";
             input.min = param.MinValue;
         }
         if (param.MaxValue) {
+            input.setAttribute("data-aui-validation-field", "");
             input.type = "number";
             input.max = param.MaxValue;
         }
         if (param.MinLength) {
+            input.setAttribute("data-aui-validation-field", "");
             input.minLength = param.MinLength;
         }
         if (param.MaxLength) {
+            input.setAttribute("data-aui-validation-field", "");
             input.maxLength = param.MaxLength;
         }
         div.appendChild(input);
