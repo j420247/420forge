@@ -1,6 +1,16 @@
 function onReady() {
     readyTheTemplate();
+
+    // Add event listener for stack dropdown
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            templateHandler(data.target.text);
+        });
+    }
+
     getTemplates("Clone");
+
     $('#regionSelector').change(function() {
         var clone_region = this.value;
         getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
