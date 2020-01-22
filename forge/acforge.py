@@ -490,18 +490,26 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
                     )
-                if 'AllowedPattern' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params[param][
+                if 'AllowedPattern' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params['Parameters'][param][
                         'AllowedPattern'
                     ]
-                if 'MinValue' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
-                if 'MaxValue' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
-                if 'MinLength' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
-                if 'MaxLength' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
+                if 'MinValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params['Parameters'][param][
+                        'MinValue'
+                    ]
+                if 'MaxValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params['Parameters'][param][
+                        'MaxValue'
+                    ]
+                if 'MinLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params['Parameters'][param][
+                        'MinLength'
+                    ]
+                if 'MaxLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params['Parameters'][param][
+                        'MaxLength'
+                    ]
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
