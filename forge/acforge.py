@@ -539,7 +539,7 @@ class ClearStackActionInProgress(Resource):
 class GetVersion(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        return mystack.get_param('Version')
+        return mystack.get_param_value('Version')
 
 
 class GetNodes(Resource):

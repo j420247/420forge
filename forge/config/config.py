@@ -51,14 +51,12 @@ class BaseConfig(object):
     # fmt: off
     CLONE_DEFAULTS = {
         'all': {
-            'ClusterNodeMin': '1',
-            'ClusterNodeMax': '1',
+            'ClusterNodeCount': '1',
             'DeployEnvironment': 'stg',
             'DBMultiAZ': 'false',
         },
         'foj-stg': {
-            'ClusterNodeMin': '4',
-            'ClusterNodeMax': '4',
+            'ClusterNodeCount': '4',
             'CustomDnsName': 'mystack.mycompany.com'
         },
         # To create stack specific defaults, add a param with the stackname, as below
