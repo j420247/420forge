@@ -257,9 +257,9 @@ class TestAwsStacks:
     def test_upgrade(self):
         setup_stack()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        assert mystack.get_param('Version') == '6.11.0'
+        assert mystack.get_param_value('ProductVersion') == '6.11.0'
         # mock status
         mystack.check_service_status = MagicMock(return_value='RUNNING')
         # upgrade
         mystack.upgrade('6.11.1')
-        assert mystack.get_param('Version') == '6.11.1'
+        assert mystack.get_param_value('ProductVersion') == '6.11.1'
