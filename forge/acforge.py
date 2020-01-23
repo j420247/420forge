@@ -601,7 +601,7 @@ class GetEbsSnapshots(Resource):
                 start_time = start_time.split('.')[0]
             else:
                 start_time = start_time.split('+')[0]
-            snapshotIds.append({'label': start_time, 'value': snap['SnapshotId']})
+            snapshotIds.append({'label': f"{start_time} ({snap['SnapshotId']})", 'value': snap['SnapshotId']})
         snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
@@ -618,13 +618,13 @@ class GetRdsSnapshots(Resource):
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                    snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
+                    snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                        snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
+                        snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return

@@ -74,13 +74,13 @@ function send_http_post_request(url, data, onreadystatechange) {
 }
 
 // Create/modify page elements
-function createSingleSelect(parameterKey, defaultValue, dropdownOptions) {
+function createSingleSelect(parameterKey, defaultValue, dropdownOptions, placeholder='') {
     // determine whether the dropdownOptions includes labels or not
     var hasLabels = typeof dropdownOptions[0] === 'object' ? true : false;
 
     // build an array of strings to represent HTML aui-select element
     var singleSelectHtml = [];
-    singleSelectHtml.push(`<aui-select id=${parameterKey + "Val"} name=${parameterKey + "DropdownDiv"}>`);
+    singleSelectHtml.push(`<aui-select id=${parameterKey + "Val"} name=${parameterKey + "DropdownDiv"} placeholder="${placeholder}">`);
     for (var option of dropdownOptions) {
         var html_value = hasLabels ? option['value'] : option;
         var html_label = hasLabels ? option['label'] : option;
