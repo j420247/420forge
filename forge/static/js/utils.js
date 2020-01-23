@@ -75,25 +75,31 @@ function send_http_post_request(url, data, onreadystatechange) {
 
 // Create/modify page elements
 function createSingleSelect(parameterKey, defaultValue, dropdownOptions) {
-    var singleSelect = $("<aui-select/>", {
-        id: parameterKey + "Val",
-        name: parameterKey + "DropdownDiv",
-        change: function(data) {
-            if (parameterKey === 'VPC') {
-                getSubnets(this.value, 'update');
-            }
-        }
-    });
+    // determine whether the dropdownOptions includes labels or not
+    var hasLabels = typeof dropdownOptions[0] === 'object' ? true : false;
 
-    $.each(dropdownOptions, function(index, value) {
-        complexData = typeof dropdownOptions[0] === 'object' ? true : false;
-        singleSelect.append($("<aui-option/>", {
-            text: complexData ? value['label'] : value,
-            value: complexData ? value['value'] : value,
-            selected: defaultValue === (complexData ? value['label'] : value).toString() ? true : false
-        }));
-    });
+    // build an array of strings to represent HTML aui-select element
+    var singleSelectHtml = [];
+    singleSelectHtml.push(`<aui-select id=${parameterKey + "Val"} name=${parameterKey + "DropdownDiv"}>`);
+    for (var option of dropdownOptions) {
+        var html_value = hasLabels ? option['value'] : option;
+        var html_label = hasLabels ? option['label'] : option;
+        var html_selected = defaultValue === html_label.toString() ? ' selected' : '';
+        singleSelectHtml.push(`<aui-option value="${html_value}"${html_selected}>${html_label}</aui-option>`);
+    }
+    singleSelectHtml.push("</aui-select>");
 
+    // build HTML from the array of strings
+    var singleSelect = $(singleSelectHtml.join(''));
+
+    // attach change event handler, if applicable
+    if (parameterKey === 'VPC') {
+        singleSelect.change(function (data) {
+            getSubnets(this.value, 'update');
+        });
+    }
+
+    // return the element for DOM insertion
     return singleSelect;
 }
 
