@@ -167,7 +167,7 @@ class Stack:
             result = self.wait_for_cmd_result(cmd_id)
         return result
 
-    ## Stack - helper methods)
+    ## Stack - helper methods
 
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes', write_to_changelog=True)
