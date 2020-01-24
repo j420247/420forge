@@ -151,14 +151,18 @@ function createInputParameter(param, fieldset) {
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
 
-        if ((action === 'clone' || action === 'create')
-            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
-            input.setAttribute("data-aui-validation-field", "");
-            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
-            input.type = "password";
-            input.value = "";
-            input.required = true;
-            input.pattern = param.AllowedPattern;
+        if (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword") {
+            if (action === 'clone' || action === 'create') {
+                input.setAttribute("data-aui-validation-field", "");
+                input.setAttribute("data-aui-validation-pattern-msg", "Value must satisfy regular expression pattern: " + param.AllowedPattern);
+                input.type = "password";
+                input.value = "";
+                input.required = true;
+                input.pattern = param.AllowedPattern;
+            } else if (action === 'update'){
+                // don't display passwords in the update action
+                return;
+            }
         } else if ((param.ParameterKey === "KeyName" || param.ParameterKey === "KeyPairName") && $("meta[name=ssh_key_name]").attr("value") !== "") {
             input.value = $("meta[name=ssh_key_name]").attr("value");
         } else if (param.ParameterKey === "HostedZone" && $("meta[name=hosted_zone]").attr("value") !== "") {

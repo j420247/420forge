@@ -499,21 +499,6 @@ class Stack:
             del current_app.config['LOCKS'][self.stack_name]
         return True
 
-    def get_parms_for_update(self):
-        parms = self.get_params()
-        stackName_param = [param for param in parms if param['ParameterKey'] == 'StackName']
-        if len(stackName_param) > 0:
-            parms.remove(stackName_param[0])
-        for dict in parms:
-            for k, v in dict.items():
-                if v == 'DBMasterUserPassword' or v == 'DBPassword':
-                    try:
-                        del dict['ParameterValue']
-                    except KeyError:
-                        pass
-                    dict['UsePreviousValue'] = True
-        return parms
-
     def get_tags(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -1185,7 +1170,10 @@ class Stack:
 
     def tag(self, tags):
         self.log_msg(INFO, 'Tagging stack', write_to_changelog=True)
-        params = self.get_parms_for_update()
+        params = self.get_params()
+        stackname_param = [param for param in params if param['ParameterKey'] == 'StackName']
+        if len(stackname_param) > 0:
+            params.remove(stackname_param[0])
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
