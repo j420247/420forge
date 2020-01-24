@@ -84,7 +84,7 @@ function createSingleSelect(parameterKey, defaultValue, dropdownOptions, placeho
     for (var option of dropdownOptions) {
         var html_value = hasLabels ? option['value'] : option;
         var html_label = hasLabels ? option['label'] : option;
-        var html_selected = defaultValue === html_label.toString() ? ' selected' : '';
+        var html_selected = defaultValue.toString() === html_label.toString() ? ' selected' : '';
         singleSelectHtml.push(`<aui-option value="${html_value}"${html_selected}>${html_label}</aui-option>`);
     }
     singleSelectHtml.push("</aui-select>");
