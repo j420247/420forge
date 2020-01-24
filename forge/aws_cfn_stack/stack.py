@@ -90,7 +90,7 @@ class Stack:
         return params
 
     def get_param_value(self, param_to_get, params=None):
-        if not params:
+        if params is None:
             params = self.get_params()
         param_value = ''
         legacy_params = []
@@ -100,9 +100,12 @@ class Stack:
             legacy_params = ['clusternodemax']
         elif param_to_get == 'SynchronyClusterNodeCount':
             legacy_params = ['synchronyclusternodemax']
-        for param in params:
-            if param['ParameterKey'].lower() == param_to_get.lower() or param['ParameterKey'].lower() in legacy_params:
-                param_value = param['ParameterValue'] if param['ParameterValue'] else ''
+        try:
+            for param in params:
+                if param['ParameterKey'].lower() == param_to_get.lower() or param['ParameterKey'].lower() in legacy_params:
+                    param_value = param['ParameterValue'] if param['ParameterValue'] else ''
+        except TypeError:
+            log.exception('Error retrieving parameter value; no params available')
         return param_value
 
     def update_parmlist(self, parmlist, parmkey, parmvalue):
