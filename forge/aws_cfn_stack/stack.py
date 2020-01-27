@@ -284,7 +284,7 @@ class Stack:
                 if 'state' in json_status:
                     status = json_status['state']
             else:
-                status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
+                status = str(service_status.status_code) + ": " + service_status.reason[:21] if service_status.reason else str(service_status.status_code)
             if logMsgs:
                 self.log_msg(INFO, f' ==> service status is: {status}', write_to_changelog=False)
             return status
