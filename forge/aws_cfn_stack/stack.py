@@ -250,7 +250,7 @@ class Stack:
         action_start = time.time()
         action_timeout = current_app.config['ACTION_TIMEOUTS']['validate_service_responding']
         while service_state not in ['RUNNING', 'FIRST_RUN']:
-            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['validate_service_responding']:
+            if (time.time() - action_start) > action_timeout:
                 self.log_msg(
                     ERROR,
                     f'{self.stack_name} failed to come up after {format_timespan(action_timeout)}. ' f'Status endpoint is returning: {service_state}',
@@ -707,7 +707,7 @@ class Stack:
             action_start = time.time()
             action_timeout = current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']
             while state != 'STABLE':
-                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']:
+                if (time.time() - action_start) > action_timeout:
                     self.log_msg(
                         ERROR,
                         f'Stack is not in STABLE mode after {format_timespan(action_timeout)} - ' 'upgrade tasks may still be running but Forge is aborting',
