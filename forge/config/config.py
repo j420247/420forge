@@ -25,6 +25,19 @@ class BaseConfig(object):
     ANALYTICS = True
     S3_BUCKET = 'atl-cfn-forge-515798882395'
 
+    ##
+    ## Configurable timeouts for actions (in seconds)
+    ACTION_TIMEOUTS = {
+        'approve_zdu_upgrade': 3600,
+        'cancel_zdu_mode': 300,
+        'enable_zdu_mode': 300,
+        'node_initialisation': 3600,
+        'validate_node_responding': 3600,
+        'validate_service_responding': 3600,
+        'zdu_ready_to_run_upgrade_tasks': 600,
+        'zdu_upgrade_tasks_complete': 3600,
+    }
+
     ########
     ## User default settings
     # These values can be used to automatically populate template parameters

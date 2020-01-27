@@ -17,6 +17,10 @@ REGION = 'us-east-1'
 app = Flask(__name__)
 app.config['S3_BUCKET'] = 'mock_bucket'
 app.config['TESTING'] = True
+app.config['ACTION_TIMEOUTS'] = {
+    'validate_node_responding': 3600,
+    'validate_service_responding': 3600,
+}
 
 # override buggy moto functions
 moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
@@ -261,5 +265,6 @@ class TestAwsStacks:
         # mock status
         mystack.check_service_status = MagicMock(return_value='RUNNING')
         # upgrade
-        mystack.upgrade('6.11.1')
+        with app.app_context():
+            mystack.upgrade('6.11.1')
         assert mystack.get_param_value('ProductVersion') == '6.11.1'

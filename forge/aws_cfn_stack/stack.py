@@ -14,6 +14,7 @@ import requests
 import tenacity
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app
+from humanfriendly import format_timespan
 from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
 
@@ -266,17 +267,41 @@ class Stack:
         if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
             return False
         self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond', write_to_changelog=False)
-        self.validate_service_responding()
+        if not self.validate_service_responding():
+            return False
         self.log_msg(INFO, f'Updated stack: {update_stack}', write_to_changelog=True)
         return True
 
     def validate_service_responding(self):
         self.log_msg(INFO, 'Waiting for service to reply on /status', write_to_changelog=False)
         service_state = self.check_service_status()
+        action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['validate_service_responding']
         while service_state not in ['RUNNING', 'FIRST_RUN']:
+            if (time.time() - action_start) > action_timeout:
+                self.log_msg(
+                    ERROR,
+                    f'{self.stack_name} failed to come up after {format_timespan(action_timeout)}. ' f'Status endpoint is returning: {service_state}',
+                    write_to_changelog=True,
+                )
+                return False
             time.sleep(60)
             service_state = self.check_service_status()
         self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}', write_to_changelog=True)
+        return True
+
+    def validate_node_responding(self, node_ip):
+        self.log_msg(INFO, f'Waiting for node {node_ip} to reply on /status', write_to_changelog=False)
+        result = self.check_node_status(node_ip, False)
+        action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['validate_node_responding']
+        while result not in ['RUNNING', 'FIRST_RUN']:
+            if (time.time() - action_start) > action_timeout:
+                self.log_msg(ERROR, f'{node_ip} failed to come up after {format_timespan(action_timeout)}. Status endpoint is returning: {result}', write_to_changelog=True)
+                return False
+            result = self.check_node_status(node_ip, False)
+            time.sleep(10)
+        self.log_msg(INFO, f'Startup result for {node_ip}: {result}', write_to_changelog=False)
         return True
 
     def check_service_status(self, logMsgs=True):
@@ -294,7 +319,7 @@ class Stack:
                 if 'state' in json_status:
                     status = json_status['state']
             else:
-                status = str(service_status.status_code) + ": " + service_status.reason[:19] if service_status.reason else str(service_status.status_code)
+                status = str(service_status.status_code) + ": " + service_status.reason[:21] if service_status.reason else str(service_status.status_code)
             if logMsgs:
                 self.log_msg(INFO, f' ==> service status is: {status}', write_to_changelog=False)
             return status
@@ -434,11 +459,8 @@ class Stack:
                 self.log_msg(ERROR, f'Startup result for {cmd_id}: {result}', write_to_changelog=True)
                 return False
             else:
-                result = self.check_node_status(node_ip)
-                while result not in ['RUNNING', 'FIRST_RUN']:
-                    result = self.check_node_status(node_ip)
-                    self.log_msg(INFO, f'Startup result for {cmd_id}: {result}', write_to_changelog=False)
-                    time.sleep(60)
+                if not self.validate_node_responding(node_ip):
+                    return False
             self.log_msg(INFO, f'Application started on instance {instance}', write_to_changelog=True)
         return True
 
@@ -628,7 +650,12 @@ class Stack:
             if response.status_code != requests.codes.created:
                 self.log_msg(ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}', write_to_changelog=True)
                 return False
+            action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['enable_zdu_mode']
             while self.get_zdu_state() != 'READY_TO_UPGRADE':
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(ERROR, f'Stack is not in READY_TO_UPGRADE mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
+                    return False
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode enabled', write_to_changelog=True)
             return True
@@ -646,7 +673,12 @@ class Stack:
             if response.status_code != requests.codes.ok:
                 self.log_msg(ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}', write_to_changelog=True)
                 return False
+            action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['cancel_zdu_mode']
             while self.get_zdu_state() != 'STABLE':
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(ERROR, f'Stack is not in STABLE mode after {format_timespan(action_timeout)} - ZDU mode cancel failed', write_to_changelog=True)
+                    return False
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode cancelled', write_to_changelog=True)
             return True
@@ -667,7 +699,16 @@ class Stack:
                 return False
             self.log_msg(INFO, 'Upgrade tasks are running, waiting for STABLE state', write_to_changelog=True)
             state = self.get_zdu_state()
+            action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']
             while state != 'STABLE':
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(
+                        ERROR,
+                        f'Stack is not in STABLE mode after {format_timespan(action_timeout)} - ' 'upgrade tasks may still be running but Forge is aborting',
+                        write_to_changelog=True,
+                    )
+                    return False
                 self.log_msg(INFO, f'ZDU state is {state}', write_to_changelog=False)
                 time.sleep(5)
                 state = self.get_zdu_state()
@@ -832,7 +873,12 @@ class Stack:
         if not self.rolling_rebuild():
             self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
         state = self.get_zdu_state()
+        action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['zdu_ready_to_run_upgrade_tasks']
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
+            if (time.time() - action_start) > action_timeout:
+                self.log_msg(ERROR, f'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
+                return False
             time.sleep(5)
             state = self.get_zdu_state()
         # approve the upgrade and allow upgrade tasks to run
@@ -850,13 +896,13 @@ class Stack:
         try:
             stack_state = cfn.describe_stacks(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
-            if "does not exist" in e.response['Error']['Message']:
+            if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=True)
                 self.log_msg(INFO, 'Destroy complete - not required', write_to_changelog=True)
                 return True
             else:
                 log.exception('An error occurred destroying stack')
-                self.log_msg(ERROR, f'An error occurred destroying stack: {e}')
+                self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
                 return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
@@ -946,7 +992,9 @@ class Stack:
         cluster_node_count = self.get_param_value('ClusterNodeCount') or 0
         if not self.is_app_clustered() or int(cluster_node_count) > 0:
             self.log_msg(INFO, 'Waiting for stack to respond', write_to_changelog=False)
-            self.validate_service_responding()
+            if not self.validate_service_responding():
+                self.log_msg(INFO, 'Changeset execution complete - failed', write_to_changelog=True)
+                return False
         self.log_msg(INFO, 'Changeset execution complete', write_to_changelog=True)
         return True
 
@@ -993,7 +1041,9 @@ class Stack:
             self.log_msg(INFO, 'Create complete - failed', write_to_changelog=True)
             return False
         self.log_msg(INFO, f'Stack {self.stack_name} created, waiting on service responding', write_to_changelog=False)
-        self.validate_service_responding()
+        if not self.validate_service_responding():
+            self.log_msg(INFO, 'Create complete - failed', write_to_changelog=True)
+            return False
         self.log_msg(INFO, 'Create complete', write_to_changelog=True)
         return True
 
@@ -1024,7 +1074,7 @@ class Stack:
         non_running_nodes = []
         for node in instance_list:
             node_ip = list(node.values())[0]
-            if self.check_node_status(node_ip, False).lower() == 'running':
+            if self.check_node_status(node_ip, False) == 'RUNNING':
                 running_nodes.append(node)
             else:
                 non_running_nodes.append(node)
@@ -1039,11 +1089,9 @@ class Stack:
                 self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
                 return False
             node_ip = list(instance.values())[0]
-            result = self.check_node_status(node_ip, False)
-            while result not in ['RUNNING', 'FIRST_RUN']:
-                result = self.check_node_status(node_ip, False)
-                time.sleep(10)
-            self.log_msg(INFO, f'Startup result for {node_ip}: {result}', write_to_changelog=False)
+            if not self.validate_node_responding(node_ip):
+                self.log_msg(INFO, 'Rolling restart complete - failed', write_to_changelog=True)
+                return False
         self.log_msg(INFO, 'Rolling restart complete', write_to_changelog=True)
         return True
 
@@ -1081,9 +1129,11 @@ class Stack:
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
                 current_instances = self.get_stacknodes()
-                waiting_for_new_node = True
+                waiting_for_new_node_creation = True
                 replacement_node = {}
-                while waiting_for_new_node:
+                action_start = time.time()
+                action_timeout = current_app.config['ACTION_TIMEOUTS']['node_initialisation']
+                while waiting_for_new_node_creation:
                     for instance in current_instances:
                         # check the instance id against the old nodes
                         if list(instance.keys())[0] not in set().union(*(node.keys() for node in old_nodes)):
@@ -1096,22 +1146,24 @@ class Stack:
                                 replacement_node = instance
                                 self.log_msg(INFO, f'New node: {replacement_node}', write_to_changelog=True)
                                 new_nodes.append(replacement_node)
-                                waiting_for_new_node = False
+                                waiting_for_new_node_creation = False
+                    if (time.time() - action_start) > action_timeout:
+                        self.log_msg(ERROR, f'New node failed to be created after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
+                        return False
                     time.sleep(30)
                     current_instances = self.get_stacknodes()
                 # wait for the new node to come up
-                result = ''
-                while result not in ['RUNNING', 'FIRST_RUN']:
-                    node_ip = list(replacement_node.values())[0]
-                    result = self.check_node_status(node_ip)
-                    self.log_msg(INFO, f'Startup result for {node_ip}: {result}', write_to_changelog=False)
-                    time.sleep(30)
+                node_ip = list(replacement_node.values())[0]
+                if not self.validate_node_responding(node_ip):
+                    self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True)
+                    return False
             self.log_msg(INFO, 'Rolling rebuild complete', write_to_changelog=True)
             self.log_change(f'New nodes are: {new_nodes}')
             return True
         except Exception as e:
             log.exception('An error occurred during rolling rebuild')
             self.log_msg(ERROR, f'An error occurred during rolling rebuild: {e}', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True)
             return False
 
     def thread_dump(self, alsoHeaps=False):
