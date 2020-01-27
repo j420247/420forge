@@ -324,8 +324,8 @@ function createChangeset(stackName, url, data) {
   }
   changesetRequest = send_http_post_request(url, data, function (response) {
     try {
-      changesetArn = JSON.parse(response)['Id'];
-      changesetName = changesetArn.split('/')[1];
+      var changesetArn = JSON.parse(response)['Id'];
+      var changesetName = changesetArn.split('/')[1];
     } catch(e) {
       showChangesetErrorModal('Unexpected response from server: ' + response);
       return;
@@ -341,7 +341,7 @@ function createChangeset(stackName, url, data) {
 function presentChangesetForExecution(stackName, changesetName) {
   url = [baseUrl, 'getChangeSetDetails', region, stackName, changesetName].join('/');
   send_http_get_request(url, function (response) {
-    changesetDetails = JSON.parse(response)
+    var changesetDetails = JSON.parse(response);
     populateChangesetModal(changesetDetails);
     $("#modal-ok-btn").off("click");
     $("#modal-ok-btn").on("click", function() {
@@ -359,12 +359,20 @@ function sendParamsAsJson() {
   var newParams = document.getElementsByClassName("param-field-group");
 
   if (action === 'update') {
-    // Add stack name to params
+    stackNameForAction = $("#stackSelector").text();
+    // Add stack name and db passwords to params
     var stackNameParam = {};
     stackNameParam["ParameterKey"] = "StackName";
-    stackNameParam["ParameterValue"] = $("#stackSelector").text();
-    stackNameForAction = $("#stackSelector").text();
+    stackNameParam["ParameterValue"] = stackNameForAction;
     newParamsArray.push(stackNameParam);
+    var dbMasterPasswordParam = {};
+    dbMasterPasswordParam["ParameterKey"] = "DBMasterUserPassword";
+    dbMasterPasswordParam["UsePreviousValue"] = true;
+    newParamsArray.push(dbMasterPasswordParam);
+    var dbPasswordParam = {};
+    dbPasswordParam["ParameterKey"] = "DBPassword";
+    dbPasswordParam["UsePreviousValue"] = true;
+    newParamsArray.push(dbPasswordParam);
   } else {
     stackNameForAction = document.getElementById("StackNameVal").value
   }

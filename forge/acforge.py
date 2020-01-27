@@ -115,7 +115,10 @@ class DoUpdate(RestrictedResource):
             if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
                 continue
             # if param has not changed from previous, delete the value and set UsePreviousValue to true
-            if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            if (
+                'ParameterValue' in param
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']
+            ):
                 del param['ParameterValue']
                 param['UsePreviousValue'] = True
             # if param is subnets and the value has not changed from previous (even if the order has), do not pass in changeset, or pass in correct order if there are additional
