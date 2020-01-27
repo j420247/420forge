@@ -209,17 +209,17 @@ function getSnapshots(clone_region, stackToRetrieve) {
   // we can't update the values inside the aui-select dynamically, so we
   // remove the existing input and replace it with a blank one, which will
   // momentarily be replaced and removed again with the updated values
-  $("#ebsSnapshotSelector").remove();
-  $("#ebsSnapshotSelectorDiv").append($("<aui-select/>", {
-    id: "ebsSnapshotSelector",
-    name: "ebsSnapshotSelector",
+  $("#EBSSnapshotIdVal").remove();
+  $("#EBSSnapshotIdDiv").append($("<aui-select/>", {
+    id: "EBSSnapshotIdVal",
+    name: "EBSSnapshotIdDropdownDiv",
     placeholder: "Loading..."
   }));
 
-  $("#rdsSnapshotSelector").remove();
-  $("#rdsSnapshotSelectorDiv").append($("<aui-select/>", {
-    id: "rdsSnapshotSelector",
-    name: "rdsSnapshotSelector",
+  $("#DBSnapshotNameVal").remove();
+  $("#DBSnapshotNameDiv").append($("<aui-select/>", {
+    id: "DBSnapshotNameVal",
+    name: "DBSnapshotNameDropdownDiv",
     placeholder: "Loading..."
   }));
 
@@ -231,36 +231,16 @@ function getSnapshots(clone_region, stackToRetrieve) {
 
 function displayEbsSnapshots(responseText) {
   var ebsSnaps = JSON.parse(responseText);
-  $("#ebsSnapshotSelector").remove();
-  var input = $("<aui-select/>", {
-    id: "ebsSnapshotSelector",
-    name: "ebsSnapshotSelector",
-    placeholder: "Select EBS snapshot"
-  });
-  $.each(ebsSnaps, function(index, snap) {
-    input.append($("<aui-option/>", {
-      text: snap["label"] + " (" + snap["value"] + ")",
-      value: snap["value"]
-    }));
-  });
-  $("#ebsSnapshotSelectorDiv").append(input);
+  $("#EBSSnapshotIdVal").remove();
+  var input = createSingleSelect("EBSSnapshotId", "", ebsSnaps, "Select EBS snapshot");
+  $("#EBSSnapshotIdDiv").append(input);
 }
 
 function displayRdsSnapshots(responseText) {
   var rdsSnaps = JSON.parse(responseText);
-  $("#rdsSnapshotSelector").remove();
-  var input = $("<aui-select/>", {
-    id: "rdsSnapshotSelector",
-    name: "rdsSnapshotSelector",
-    placeholder: "Select RDS snapshot"
-  });
-  $.each(rdsSnaps, function(index, snap) {
-    input.append($("<aui-option/>", {
-      text: snap["label"] + "(" + snap["value"] + ")",
-      value: snap["value"]
-    }));
-  });
-  $("#rdsSnapshotSelectorDiv").append(input);
+  $("#DBSnapshotNameVal").remove();
+  var input = createSingleSelect("DBSnapshotName", "", rdsSnaps, "Select RDS snapshot");
+  $("#DBSnapshotNameDiv").append(input);
 }
 
 function getVPCs(vpc_region, existingVpc) {
@@ -421,17 +401,7 @@ function sendParamsAsJson() {
     var param = newParams.item(i).getElementsByClassName("paramLbl")[0].innerHTML;
     var value;
 
-    if (param == "EBSSnapshotId") {
-      if (action === 'clone')
-        value = document.getElementById("ebsSnapshotSelector").value;
-      else
-        value = document.getElementById("EBSSnapshotIdVal").value;
-    } else if (param == "DBSnapshotName") {
-      if (action === 'clone')
-        value = document.getElementById("rdsSnapshotSelector").value;
-      else
-        value = document.getElementById("DBSnapshotNameVal").value;
-    } else if (param == "Region") {
+    if (param == "Region") {
       if (action === 'clone')
         value = $("#regionSelector")[0].value;
       else

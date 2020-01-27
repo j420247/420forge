@@ -490,18 +490,26 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
                     )
-                if 'AllowedPattern' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params[param][
+                if 'AllowedPattern' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params['Parameters'][param][
                         'AllowedPattern'
                     ]
-                if 'MinValue' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
-                if 'MaxValue' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
-                if 'MinLength' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
-                if 'MaxLength' in template_params[param]:
-                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
+                if 'MinValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params['Parameters'][param][
+                        'MinValue'
+                    ]
+                if 'MaxValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params['Parameters'][param][
+                        'MaxValue'
+                    ]
+                if 'MinLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params['Parameters'][param][
+                        'MinLength'
+                    ]
+                if 'MaxLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params['Parameters'][param][
+                        'MaxLength'
+                    ]
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
@@ -531,7 +539,7 @@ class ClearStackActionInProgress(Resource):
 class GetVersion(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        return mystack.get_param('Version')
+        return mystack.get_param_value('ProductVersion')
 
 
 class GetNodes(Resource):
@@ -593,7 +601,7 @@ class GetEbsSnapshots(Resource):
                 start_time = start_time.split('.')[0]
             else:
                 start_time = start_time.split('+')[0]
-            snapshotIds.append({'label': start_time, 'value': snap['SnapshotId']})
+            snapshotIds.append({'label': f"{start_time} ({snap['SnapshotId']})", 'value': snap['SnapshotId']})
         snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
@@ -610,13 +618,13 @@ class GetRdsSnapshots(Resource):
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                    snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
+                    snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                        snapshotIds.append({'label': str(snap['SnapshotCreateTime']).split('.')[0], 'value': snap['DBSnapshotIdentifier']})
+                        snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
