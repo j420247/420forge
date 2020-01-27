@@ -287,6 +287,7 @@ class Stack:
                 return False
             time.sleep(60)
             service_state = self.check_service_status()
+        self.get_service_url()
         self.log_msg(INFO, f'{self.service_url}status is now reporting {service_state}', write_to_changelog=True)
         return True
 
