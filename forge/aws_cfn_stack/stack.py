@@ -14,6 +14,7 @@ import requests
 import tenacity
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app
+from humanfriendly import format_timespan
 from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
 
@@ -247,9 +248,14 @@ class Stack:
         self.log_msg(INFO, 'Waiting for service to reply on /status', write_to_changelog=False)
         service_state = self.check_service_status()
         action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['validate_service_responding']
         while service_state not in ['RUNNING', 'FIRST_RUN']:
             if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['validate_service_responding']:
-                self.log_msg(ERROR, f'{self.stack_name} failed to come up after 60 minutes. Status endpoint is returning: {service_state}', write_to_changelog=True)
+                self.log_msg(
+                    ERROR,
+                    f'{self.stack_name} failed to come up after {format_timespan(action_timeout)}. ' f'Status endpoint is returning: {service_state}',
+                    write_to_changelog=True,
+                )
                 return False
             time.sleep(60)
             service_state = self.check_service_status()
@@ -260,9 +266,10 @@ class Stack:
         self.log_msg(INFO, f'Waiting for node {node_ip} to reply on /status', write_to_changelog=False)
         result = self.check_node_status(node_ip, False)
         action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['validate_node_responding']
         while result not in ['RUNNING', 'FIRST_RUN']:
-            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['validate_node_responding']:
-                self.log_msg(ERROR, f'{node_ip} failed to come up after 60 minutes. Status endpoint is returning: {result}', write_to_changelog=True)
+            if (time.time() - action_start) > action_timeout:
+                self.log_msg(ERROR, f'{node_ip} failed to come up after {format_timespan(action_timeout)}. Status endpoint is returning: {result}', write_to_changelog=True)
                 return False
             result = self.check_node_status(node_ip, False)
             time.sleep(10)
@@ -649,9 +656,10 @@ class Stack:
                 self.log_msg(ERROR, f'Unable to enable ZDU mode: /rest/api/2/cluster/zdu/start returned status code: {response.status_code}', write_to_changelog=True)
                 return False
             action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['enable_zdu_mode']
             while self.get_zdu_state() != 'READY_TO_UPGRADE':
-                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['enable_zdu_mode']:
-                    self.log_msg(ERROR, 'Stack is not in READY_TO_UPGRADE mode after 5 minutes - aborting', write_to_changelog=True)
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(ERROR, f'Stack is not in READY_TO_UPGRADE mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
                     return False
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode enabled', write_to_changelog=True)
@@ -671,9 +679,10 @@ class Stack:
                 self.log_msg(ERROR, f'Unable to cancel ZDU mode: /rest/api/2/cluster/zdu/cancel returned status code: {response.status_code}', write_to_changelog=True)
                 return False
             action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['cancel_zdu_mode']
             while self.get_zdu_state() != 'STABLE':
-                if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['cancel_zdu_mode']:
-                    self.log_msg(ERROR, 'Stack is not in STABLE mode after 5 minutes - ZDU mode cancel failed', write_to_changelog=True)
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(ERROR, f'Stack is not in STABLE mode after {format_timespan(action_timeout)} - ZDU mode cancel failed', write_to_changelog=True)
                     return False
                 time.sleep(5)
             self.log_msg(INFO, 'ZDU mode cancelled', write_to_changelog=True)
@@ -696,9 +705,14 @@ class Stack:
             self.log_msg(INFO, 'Upgrade tasks are running, waiting for STABLE state', write_to_changelog=True)
             state = self.get_zdu_state()
             action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']
             while state != 'STABLE':
                 if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['approve_zdu_upgrade']:
-                    self.log_msg(ERROR, 'Stack is not in STABLE mode after 1 hour - upgrade tasks may still be running but Forge is aborting', write_to_changelog=True)
+                    self.log_msg(
+                        ERROR,
+                        f'Stack is not in STABLE mode after {format_timespan(action_timeout)} - ' 'upgrade tasks may still be running but Forge is aborting',
+                        write_to_changelog=True,
+                    )
                     return False
                 self.log_msg(INFO, f'ZDU state is {state}', write_to_changelog=False)
                 time.sleep(5)
@@ -862,9 +876,10 @@ class Stack:
             self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
         state = self.get_zdu_state()
         action_start = time.time()
+        action_timeout = current_app.config['ACTION_TIMEOUTS']['zdu_ready_to_run_upgrade_tasks']
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
-            if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['zdu_ready_to_run_upgrade_tasks']:
-                self.log_msg(ERROR, 'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after 10 minutes - aborting', write_to_changelog=True)
+            if (time.time() - action_start) > action_timeout:
+                self.log_msg(ERROR, f'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
                 return False
             time.sleep(5)
             state = self.get_zdu_state()
@@ -1119,6 +1134,7 @@ class Stack:
                 waiting_for_new_node_creation = True
                 replacement_node = {}
                 action_start = time.time()
+                action_timeout = current_app.config['ACTION_TIMEOUTS']['node_initialisation']
                 while waiting_for_new_node_creation:
                     for instance in current_instances:
                         # check the instance id against the old nodes
@@ -1133,8 +1149,8 @@ class Stack:
                                 self.log_msg(INFO, f'New node: {replacement_node}', write_to_changelog=True)
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node_creation = False
-                    if (time.time() - action_start) > current_app.config['ACTION_TIMEOUTS']['node_initialisation']:
-                        self.log_msg(ERROR, 'New node failed to be created after 60 minutes - aborting', write_to_changelog=True)
+                    if (time.time() - action_start) > action_timeout:
+                        self.log_msg(ERROR, f'New node failed to be created after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
                         return False
                     time.sleep(30)
                     current_instances = self.get_stacknodes()
