@@ -31,7 +31,8 @@ function refreshLogs(stack_name, cont, refresh_interval, this_action) {
             if (action === 'diagnostics' && countOccurences(logText, "dumps complete") >= 1 ||
             countOccurences(logText
                     .replace(/ restart/g, 'restart')
-                    .replace(/run sql/g, 'runsql'),
+                    .replace(/run sql/g, 'runsql')
+                    .replace(/changeset execution/g, 'update'),
                     (this_action.toLowerCase() + " complete")) >= 1) {
                 notify(this_action + " is complete");
                 refreshLogs(stack_name, false, 0, this_action);

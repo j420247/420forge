@@ -109,22 +109,22 @@ class Stack:
             log.exception('Error retrieving parameter value; no params available')
         return param_value
 
-    def update_parmlist(self, parmlist, parmkey, parmvalue):
+    def update_paramlist(self, params_list, param_key, param_value):
         key_found = False
-        for dict in parmlist:
-            for k, v in dict.items():
-                if v == parmkey:
-                    dict['ParameterValue'] = parmvalue
+        for param in params_list:
+            for key, value in param.items():
+                if value == param_key:
+                    param['ParameterValue'] = param_value
                     key_found = True
-                if v == 'DBMasterUserPassword' or v == 'DBPassword':
+                if value == 'DBMasterUserPassword' or value == 'DBPassword':
                     try:
-                        del dict['ParameterValue']
+                        del param['ParameterValue']
                     except KeyError:
                         pass
-                    dict['UsePreviousValue'] = True
+                    param['UsePreviousValue'] = True
         if not key_found:
-            parmlist.append({'ParameterKey': parmkey, 'ParameterValue': parmvalue})
-        return parmlist
+            params_list.append({'ParameterKey': param_key, 'ParameterValue': param_value})
+        return params_list
 
     def upload_template(self, file, s3_name):
         s3 = boto3.resource('s3', region_name=self.region)
@@ -178,16 +178,16 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         spindown_parms = self.get_params()
         if any(param for param in spindown_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMax', '0')
-            spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeMin', '0')
+            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeMax', '0')
+            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeMin', '0')
         else:
-            spindown_parms = self.update_parmlist(spindown_parms, 'ClusterNodeCount', '0')
+            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeCount', '0')
         if app_type == 'confluence':
             if any(param for param in spindown_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
-                spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
+                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
+                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
             else:
-                spindown_parms = self.update_parmlist(spindown_parms, 'SynchronyClusterNodeCount', '0')
+                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeCount', '0')
         try:
             cfn.update_stack(StackName=self.stack_name, Parameters=spindown_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
@@ -241,24 +241,24 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.get_params()
         if any(param for param in spinup_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', '1')
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', '1')
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMax', '1')
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMin', '1')
         else:
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeCount', '1')
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeCount', '1')
         if any(param for param in spinup_parms if param['ParameterKey'] == 'ProductVersion'):
-            spinup_parms = self.update_parmlist(spinup_parms, 'ProductVersion', new_version)
+            spinup_parms = self.update_paramlist(spinup_parms, 'ProductVersion', new_version)
         elif app_type == 'jira':
-            spinup_parms = self.update_parmlist(spinup_parms, 'JiraVersion', new_version)
+            spinup_parms = self.update_paramlist(spinup_parms, 'JiraVersion', new_version)
         elif app_type == 'confluence':
-            spinup_parms = self.update_parmlist(spinup_parms, 'ConfluenceVersion', new_version)
+            spinup_parms = self.update_paramlist(spinup_parms, 'ConfluenceVersion', new_version)
         elif app_type == 'crowd':
-            spinup_parms = self.update_parmlist(spinup_parms, 'CrowdVersion', new_version)
+            spinup_parms = self.update_paramlist(spinup_parms, 'CrowdVersion', new_version)
         if hasattr(self, 'preupgrade_synchrony_node_count'):
             if any(param for param in spinup_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
             else:
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeCount', '1')
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeCount', '1')
         try:
             update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
@@ -287,7 +287,8 @@ class Stack:
                 return False
             time.sleep(60)
             service_state = self.check_service_status()
-        self.log_msg(INFO, f'{self.stack_name} /status now reporting {service_state}', write_to_changelog=True)
+        self.get_service_url()
+        self.log_msg(INFO, f'{self.service_url}status is now reporting {service_state}', write_to_changelog=True)
         return True
 
     def validate_node_responding(self, node_ip):
@@ -385,16 +386,16 @@ class Stack:
         cfn = boto3.client('cloudformation', region_name=self.region)
         spinup_parms = self.get_params()
         if any(param for param in spinup_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
         else:
-            spinup_parms = self.update_parmlist(spinup_parms, 'ClusterNodeCount', self.preupgrade_app_node_count)
+            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeCount', self.preupgrade_app_node_count)
         if hasattr(self, 'preupgrade_synchrony_node_count'):
             if any(param for param in spinup_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
             else:
-                spinup_parms = self.update_parmlist(spinup_parms, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
+                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
         try:
             cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
@@ -790,13 +791,13 @@ class Stack:
         # update the version in stack parameters
         stack_params = self.get_params()
         if any(param for param in stack_params if param['ParameterKey'] == 'ProductVersion'):
-            stack_params = self.update_parmlist(stack_params, 'ProductVersion', new_version)
+            stack_params = self.update_paramlist(stack_params, 'ProductVersion', new_version)
         elif app_type == 'jira':
-            stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+            stack_params = self.update_paramlist(stack_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
-            stack_params = self.update_parmlist(stack_params, 'ConfluenceVersion', new_version)
+            stack_params = self.update_paramlist(stack_params, 'ConfluenceVersion', new_version)
         elif app_type == 'crowd':
-            stack_params = self.update_parmlist(stack_params, 'CrowdVersion', new_version)
+            stack_params = self.update_paramlist(stack_params, 'CrowdVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
@@ -850,7 +851,7 @@ class Stack:
             return False
         # update the version in stack parameters
         stack_params = self.get_params()
-        stack_params = self.update_parmlist(stack_params, 'JiraVersion', new_version)
+        stack_params = self.update_paramlist(stack_params, 'JiraVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
@@ -906,7 +907,7 @@ class Stack:
                 return False
         stack_id = stack_state['Stacks'][0]['StackId']
         cfn.delete_stack(StackName=self.stack_name)
-        if self.wait_stack_action_complete("DELETE_IN_PROGRESS", stack_id):
+        if self.wait_stack_action_complete('DELETE_IN_PROGRESS', stack_id):
             self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
         return True
@@ -1229,6 +1230,14 @@ class Stack:
         stackname_param = [param for param in params if param['ParameterKey'] == 'StackName']
         if len(stackname_param) > 0:
             params.remove(stackname_param[0])
+        for param in params:
+            for key, value in param.items():
+                if value == 'DBMasterUserPassword' or value == 'DBPassword':
+                    try:
+                        del param['ParameterValue']
+                    except KeyError:
+                        pass
+                    param['UsePreviousValue'] = True
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
