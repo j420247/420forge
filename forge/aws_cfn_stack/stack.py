@@ -928,6 +928,22 @@ class Stack:
             self.full_restart()
         else:
             self.clear_current_action()
+
+        # Sanitizing data of source stack
+        if self.run_liquibase(cloned_from):
+            self.log_change(f'Data sanitization finished for source stack {cloned_from}')
+        else:
+            self.log_msg(INFO, f'Data sanitization failed for source stack {cloned_from}', write_to_changelog=True)
+
+        # Post clone liquibase run
+        if self.run_liquibase(self.stack_name):
+            self.log_change(f'Liquibase run complete, restarting {self.stack_name}')
+            self.full_restart()
+        else:
+            self.log_msg(INFO, f'Data sanitization failed for source stack {cloned_from}', write_to_changelog=True)
+            self.clear_current_action()
+            return False
+
         self.log_msg(INFO, 'Clone complete', write_to_changelog=True)
         return True
 
@@ -1223,6 +1239,13 @@ class Stack:
             return False
         self.log_msg(INFO, 'Run SQL complete', write_to_changelog=True)
         return True
+
+    def run_liquibase(self, stack_name):
+        self.log_msg(INFO, 'Running post clone Liquibase', write_to_changelog=True)
+        self.get_stacknodes()
+        if self.run_command([self.instancelist[0]], f'/usr/local/bin/run-liquibase -s {stack_name}'):
+            True
+        return False
 
     def tag(self, tags):
         self.log_msg(INFO, 'Tagging stack', write_to_changelog=True)
