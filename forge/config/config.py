@@ -25,6 +25,19 @@ class BaseConfig(object):
     ANALYTICS = True
     S3_BUCKET = 'atl-cfn-forge-515798882395'
 
+    ##
+    ## Configurable timeouts for actions (in seconds)
+    ACTION_TIMEOUTS = {
+        'approve_zdu_upgrade': 3600,
+        'cancel_zdu_mode': 300,
+        'enable_zdu_mode': 300,
+        'node_initialisation': 3600,
+        'validate_node_responding': 3600,
+        'validate_service_responding': 3600,
+        'zdu_ready_to_run_upgrade_tasks': 600,
+        'zdu_upgrade_tasks_complete': 3600,
+    }
+
     ########
     ## User default settings
     # These values can be used to automatically populate template parameters
@@ -51,14 +64,12 @@ class BaseConfig(object):
     # fmt: off
     CLONE_DEFAULTS = {
         'all': {
-            'ClusterNodeMin': '1',
-            'ClusterNodeMax': '1',
+            'ClusterNodeCount': '1',
             'DeployEnvironment': 'stg',
             'DBMultiAZ': 'false',
         },
         'foj-stg': {
-            'ClusterNodeMin': '4',
-            'ClusterNodeMax': '4',
+            'ClusterNodeCount': '4',
             'CustomDnsName': 'mystack.mycompany.com'
         },
         # To create stack specific defaults, add a param with the stackname, as below
@@ -70,6 +81,12 @@ class BaseConfig(object):
         # },
     }
     # fmt: on
+
+    # Default URL for gravatar
+    # To use a custom URL, specify the username, md5_of_email, email_address parameter in {}s for it to be injected for the user, eg
+    # https://mycompany.com/avatars/{username}?size=Small
+    AVATAR_URL = 'https://www.gravatar.com/avatar/{md5_of_email}.jpg?s=80&d=mp'
+
     ## Stack locking
     # Lock stack actions so only one can be performed at a time
     STACK_LOCKING = False

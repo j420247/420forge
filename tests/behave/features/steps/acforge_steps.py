@@ -1,6 +1,6 @@
 from pprint import pprint
 
-from behave import given, when, then
+from behave import given, then, when
 from bs4 import BeautifulSoup
 
 

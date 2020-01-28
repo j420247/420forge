@@ -1,15 +1,14 @@
 [[source]]
 name = "pypi"
-url = "https://pypi.python.org/simple"
+url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-"cloudtoken-plugin.centrify" = "*"
-"ruamel.yaml" = "==0.15.53"
 awscli = "*"
 behave = "*"
 boto3 = "*"
 cloudtoken = "*"
+"cloudtoken-plugin.centrify" = "*"
 Flask = "*"
 Flask-HTTPAuth = "*"
 Flask-Migrate = "*"
@@ -20,17 +19,19 @@ Flask-SQLAlchemy = "*"
 gevent = "*"
 gitpython = "*"
 gunicorn = "~=19.9"
+humanfriendly = "*"
 importanize = "*"
 migrate = "*"
 moto = "*"
-psutil = "*"
 pre-commit = "*"
+psutil = "*"
 pysaml2 = "~=4.7.0"
 pytest = "*"
 python-dotenv = "*"
 requests = "*"
 requests-toolbelt = "*"
 retry = "*"
+"ruamel.yaml" = "==0.15.53"
 tenacity="*"
 
 [dev-packages]

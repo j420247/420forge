@@ -20,8 +20,6 @@ function selectStack(stack_name) {
   updateStackInfo(stack_name);
 }
 
-
-
 function updateStackInfo(stack_name, stack_region) {
   if (stack_name === 'actionreadytostart') return;
   if (!stack_region) stack_region = region;
@@ -162,4 +160,5 @@ document.addEventListener('DOMContentLoaded', function() {
   $("#stackInformation").hide();
   onReady();
   checkAuthenticated();
+  displayAvatar();
 }, false);

@@ -5,16 +5,6 @@ var internalSubnets;
 var changesetRequest;
 
 function readyTheTemplate() {
-  var stacks = document.getElementsByClassName("selectStackOption");
-  for (var i = 0; i < stacks.length; i++) {
-    stacks[i].addEventListener("click", function(data) {
-      stack_name = data.target.text;
-      $("#aui-message-bar").hide();
-      selectStack(stack_name);
-      disableActionButton();
-    }, false);
-  }
-
   var actionButton = document.getElementById("action-button");
   actionButton.addEventListener("click", function(data) {
     $("#paramsForm").submit();
@@ -32,6 +22,18 @@ function readyTheTemplate() {
   });
 }
 
+function templateHandler(selected_stack_name) {
+  stack_name = selected_stack_name;
+  $("#aui-message-bar").hide();
+  selectStack(stack_name);
+  disableActionButton();
+}
+
+function templateHandlerWithDefaultSelected(selected_stack_name) {
+  templateHandler(selected_stack_name);
+  send_http_get_request(baseUrl + "/getTags/" + region + "/" + selected_stack_name, selectDefaultTemplate);
+}
+
 function getTemplates(template_type) {
   send_http_get_request(baseUrl + "/getTemplates/" + template_type,
     displayTemplates);
@@ -39,10 +41,13 @@ function getTemplates(template_type) {
 
 function displayTemplates(responseText) {
   var templateDropdown = document.getElementById("templates");
+
+  // Remove existing templates
   while (templateDropdown.firstChild) {
     templateDropdown.removeChild(templateDropdown.firstChild);
   }
 
+  // Add each template to dropdown
   var templates = JSON.parse(responseText);
   for (var template in templates) {
     var li = document.createElement("LI");
@@ -55,6 +60,7 @@ function displayTemplates(responseText) {
     templateDropdown.appendChild(li);
   }
 
+  // Add onClick event listener to each template
   var templateOptions = document.getElementsByClassName("selectTemplateOption");
   for (var i = 0; i < templateOptions.length; i++) {
     templateOptions[i].addEventListener("click", function(data) {
@@ -66,6 +72,33 @@ function displayTemplates(responseText) {
         selectTemplateForStack(stack_name, selectedTemplate);
     }, false);
   }
+}
+
+function selectDefaultTemplate(responseText) {
+  var tags = JSON.parse(responseText);
+
+  // Get templates for the product and call back to display them
+  var product = getObjectFromArrayByValue(tags, 'Key', "product");
+  var functionParams = {
+    tags: tags
+  };
+  send_http_get_request(baseUrl + "/getTemplates/" + product,
+      displayTemplatesAndSelectDefault, functionParams);
+}
+
+function displayTemplatesAndSelectDefault(responseText, functionParams) {
+  displayTemplates(responseText);
+
+  // Find template that the stack was created with
+  var repo = getObjectFromArrayByValue(functionParams.tags, 'Key', "repository");
+  var template = getObjectFromArrayByValue(functionParams.tags, 'Key', "template");
+  var templateString = repo + ": " + template;
+
+  // Search each template in the list, when matched perform its click() function
+  $.each($('.selectTemplateOption'), function () {
+    if (this.textContent === templateString)
+      this.click();
+  });
 }
 
 function getTemplateParams(template) {
@@ -106,7 +139,7 @@ function selectTemplateForStack(stackToRetrieve, templateName) {
   $("#stackName").text(stackToRetrieve);
 
   if (action == 'clone') {
-    getSnapshots($("#regionSelector").text().trim(), stackToRetrieve);
+    getSnapshots($("#regionSelector")[0].value, stackToRetrieve);
   }
 
   send_http_get_request(baseUrl + "/stackParams/" + region + "/" +
@@ -125,6 +158,11 @@ function displayStackParams(responseText) {
   fieldset.id = "fieldSet";
 
   for (var param in origParams) {
+    if (action === 'clone' && origParams[param].ParameterKey === "DBSnapshotName") {
+      // prevent DBSnapshotName param from prod template
+      // from showing up as duplicate field on clone
+      continue;
+    }
     createInputParameter(origParams[param], fieldset);
     if (origParams[param].ParameterKey === "CollaborativeEditingMode") {
       product = "Confluence";
@@ -133,11 +171,6 @@ function displayStackParams(responseText) {
 
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
-
-  // Clear KMS key arn if the stack is encrypted
-  if (action === 'clone') {
-   document.getElementById("KmsKeyArnVal").value = ""
-  }
 
   // Disable mail by default on clones
   if (action === 'clone') {
@@ -173,8 +206,22 @@ function displayStackParams(responseText) {
 }
 
 function getSnapshots(clone_region, stackToRetrieve) {
-  $("#ebsSnapshots").empty();
-  $("#rdsSnapshots").empty();
+  // we can't update the values inside the aui-select dynamically, so we
+  // remove the existing input and replace it with a blank one, which will
+  // momentarily be replaced and removed again with the updated values
+  $("#EBSSnapshotIdVal").remove();
+  $("#EBSSnapshotIdDiv").append($("<aui-select/>", {
+    id: "EBSSnapshotIdVal",
+    name: "EBSSnapshotIdDropdownDiv",
+    placeholder: "Loading..."
+  }));
+
+  $("#DBSnapshotNameVal").remove();
+  $("#DBSnapshotNameDiv").append($("<aui-select/>", {
+    id: "DBSnapshotNameVal",
+    name: "DBSnapshotNameDropdownDiv",
+    placeholder: "Loading..."
+  }));
 
   send_http_get_request(baseUrl + "/getEbsSnapshots/" + clone_region + "/" +
     stackToRetrieve, displayEbsSnapshots);
@@ -184,42 +231,16 @@ function getSnapshots(clone_region, stackToRetrieve) {
 
 function displayEbsSnapshots(responseText) {
   var ebsSnaps = JSON.parse(responseText);
-  for (var snap in ebsSnaps) {
-    var li = document.createElement("LI");
-    var anchor = document.createElement("A");
-    anchor.className = "selectEbsSnapshotOption";
-    var text = document.createTextNode(ebsSnaps[snap]);
-    anchor.appendChild(text);
-    li.appendChild(anchor);
-    $("#ebsSnapshots").append(li);
-  }
-
-  var ebsSnaps = document.getElementsByClassName("selectEbsSnapshotOption");
-  for (var i = 0; i < ebsSnaps.length; i++) {
-    ebsSnaps[i].addEventListener("click", function(data) {
-      $("#ebsSnapshotSelector").text(data.target.text);
-    }, false);
-  }
+  $("#EBSSnapshotIdVal").remove();
+  var input = createSingleSelect("EBSSnapshotId", "", ebsSnaps, "Select EBS snapshot");
+  $("#EBSSnapshotIdDiv").append(input);
 }
 
 function displayRdsSnapshots(responseText) {
   var rdsSnaps = JSON.parse(responseText);
-  for (var snap in rdsSnaps) {
-    var li = document.createElement("LI");
-    var anchor = document.createElement("A");
-    anchor.className = "selectRdsSnapshotOption";
-    var text = document.createTextNode(rdsSnaps[snap]);
-    anchor.appendChild(text);
-    li.appendChild(anchor);
-    $("#rdsSnapshots").append(li);
-  }
-
-  var rdsSnaps = document.getElementsByClassName("selectRdsSnapshotOption");
-  for (var i = 0; i < rdsSnaps.length; i++) {
-    rdsSnaps[i].addEventListener("click", function(data) {
-      $("#rdsSnapshotSelector").text(data.target.text);
-    }, false);
-  }
+  $("#DBSnapshotNameVal").remove();
+  var input = createSingleSelect("DBSnapshotName", "", rdsSnaps, "Select RDS snapshot");
+  $("#DBSnapshotNameDiv").append(input);
 }
 
 function getVPCs(vpc_region, existingVpc) {
@@ -244,7 +265,8 @@ function displayVPCs(responseText, functionParams) {
 
   // Set default VPC and subnets for region
   var defaultVpc = existingVpc ? existingVpc : default_vpcs[vpc_region];
-  createDropdown("VPC", defaultVpc, vpcs, document.getElementById("VPCDiv"));
+  var input = createSingleSelect("VPC", defaultVpc, vpcs);
+  $(input).insertBefore($("#VPCDiv :last-child"));
   getSubnets(defaultVpc, 'create');
 }
 
@@ -253,8 +275,8 @@ function getSubnets(vpc, createOrUpdateList) {
     createOrUpdateList: createOrUpdateList
   };
 
-  var subnets_region = $("#regionSelector").length ? $("#regionSelector").text()
-    .trim() : region;
+  var regionSelector = $("#regionSelector");
+  var subnets_region = typeof regionSelector[0] !== 'undefined' ? regionSelector[0].value : region;
   if (vpc !== "")
     send_http_get_request(baseUrl + "/getSubnetsForVpc/" + subnets_region + "/" +
       vpc, displaySubnets, functionParams);
@@ -279,8 +301,8 @@ function displaySubnets(responseText, functionParams) {
   if (action === "update") {
     $("#ExternalSubnetsVal").val(externalSubnets);
     $("#InternalSubnetsVal").val(internalSubnets);
-  } else if ($("#VPCVal")[0].innerText.trim() !== 'Select') {
-    selectDefaultSubnets($("#VPCVal")[0].innerText.trim())
+  } else if ($("#VPCVal")[0].value !== '') {
+    selectDefaultSubnets($("#VPCVal")[0].value)
   }
 }
 
@@ -302,8 +324,8 @@ function createChangeset(stackName, url, data) {
   }
   changesetRequest = send_http_post_request(url, data, function (response) {
     try {
-      changesetArn = JSON.parse(response)['Id'];
-      changesetName = changesetArn.split('/')[1];
+      var changesetArn = JSON.parse(response)['Id'];
+      var changesetName = changesetArn.split('/')[1];
     } catch(e) {
       showChangesetErrorModal('Unexpected response from server: ' + response);
       return;
@@ -319,7 +341,7 @@ function createChangeset(stackName, url, data) {
 function presentChangesetForExecution(stackName, changesetName) {
   url = [baseUrl, 'getChangeSetDetails', region, stackName, changesetName].join('/');
   send_http_get_request(url, function (response) {
-    changesetDetails = JSON.parse(response)
+    var changesetDetails = JSON.parse(response);
     populateChangesetModal(changesetDetails);
     $("#modal-ok-btn").off("click");
     $("#modal-ok-btn").on("click", function() {
@@ -337,12 +359,20 @@ function sendParamsAsJson() {
   var newParams = document.getElementsByClassName("param-field-group");
 
   if (action === 'update') {
-    // Add stack name to params
+    stackNameForAction = $("#stackSelector").text();
+    // Add stack name and db passwords to params
     var stackNameParam = {};
     stackNameParam["ParameterKey"] = "StackName";
-    stackNameParam["ParameterValue"] = $("#stackSelector").text();
-    stackNameForAction = $("#stackSelector").text();
+    stackNameParam["ParameterValue"] = stackNameForAction;
     newParamsArray.push(stackNameParam);
+    var dbMasterPasswordParam = {};
+    dbMasterPasswordParam["ParameterKey"] = "DBMasterUserPassword";
+    dbMasterPasswordParam["UsePreviousValue"] = true;
+    newParamsArray.push(dbMasterPasswordParam);
+    var dbPasswordParam = {};
+    dbPasswordParam["ParameterKey"] = "DBPassword";
+    dbPasswordParam["UsePreviousValue"] = true;
+    newParamsArray.push(dbPasswordParam);
   } else {
     stackNameForAction = document.getElementById("StackNameVal").value
   }
@@ -379,19 +409,9 @@ function sendParamsAsJson() {
     var param = newParams.item(i).getElementsByClassName("paramLbl")[0].innerHTML;
     var value;
 
-    if (param == "EBSSnapshotId") {
+    if (param == "Region") {
       if (action === 'clone')
-        value = document.getElementById("ebsSnapshotSelector").innerText;
-      else
-        value = document.getElementById("EBSSnapshotIdVal").value;
-    } else if (param == "DBSnapshotName") {
-      if (action === 'clone')
-        value = document.getElementById("rdsSnapshotSelector").innerText;
-      else
-        value = document.getElementById("DBSnapshotNameVal").value;
-    } else if (param == "Region") {
-      if (action === 'clone')
-        value = $("#regionSelector").text().trim();
+        value = $("#regionSelector")[0].value;
       else
         value = region;
     } else {
@@ -399,6 +419,8 @@ function sendParamsAsJson() {
       if (element.tagName.toLowerCase() === "a") {
         value = element.text;
       } else if (element.tagName.toLowerCase() === "input") {
+        value = element.value;
+      } else if (element.tagName.toLowerCase() === "aui-select") {
         value = element.value;
       } else if (element.tagName.toLowerCase() === "select") {
         value = "";
@@ -432,8 +454,28 @@ function sendParamsAsJson() {
 
     var appendRegion = "";
     if (action === 'clone')
-      appendRegion = "&region=" + $("#regionSelector").text().trim();
+      appendRegion = "&region=" + $("#regionSelector")[0].value;
 
     redirectToLog(stackNameForAction, appendRegion);
   }
+}
+
+function getKmsKeys(region, existingKmsKeyArn) {
+  $("#KmsKeyArnVal").remove();
+  var placeholder = $("<aui-select/>", {
+    id: "KmsKeyArnVal",
+    name: "KmsKeyArnDropdownDiv",
+    placeholder: "Loading..."
+  });
+  $(placeholder).insertBefore($("#KmsKeyArnDiv :last-child"));
+  send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys, existingKmsKeyArn);
+}
+
+function displayKmsKeys(responseText, existingKmsKeyArn) {
+  var kmsKeys = JSON.parse(responseText);
+  $("#KmsKeyArnVal").remove();
+  var existingKmsKey = kmsKeys.find(key => key.value === existingKmsKeyArn);
+  var existingKmsKeyAlias = typeof existingKmsKey !== 'undefined' ? existingKmsKey.label : '';
+  var input = createSingleSelect("KmsKeyArn", existingKmsKeyAlias, kmsKeys);
+  $(input).insertBefore($("#KmsKeyArnDiv :last-child"));
 }
