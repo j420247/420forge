@@ -912,13 +912,13 @@ class Stack:
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
         return True
 
-    def clone(self, stack_parms, template_file, app_type, clustered, region, creator, cloned_from):
+    def clone(self, stack_params, template_file, app_type, clustered, region, creator, cloned_from):
         self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy():
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
-        if not self.create(stack_parms, template_file, app_type, clustered, creator, region, cloned_from):
+        if not self.create(stack_params, template_file, app_type, clustered, creator, region, cloned_from):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
             return False
@@ -1172,21 +1172,22 @@ class Stack:
         if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
         self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}', write_to_changelog=False)
-        self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', write_to_changelog=False)
-        self.run_command(self.instancelist, '/usr/local/bin/j2ee_thread_dump')
+        nodes = self.get_stacknodes()
+        self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
+        self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
         self.log_msg(INFO, 'Thread dumps complete', write_to_changelog=False)
         return True
 
     def heap_dump(self):
         self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}', write_to_changelog=False)
-        self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', write_to_changelog=False)
+        nodes = self.get_stacknodes()
+        self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # Wait for each heap dump to finish before starting the next, to avoid downtime
-        for instance in self.instancelist:
-            self.ssm_send_and_wait_response(list(instance.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30)  # give node time to recover and rejoin cluster
+        for node in nodes:
+            self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
+            if 'TESTING' not in current_app.config:
+                time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         return True
 

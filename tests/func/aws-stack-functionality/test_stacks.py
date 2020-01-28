@@ -303,9 +303,11 @@ class TestAwsStacks:
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         # setup mocks
         mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
-
-        result = mystack.thread_dump(alsoHeaps=True)
-        assert result is True
+        with app.app_context():
+            thread_result = mystack.thread_dump(alsoHeaps=False)
+            assert thread_result is True
+            heap_result = mystack.heap_dump()
+            assert heap_result is True
 
     @moto.mock_ec2
     @moto.mock_s3
