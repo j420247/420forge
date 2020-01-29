@@ -14,6 +14,8 @@ from forge.aws_cfn_stack import stack as aws_stack
 # Environment setup
 CONF_STACKNAME = 'my-confluence'
 CONF_CLONE_STACKNAME = 'my-cloned-confluence'
+
+CHANGELOG_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/changelog.log')
 TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
 TEMPLATE_FILE_CLONE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence-clone.template.yaml')
 REGION = 'us-east-1'
@@ -212,8 +214,8 @@ class TestAwsStacks:
         with app.app_context():
             # upload a changelog
             s3 = boto3.client('s3')
-            s3.upload_file('.changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}')
-            s3.upload_file('.changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
+            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}')
+            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
             # confirm changelogs exist
             changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
             assert len(changelogs['Contents']) == 1
