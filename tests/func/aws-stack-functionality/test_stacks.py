@@ -11,7 +11,12 @@ from flask import Flask
 from forge.aws_cfn_stack import stack as aws_stack
 
 
+# Environment setup
 CONF_STACKNAME = 'my-confluence'
+CONF_CLONE_STACKNAME = 'my-cloned-confluence'
+TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
+TEMPLATE_FILE_CLONE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence-clone.template.yaml')
+
 REGION = 'us-east-1'
 
 app = Flask(__name__)
@@ -27,12 +32,9 @@ moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
 moto.cloudformation.responses.CloudFormationResponse.create_change_set = moto_overrides.create_change_set
 moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
-TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
-
 
 def get_stack_params():
     return [
-        {'ParameterKey': 'AssociatePublicIpAddress', 'ParameterValue': 'false'},
         {'ParameterKey': 'AutologinCookieAge', 'ParameterValue': ''},
         {'ParameterKey': 'CatalinaOpts', 'ParameterValue': ''},
         {'ParameterKey': 'CidrBlock', 'ParameterValue': '0.0.0.0/0'},
@@ -40,6 +42,7 @@ def get_stack_params():
         {'ParameterKey': 'ClusterNodeMax', 'ParameterValue': '2'},
         {'ParameterKey': 'ClusterNodeMin', 'ParameterValue': '2'},
         {'ParameterKey': 'ClusterNodeVolumeSize', 'ParameterValue': '50'},
+        {'ParameterKey': 'CollaborativeEditingMode', 'ParameterValue': 'synchrony-local'},
         {'ParameterKey': 'ConfluenceDownloadUrl', 'ParameterValue': ''},
         {'ParameterKey': 'ConfluenceVersion', 'ParameterValue': '6.11.0'},
         {'ParameterKey': 'CustomDnsName', 'ParameterValue': ''},
@@ -54,18 +57,25 @@ def get_stack_params():
         {'ParameterKey': 'DBPoolMaxSize', 'ParameterValue': '60'},
         {'ParameterKey': 'DBPoolMinSize', 'ParameterValue': '10'},
         {'ParameterKey': 'DBPreferredTestQuery', 'ParameterValue': ''},
+        {'ParameterKey': 'DBReadReplicaInstanceClass', 'ParameterValue': ''},
         {'ParameterKey': 'DBSnapshotId', 'ParameterValue': ''},
         {'ParameterKey': 'DBStorage', 'ParameterValue': '10'},
         {'ParameterKey': 'DBStorageType', 'ParameterValue': 'General Purpose (SSD)'},
         {'ParameterKey': 'DBTimeout', 'ParameterValue': '0'},
         {'ParameterKey': 'DBValidate', 'ParameterValue': 'false'},
         {'ParameterKey': 'DeployEnvironment', 'ParameterValue': 'prod'},
+        {'ParameterKey': 'ElasticFileSystem', 'ParameterValue': 'EFS'},
         {'ParameterKey': 'ExternalSubnets', 'ParameterValue': f"{app.config['RESOURCES']['subnet_1_id']},{app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'HostedZone', 'ParameterValue': 'wpt.atlassian.com.'},
         {'ParameterKey': 'InternalSubnets', 'ParameterValue': f"{app.config['RESOURCES']['subnet_1_id']},{app.config['RESOURCES']['subnet_2_id']}"},
         {'ParameterKey': 'JvmHeapOverride', 'ParameterValue': ''},
         {'ParameterKey': 'JvmHeapOverrideSynchrony', 'ParameterValue': ''},
-        {'ParameterKey': 'KeyName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
+        {'ParameterKey': 'KeyPairName', 'ParameterValue': 'WPE-GenericKeyPair-20161102'},
+        {'ParameterKey': 'KmsKeyArn', 'ParameterValue': ''},
+        {'ParameterKey': 'LoadBalancerScheme', 'ParameterValue': 'internal'},
+        {'ParameterKey': 'LocalAnsibleGitRepo', 'ParameterValue': ''},
+        {'ParameterKey': 'LocalAnsibleGitSshKeyName', 'ParameterValue': ''},
+        {'ParameterKey': 'MailEnabled', 'ParameterValue': 'false'},
         {'ParameterKey': 'SSLCertificateARN', 'ParameterValue': ''},
         {'ParameterKey': 'StartCollectd', 'ParameterValue': 'true'},
         {'ParameterKey': 'SubDomainName', 'ParameterValue': ''},
@@ -133,6 +143,7 @@ def setup_env_resources():
     app.config['RESOURCES'] = resources
 
 
+# Tests
 @mock.patch.dict(os.environ, {'AWS_ACCESS_KEY_ID': 'AWS_ACCESS_KEY_ID'})
 @mock.patch.dict(os.environ, {'AWS_SECRET_ACCESS_KEY': 'AWS_SECRET_ACCESS_KEY'})
 class TestAwsStacks:
@@ -144,20 +155,6 @@ class TestAwsStacks:
         setup_stack()
         stacks = boto3.client('cloudformation', REGION).describe_stacks(StackName=CONF_STACKNAME)
         assert stacks['Stacks'][0]['StackName'] == CONF_STACKNAME
-
-    @moto.mock_ec2
-    @moto.mock_s3
-    @moto.mock_route53
-    @moto.mock_cloudformation
-    def test_destroy(self):
-        setup_stack()
-        cfn = boto3.client('cloudformation', REGION)
-        stacks = cfn.describe_stacks()
-        assert len(stacks['Stacks']) == 1
-        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        mystack.destroy()
-        stacks = cfn.describe_stacks()
-        assert len(stacks['Stacks']) == 0
 
     @moto.mock_ec2
     @moto.mock_s3
@@ -187,6 +184,48 @@ class TestAwsStacks:
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
+    def test_clone(self):
+        setup_stack()
+        clone_stack = aws_stack.Stack(CONF_CLONE_STACKNAME, REGION)
+        clone_params = get_stack_params()
+        clone_params.append({'ParameterKey': 'StackName', 'ParameterValue': CONF_CLONE_STACKNAME})
+
+        # setup mocks
+        clone_stack.validate_service_responding = MagicMock(return_value=True)
+        clone_stack.wait_stack_action_complete = MagicMock(return_value=True)
+
+        with app.app_context():
+            outcome = clone_stack.clone(
+                stack_params=clone_params,
+                template_file=TEMPLATE_FILE_CLONE,
+                app_type='confluence',
+                clustered='true',
+                creator='test-user',
+                region=REGION,
+                cloned_from=CONF_STACKNAME,
+            )
+            assert outcome
+            stacks = boto3.client('cloudformation', REGION).describe_stacks(StackName=CONF_CLONE_STACKNAME)
+            assert stacks['Stacks'][0]['StackName'] == CONF_CLONE_STACKNAME
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_destroy(self):
+        setup_stack()
+        cfn = boto3.client('cloudformation', REGION)
+        stacks = cfn.describe_stacks()
+        assert len(stacks['Stacks']) == 1
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        mystack.destroy()
+        stacks = cfn.describe_stacks()
+        assert len(stacks['Stacks']) == 0
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
     def test_execute_changeset(self):
         setup_stack()
         cfn = boto3.client('cloudformation', REGION)
@@ -209,19 +248,6 @@ class TestAwsStacks:
         cfn = boto3.client('cloudformation', REGION)
         stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
         assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
-
-    @moto.mock_ec2
-    @moto.mock_s3
-    @moto.mock_route53
-    @moto.mock_cloudformation
-    def test_tagging(self):
-        setup_stack()
-        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        tags_to_add = [{'Key': 'Tag1', 'Value': 'Value1'}, {'Key': 'Tag2', 'Value': 'Value2'}]
-        tagged = mystack.tag(tags_to_add)
-        assert tagged
-        tags = mystack.get_tags()
-        assert tags == tags_to_add
 
     @moto.mock_ec2
     @moto.mock_s3
@@ -253,6 +279,35 @@ class TestAwsStacks:
             assert rolling_result is True
             full_result = mystack.full_restart()
             assert full_result is True
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_tagging(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        tags_to_add = [{'Key': 'Tag1', 'Value': 'Value1'}, {'Key': 'Tag2', 'Value': 'Value2'}]
+        tagged = mystack.tag(tags_to_add)
+        assert tagged
+        tags = mystack.get_tags()
+        assert tags == tags_to_add
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_thread_and_heap_dumps(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        # setup mocks
+        mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+        with app.app_context():
+            thread_result = mystack.thread_dump(alsoHeaps=False)
+            assert thread_result is True
+            heap_result = mystack.heap_dump()
+            assert heap_result is True
 
     @moto.mock_ec2
     @moto.mock_s3

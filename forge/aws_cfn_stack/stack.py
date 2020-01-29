@@ -1184,7 +1184,8 @@ class Stack:
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:
             self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30)  # give node time to recover and rejoin cluster
+            if 'TESTING' not in current_app.config:
+                time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         return True
 
