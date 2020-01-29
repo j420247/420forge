@@ -47,7 +47,7 @@ function presentChangesetForExecution(stackName, changesetName) {
         populateChangesetModal(changesetDetails);
         $("#modal-ok-btn").off("click");
         $("#modal-ok-btn").on("click", function() {
-            send_http_post_request([baseUrl, 'doexecutechangeset', stackName, changesetName].join('/'), {});
+            send_http_post_request([baseUrl, 'doexecutechangeset', stackName, changesetName].join('/'));
             redirectToLog(stackName, '');
         });
     });

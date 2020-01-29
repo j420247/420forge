@@ -890,7 +890,7 @@ class Stack:
             self.log_msg(ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.', write_to_changelog=True)
             self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
 
-    def destroy(self):
+    def destroy(self, delete_changelogs):
         self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
@@ -908,13 +908,25 @@ class Stack:
         cfn.delete_stack(StackName=self.stack_name)
         if self.wait_stack_action_complete('DELETE_IN_PROGRESS', stack_id):
             self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
-        self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
+            if delete_changelogs:
+                s3_bucket = current_app.config['S3_BUCKET']
+                s3 = boto3.client('s3', region_name=self.region)
+                changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{self.stack_name}/')
+                keys_to_delete = []
+                if 'Contents' in changelogs:
+                    for changelog in changelogs['Contents']:
+                        keys_to_delete.append({'Key': changelog['Key']})
+                    keys_to_delete.append({'Key': f'changelogs/{self.stack_name}'})
+                    response = s3.delete_objects(Bucket=s3_bucket, Delete={'Objects': keys_to_delete},)
+                    if 'Errors' in response:
+                        self.log_msg(ERROR, 'Failed to delete some changelogs from S3', write_to_changelog=True)
+        self.log_msg(INFO, 'Destroy complete', write_to_changelog=True)
         return True
 
     def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):
         self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
         # TODO popup confirming if you want to destroy existing
-        if not self.destroy():
+        if not self.destroy(delete_changelogs=False):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
         if not self.create(stack_params, template_file, app_type, clustered, creator, region, cloned_from):
