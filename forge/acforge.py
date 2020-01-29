@@ -82,7 +82,7 @@ class DoClone(RestrictedResource):
             return False
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
+        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, creator, region, cloned_from)
         clone_stack.clear_current_action()
         return outcome
 
@@ -150,9 +150,9 @@ class DoUpdate(RestrictedResource):
         else:
             env = env_param['Value']
             if env == 'stg' or env == 'dr':
-                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+                if not next((param for param in params_for_update if param['ParameterKey'] == 'EBSSnapshotId'), None):
                     params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+                if not next((param for param in params_for_update if param['ParameterKey'] == 'DBSnapshotName'), None):
                     params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
         outcome = mystack.create_change_set(params_for_update, get_template_file(template_name))
         mystack.clear_current_action()
@@ -548,15 +548,15 @@ class GetVersion(Resource):
 class GetNodes(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
-        mystack.get_stacknodes()
-        nodes = []
-        for instance in mystack.instancelist:
+        instances = mystack.get_stacknodes()
+        nodes_list = []
+        for instance in instances:
             node = {}
             node_ip = list(instance.values())[0]
             node['ip'] = node_ip
             node['status'] = mystack.check_node_status(node_ip, False)
-            nodes.append(node)
-        return nodes
+            nodes_list.append(node)
+        return nodes_list
 
 
 class GetTags(Resource):

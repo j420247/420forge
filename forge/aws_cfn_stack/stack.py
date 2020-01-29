@@ -135,11 +135,11 @@ class Stack:
             return False
         return True
 
-    def ssm_send_command(self, instance, cmd):
+    def ssm_send_command(self, node, cmd):
         logs_bucket = f"{current_app.config['S3_BUCKET']}/logs"
         ssm = boto3.client('ssm', region_name=self.region)
         ssm_command = ssm.send_command(
-            InstanceIds=[instance],
+            InstanceIds=[node],
             DocumentName='AWS-RunShellScript',
             Parameters={'commands': [cmd], 'executionTimeout': ["900"]},
             OutputS3BucketName=logs_bucket,
@@ -155,17 +155,17 @@ class Stack:
         try:
             list_command = ssm.list_commands(CommandId=cmd_id)
             cmd_status = list_command[u'Commands'][0][u'Status']
-            instance = list_command[u'Commands'][0][u'InstanceIds'][0]
-            self.log_msg(INFO, f'result of ssm command {cmd_id} on instance {instance} is {cmd_status}', write_to_changelog=False)
-            return cmd_status, instance
+            node = list_command[u'Commands'][0][u'InstanceIds'][0]
+            self.log_msg(INFO, f'result of ssm command {cmd_id} on node {node} is {cmd_status}', write_to_changelog=False)
+            return cmd_status, node
         except botocore.exceptions.ClientError:
             log.exception('boto ClientError')
             self.log_msg(ERROR, f'retrieving ssm command {cmd_id} status failed', write_to_changelog=False)
 
-    def ssm_send_and_wait_response(self, instance, cmd):
-        cmd_id = self.ssm_send_command(instance, cmd)
+    def ssm_send_and_wait_response(self, node, cmd):
+        cmd_id = self.ssm_send_command(node, cmd)
         if not cmd_id:
-            self.log_msg(ERROR, f'Command {cmd} on instance {instance} failed to send', write_to_changelog=False)
+            self.log_msg(ERROR, f'Command {cmd} on node {node} failed to send', write_to_changelog=False)
             return False
         else:
             result = self.wait_for_cmd_result(cmd_id)
@@ -176,20 +176,20 @@ class Stack:
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes', write_to_changelog=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spindown_parms = self.get_params()
-        if any(param for param in spindown_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeMax', '0')
-            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeMin', '0')
+        spindown_params = self.get_params()
+        if any(param for param in spindown_params if param['ParameterKey'] == 'ClusterNodeMax'):
+            spindown_params = self.update_paramlist(spindown_params, 'ClusterNodeMax', '0')
+            spindown_params = self.update_paramlist(spindown_params, 'ClusterNodeMin', '0')
         else:
-            spindown_parms = self.update_paramlist(spindown_parms, 'ClusterNodeCount', '0')
+            spindown_params = self.update_paramlist(spindown_params, 'ClusterNodeCount', '0')
         if app_type == 'confluence':
-            if any(param for param in spindown_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeMax', '0')
-                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeMin', '0')
+            if any(param for param in spindown_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
+                spindown_params = self.update_paramlist(spindown_params, 'SynchronyClusterNodeMax', '0')
+                spindown_params = self.update_paramlist(spindown_params, 'SynchronyClusterNodeMin', '0')
             else:
-                spindown_parms = self.update_paramlist(spindown_parms, 'SynchronyClusterNodeCount', '0')
+                spindown_params = self.update_paramlist(spindown_params, 'SynchronyClusterNodeCount', '0')
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=spindown_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            cfn.update_stack(StackName=self.stack_name, Parameters=spindown_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             if 'No updates are to be performed' in e:
                 self.log_msg(INFO, 'Stack is already at 0 nodes', write_to_changelog=True)
@@ -239,28 +239,28 @@ class Stack:
         self.log_msg(INFO, "Spinning stack up to one app node", write_to_changelog=True)
         # for connie 1 app node and 1 synchrony
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.get_params()
-        if any(param for param in spinup_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMax', '1')
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMin', '1')
+        spinup_params = self.get_params()
+        if any(param for param in spinup_params if param['ParameterKey'] == 'ClusterNodeMax'):
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMax', '1')
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMin', '1')
         else:
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeCount', '1')
-        if any(param for param in spinup_parms if param['ParameterKey'] == 'ProductVersion'):
-            spinup_parms = self.update_paramlist(spinup_parms, 'ProductVersion', new_version)
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeCount', '1')
+        if any(param for param in spinup_params if param['ParameterKey'] == 'ProductVersion'):
+            spinup_params = self.update_paramlist(spinup_params, 'ProductVersion', new_version)
         elif app_type == 'jira':
-            spinup_parms = self.update_paramlist(spinup_parms, 'JiraVersion', new_version)
+            spinup_params = self.update_paramlist(spinup_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
-            spinup_parms = self.update_paramlist(spinup_parms, 'ConfluenceVersion', new_version)
+            spinup_params = self.update_paramlist(spinup_params, 'ConfluenceVersion', new_version)
         elif app_type == 'crowd':
-            spinup_parms = self.update_paramlist(spinup_parms, 'CrowdVersion', new_version)
+            spinup_params = self.update_paramlist(spinup_params, 'CrowdVersion', new_version)
         if hasattr(self, 'preupgrade_synchrony_node_count'):
-            if any(param for param in spinup_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMax', '1')
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMin', '1')
+            if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', '1')
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', '1')
             else:
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeCount', '1')
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
         try:
-            update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except botocore.exceptions.ClientError as e:
             self.log_msg(INFO, f'Stack spinup failed: {e}', write_to_changelog=True)
             return False
@@ -384,20 +384,20 @@ class Stack:
     def spinup_remaining_nodes(self):
         self.log_msg(INFO, 'Spinning up any remaining nodes in stack', write_to_changelog=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_parms = self.get_params()
-        if any(param for param in spinup_parms if param['ParameterKey'] == 'ClusterNodeMax'):
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMax', self.preupgrade_app_node_count)
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeMin', self.preupgrade_app_node_count)
+        spinup_params = self.get_params()
+        if any(param for param in spinup_params if param['ParameterKey'] == 'ClusterNodeMax'):
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMax', self.preupgrade_app_node_count)
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMin', self.preupgrade_app_node_count)
         else:
-            spinup_parms = self.update_paramlist(spinup_parms, 'ClusterNodeCount', self.preupgrade_app_node_count)
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeCount', self.preupgrade_app_node_count)
         if hasattr(self, 'preupgrade_synchrony_node_count'):
-            if any(param for param in spinup_parms if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
+            if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
             else:
-                spinup_parms = self.update_paramlist(spinup_parms, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
+                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=spinup_parms, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            cfn.update_stack(StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
         except Exception as e:
             log.exception('Error occurred spinning up remaining nodes')
             self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}', write_to_changelog=True)
@@ -415,28 +415,27 @@ class Stack:
         ]
         if self.is_app_clustered():
             filters.append({'Name': 'tag:aws:cloudformation:logical-id', 'Values': ['ClusterNodeGroup']})
-        self.instancelist = []
+        nodes = []
         try:
             instances = ec2.instances.filter(Filters=filters)
             for i in instances:
                 instancedict = {i.instance_id: i.private_ip_address}
-                self.instancelist.append(instancedict)
+                nodes.append(instancedict)
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'RequestLimitExceeded':
                 log.exception('RequestLimitExceeded received during get_stacknodes')
                 self.log_msg(ERROR, 'RequestLimitExceeded received during get_stacknodes', write_to_changelog=False)
                 raise e
-        return self.instancelist
+        return nodes
 
-    def shutdown_app(self, app_type, instancelist):
+    def shutdown_app(self, app_type, nodes):
         cmd_id_list = []
-        for i in range(0, len(instancelist)):
-            for key in instancelist[i]:
-                instance = key
-                node_ip = instancelist[i][instance]
-            self.log_msg(INFO, f'Shutting down {app_type} on {instance} ({node_ip})', write_to_changelog=True)
+        for node in nodes:
+            node_id = list(node.keys())[0]
+            node_ip = list(node.values())[0]
+            self.log_msg(INFO, f'Shutting down {app_type} on {node_id} ({node_ip})', write_to_changelog=True)
             cmd = f'service {app_type} stop'
-            cmd_id_list.append(self.ssm_send_command(instance, cmd))
+            cmd_id_list.append(self.ssm_send_command(node_id, cmd))
         for cmd_id in cmd_id_list:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
@@ -445,16 +444,16 @@ class Stack:
                 self.log_msg(INFO, f'Shutdown result for {cmd_id}: {result}', write_to_changelog=True)
         return True
 
-    def startup_app(self, app_type, instancelist):
-        for instancedict in instancelist:
-            instance = list(instancedict.keys())[0]
-            node_ip = list(instancedict.values())[0]
+    def startup_app(self, app_type, nodes):
+        for node in nodes:
+            node_id = list(node.keys())[0]
+            node_ip = list(node.values())[0]
             if app_type == 'jira':
-                if not self.cleanup_jira_temp_files(str(instance)):
-                    self.log_msg(ERROR, f'Failure cleaning up temp files for {instance}', write_to_changelog=False)
-            self.log_msg(INFO, f'Starting up {instance} ({node_ip})', write_to_changelog=True)
+                if not self.cleanup_jira_temp_files(str(node_id)):
+                    self.log_msg(ERROR, f'Failure cleaning up temp files for {node_id}', write_to_changelog=False)
+            self.log_msg(INFO, f'Starting up {node_id} ({node_ip})', write_to_changelog=True)
             cmd = f'service {app_type} start'
-            cmd_id = self.ssm_send_command(instance, cmd)
+            cmd_id = self.ssm_send_command(node_id, cmd)
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
                 self.log_msg(ERROR, f'Startup result for {cmd_id}: {result}', write_to_changelog=True)
@@ -462,26 +461,26 @@ class Stack:
             else:
                 if not self.validate_node_responding(node_ip):
                     return False
-            self.log_msg(INFO, f'Application started on instance {instance}', write_to_changelog=True)
+            self.log_msg(INFO, f'Application started on node {node_id}', write_to_changelog=True)
         return True
 
-    def cleanup_jira_temp_files(self, instance):
+    def cleanup_jira_temp_files(self, node):
         cmd = f'find /opt/atlassian/jira/temp/ -type f -delete'
-        cmd_id = self.ssm_send_command(instance, cmd)
+        cmd_id = self.ssm_send_command(node, cmd)
         result = self.wait_for_cmd_result(cmd_id)
         if result == 'Failed':
             self.log_msg(ERROR, f'Cleanup temp files result for {cmd_id}: {result}', write_to_changelog=False)
             return False
-        self.log_msg(INFO, f'Deleted Jira temp files on {instance}', write_to_changelog=False)
+        self.log_msg(INFO, f'Deleted Jira temp files on {node}', write_to_changelog=False)
         return True
 
-    def run_command(self, instancelist, cmd):
+    def run_command(self, nodes, cmd):
         cmd_id_dict = {}
-        for instancedict in instancelist:
-            instance = list(instancedict.keys())[0]
-            node_ip = list(instancedict.values())[0]
+        for node in nodes:
+            node_id = list(node.keys())[0]
+            node_ip = list(node.values())[0]
             self.log_msg(INFO, f'Running command {cmd} on {node_ip}', write_to_changelog=False)
-            cmd_id_dict[self.ssm_send_command(instance, cmd)] = node_ip
+            cmd_id_dict[self.ssm_send_command(node_id, cmd)] = node_ip
         for cmd_id in cmd_id_dict:
             result = self.wait_for_cmd_result(cmd_id)
             if result == 'Failed':
@@ -726,8 +725,8 @@ class Stack:
     def get_zdu_compatibility(self):
         if not self.get_tag('product') == 'jira':
             return ['not Jira']
-        self.get_stacknodes()
-        if not len(self.instancelist) > 1:
+        nodes = self.get_stacknodes()
+        if not len(nodes) > 1:
             return ['too few nodes']
         params = self.get_params()
         version = version_tuple(self.get_param_value('ProductVersion', params))
@@ -912,7 +911,7 @@ class Stack:
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
         return True
 
-    def clone(self, stack_params, template_file, app_type, clustered, region, creator, cloned_from):
+    def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):
         self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy():
@@ -931,8 +930,8 @@ class Stack:
         self.log_msg(INFO, 'Clone complete', write_to_changelog=True)
         return True
 
-    def create_change_set(self, stack_parms, template_file):
-        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_parms if 'UsePreviousValue' not in param])}", write_to_changelog=True)
+    def create_change_set(self, stack_params, template_file):
+        self.log_msg(INFO, f"Creating change set for stack with params: {str([param for param in stack_params if 'UsePreviousValue' not in param])}", write_to_changelog=True)
         template_filename = template_file.name
         template = str(template_file)
         self.upload_template(template, template_filename)
@@ -942,7 +941,7 @@ class Stack:
                 ChangeSetName=f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}',
                 ChangeSetType='UPDATE',
                 StackName=self.stack_name,
-                Parameters=stack_parms,
+                Parameters=stack_params,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_filename}",
                 Capabilities=['CAPABILITY_IAM'],
             )
@@ -999,9 +998,9 @@ class Stack:
         self.log_msg(INFO, 'Changeset execution complete', write_to_changelog=True)
         return True
 
-    def create(self, stack_parms, template_file, app_type, clustered, creator, region, cloned_from=False):
+    def create(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from=False):
         self.log_msg(INFO, f'Creating stack: {self.stack_name}', write_to_changelog=True)
-        self.log_msg(INFO, f'Creation params: {stack_parms}', write_to_changelog=True)
+        self.log_msg(INFO, f'Creation params: {stack_params}', write_to_changelog=True)
         template = str(template_file)
         self.log_change(f'Template is {template}')
         # create tags
@@ -1011,7 +1010,7 @@ class Stack:
         tags = [
             {'Key': 'product', 'Value': app_type},
             {'Key': 'clustered', 'Value': clustered},
-            {'Key': 'environment', 'Value': next((parm['ParameterValue'] for parm in stack_parms if parm['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
+            {'Key': 'environment', 'Value': next((param['ParameterValue'] for param in stack_params if param['ParameterKey'] == 'DeployEnvironment'), 'not-specified')},
             {'Key': 'created_by', 'Value': creator},
             {'Key': 'repository', 'Value': template_path_components[0]},
             {'Key': 'template', 'Value': template_path_components[-1]},
@@ -1027,7 +1026,7 @@ class Stack:
             # TODO spin up to one node first, then spin up remaining nodes
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
-                Parameters=stack_parms,
+                Parameters=stack_params,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=tags,
@@ -1055,41 +1054,41 @@ class Stack:
             self.log_msg(ERROR, 'Could not determine product', write_to_changelog=True)
             self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
             return False
-        instance_list = self.get_stacknodes()
-        self.log_msg(INFO, f'{self.stack_name} nodes are {self.instancelist}', write_to_changelog=False)
+        nodes = self.get_stacknodes()
+        self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
         if not self.is_app_clustered():
             self.log_msg(ERROR, 'App is not clustered - rolling restart not supported (use full restart)', write_to_changelog=True)
             self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
             return False
-        if len(instance_list) == 0:
+        if len(nodes) == 0:
             self.log_msg(ERROR, 'Node count is 0: nothing to restart', write_to_changelog=True)
             self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
             return False
-        elif len(instance_list) == 1:
+        elif len(nodes) == 1:
             self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)', write_to_changelog=True)
             self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
             return False
         # determine if the nodes are running or not
         running_nodes = []
         non_running_nodes = []
-        for node in instance_list:
+        for node in nodes:
             node_ip = list(node.values())[0]
             if self.check_node_status(node_ip, False) == 'RUNNING':
                 running_nodes.append(node)
             else:
                 non_running_nodes.append(node)
         # restart non running nodes first
-        for instance in itertools.chain(non_running_nodes, running_nodes):
-            if not self.shutdown_app(app_type, [instance]):
-                self.log_msg(INFO, f'Failed to stop application on instance {instance}', write_to_changelog=True)
+        for node in itertools.chain(non_running_nodes, running_nodes):
+            if not self.shutdown_app(app_type, [node]):
+                self.log_msg(INFO, f'Failed to stop application on node {node}', write_to_changelog=True)
                 self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
                 return False
-            if not self.startup_app(app_type, [instance]):
-                self.log_msg(INFO, f'Failed to start application on instance {instance}', write_to_changelog=True)
+            if not self.startup_app(app_type, [node]):
+                self.log_msg(INFO, f'Failed to start application on node {node}', write_to_changelog=True)
                 self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
                 return False
-            node_ip = list(instance.values())[0]
+            node_ip = list(node.values())[0]
             if not self.validate_node_responding(node_ip):
                 self.log_msg(INFO, 'Rolling restart complete - failed', write_to_changelog=True)
                 return False
@@ -1102,25 +1101,24 @@ class Stack:
         if not app_type:
             self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
             return False
-        instance_list = self.get_stacknodes()
-        if len(instance_list) == 0:
+        nodes = self.get_stacknodes()
+        if len(nodes) == 0:
             self.log_msg(ERROR, 'Node count is 0: nothing to restart', write_to_changelog=True)
             self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
             return False
-        self.log_msg(INFO, f'{self.stack_name} nodes are {instance_list}', write_to_changelog=False)
-        if not self.shutdown_app(app_type, instance_list):
+        self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
+        if not self.shutdown_app(app_type, nodes):
             self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
             return False
-        for instance in instance_list:
-            self.startup_app(app_type, [instance])
+        for node in nodes:
+            self.startup_app(app_type, [node])
         self.log_msg(INFO, 'Full restart complete', write_to_changelog=True)
         return True
 
     def rolling_rebuild(self):
         self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True)
         ec2 = boto3.client('ec2', region_name=self.region)
-        self.get_stacknodes()
-        old_nodes = self.instancelist
+        old_nodes = self.get_stacknodes()
         self.log_msg(INFO, f'Old nodes: {old_nodes}', write_to_changelog=True)
         new_nodes = []
         try:
@@ -1129,22 +1127,22 @@ class Stack:
                 self.log_msg(INFO, f'Replacing node {node}', write_to_changelog=True)
                 ec2.terminate_instances(InstanceIds=[list(node.keys())[0]])
                 time.sleep(30)
-                current_instances = self.get_stacknodes()
+                nodes = self.get_stacknodes()
                 waiting_for_new_node_creation = True
                 replacement_node = {}
                 action_start = time.time()
                 action_timeout = current_app.config['ACTION_TIMEOUTS']['node_initialisation']
                 while waiting_for_new_node_creation:
-                    for instance in current_instances:
-                        # check the instance id against the old nodes
-                        if list(instance.keys())[0] not in set().union(*(node.keys() for node in old_nodes)):
-                            # if the instance is new, track it
-                            if instance not in new_nodes:
+                    for node in nodes:
+                        # check the node id against the old nodes
+                        if list(node.keys())[0] not in set().union(*(node.keys() for node in old_nodes)):
+                            # if the node is new, track it
+                            if node not in new_nodes:
                                 # check for IP, break out if not assigned yet
-                                if list(instance.values())[0] is None:
+                                if list(node.values())[0] is None:
                                     break
                                 # otherwise, store the node and proceed
-                                replacement_node = instance
+                                replacement_node = node
                                 self.log_msg(INFO, f'New node: {replacement_node}', write_to_changelog=True)
                                 new_nodes.append(replacement_node)
                                 waiting_for_new_node_creation = False
@@ -1152,7 +1150,7 @@ class Stack:
                         self.log_msg(ERROR, f'New node failed to be created after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
                         return False
                     time.sleep(30)
-                    current_instances = self.get_stacknodes()
+                    nodes = self.get_stacknodes()
                 # wait for the new node to come up
                 node_ip = list(replacement_node.values())[0]
                 if not self.validate_node_responding(node_ip):
@@ -1193,30 +1191,27 @@ class Stack:
 
     def run_sql(self):
         self.log_msg(INFO, 'Running post clone SQL', write_to_changelog=True)
-        self.get_stacknodes()
+        nodes = self.get_stacknodes()
         sql_to_run = self.get_sql()
         if sql_to_run != 'No SQL script exists for this stack':
             cloned_from_stack = self.get_tag('cloned_from')
             db_conx_string = 'PGPASSWORD=${ATL_DB_PASSWORD} /usr/bin/psql -v ON_ERROR_STOP=1 -h ${ATL_DB_HOST} -p ${ATL_DB_PORT} -U postgres -w ${ATL_DB_NAME}'
             # on node, grab cloned_from sql from s3
             self.run_command(
-                [self.instancelist[0]],
+                [nodes[0]],
                 f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{cloned_from_stack}/{cloned_from_stack}-clones-sql.d /tmp/{cloned_from_stack}-clones-sql.d",
             )
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]],
-                f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
+                [nodes[0]], f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
             ):
                 self.log_msg(ERROR, f'Running SQL script failed', write_to_changelog=True)
                 return False
             # on node, grab local-stack sql from s3
-            self.run_command(
-                [self.instancelist[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d /tmp/local-post-clone-sql.d"
-            )
+            self.run_command([nodes[0]], f"aws s3 sync s3://{current_app.config['S3_BUCKET']}/config/stacks/{self.stack_name}/local-post-clone-sql.d /tmp/local-post-clone-sql.d")
             # run that sql
             if not self.run_command(
-                [self.instancelist[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
+                [nodes[0]], f'source /etc/atl; for file in `ls /tmp/local-post-clone-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
                 self.log_msg(ERROR, f'Running SQL script failed', write_to_changelog=True)
         else:
