@@ -911,7 +911,7 @@ class Stack:
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
         return True
 
-    def clone(self, stack_params, template_file, app_type, clustered, region, creator, cloned_from):
+    def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):
         self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy():
