@@ -927,6 +927,7 @@ class Stack:
             self.full_restart()
         else:
             self.clear_current_action()
+            self.log_msg(INFO, 'Clone complete - Run SQL failed', write_to_changelog=True)
         self.log_msg(INFO, 'Clone complete', write_to_changelog=True)
         return True
 
