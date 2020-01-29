@@ -212,8 +212,8 @@ class TestAwsStacks:
         with app.app_context():
             # upload a changelog
             s3 = boto3.client('s3')
-            s3.upload_file('changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}')
-            s3.upload_file('changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
+            s3.upload_file('.changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}')
+            s3.upload_file('.changelog.log', s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
             # confirm changelogs exist
             changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
             assert len(changelogs['Contents']) == 1
