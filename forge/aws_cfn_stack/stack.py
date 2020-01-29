@@ -911,7 +911,7 @@ class Stack:
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=False)
         return True
 
-    def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):
+    def clone(self, stack_params, template_file, app_type, clustered, region, creator, cloned_from):
         self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy():
@@ -1184,7 +1184,8 @@ class Stack:
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:
             self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            time.sleep(30)  # give node time to recover and rejoin cluster
+            if 'TESTING' not in current_app.config:
+                time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         return True
 
