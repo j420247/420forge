@@ -316,41 +316,6 @@ function selectDefaultSubnets(vpc) {
   }
 }
 
-function createChangeset(stackName, url, data) {
-  resetChangesetModal();
-  AJS.dialog2("#modal-dialog").show();
-  if (typeof changesetRequest !== "undefined") {
-    changesetRequest.abort();
-  }
-  changesetRequest = send_http_post_request(url, data, function (response) {
-    try {
-      var changesetArn = JSON.parse(response)['Id'];
-      var changesetName = changesetArn.split('/')[1];
-    } catch(e) {
-      showChangesetErrorModal('Unexpected response from server: ' + response);
-      return;
-    }
-    if (changesetName === undefined) {
-      showChangesetErrorModal('Unexpected response from server: ' + response);
-      return;
-    }
-    presentChangesetForExecution(stackName, changesetName);
-  });
-}
-
-function presentChangesetForExecution(stackName, changesetName) {
-  url = [baseUrl, 'getChangeSetDetails', region, stackName, changesetName].join('/');
-  send_http_get_request(url, function (response) {
-    var changesetDetails = JSON.parse(response);
-    populateChangesetModal(changesetDetails);
-    $("#modal-ok-btn").off("click");
-    $("#modal-ok-btn").on("click", function() {
-      send_http_post_request([baseUrl, 'doexecutechangeset', stackName, changesetName].join('/'), {});
-      redirectToLog(stackName, '');
-    });
-  });
-}
-
 function sendParamsAsJson() {
   var newParamsArray = [];
   var productParam = {};

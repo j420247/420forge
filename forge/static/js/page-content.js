@@ -53,8 +53,6 @@ function updateStackInfo(stack_name, stack_region) {
     stack_name, displayNodes);
 }
 
-
-
 function displayStackStateAndRequestServiceStatus(responseText, functionParams) {
   $("#stackState").html("Stack status: " + getStatusLozenge(responseText));
   if (responseText.trim() === "\"CREATE_COMPLETE\"" ||
@@ -161,4 +159,10 @@ document.addEventListener('DOMContentLoaded', function() {
   onReady();
   checkAuthenticated();
   displayAvatar();
+
+  // allows modals to be dismissed via the "Cancel" button
+  AJS.$(document).on("click", "#modal-cancel-btn", function (e) {
+    e.preventDefault();
+    AJS.dialog2("#modal-dialog").hide();
+  });
 }, false);
