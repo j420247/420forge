@@ -395,7 +395,7 @@ Resources:
                       sudo -u forge /bin/bash -c 'git config --global user.name "Forge Server"'
                       # long paths are required for the atlassian-aws-deployment submodule to clone correctly
                       sudo -u forge /bin/bash -c 'git config --global core.longpaths true'
-                      sudo -u forge /bin/bash -c 'git clone -b ITOPSENG-330/git-config https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath'
+                      sudo -u forge /bin/bash -c 'git clone https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath'
                       cd $forgepath
                       sudo -u forge /bin/bash -c 'git submodule update --init'
                       sudo -u forge /bin/bash -c 'git submodule foreach git checkout master'
