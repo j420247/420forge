@@ -16,6 +16,7 @@ function onReady() {
         getSnapshots(clone_region, document.getElementById("stackSelector").innerText);
         getVPCs(clone_region);
         getKmsKeys(clone_region);
+        getSslCerts(clone_region);
     });
 }
 

@@ -243,6 +243,48 @@ function displayRdsSnapshots(responseText) {
   $("#DBSnapshotNameDiv").append(input);
 }
 
+
+function getKmsKeys(region, existingKmsKeyArn) {
+  $("#KmsKeyArnVal").remove();
+  var placeholder = $("<aui-select/>", {
+    id: "KmsKeyArnVal",
+    name: "KmsKeyArnDropdownDiv",
+    placeholder: "Loading..."
+  });
+  $(placeholder).insertBefore($("#KmsKeyArnDiv :last-child"));
+  send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys, existingKmsKeyArn);
+}
+
+function displayKmsKeys(responseText, existingKmsKeyArn) {
+  var kmsKeys = JSON.parse(responseText);
+  $("#KmsKeyArnVal").remove();
+  var existingKmsKey = kmsKeys.find(key => key.value === existingKmsKeyArn);
+  var existingKmsKeyAlias = typeof existingKmsKey !== 'undefined' ? existingKmsKey.label : '';
+  var input = createSingleSelect("KmsKeyArn", existingKmsKeyAlias, kmsKeys);
+  $(input).insertBefore($("#KmsKeyArnDiv :last-child"));
+}
+
+
+function getSslCerts(region, existingSSLCertificateARN) {
+  $("#SSLCertificateARNVal").remove();
+  var placeholder = $("<aui-select/>", {
+    id: "SSLCertificateARNVal",
+    name: "SSLCertificateARNDropdownDiv",
+    placeholder: "Loading..."
+  });
+  $(placeholder).insertBefore($("#SSLCertificateARNDiv :last-child"));
+  send_http_get_request(baseUrl + "/getSslCerts/" + region, displaySslCerts, existingSSLCertificateARN);
+}
+
+function displaySslCerts(responseText, existingSSLCertificateARN) {
+  var sslCerts = JSON.parse(responseText);
+  $("#SSLCertificateARNVal").remove();
+  var existingSslCert = sslCerts.find(cert => cert.value === existingSSLCertificateARN);
+  var existingSslCertAlias = typeof existingSslCert !== 'undefined' ? existingSslCert.label : '';
+  var input = createSingleSelect("SSLCertificateARN", existingSslCertAlias, sslCerts, 'Select an SSL certificate...');
+  $(input).insertBefore($("#SSLCertificateARNDiv :last-child"));
+}
+
 function getVPCs(vpc_region, existingVpc) {
   $("#VPCVal").remove();
   $("#VPCDropdownDiv").remove();
@@ -423,24 +465,4 @@ function sendParamsAsJson() {
 
     redirectToLog(stackNameForAction, appendRegion);
   }
-}
-
-function getKmsKeys(region, existingKmsKeyArn) {
-  $("#KmsKeyArnVal").remove();
-  var placeholder = $("<aui-select/>", {
-    id: "KmsKeyArnVal",
-    name: "KmsKeyArnDropdownDiv",
-    placeholder: "Loading..."
-  });
-  $(placeholder).insertBefore($("#KmsKeyArnDiv :last-child"));
-  send_http_get_request(baseUrl + "/getKmsKeys/" + region, displayKmsKeys, existingKmsKeyArn);
-}
-
-function displayKmsKeys(responseText, existingKmsKeyArn) {
-  var kmsKeys = JSON.parse(responseText);
-  $("#KmsKeyArnVal").remove();
-  var existingKmsKey = kmsKeys.find(key => key.value === existingKmsKeyArn);
-  var existingKmsKeyAlias = typeof existingKmsKey !== 'undefined' ? existingKmsKey.label : '';
-  var input = createSingleSelect("KmsKeyArn", existingKmsKeyAlias, kmsKeys);
-  $(input).insertBefore($("#KmsKeyArnDiv :last-child"));
 }

@@ -97,6 +97,10 @@ function createSingleSelect(parameterKey, defaultValue, dropdownOptions, placeho
         singleSelect.change(function (data) {
             getSubnets(this.value, 'update');
         });
+    } else if (parameterKey === 'SSLCertificateARN') {
+        singleSelect.change(function (data) {
+            $('#TomcatSchemeVal')[0].value = this._input.value === '' ? 'http' : 'https';
+        });
     }
 
     // return the element for DOM insertion
@@ -145,6 +149,11 @@ function createInputParameter(param, fieldset) {
             getKmsKeys($("#regionSelector")[0].value);
         else
             getKmsKeys(region, param.ParameterValue);
+    } else if (param.ParameterKey === "SSLCertificateARN") {
+        if (action === 'clone')
+            getSslCerts($("#regionSelector")[0].value);
+        else
+            getSslCerts(region, param.ParameterValue);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";

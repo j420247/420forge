@@ -15,7 +15,6 @@ import git
 import psutil
 from flask import current_app, request, session
 from flask_restful import Resource
-
 from forge.aws_cfn_stack.stack import Stack
 from forge.saml_auth.saml_auth import RestrictedResource
 from ruamel import yaml
@@ -735,6 +734,19 @@ class GetKmsKeys(Resource):
                 if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
                     keys.append({'label': key['AliasName'].replace('alias/', ''), 'value': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
         return keys
+
+
+class GetSslCerts(Resource):
+    def get(self, region):
+        ssl_certs = []
+        client = boto3.client('acm', region)
+        paginator = client.get_paginator('list_certificates')
+        response_iterator = paginator.paginate()
+        for ssl_certs_aliases in response_iterator:
+            for cert in ssl_certs_aliases['CertificateSummaryList']:
+                ssl_certs.append({'label': cert['DomainName'], 'value': cert['CertificateArn']})
+        ssl_certs = sorted(ssl_certs, key=lambda x: x['label'])
+        return ssl_certs
 
 
 class SetStackLocking(Resource):
