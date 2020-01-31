@@ -14,11 +14,13 @@ from forge.aws_cfn_stack import stack as aws_stack
 # Environment setup
 CONF_STACKNAME = 'my-confluence'
 CONF_CLONE_STACKNAME = 'my-cloned-confluence'
+
+CHANGELOG_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/changelog.log')
 TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
 TEMPLATE_FILE_CLONE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence-clone.template.yaml')
-
 REGION = 'us-east-1'
 
+# Configure app
 app = Flask(__name__)
 app.config['S3_BUCKET'] = 'mock_bucket'
 app.config['TESTING'] = True
@@ -104,11 +106,9 @@ def setup_stack():
     with app.app_context():
         setup_env_resources()
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-
         # setup mocks
         mystack.validate_service_responding = MagicMock(return_value=True)
         mystack.wait_stack_action_complete = MagicMock(return_value=True)
-
         # create stack
         outcome = mystack.create(get_stack_params(), TEMPLATE_FILE, 'confluence', 'true', 'test_user', REGION, cloned_from=False)
         assert outcome
@@ -118,13 +118,11 @@ def setup_env_resources():
     # create S3 bucket
     s3 = boto3.resource('s3', region_name=REGION)
     s3.create_bucket(Bucket=app.config['S3_BUCKET'])
-
     # create VPC and subnets
     ec2 = boto3.resource('ec2', region_name=REGION)
     vpc = ec2.create_vpc(CidrBlock='10.0.0.0/22')
     subnet_1 = vpc.create_subnet(CidrBlock='10.0.0.0/24')
     subnet_2 = vpc.create_subnet(CidrBlock='10.0.1.0/24')
-
     # create hosted zone
     r53 = boto3.client('route53')
     hosted_zone = r53.create_hosted_zone(
@@ -139,7 +137,6 @@ def setup_env_resources():
     resources['subnet_1_id'] = subnet_1.subnet_id
     resources['subnet_2_id'] = subnet_2.subnet_id
     resources['hosted_zone'] = hosted_zone
-
     app.config['RESOURCES'] = resources
 
 
@@ -189,11 +186,9 @@ class TestAwsStacks:
         clone_stack = aws_stack.Stack(CONF_CLONE_STACKNAME, REGION)
         clone_params = get_stack_params()
         clone_params.append({'ParameterKey': 'StackName', 'ParameterValue': CONF_CLONE_STACKNAME})
-
         # setup mocks
         clone_stack.validate_service_responding = MagicMock(return_value=True)
         clone_stack.wait_stack_action_complete = MagicMock(return_value=True)
-
         with app.app_context():
             outcome = clone_stack.clone(
                 stack_params=clone_params,
@@ -214,13 +209,27 @@ class TestAwsStacks:
     @moto.mock_cloudformation
     def test_destroy(self):
         setup_stack()
-        cfn = boto3.client('cloudformation', REGION)
-        stacks = cfn.describe_stacks()
-        assert len(stacks['Stacks']) == 1
+        s3_bucket = app.config['S3_BUCKET']
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
-        mystack.destroy()
-        stacks = cfn.describe_stacks()
-        assert len(stacks['Stacks']) == 0
+        with app.app_context():
+            # upload a changelog
+            s3 = boto3.client('s3')
+            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}')
+            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
+            # confirm changelogs exist
+            changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
+            assert len(changelogs['Contents']) == 1
+            # confirm stack exists
+            cfn = boto3.client('cloudformation', REGION)
+            stacks = cfn.describe_stacks()
+            assert len(stacks['Stacks']) == 1
+            # confirm stack has been deleted
+            mystack.destroy(delete_changelogs=True)
+            stacks = cfn.describe_stacks()
+            assert len(stacks['Stacks']) == 0
+            # confirm changelogs have been deleted
+            changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
+            assert 'Contents' not in changelogs
 
     @moto.mock_ec2
     @moto.mock_s3
@@ -262,7 +271,6 @@ class TestAwsStacks:
         mystack.check_node_status = MagicMock(return_value='RUNNING')
         mystack.get_tag = MagicMock(return_value='Confluence')
         mystack.is_app_clustered = MagicMock(return_value=True)
-
         with app.app_context():
             # perform restarts
             # expect failures as node count is 0
@@ -270,10 +278,8 @@ class TestAwsStacks:
             assert rolling_result is False
             full_result = mystack.full_restart()
             assert full_result is False
-
             # mock nodes
             mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
-
             # expect restarts to pass
             rolling_result = mystack.rolling_restart()
             assert rolling_result is True

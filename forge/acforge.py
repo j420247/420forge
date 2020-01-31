@@ -223,12 +223,12 @@ class DoRollingRebuild(RestrictedResource):
 
 
 class DoDestroy(RestrictedResource):
-    def get(self, region, stack_name):
+    def get(self, region, stack_name, delete_changelogs):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            mystack.destroy()
+            mystack.destroy(bool(delete_changelogs))
         except Exception as e:
             log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)
@@ -257,8 +257,7 @@ class DoGetThreadDumpLinks(RestrictedResource):
     def get(self, stack_name):
         urls = []
         try:
-            accountId = boto3.client('sts').get_caller_identity().get('Account')
-            s3_bucket = f'atl-cfn-forge-{accountId}'
+            s3_bucket = current_app.config['S3_BUCKET']
             client = boto3.client('s3', region_name=session['region'])
             list_objects = client.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{stack_name}/')
             if 'Contents' in list_objects:

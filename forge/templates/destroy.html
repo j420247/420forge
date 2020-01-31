@@ -7,4 +7,17 @@
     Tear stacks down. Note, this will immediately destroy the stack and all associated resources.
     {% endblock descriptionPanel %}
 
+{% block modalTitle %}Confirm deletion{% endblock modalTitle %}
+{% block modalContents %}
+<p>Are you sure you want to delete <label id="stack-to-delete"></label>?</p>
+<form class="aui">
+    <fieldset class="group">
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="deleteChangelogs" id="deleteChangelogs">
+            <label for="deleteChangelogs">Also remove changelogs from S3</label>
+        </div>
+    </fieldset>
+</form>
+{% endblock modalContents %}
+
 {% block buttonText %}Destroy{% endblock buttonText %}
