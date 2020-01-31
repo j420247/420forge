@@ -1211,6 +1211,22 @@ class Stack:
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         return True
 
+    def get_thread_dump_links(self):
+        urls = []
+        s3_bucket = current_app.config['S3_BUCKET']
+        try:
+            client = boto3.client('s3', self.region)
+            list_objects = client.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{self.stack_name}/')
+            if 'Contents' in list_objects:
+                for thread_dump in list_objects['Contents']:
+                    url = client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': s3_bucket, 'Key': thread_dump['Key']})
+                    urls.append(url)
+        except Exception as e:
+            if e.response['Error']['Code'] == 'NoSuchBucket':
+                print(f"S3 bucket '{s3_bucket}' has not yet been created")
+            log.exception('Error occurred getting thread dump links')
+        return urls
+
     def run_sql(self):
         self.log_msg(INFO, 'Running post clone SQL', write_to_changelog=True)
         nodes = self.get_stacknodes()
