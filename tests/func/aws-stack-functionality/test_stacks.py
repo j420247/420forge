@@ -15,7 +15,7 @@ from forge.aws_cfn_stack import stack as aws_stack
 CONF_STACKNAME = 'my-confluence'
 CONF_CLONE_STACKNAME = 'my-cloned-confluence'
 
-CHANGELOG_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/changelog.log')
+DUMMY_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/dummy.file')
 TEMPLATE_FILE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence.template.yaml')
 TEMPLATE_FILE_CLONE = Path(f'{Path(inspect.getfile(inspect.currentframe())).parent}/func-test-confluence-clone.template.yaml')
 REGION = 'us-east-1'
@@ -214,8 +214,8 @@ class TestAwsStacks:
         with app.app_context():
             # upload a changelog
             s3 = boto3.client('s3')
-            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}')
-            s3.upload_file(os.path.relpath(CHANGELOG_FILE), s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
+            s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'changelogs/{mystack.stack_name}')
+            s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
             # confirm changelogs exist
             changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
             assert len(changelogs['Contents']) == 1
@@ -314,6 +314,21 @@ class TestAwsStacks:
             assert thread_result is True
             heap_result = mystack.heap_dump()
             assert heap_result is True
+
+    @moto.mock_ec2
+    @moto.mock_s3
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_thread_dump_links(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        # upload a dummy thread dump
+        s3 = boto3.client('s3')
+        s3.upload_file(os.path.relpath(DUMMY_FILE), app.config['S3_BUCKET'], f'diagnostics/{mystack.stack_name}/threaddump.zip')
+        with app.app_context():
+            thread_dump_links = mystack.get_thread_dump_links()
+            assert len(thread_dump_links) > 0
 
     @moto.mock_ec2
     @moto.mock_s3

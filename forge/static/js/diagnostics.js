@@ -18,19 +18,19 @@ function onReady() {
 
 function threadDumps() {
     var stack_name = $("#stackName").text();
-    send_http_get_request(baseUrl + "/dothreaddumps/" + region + "/" + stack_name);
+    send_http_get_request([baseUrl, 'dothreaddumps', region, stack_name].join('/'));
     redirectToLog(stack_name);
 }
 
 function heapDumps() {
     var stack_name = $("#stackName").text();
-    send_http_get_request(baseUrl + "/doheapdumps/" + region + "/" + stack_name);
+    send_http_get_request([baseUrl, 'doheapdumps', region, stack_name].join('/'));
     redirectToLog(stack_name);
 }
 
 function dlThreadDumps() {
     var stack_name = $("#stackName").text();
-    send_http_get_request(baseUrl + "/dogetthreaddumplinks/" + stack_name, displayThreaddumpsToDownload);
+    send_http_get_request([baseUrl, 'dogetthreaddumplinks', region, stack_name].join('/'), displayThreaddumpsToDownload);
 }
 
 function displayThreaddumpsToDownload(responseText) {
