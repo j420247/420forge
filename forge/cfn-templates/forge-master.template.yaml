@@ -383,26 +383,22 @@ Resources:
               content: !Sub
                 - |
                   #!/usr/bin/env bash
-
-                  # long paths are required for the atlassian-aws-deployment submodule to clone correctly
-                  git config --global user.email "forge-server@example.com"
-                  git config --global user.name "Forge Server"
-                  git config --global core.longpaths true
-
                   forgepath=/home/forge/atl-cfn-forge
-
                   if [ -d $forgepath ]; then
                       cd $forgepath
                       git pull
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart
                       sudo -u forge /bin/bash -c 'git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart'
-                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath
+                      sudo -u forge /bin/bash -c 'git config --global user.email "forge-server@example.com"'
+                      sudo -u forge /bin/bash -c 'git config --global user.name "Forge Server"'
+                      # long paths are required for the atlassian-aws-deployment submodule to clone correctly
+                      sudo -u forge /bin/bash -c 'git config --global core.longpaths true'
+                      sudo -u forge /bin/bash -c 'git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath'
                       cd $forgepath
-                      git submodule update --init
-                      git submodule foreach git checkout master
+                      sudo -u forge /bin/bash -c 'git submodule update --init'
+                      sudo -u forge /bin/bash -c 'git submodule foreach git checkout master'
                   fi
                   # make the log directory and files if they don't exist so gunicorn can log to them during startup
                   if [[ ! -d $forgepath/logs ]]; then
@@ -431,8 +427,9 @@ Resources:
                     fi
                     # clone the repo
                     mkdir $forgepath/custom-templates
+                    chown -R forge:forge /home/forge
                     cd $forgepath/custom-templates
-                    git clone "${CustomTemplateRepo}"
+                    sudo -u forge /bin/bash -c 'git clone "${CustomTemplateRepo}"'
                   fi
 
                   chown forge:forge /etc/atl
