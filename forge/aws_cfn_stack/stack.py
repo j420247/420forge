@@ -742,7 +742,7 @@ class Stack:
         nodes = self.get_stacknodes()
         ec2 = boto3.client('ec2', region_name=self.region)
         for node in nodes:
-            response = ec2.describe_instance_attribute(Attribute='disableApiTermination', InstanceId=list(node.keys())[0],)
+            response = ec2.describe_instance_attribute(Attribute='disableApiTermination', InstanceId=list(node.keys())[0])
             if response['DisableApiTermination']['Value'] is True:
                 return True
         return False
