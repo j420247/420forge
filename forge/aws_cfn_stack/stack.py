@@ -738,6 +738,15 @@ class Stack:
             return True
         return [f'Jira {jira_product} {version} is incompatible with ZDU']
 
+    def has_termination_protection(self):
+        nodes = self.get_stacknodes()
+        ec2 = boto3.client('ec2', region_name=self.region)
+        for node in nodes:
+            response = ec2.describe_instance_attribute(Attribute='disableApiTermination', InstanceId=list(node.keys())[0])
+            if response['DisableApiTermination']['Value'] is True:
+                return True
+        return False
+
     def delete_from_s3(self, folder):
         s3_bucket = current_app.config['S3_BUCKET']
         s3 = boto3.client('s3', region_name=self.region)

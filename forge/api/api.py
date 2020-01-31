@@ -38,6 +38,8 @@ api.add_resource(GetTags, '/getTags/<region>/<stack_name>')
 api.add_resource(GetCloneDefaults, '/getCloneDefaults/<stack_name>')
 api.add_resource(GetZDUCompatibility, '/getZDUCompatibility/<region>/<stack_name>')
 api.add_resource(GetChangeSetDetails, '/getChangeSetDetails/<region>/<stack_name>/<change_set_name>')
+api.add_resource(HasTerminationProtection, '/hasTerminationProtection/<region>/<stack_name>')
+
 
 # Helpers
 api.add_resource(GetEbsSnapshots, '/getEbsSnapshots/<region>/<stack_name>')

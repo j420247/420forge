@@ -565,6 +565,12 @@ class GetTags(Resource):
         return tags
 
 
+class HasTerminationProtection(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.has_termination_protection()
+
+
 class GetCloneDefaults(Resource):
     def get(self, stack_name):
         clone_defaults = current_app.config['CLONE_DEFAULTS']['all']
