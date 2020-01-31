@@ -13,7 +13,7 @@ api.add_resource(DoFullRestart, '/dofullrestart/<region>/<stack_name>/<threads>/
 api.add_resource(DoRollingRestart, '/dorollingrestart/<region>/<stack_name>/<threads>/<heaps>')
 api.add_resource(DoRollingRebuild, '/dorollingrebuild/<region>/<stack_name>')
 api.add_resource(DoCreate, '/docreate')
-api.add_resource(DoDestroy, '/dodestroy/<region>/<stack_name>/<delete_changelogs>')
+api.add_resource(DoDestroy, '/dodestroy/<region>/<stack_name>/<delete_changelogs>/<delete_threaddumps>')
 api.add_resource(DoUpdate, '/doupdate/<stack_name>')
 api.add_resource(DoExecuteChangeset, '/doexecutechangeset/<stack_name>/<change_set_name>')
 api.add_resource(DoThreadDumps, '/dothreaddumps/<region>/<stack_name>')
