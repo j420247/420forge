@@ -232,14 +232,14 @@ function getSnapshots(clone_region, stackToRetrieve) {
 function displayEbsSnapshots(responseText) {
   var ebsSnaps = JSON.parse(responseText);
   $("#EBSSnapshotIdVal").remove();
-  var input = createSingleSelect("EBSSnapshotId", "", ebsSnaps, "Select EBS snapshot");
+  var input = createSingleSelect("EBSSnapshotId", ebsSnaps[0].label, ebsSnaps, "");
   $("#EBSSnapshotIdDiv").append(input);
 }
 
 function displayRdsSnapshots(responseText) {
   var rdsSnaps = JSON.parse(responseText);
   $("#DBSnapshotNameVal").remove();
-  var input = createSingleSelect("DBSnapshotName", "", rdsSnaps, "Select RDS snapshot");
+  var input = createSingleSelect("DBSnapshotName", rdsSnaps[0].label, rdsSnaps, "");
   $("#DBSnapshotNameDiv").append(input);
 }
 
