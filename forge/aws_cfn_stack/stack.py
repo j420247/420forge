@@ -738,6 +738,15 @@ class Stack:
             return True
         return [f'Jira {jira_product} {version} is incompatible with ZDU']
 
+    def has_termination_protection(self):
+        nodes = self.get_stacknodes()
+        ec2 = boto3.client('ec2', region_name=self.region)
+        for node in nodes:
+            response = ec2.describe_instance_attribute(Attribute='disableApiTermination', InstanceId=list(node.keys())[0])
+            if response['DisableApiTermination']['Value'] is True:
+                return True
+        return False
+
     ## Stack - Major Action Methods
 
     def upgrade(self, new_version):

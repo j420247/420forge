@@ -248,6 +248,20 @@ function enableActionButton() {
 function disableActionButton() {
     $("#action-button").attr("aria-disabled", true);
 }
+
+function replaceModalContents(title, text, optional_elements) {
+    var modalTitleElement = $("#modal-title");
+    modalTitleElement.empty();
+    modalTitleElement.text(title);
+
+    var modalContentsElement = $("#modal-contents");
+    modalContentsElement.empty();
+    modalContentsElement.append("<p>" + text + "</p>");
+
+    if (optional_elements)
+        modalContentsElement.append(optional_elements);
+}
+
 // Forge common functions
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
