@@ -27,10 +27,6 @@ function templateHandler(selected_stack_name) {
   $("#aui-message-bar").hide();
   selectStack(stack_name);
   disableActionButton();
-}
-
-function templateHandlerWithDefaultSelected(selected_stack_name) {
-  templateHandler(selected_stack_name);
   send_http_get_request(baseUrl + "/getTags/" + region + "/" + selected_stack_name, selectDefaultTemplate);
 }
 
@@ -96,8 +92,13 @@ function displayTemplatesAndSelectDefault(responseText, functionParams) {
 
   // Search each template in the list, when matched perform its click() function
   $.each($('.selectTemplateOption'), function () {
-    if (this.textContent === templateString)
-      this.click();
+    if (action === 'update') {
+      if (templateString === this.textContent)
+        this.click();
+    } else if (action === 'clone') {
+      if (templateString === this.textContent.replace('Clone.template.yaml', '.template.yaml'))
+        this.click();
+    }
   });
 }
 

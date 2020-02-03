@@ -17,7 +17,7 @@ api.add_resource(DoDestroy, '/dodestroy/<region>/<stack_name>/<delete_changelogs
 api.add_resource(DoUpdate, '/doupdate/<stack_name>')
 api.add_resource(DoExecuteChangeset, '/doexecutechangeset/<stack_name>/<change_set_name>')
 api.add_resource(DoThreadDumps, '/dothreaddumps/<region>/<stack_name>')
-api.add_resource(DoGetThreadDumpLinks, '/dogetthreaddumplinks/<stack_name>')
+api.add_resource(DoGetThreadDumpLinks, '/dogetthreaddumplinks/<region>/<stack_name>')
 api.add_resource(DoHeapDumps, '/doheapdumps/<region>/<stack_name>')
 api.add_resource(DoRunSql, '/dorunsql/<region>/<stack_name>')
 api.add_resource(DoTag, '/dotag/<region>/<stack_name>')

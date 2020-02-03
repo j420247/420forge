@@ -324,6 +324,21 @@ class TestAwsStacks:
 
     @moto.mock_ec2
     @moto.mock_s3
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_thread_dump_links(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        # upload a dummy thread dump
+        s3 = boto3.client('s3')
+        s3.upload_file(os.path.relpath(DUMMY_FILE), app.config['S3_BUCKET'], f'diagnostics/{mystack.stack_name}/threaddump.zip')
+        with app.app_context():
+            thread_dump_links = mystack.get_thread_dump_links()
+            assert len(thread_dump_links) > 0
+
+    @moto.mock_ec2
+    @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
     def test_upgrade(self):
