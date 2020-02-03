@@ -46,6 +46,7 @@ class Stack:
             self.log_msg(ERROR, error_string, write_to_changelog=False)
             raise ValueError(error_string)
         self.region = region
+        self.stack_id = None
         self.logfile = None
         self.changelogfile = None
         self.preupgrade_version = None
@@ -63,31 +64,17 @@ class Stack:
         if hasattr(self, 'service_url'):
             return self.service_url
         else:
-            try:
-                cfn = boto3.client('cloudformation', region_name=self.region)
-                stack_details = cfn.describe_stacks(StackName=self.stack_name)
-                product = self.get_tag('product')
-                service_url = f"{[p['OutputValue'] for p in stack_details['Stacks'][0]['Outputs'] if p['OutputKey'] == 'ServiceURL'][0]}/"
-                if product == 'crowd':
-                    service_url = f'{service_url}{product}/'
-                self.service_url = service_url
-                return True
-            except botocore.exceptions.ClientError as e:
-                # log and allow tenacity to retry
-                self.log_msg(ERROR, f'ClientError received during get_service_url. Request will be retried a maximum of 5 times. Exception is: {e}', write_to_changelog=False)
-                raise
-            except Exception as e:
-                log.exception(f'Exception occurred during get_service_url')
-                return False
+            stack_details = self.describe_stack()
+            product = self.get_tag('product')
+            service_url = f"{[p['OutputValue'] for p in stack_details['Outputs'] if p['OutputKey'] == 'ServiceURL'][0]}/"
+            if product == 'crowd':
+                service_url = f'{service_url}{product}/'
+            self.service_url = service_url
+            return True
 
     def get_params(self):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack_details = cfn.describe_stacks(StackName=self.stack_name)
-            params = stack_details['Stacks'][0]['Parameters']
-        except botocore.exceptions.ClientError:
-            log.exception('Error getting stack parameters')
-            return False
+        stack_details = self.describe_stack()
+        params = stack_details['Parameters']
         return params
 
     def get_param_value(self, param_to_get, params=None):
@@ -198,20 +185,22 @@ class Stack:
                 log.exception('An error occurred spinning down to 0 nodes')
                 self.log_msg(ERROR, f'An error occurred spinning down to 0 nodes: {e}', write_to_changelog=True)
                 return False
-        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
-            self.log_msg(INFO, "Successfully spun down to 0 nodes", write_to_changelog=True)
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+            self.log_msg(INFO, 'Successfully spun down to 0 nodes', write_to_changelog=True)
             return True
         return False
 
-    def wait_stack_action_complete(self, in_progress_state, stack_id=None):
-        self.log_msg(INFO, "Waiting for stack action to complete", write_to_changelog=False)
+    def wait_stack_action_complete(self, in_progress_state):
+        self.log_msg(INFO, 'Waiting for stack action to complete', write_to_changelog=False)
         stack_state = self.check_stack_state()
         if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
             return True
         while 'IN_PROGRESS' in stack_state or stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
-            stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
-        if 'ROLLBACK' in stack_state:
+            stack_state = self.check_stack_state()
+        if in_progress_state == 'DELETE_IN_PROGRES' and 'Stack does not exist' in stack_state:
+            return True
+        elif 'ROLLBACK' in stack_state:
             self.log_msg(ERROR, f'Stack action was rolled back: {stack_state}', write_to_changelog=True)
             return False
         elif 'FAILED' in stack_state:
@@ -333,32 +322,17 @@ class Stack:
                 self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty', write_to_changelog=False)
         return 'Timed Out'
 
-    def check_stack_state(self, stack_id=None):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
-        except Exception as e:
-            if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
-                self.log_msg(WARN, f'Stack actions are being throttled: {e}', write_to_changelog=False)
-                return 'throttled'
-            if 'does not exist' in e.response['Error']['Message']:
-                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=False)
-                return
-            log.exception('Error checking stack state')
-            self.log_msg(ERROR, 'Error checking stack state', write_to_changelog=False)
-            return
-        state = stack_state['Stacks'][0]['StackStatus']
-        return state
+    def check_stack_state(self):
+        stack_state = self.describe_stack()
+        if 'Stacks' in stack_state:
+            return stack_state['StackStatus']
+        else:
+            return stack_state
 
     def check_node_status(self, node_ip, logMsgs=True):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack = cfn.describe_stacks(StackName=self.stack_name)
-        except Exception as e:
-            log.exception('Error checking node status')
-            return f'Error checking node status: {e}'
-        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
-        port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
+        stack_details = self.describe_stack()
+        context_path = [param['ParameterValue'] for param in stack_details['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
+        port = [param['ParameterValue'] for param in stack_details['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
         if logMsgs:
             self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status', write_to_changelog=False)
         try:
@@ -525,14 +499,8 @@ class Stack:
         return True
 
     def get_tags(self):
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack = cfn.describe_stacks(StackName=self.stack_name)
-        except Exception as e:
-            self.log_msg(ERROR, f'Error getting tags: {e}', write_to_changelog=True)
-            log.exception('Error getting tags')
-            return False
-        tags = stack['Stacks'][0]['Tags']
+        stack_details = self.describe_stack()
+        tags = stack_details['Tags']
         return tags
 
     def get_tag(self, tag_name, log_msgs=True):
@@ -760,6 +728,28 @@ class Stack:
             if 'Errors' in response:
                 self.log_msg(ERROR, 'Failed to delete some files from S3', write_to_changelog=True)
 
+    def describe_stack(self):
+        try:
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            stack_details = cfn.describe_stacks(StackName=self.stack_name)
+            self.stack_id = stack_details['Stacks'][0]['StackId']
+            return stack_details['Stacks'][0]
+        except botocore.exceptions.ClientError as e:
+            if 'does not exist' in e.response['Error']['Message']:
+                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=False)
+                return 'Stack does not exist'
+            else:
+                # log and allow tenacity to retry
+                self.log_msg(ERROR, f'ClientError received describing stack. Request will be retried a maximum of 5 times. Exception is: {e}', write_to_changelog=False)
+                raise
+        except Exception as e:
+            if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
+                self.log_msg(WARN, f'Stack actions are being throttled: {e}', write_to_changelog=False)
+                return 'throttled'
+            log.exception(f'Exception occurred describing stack')
+            self.log_msg(f'Exception occurred describing stack: {e}', write_to_changelog=True)
+        return False
+
     ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
@@ -916,7 +906,8 @@ class Stack:
         self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            stack_state = cfn.describe_stacks(StackName=self.stack_name)
+            # cfn.describe_stacks(StackName=self.stack_name)
+            cfn.delete_stack(StackName=self.stack_name)
         except botocore.exceptions.ClientError as e:
             if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=True)
@@ -926,9 +917,7 @@ class Stack:
                 log.exception('An error occurred destroying stack')
                 self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
                 return False
-        stack_id = stack_state['Stacks'][0]['StackId']
-        cfn.delete_stack(StackName=self.stack_name)
-        if self.wait_stack_action_complete('DELETE_IN_PROGRESS', stack_id):
+        if self.wait_stack_action_complete('DELETE_IN_PROGRESS'):
             self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
             if delete_changelogs:
                 self.delete_from_s3(f'changelogs/{self.stack_name}')
