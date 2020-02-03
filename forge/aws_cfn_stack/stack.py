@@ -943,12 +943,16 @@ class Stack:
             self.clear_current_action()
             return False
         self.log_change('Create complete, looking for post-clone SQL')
-        if self.run_sql():
-            self.log_change('SQL complete, restarting {self.stack_name}')
-            self.full_restart()
+        if self.get_tag('environment', False) == 'dr':
+            self.log_msg(INFO, 'Clone environment is DR, skipping post clone SQL/liquibase', write_to_changelog=True)
         else:
-            self.clear_current_action()
-            self.log_msg(INFO, 'Clone complete - Run SQL failed', write_to_changelog=True)
+            if self.run_sql():
+                self.log_change('SQL complete, restarting {self.stack_name}')
+                self.full_restart()
+            else:
+                self.clear_current_action()
+                self.log_msg(INFO, 'Clone complete - Run SQL failed', write_to_changelog=True)
+                return False
         self.log_msg(INFO, 'Clone complete', write_to_changelog=True)
         return True
 
@@ -1254,7 +1258,7 @@ class Stack:
                 self.log_msg(ERROR, f'Running SQL script failed', write_to_changelog=True)
         else:
             self.log_msg(INFO, 'No post clone SQL files found', write_to_changelog=True)
-            return False
+            return True
         self.log_msg(INFO, 'Run SQL complete', write_to_changelog=True)
         return True
 
