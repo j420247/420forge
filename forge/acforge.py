@@ -222,12 +222,12 @@ class DoRollingRebuild(RestrictedResource):
 
 
 class DoDestroy(RestrictedResource):
-    def get(self, region, stack_name, delete_changelogs):
+    def get(self, region, stack_name, delete_changelogs, delete_threaddumps):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            mystack.destroy(bool(delete_changelogs))
+            mystack.destroy(bool(delete_changelogs), bool(delete_threaddumps))
         except Exception as e:
             log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)

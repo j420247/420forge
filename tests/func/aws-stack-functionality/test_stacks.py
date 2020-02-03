@@ -220,24 +220,31 @@ class TestAwsStacks:
         s3_bucket = app.config['S3_BUCKET']
         mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
         with app.app_context():
-            # upload a changelog
+            # upload a changelog and thread dump
             s3 = boto3.client('s3')
             s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'changelogs/{mystack.stack_name}')
             s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'changelogs/{mystack.stack_name}/changelog.log')
-            # confirm changelogs exist
+            s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'diagnostics/{mystack.stack_name}')
+            s3.upload_file(os.path.relpath(DUMMY_FILE), s3_bucket, f'diagnostics/{mystack.stack_name}/threaddump.zip')
+            # confirm files exist
             changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
             assert len(changelogs['Contents']) == 1
+            diagnostics = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{mystack.stack_name}/')
+            assert len(diagnostics['Contents']) == 1
             # confirm stack exists
             cfn = boto3.client('cloudformation', REGION)
             stacks = cfn.describe_stacks()
             assert len(stacks['Stacks']) == 1
             # confirm stack has been deleted
-            mystack.destroy(delete_changelogs=True)
+            mystack.destroy(delete_changelogs=True, delete_threaddumps=True)
             stacks = cfn.describe_stacks()
             assert len(stacks['Stacks']) == 0
             # confirm changelogs have been deleted
             changelogs = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'changelogs/{mystack.stack_name}/')
             assert 'Contents' not in changelogs
+            # confirm threaddumps have been deleted
+            diagnostics = s3.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{mystack.stack_name}/')
+            assert 'Contents' not in diagnostics
 
     @moto.mock_ec2
     @moto.mock_elbv2

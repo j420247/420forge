@@ -23,7 +23,7 @@ function displayDestroyModal(responseText) {
     } else {
         // Add action to OK button
         $("#modal-ok-btn").on("click", function() {
-            send_http_get_request([baseUrl, 'dodestroy', region, stackName, $("#deleteChangelogs").is(":checked")].join('/'));
+            send_http_get_request([baseUrl, 'dodestroy', region, stackName, $("#deleteChangelogs").is(":checked"), $("#deleteThreadDumps").is(":checked")].join('/'));
             redirectToLog(stackName, '');
         });
     }
