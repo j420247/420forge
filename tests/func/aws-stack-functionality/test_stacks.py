@@ -145,6 +145,7 @@ def setup_env_resources():
 @mock.patch.dict(os.environ, {'AWS_SECRET_ACCESS_KEY': 'AWS_SECRET_ACCESS_KEY'})
 class TestAwsStacks:
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -154,6 +155,7 @@ class TestAwsStacks:
         assert stacks['Stacks'][0]['StackName'] == CONF_STACKNAME
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -172,13 +174,15 @@ class TestAwsStacks:
                 param['UsePreviousValue'] = True
         with app.app_context():
             result = mystack.create_change_set(params_for_update, TEMPLATE_FILE)
-        assert result['ResponseMetadata']['HTTPStatusCode'] == 200
-        cfn = boto3.client('cloudformation', REGION)
-        change_set = cfn.describe_change_set(ChangeSetName=result['Id'], StackName=CONF_STACKNAME)
-        assert [param for param in change_set['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
+            assert result['ResponseMetadata']['HTTPStatusCode'] == 200
+            cfn = boto3.client('cloudformation', REGION)
+            change_set = cfn.describe_change_set(ChangeSetName=result['Id'], StackName=CONF_STACKNAME)
+            assert [param for param in change_set['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
+    @moto.mock_ssm
     @moto.mock_route53
     @moto.mock_cloudformation
     def test_clone(self):
@@ -187,6 +191,9 @@ class TestAwsStacks:
         clone_params = get_stack_params()
         clone_params.append({'ParameterKey': 'StackName', 'ParameterValue': CONF_CLONE_STACKNAME})
         # setup mocks
+        clone_stack.full_restart = MagicMock(return_value=True)
+        clone_stack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+        clone_stack.get_sql = MagicMock(return_value='Select * from cwd_user limit 1;')
         clone_stack.validate_service_responding = MagicMock(return_value=True)
         clone_stack.wait_stack_action_complete = MagicMock(return_value=True)
         with app.app_context():
@@ -204,6 +211,7 @@ class TestAwsStacks:
             assert stacks['Stacks'][0]['StackName'] == CONF_CLONE_STACKNAME
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -232,6 +240,35 @@ class TestAwsStacks:
             assert 'Contents' not in changelogs
 
     @moto.mock_ec2
+    @moto.mock_elbv2
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_dr_clone(self):
+        setup_stack()
+        dr_stack = aws_stack.Stack(CONF_CLONE_STACKNAME, REGION)
+        clone_params = get_stack_params()
+        next(param for param in clone_params if param['ParameterKey'] == 'DeployEnvironment')['ParameterValue'] = 'dr'
+        clone_params.append({'ParameterKey': 'StackName', 'ParameterValue': CONF_CLONE_STACKNAME})
+        # setup mocks
+        dr_stack.run_sql = MagicMock(return_value=False)
+        dr_stack.validate_service_responding = MagicMock(return_value=True)
+        dr_stack.wait_stack_action_complete = MagicMock(return_value=True)
+        with app.app_context():
+            outcome = dr_stack.clone(
+                stack_params=clone_params,
+                template_file=TEMPLATE_FILE_CLONE,
+                app_type='confluence',
+                clustered='true',
+                creator='test-user',
+                region=REGION,
+                cloned_from=CONF_STACKNAME,
+            )
+            assert outcome
+            dr_stack.run_sql.assert_not_called()
+
+    @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -253,12 +290,13 @@ class TestAwsStacks:
             change_set_name = change_set['Id']
             mystack.validate_service_responding = MagicMock(return_value=True)
             result = mystack.execute_change_set(change_set_name)
-        assert result is True
-        cfn = boto3.client('cloudformation', REGION)
-        stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
-        assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
+            assert result is True
+            cfn = boto3.client('cloudformation', REGION)
+            stacks = cfn.describe_stacks(StackName=CONF_STACKNAME)
+            assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_ssm
     @moto.mock_route53
@@ -287,6 +325,7 @@ class TestAwsStacks:
             assert full_result is True
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -300,6 +339,7 @@ class TestAwsStacks:
         assert tags == tags_to_add
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_ssm
     @moto.mock_route53
@@ -316,6 +356,7 @@ class TestAwsStacks:
             assert heap_result is True
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_ssm
     @moto.mock_route53
@@ -331,6 +372,7 @@ class TestAwsStacks:
             assert len(thread_dump_links) > 0
 
     @moto.mock_ec2
+    @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
