@@ -416,7 +416,9 @@ class Stack:
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
         try:
             client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
-            cfn.update_stack(StackName=self.stack_name, Parameters=spinup_params, sePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token)
+            cfn.update_stack(
+                StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
         except Exception as e:
             log.exception('Error occurred spinning up remaining nodes')
             self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}', write_to_changelog=True)
