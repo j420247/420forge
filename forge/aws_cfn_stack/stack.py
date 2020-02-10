@@ -274,8 +274,7 @@ class Stack:
             else:
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
         try:
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            client_request_token = f'{self.stack_name}-{timestamp}'
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
             update_stack = cfn.update_stack(
                 StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
             )
