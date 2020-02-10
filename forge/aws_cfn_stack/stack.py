@@ -46,6 +46,7 @@ class Stack:
             self.log_msg(ERROR, error_string, write_to_changelog=False)
             raise ValueError(error_string)
         self.region = region
+        self.stack_id = None
         self.logfile = None
         self.changelogfile = None
         self.preupgrade_version = None
@@ -189,7 +190,10 @@ class Stack:
             else:
                 spindown_params = self.update_paramlist(spindown_params, 'SynchronyClusterNodeCount', '0')
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=spindown_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.update_stack(
+                StackName=self.stack_name, Parameters=spindown_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
         except Exception as e:
             if 'No updates are to be performed' in e:
                 self.log_msg(INFO, 'Stack is already at 0 nodes', write_to_changelog=True)
@@ -198,25 +202,35 @@ class Stack:
                 log.exception('An error occurred spinning down to 0 nodes')
                 self.log_msg(ERROR, f'An error occurred spinning down to 0 nodes: {e}', write_to_changelog=True)
                 return False
-        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
-            self.log_msg(INFO, "Successfully spun down to 0 nodes", write_to_changelog=True)
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
+            self.log_msg(INFO, 'Successfully spun down to 0 nodes', write_to_changelog=True)
             return True
         return False
 
-    def wait_stack_action_complete(self, in_progress_state, stack_id=None):
-        self.log_msg(INFO, "Waiting for stack action to complete", write_to_changelog=False)
-        stack_state = self.check_stack_state()
-        if stack_state is None and in_progress_state == "DELETE_IN_PROGRESS":
-            return True
+    def wait_stack_action_complete(self, in_progress_state, client_request_token):
+        self.log_msg(INFO, 'Waiting for stack action to complete', write_to_changelog=False)
+        try:
+            self.stack_id = boto3.client('cloudformation', self.region).describe_stacks(StackName=self.stack_name)['Stacks'][0]['StackId']
+            stack_state = self.check_stack_state()
+        except ClientError as e:
+            if 'does not exist' in e.response['Error']['Message'] and in_progress_state == "DELETE_IN_PROGRESS":
+                return True
+            else:
+                log.exception('Error getting stack state')
+                self.log_msg(ERROR, f'Error getting stack state: {e}', write_to_changelog=True)
+        logged_events = []
+        logged_events = self.get_event_logs(client_request_token, logged_events)
         while 'IN_PROGRESS' in stack_state or stack_state in (in_progress_state, 'throttled'):
             time.sleep(10)
-            stack_state = self.check_stack_state(stack_id if stack_id else self.stack_name)
+            stack_state = self.check_stack_state()
+            logged_events = self.get_event_logs(client_request_token, logged_events)
         if 'ROLLBACK' in stack_state:
             self.log_msg(ERROR, f'Stack action was rolled back: {stack_state}', write_to_changelog=True)
             return False
         elif 'FAILED' in stack_state:
             self.log_msg(ERROR, f'Stack action failed: {stack_state}', write_to_changelog=False)
             return False
+        self.get_event_logs(client_request_token, logged_events)
         return True
 
     def wait_stack_change_set_creation_complete(self, change_set_arn):
@@ -260,11 +274,14 @@ class Stack:
             else:
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
         try:
-            update_stack = cfn.update_stack(StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            update_stack = cfn.update_stack(
+                StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
         except botocore.exceptions.ClientError as e:
             self.log_msg(INFO, f'Stack spinup failed: {e}', write_to_changelog=True)
             return False
-        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             return False
         self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond', write_to_changelog=False)
         if not self.validate_service_responding():
@@ -333,10 +350,10 @@ class Stack:
                 self.log_msg(WARN, f'Service status check failed: returned 200 but response was empty', write_to_changelog=False)
         return 'Timed Out'
 
-    def check_stack_state(self, stack_id=None):
+    def check_stack_state(self):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            stack_state = cfn.describe_stacks(StackName=stack_id if stack_id else self.stack_name)
+            stack_state = cfn.describe_stacks(StackName=self.stack_id)
         except Exception as e:
             if 'Throttling' in e.response['Error']['Message'] or 'Rate exceeded' in e.response['Error']['Message']:
                 self.log_msg(WARN, f'Stack actions are being throttled: {e}', write_to_changelog=False)
@@ -397,12 +414,15 @@ class Stack:
             else:
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', self.preupgrade_synchrony_node_count)
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.update_stack(
+                StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
         except Exception as e:
             log.exception('Error occurred spinning up remaining nodes')
             self.log_msg(ERROR, f'Error occurred spinning up remaining nodes: {e}', write_to_changelog=True)
             return False
-        if self.wait_stack_action_complete("UPDATE_IN_PROGRESS"):
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, "Stack restored to full node count", write_to_changelog=True)
         return True
 
@@ -760,6 +780,21 @@ class Stack:
             if 'Errors' in response:
                 self.log_msg(ERROR, 'Failed to delete some files from S3', write_to_changelog=True)
 
+    def get_event_logs(self, client_request_token, logged_events):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            all_events = cfn.describe_stack_events(StackName=self.stack_id)['StackEvents']
+            all_events.reverse()
+            for event in all_events:
+                if event['ClientRequestToken'] == client_request_token and event['EventId'] not in logged_events:
+                    logline = f"{event['LogicalResourceId']} | {event['ResourceStatus']} | {event['ResourceStatusReason'] if 'ResourceStatusReason' in event else ''}"
+                    self.log_msg(INFO, logline, write_to_changelog=False)
+                    logged_events.append(event['EventId'])
+        except Exception as e:
+            log.exception('Error getting stack events')
+            self.log_msg(ERROR, f'Error getting stack events: {e}', write_to_changelog=False)
+        return logged_events
+
     ## Stack - Major Action Methods
 
     def upgrade(self, new_version):
@@ -821,7 +856,8 @@ class Stack:
             stack_params = self.update_paramlist(stack_params, 'CrowdVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token)
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}', write_to_changelog=True)
@@ -829,7 +865,7 @@ class Stack:
                 log.exception('An error occurred updating the version')
                 self.log_msg(ERROR, f'An error occurred updating the version: {e}', write_to_changelog=True)
                 return False
-        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Successfully updated version in stack parameters', write_to_changelog=False)
         else:
             self.log_msg(INFO, 'Could not update version in stack parameters', write_to_changelog=True)
@@ -875,7 +911,8 @@ class Stack:
         stack_params = self.update_paramlist(stack_params, 'JiraVersion', new_version)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token)
         except Exception as e:
             if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, f'Stack is already at {new_version}', write_to_changelog=True)
@@ -884,7 +921,7 @@ class Stack:
                 self.log_msg(ERROR, f'An error occurred updating the version: {e}', write_to_changelog=True)
                 self.cancel_zdu_mode()
                 return False
-        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Successfully updated version in stack parameters', write_to_changelog=False)
         else:
             self.log_msg(INFO, 'Could not update version in stack parameters', write_to_changelog=True)
@@ -916,7 +953,8 @@ class Stack:
         self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=False)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            stack_state = cfn.describe_stacks(StackName=self.stack_name)
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.delete_stack(StackName=self.stack_name, ClientRequestToken=client_request_token)
         except botocore.exceptions.ClientError as e:
             if 'does not exist' in e.response['Error']['Message']:
                 self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=True)
@@ -926,9 +964,7 @@ class Stack:
                 log.exception('An error occurred destroying stack')
                 self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
                 return False
-        stack_id = stack_state['Stacks'][0]['StackId']
-        cfn.delete_stack(StackName=self.stack_name)
-        if self.wait_stack_action_complete('DELETE_IN_PROGRESS', stack_id):
+        if self.wait_stack_action_complete('DELETE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
             if delete_changelogs:
                 self.delete_from_s3(f'changelogs/{self.stack_name}')
@@ -1010,13 +1046,14 @@ class Stack:
         self.log_msg(INFO, f'Updating stack with changeset: {change_set_name}', write_to_changelog=True)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
-            cfn.execute_change_set(ChangeSetName=change_set_name, StackName=self.stack_name)
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.execute_change_set(ChangeSetName=change_set_name, StackName=self.stack_name, ClientRequestToken=client_request_token)
         except Exception as e:
             log.exception('An error occurred applying change set to stack')
             self.log_msg(ERROR, f'An error occurred applying change set to stack: {e}', write_to_changelog=True)
             self.log_msg(INFO, 'Changeset execution complete - failed', write_to_changelog=True)
             return False
-        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Changeset execution complete - failed', write_to_changelog=True)
             return False
         # only check for response from service if stack is server (should always have one node) or if cluster has more than 0 nodes
@@ -1055,12 +1092,14 @@ class Stack:
             if 'TESTING' not in current_app.config:
                 time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
             created_stack = cfn.create_stack(
                 StackName=self.stack_name,
                 Parameters=stack_params,
                 TemplateURL=f"https://s3.amazonaws.com/{current_app.config['S3_BUCKET']}/forge-templates/{template_file.name}",
                 Capabilities=['CAPABILITY_IAM'],
                 Tags=tags,
+                ClientRequestToken=client_request_token,
             )
         except Exception as e:
             log.exception('Error occurred creating stack')
@@ -1068,7 +1107,7 @@ class Stack:
             self.log_msg(INFO, 'Create complete - failed', write_to_changelog=True)
             return False
         self.log_msg(INFO, f'Create has begun: {created_stack}', write_to_changelog=False)
-        if not self.wait_stack_action_complete('CREATE_IN_PROGRESS'):
+        if not self.wait_stack_action_complete('CREATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Create complete - failed', write_to_changelog=True)
             return False
         self.log_msg(INFO, f'Stack {self.stack_name} created, waiting on service responding', write_to_changelog=False)
@@ -1284,13 +1323,16 @@ class Stack:
         self.log_change(f'Parameters for update: {params}')
         try:
             cfn = boto3.client('cloudformation', region_name=self.region)
-            cfn.update_stack(StackName=self.stack_name, Parameters=params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            cfn.update_stack(
+                StackName=self.stack_name, Parameters=params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
             self.log_msg(INFO, f'Tagging successfully initiated', write_to_changelog=False)
         except Exception as e:
             log.exception('An error occurred tagging stack')
             self.log_msg(ERROR, f'An error occurred tagging stack: {e}', write_to_changelog=True)
             return False
-        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+        if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Tag complete', write_to_changelog=True)
             return True
         return False
