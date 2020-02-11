@@ -213,6 +213,33 @@ class TestAwsStacks:
     @moto.mock_ec2
     @moto.mock_elbv2
     @moto.mock_s3
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_clone_destroy_failed(self):
+        setup_stack()
+        clone_stack = aws_stack.Stack(CONF_CLONE_STACKNAME, REGION)
+        clone_params = get_stack_params()
+        clone_params.append({'ParameterKey': 'StackName', 'ParameterValue': CONF_CLONE_STACKNAME})
+        # setup mocks
+        clone_stack.wait_stack_action_complete = MagicMock(return_value=False)
+        clone_stack.create = MagicMock(return_value=True)
+        with app.app_context():
+            outcome = clone_stack.clone(
+                stack_params=clone_params,
+                template_file=TEMPLATE_FILE_CLONE,
+                app_type='confluence',
+                clustered='true',
+                creator='test-user',
+                region=REGION,
+                cloned_from=CONF_STACKNAME,
+            )
+            assert not outcome
+            clone_stack.create.assert_not_called()
+
+    @moto.mock_ec2
+    @moto.mock_elbv2
+    @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
     def test_destroy(self):
