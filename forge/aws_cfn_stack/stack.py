@@ -979,6 +979,7 @@ class Stack:
         if not self.destroy(delete_changelogs=False, delete_threaddumps=False):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
+            return False
         if not self.create(stack_params, template_file, app_type, clustered, creator, region, cloned_from):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
