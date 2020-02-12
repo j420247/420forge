@@ -96,7 +96,7 @@ function displayTemplatesAndSelectDefault(responseText, functionParams) {
       if (templateString === this.textContent)
         this.click();
     } else if (action === 'clone') {
-      if (templateString === this.textContent.replace('Clone.template.yaml', '.template.yaml'))
+      if (templateString.replace('.template.yaml', 'Clone.template.yaml') === this.textContent)
         this.click();
     }
   });
