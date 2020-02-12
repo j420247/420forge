@@ -560,7 +560,7 @@ class HasTerminationProtection(Resource):
 
 class GetCloneDefaults(Resource):
     def get(self, stack_name):
-        clone_defaults = current_app.config['CLONE_DEFAULTS']['all']
+        clone_defaults = current_app.config['CLONE_DEFAULTS']['all'].copy()
         if stack_name in current_app.config['CLONE_DEFAULTS']:
             clone_defaults.update(current_app.config['CLONE_DEFAULTS'][stack_name])
         return clone_defaults

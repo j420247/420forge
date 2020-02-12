@@ -106,8 +106,8 @@ class Stack:
             for param in params:
                 if param['ParameterKey'].lower() == param_to_get.lower() or param['ParameterKey'].lower() in legacy_params:
                     param_value = param['ParameterValue'] if param['ParameterValue'] else ''
-        except TypeError:
-            log.exception('Error retrieving parameter value; no params available')
+        except TypeError as e:
+            log.exception(f'Error retrieving parameter value; no params available: {e}')
         return param_value
 
     def update_paramlist(self, params_list, param_key, param_value):

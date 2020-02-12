@@ -65,8 +65,12 @@ class BaseConfig(object):
     CLONE_DEFAULTS = {
         'all': {
             'ClusterNodeCount': '1',
-            'DeployEnvironment': 'stg',
+            'CustomDnsName': '',
             'DBMultiAZ': 'false',
+            'DeployEnvironment': 'stg',
+            'MailEnabled': 'false',
+            'Monitoring': 'false',
+            'TomcatScheme': 'http'
         },
         'foj-stg': {
             'ClusterNodeCount': '4',
