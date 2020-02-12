@@ -964,12 +964,14 @@ class Stack:
                 log.exception('An error occurred destroying stack')
                 self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
                 return False
-        if self.wait_stack_action_complete('DELETE_IN_PROGRESS', client_request_token):
-            self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
-            if delete_changelogs:
-                self.delete_from_s3(f'changelogs/{self.stack_name}')
-            if delete_threaddumps:
-                self.delete_from_s3(f'diagnostics/{self.stack_name}')
+        if not self.wait_stack_action_complete('DELETE_IN_PROGRESS', client_request_token):
+            self.log_msg(ERROR, 'Destroy complete - failed', write_to_changelog=True)
+            return False
+        self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
+        if delete_changelogs:
+            self.delete_from_s3(f'changelogs/{self.stack_name}')
+        if delete_threaddumps:
+            self.delete_from_s3(f'diagnostics/{self.stack_name}')
         self.log_msg(INFO, 'Destroy complete', write_to_changelog=True)
         return True
 
@@ -979,6 +981,7 @@ class Stack:
         if not self.destroy(delete_changelogs=False, delete_threaddumps=False):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
+            return False
         if not self.create(stack_params, template_file, app_type, clustered, creator, region, cloned_from):
             self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
             self.clear_current_action()
