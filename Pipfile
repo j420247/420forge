@@ -40,5 +40,5 @@ tenacity="*"
 python_version = "3.6"
 
 [scripts]
-forge-flask-dev-server = "python3 /home/forge/atl-cfn-forge/run.py"
-forge-gunicorn = "gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app"
+forge-flask-dev-server = "python3 ./run.py"
+forge-gunicorn = "bash -c \"mkdir -p logs && gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app\""
