@@ -116,6 +116,12 @@ def runsql():
     return render_template('runsql.html')
 
 
+@main.route('/sleep', methods=['GET'])
+def sleep():
+    set_action('sleep')
+    return render_template('sleep.html')
+
+
 @main.route('/admin', methods=['GET'])
 def admin():
     set_action('admin')

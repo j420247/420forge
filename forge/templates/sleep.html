@@ -1,0 +1,15 @@
+{% extends "page-content.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('static/js/sleep.js') }}"></script>
+{% endblock head %}
+    {% block descriptionPanel %}
+    Sleep a stack. Note, this will spin stack down to 0 ec2 nodes, ensure rds is not multi-az and stop the rds.
+    {% endblock descriptionPanel %}
+
+{% block modalTitle %}Confirm sleep{% endblock modalTitle %}
+{% block modalContents %}
+<p>Are you sure you want to sleep <label id="stack-to-sleep"></label>?</p>
+{% endblock modalContents %}
+
+{% block buttonText %}Sleep{% endblock buttonText %}
