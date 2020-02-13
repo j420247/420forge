@@ -331,6 +331,21 @@ class DoCreate(RestrictedResource):
         return outcome
 
 
+class DoSleep(RestrictedResource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('sleep', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            mystack.sleep()
+        except Exception as e:
+            log.exception('Error occurred upgrading stack')
+            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', write_to_changelog=True)
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
 class GetLogs(Resource):
     def get(self, stack_name):
         log = get_current_log(stack_name)

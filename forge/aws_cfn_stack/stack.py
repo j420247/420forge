@@ -59,6 +59,16 @@ class Stack:
         retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
         before=tenacity.after_log(log, DEBUG),
     )
+
+    def get_resource_value(self, resource_to_get):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            resource_details = cfn.describe_stack_resource(StackName=self.stack_name, LogicalResourceId=resource_to_get)
+            resource_value = resource_details['StackResourceDetail']['PhysicalResourceId']
+        except TypeError:
+            log.exception('Error retrieving resource value; no resource '+resource_to_get+' available')
+        return resource_value
+
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
@@ -1294,6 +1304,75 @@ class Stack:
             self.log_msg(INFO, 'Tag complete', write_to_changelog=True)
             return True
         return False
+
+    def sleep(self):
+        self.log_change(f'sleeping: {self.stack_name}')
+        stack_changed = ''
+        # add tag sleeping=true
+        tags = self.get_tags()
+        if any(d.get('Key', None) == 'sleeping' for d in tags):
+            self.log_msg(INFO, 'Stack already has the sleeping tag', write_to_changelog=True)
+        else:
+            tags.append({'Key': 'sleeping', 'Value': 'true'})
+            stack_changed = 'true'
+        # update stack to single AZ if needed and 0 nodecount
+        stack_params = self.get_params()
+        if self.get_param_value('DBMultiAZ') == 'true':
+            self.update_paramlist(stack_params, 'DBMultiAZ', 'false')
+            stack_changed = 'true'
+        if self.get_param_value('ClusterNodeCount') != '0':
+            self.update_paramlist(stack_params, 'ClusterNodeCount', '0')
+            stack_changed = 'true'
+        # if this is a prod-like stack with a read-replica, remove the replica
+        try:
+            if self.get_param_value('DBReadReplicaInstanceClass') != 'none':
+                self.update_paramlist(stack_params, 'DBReadReplicaInstanceClass', 'none')
+                stack_changed = 'true'
+        except:
+            self.log_msg(INFO, 'No read replica detected for this stack', write_to_changelog=False)
+            pass
+        # do the stack update for tag and multiaz as needed
+        if stack_changed == 'true':
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            try:
+                self.log_msg(INFO, 'Readying stack for sleeping (singleAZ, zero nodes, remove any db replica)', write_to_changelog=False)
+                cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Tags=tags,
+                               Capabilities=['CAPABILITY_IAM'])
+            except Exception as e:
+                log.exception('An error occurred sleeping the stack')
+                self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
+                return False
+            if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                self.log_msg(INFO, 'Successfully readied stack for sleeping', write_to_changelog=False)
+            else:
+                self.log_msg(INFO, 'Could not ready stack for sleeping', write_to_changelog=True)
+                self.log_msg(INFO, 'Sleep complete - failed', write_to_changelog=True)
+                return False
+        else:
+            self.log_msg(INFO, f'No cloudformation change is required to sleep this stack', write_to_changelog=True)
+
+        # now try to stop the RDS if it is "available"
+        rds_name = self.get_resource_value('DB')
+        rds = boto3.client('rds', region_name=self.region)
+        try:
+            response = rds.describe_db_instances(DBInstanceIdentifier=rds_name)
+            dbstate = response['DBInstances'][0]['DBInstanceStatus']
+        except Exception as e:
+            log.exception('An error occurred checking the state of the RDS')
+            self.log_msg(ERROR, f'An error occurred checking the state of the RDS: {e}', write_to_changelog=True)
+            return False
+        if dbstate == 'available':
+            try:
+                response = rds.stop_db_instance(DBInstanceIdentifier=rds_name)
+            except Exception as e:
+                log.exception('An error occurred sleeping the stack')
+                self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
+                return False
+        else:
+            self.log_msg(INFO, f'The RDS is currently in state : {dbstate}', write_to_changelog=True)
+            pass
+        self.log_msg(INFO, f'Stack {self.stack_name} is now catching some ZZZs', write_to_changelog=True)
+        return True
 
     # Logging functions
     def create_action_log(self, action):
