@@ -339,7 +339,7 @@ class DoSleep(RestrictedResource):
         try:
             mystack.sleep()
         except Exception as e:
-            log.exception('Error occurred upgrading stack')
+            log.exception('Error occurred sleeping stack')
             mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
