@@ -204,7 +204,7 @@ class Stack:
                                 "user": session['saml']['subject'] if 'saml' in session else 'Unknown User',
                                 "msg": action_msg,
                                 "stack": self.stack_name,
-                                "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
+                                "timestamp": str(int(time.time() * 1000)),
                             }
                         )
                     }
