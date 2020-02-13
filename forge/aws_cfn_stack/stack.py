@@ -1299,7 +1299,8 @@ class Stack:
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
-        self.log_msg(INFO, 'Thread dumps complete', write_to_changelog=False, send_sns_msg=True)
+        self.log_msg(INFO, 'Thread dumps complete', write_to_changelog=False)
+        self.send_sns_msg('Thread dumps generated')
         return True
 
     def heap_dump(self):
@@ -1311,7 +1312,8 @@ class Stack:
             self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
             if 'TESTING' not in current_app.config:
                 time.sleep(30)  # give node time to recover and rejoin cluster
-        self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False, send_sns_msg=True)
+        self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
+        self.send_sns_msg('Heap dumps generated')
         return True
 
     def get_thread_dump_links(self):
@@ -1358,7 +1360,8 @@ class Stack:
         else:
             self.log_msg(INFO, 'No post clone SQL files found', write_to_changelog=True)
             return True
-        self.log_msg(INFO, 'Run SQL complete', write_to_changelog=True, send_sns_msg=True)
+        self.log_msg(INFO, 'Run SQL complete', write_to_changelog=True)
+        self.send_sns_msg('SQL run against stack')
         return True
 
     def tag(self, tags):
