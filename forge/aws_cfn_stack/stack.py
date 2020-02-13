@@ -786,7 +786,7 @@ class Stack:
             all_events = cfn.describe_stack_events(StackName=self.stack_id)['StackEvents']
             all_events.reverse()
             for event in all_events:
-                if event['ClientRequestToken'] == client_request_token and event['EventId'] not in logged_events:
+                if 'ClientRequestToken' in event and event['ClientRequestToken'] == client_request_token and event['EventId'] not in logged_events:
                     logline = f"{event['LogicalResourceId']} | {event['ResourceStatus']} | {event['ResourceStatusReason'] if 'ResourceStatusReason' in event else ''}"
                     self.log_msg(INFO, logline, write_to_changelog=False)
                     logged_events.append(event['EventId'])
@@ -950,29 +950,29 @@ class Stack:
             self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
 
     def destroy(self, delete_changelogs, delete_threaddumps):
-        self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=False)
+        self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=not delete_changelogs)
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
             cfn.delete_stack(StackName=self.stack_name, ClientRequestToken=client_request_token)
         except botocore.exceptions.ClientError as e:
             if 'does not exist' in e.response['Error']['Message']:
-                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=True)
-                self.log_msg(INFO, 'Destroy complete - not required', write_to_changelog=True)
+                self.log_msg(INFO, f'Stack {self.stack_name} does not exist', write_to_changelog=not delete_changelogs)
+                self.log_msg(INFO, 'Destroy complete - not required', write_to_changelog=not delete_changelogs)
                 return True
             else:
                 log.exception('An error occurred destroying stack')
-                self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=True)
+                self.log_msg(ERROR, f'An error occurred destroying stack: {e}', write_to_changelog=not delete_changelogs)
                 return False
         if not self.wait_stack_action_complete('DELETE_IN_PROGRESS', client_request_token):
-            self.log_msg(ERROR, 'Destroy complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Destroy complete - failed', write_to_changelog=not delete_changelogs)
             return False
-        self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=True)
+        self.log_msg(INFO, f'Destroy successful for stack {self.stack_name}', write_to_changelog=not delete_changelogs)
         if delete_changelogs:
             self.delete_from_s3(f'changelogs/{self.stack_name}')
         if delete_threaddumps:
             self.delete_from_s3(f'diagnostics/{self.stack_name}')
-        self.log_msg(INFO, 'Destroy complete', write_to_changelog=True)
+        self.log_msg(INFO, 'Destroy complete', write_to_changelog=not delete_changelogs)
         return True
 
     def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):

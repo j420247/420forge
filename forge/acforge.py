@@ -224,7 +224,7 @@ class DoRollingRebuild(RestrictedResource):
 class DoDestroy(RestrictedResource):
     def get(self, region, stack_name, delete_changelogs, delete_threaddumps):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+        if not mystack.store_current_action('destroy', stack_locking_enabled(), not delete_changelogs, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
             mystack.destroy(bool(delete_changelogs), bool(delete_threaddumps))
