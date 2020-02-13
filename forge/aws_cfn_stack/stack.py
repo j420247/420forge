@@ -59,14 +59,13 @@ class Stack:
         retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
         before=tenacity.after_log(log, DEBUG),
     )
-
     def get_resource_value(self, resource_to_get):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
             resource_details = cfn.describe_stack_resource(StackName=self.stack_name, LogicalResourceId=resource_to_get)
             resource_value = resource_details['StackResourceDetail']['PhysicalResourceId']
         except TypeError:
-            log.exception('Error retrieving resource value; no resource '+resource_to_get+' available')
+            log.exception(f'Error retrieving resource value; no resource {resource_to_get} available')
         return resource_value
 
     def get_service_url(self):
@@ -766,7 +765,7 @@ class Stack:
             for file in files['Contents']:
                 keys_to_delete.append({'Key': file['Key']})
             keys_to_delete.append({'Key': folder})
-            response = s3.delete_objects(Bucket=s3_bucket, Delete={'Objects': keys_to_delete},)
+            response = s3.delete_objects(Bucket=s3_bucket, Delete={'Objects': keys_to_delete})
             if 'Errors' in response:
                 self.log_msg(ERROR, 'Failed to delete some files from S3', write_to_changelog=True)
 
@@ -1260,7 +1259,7 @@ class Stack:
             )
             # run that sql
             if not self.run_command(
-                [nodes[0]], f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done',
+                [nodes[0]], f'source /etc/atl; for file in `ls /tmp/{cloned_from_stack}-clones-sql.d/*.sql`;do {db_conx_string} -a -f $file >> /var/log/sql.out 2>&1; done'
             ):
                 self.log_msg(ERROR, f'Running SQL script failed', write_to_changelog=True)
                 return False
@@ -1336,8 +1335,7 @@ class Stack:
             cfn = boto3.client('cloudformation', region_name=self.region)
             try:
                 self.log_msg(INFO, 'Readying stack for sleeping (singleAZ, zero nodes, remove any db replica)', write_to_changelog=False)
-                cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Tags=tags,
-                               Capabilities=['CAPABILITY_IAM'])
+                cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
             except Exception as e:
                 log.exception('An error occurred sleeping the stack')
                 self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
