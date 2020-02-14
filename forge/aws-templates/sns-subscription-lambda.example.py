@@ -38,15 +38,8 @@ def logicmonitor_register_opsnote(logicmonitor_resource_group, message, timestam
 
 def logicmonitor_generate_headers(data, resource_path, method):
     # You will need to add the following environment variables in the lambda config
-    try:
-        access_id = check.secrets['LM_API_ACCESSID']
-    except:
-        access_id = getenv('LM_API_ACCESSID')
-    try:
-        access_key = check.secrets['LM_API_ACCESSKEY']
-    except:
-        access_key = getenv('LM_API_ACCESSKEY')
-
+    access_id = getenv('LM_API_ACCESSID')
+    access_key = getenv('LM_API_ACCESSKEY')
     epoch = str(int(time.time() * 1000))
     request_vars = method + epoch + data + resource_path
     # Construct signature
