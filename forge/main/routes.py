@@ -117,7 +117,7 @@ def runsql():
 
 
 @main.route('/wake', methods=['GET'])
-def sleep():
+def wake():
     set_action('wake')
     return render_template('wake.html')
 
