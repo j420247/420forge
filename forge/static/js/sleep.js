@@ -15,8 +15,10 @@ function displaySleepModal(responseText) {
     if (terminationProtection) {
         var title = 'Cannot sleep ' + stackName;
         var text = 'At least one EC2 node has termination protection enabled. Please disable termination protection prior to sleeping.';
+        $("#modal-ok-btn").html("Acknowledge");
         replaceModalContents(title, text);
-        // Close modal on OK
+
+        // Close modal on ACK
         $("#modal-ok-btn").on("click", function() {
             AJS.dialog2("#modal-dialog").hide();
         });

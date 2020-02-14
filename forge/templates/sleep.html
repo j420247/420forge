@@ -4,7 +4,7 @@
     <script src="{{ get_filename_with_last_update_time('static/js/sleep.js') }}"></script>
 {% endblock head %}
     {% block descriptionPanel %}
-    Sleep a stack. Note, this will spin stack down to 0 ec2 nodes, ensure rds is not multi-az and stop the rds.
+    Sleep a stack. Note, this will spin stack down to 0 ec2 nodes, ensure rds is not multi-az, termiante any db read replica, and stop the rds.
     {% endblock descriptionPanel %}
 
 {% block modalTitle %}Confirm sleep{% endblock modalTitle %}
