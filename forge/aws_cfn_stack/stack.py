@@ -60,6 +60,28 @@ class Stack:
         retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
         before=tenacity.after_log(log, DEBUG),
     )
+    def get_resource_value(self, resource_to_get):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        try:
+            resource_details = cfn.describe_stack_resource(StackName=self.stack_name, LogicalResourceId=resource_to_get)
+            resource_value = resource_details['StackResourceDetail']['PhysicalResourceId']
+        except botocore.exceptions.ClientError as e:
+            # log and allow tenacity to retry
+            self.log_msg(ERROR, f'ClientError received during get_resource_value. Request will be retried a maximum of 5 times. Exception is: {e}', write_to_changelog=False)
+            raise
+        except TypeError:
+            log.exception(f'Error retrieving resource value; no resource {resource_to_get} available')
+        except Exception as e:
+            log.exception(f'Exception occurred during get_resource_value')
+            return False
+        return resource_value
+
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(),
+        stop=tenacity.stop_after_attempt(5),
+        retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
+        before=tenacity.after_log(log, DEBUG),
+    )
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
@@ -1339,6 +1361,65 @@ class Stack:
             self.log_msg(INFO, 'Tag complete', write_to_changelog=True)
             return True
         return False
+
+    def wake(self):
+        self.log_msg(INFO, f'Beginning wake for {self.stack_name}', write_to_changelog=True)
+
+        # now try to start the RDS if it is "available"
+        rds_name = self.get_resource_value('DB')
+        rds = boto3.client('rds', region_name=self.region)
+        try:
+            response = rds.describe_db_instances(DBInstanceIdentifier=rds_name)
+            dbstate = response['DBInstances'][0]['DBInstanceStatus']
+        except Exception as e:
+            log.exception('An error occurred checking the state of the RDS')
+            self.log_msg(ERROR, f'An error occurred checking the state of the RDS: {e}', write_to_changelog=True)
+            return False
+        if dbstate == 'stopped':
+            try:
+                response = rds.start_db_instance(DBInstanceIdentifier=rds_name)
+            except Exception as e:
+                log.exception('An error occurred sleeping the stack')
+                self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
+                return False
+        else:
+            self.log_msg(INFO, f'The RDS is currently in state : {dbstate}', write_to_changelog=True)
+        self.log_msg(INFO, f'Stack {self.stack_name} is now catching some ZZZs', write_to_changelog=True)
+
+        stack_changed = False
+        # remove tag sleeping=true
+        tags = self.get_tags()
+        if any(d.get('Key', None) == 'sleeping' for d in tags):
+            tags.remove({'Key': 'sleeping', 'Value': 'true'})
+            tack_changed = True
+            self.log_msg(INFO, 'Stack already has the sleeping tag', write_to_changelog=True)
+        else:
+            self.log_msg(INFO, 'Stack not currently tagged as sleeping', write_to_changelog=True)
+        # if stack nodecount is 0, update stack to nodecount of 1
+        stack_params = self.get_params()
+        if self.get_param_value('ClusterNodeCount') == '0':
+            self.update_paramlist(stack_params, 'ClusterNodeCount', '1')
+            stack_changed = True
+
+        # do the stack update for tag and nodecount as needed
+        if stack_changed:
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            try:
+                self.log_msg(INFO, f'Waking stack {self.stack_name} to 1 active node', write_to_changelog=False)
+                cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
+            except Exception as e:
+                log.exception('An error occurred waking the stack')
+                self.log_msg(ERROR, f'An error occurred waking the stack: {e}', write_to_changelog=True)
+                return False
+            if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
+                self.log_msg(INFO, f'Successfully woke stack {self.stack_name}', write_to_changelog=False)
+            else:
+                self.log_msg(INFO, 'Could not wake stack {self.stack_name}', write_to_changelog=True)
+                self.log_msg(INFO, 'Wake complete - failed', write_to_changelog=True)
+                return False
+        else:
+            self.log_msg(INFO, f'No cloudformation change is required to wake this stack', write_to_changelog=True)
+        return True
 
     # Logging functions
     def create_action_log(self, action):

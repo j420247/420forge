@@ -131,6 +131,9 @@
                                     <li {% if session['nice_action_name'] == 'Run SQL' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.runsql') }}" aria-owns="aui-menu-runsql" id="runsql-link">Run SQL</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'Wake stack' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.wake') }}" aria-owns="aui-menu-wake" id="wake-link">Wake Stack</a>
+                                    </li>
                                     <li {% if session['nice_action_name'] == 'Stack logs' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.viewlog') }}" aria-owns="aui-menu-viewlog" id="viewlog-link">Stack Logs</a>
                                     </li>

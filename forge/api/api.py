@@ -20,6 +20,7 @@ api.add_resource(DoThreadDumps, '/dothreaddumps/<region>/<stack_name>')
 api.add_resource(DoGetThreadDumpLinks, '/dogetthreaddumplinks/<region>/<stack_name>')
 api.add_resource(DoHeapDumps, '/doheapdumps/<region>/<stack_name>')
 api.add_resource(DoRunSql, '/dorunsql/<region>/<stack_name>')
+api.add_resource(DoWake, '/dowake/<region>/<stack_name>')
 api.add_resource(DoTag, '/dotag/<region>/<stack_name>')
 
 # Stack info

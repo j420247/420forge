@@ -331,6 +331,21 @@ class DoCreate(RestrictedResource):
         return outcome
 
 
+class DoWake(RestrictedResource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('wake', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            mystack.wake()
+        except Exception as e:
+            log.exception('Error occurred waking stack')
+            mystack.log_msg(ERROR, f'Error occurred waking stack: {e}', write_to_changelog=True)
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
 class GetLogs(Resource):
     def get(self, stack_name):
         log = get_current_log(stack_name)

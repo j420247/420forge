@@ -1,0 +1,15 @@
+{% extends "page-content.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('static/js/wake.js') }}"></script>
+{% endblock head %}
+    {% block descriptionPanel %}
+    Wake a stack. Note, this will start the RDS and spin stack up to 1 ec2 node (if currently at 0).
+    {% endblock descriptionPanel %}
+
+{% block modalTitle %}Confirm wake{% endblock modalTitle %}
+{% block modalContents %}
+<p>Are you sure you want to wake <label id="stack-to-wake"></label>?</p>
+{% endblock modalContents %}
+
+{% block buttonText %}Wake{% endblock buttonText %}
