@@ -26,7 +26,7 @@ pipelines:
               - pip install --upgrade pip
               - pip install awscli cfn-lint
               - cfn-lint -u
-              - cfn-lint forge/cfn-templates/forge-master.template.yaml
+              - cfn-lint forge/aws-templates/forge-master.template.yaml
         - step:
             name: 'pytest unit'
             caches:
