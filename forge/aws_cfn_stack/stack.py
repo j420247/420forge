@@ -1366,7 +1366,6 @@ class Stack:
                 return False
         else:
             self.log_msg(INFO, f'The RDS is currently in state : {dbstate}', write_to_changelog=True)
-            pass
         self.log_msg(INFO, f'Stack {self.stack_name} is now catching some ZZZs', write_to_changelog=True)
         return True
 
