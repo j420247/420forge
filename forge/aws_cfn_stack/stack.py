@@ -1322,14 +1322,12 @@ class Stack:
         if self.get_param_value('ClusterNodeCount') != '0':
             self.update_paramlist(stack_params, 'ClusterNodeCount', '0')
             stack_changed = True
-        # if this is a prod-like stack with a read-replica, remove the replica
-        try:
-            if self.get_param_value('DBReadReplicaInstanceClass') != 'none':
-                self.update_paramlist(stack_params, 'DBReadReplicaInstanceClass', 'none')
-                stack_changed = True
-        except:
-            self.log_msg(INFO, 'No read replica detected for this stack', write_to_changelog=False)
-            pass
+        # if this is a prod-like stack with a read-replica, change param to remove the replica
+        replica = self.get_param_value('DBReadReplicaInstanceClass')
+        if replica and replica != 'none':
+            self.update_paramlist(stack_params, 'DBReadReplicaInstanceClass', 'none')
+            stack_changed = True
+
         # do the stack update for tag and multiaz as needed
         if stack_changed:
             cfn = boto3.client('cloudformation', region_name=self.region)
