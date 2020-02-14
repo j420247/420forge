@@ -63,6 +63,8 @@ class Stack:
     def get_resource_value(self, resource_to_get):
         cfn = boto3.client('cloudformation', region_name=self.region)
         try:
+            sn = self.stack_name
+            lri = resource_to_get
             resource_details = cfn.describe_stack_resource(StackName=self.stack_name, LogicalResourceId=resource_to_get)
             resource_value = resource_details['StackResourceDetail']['PhysicalResourceId']
         except botocore.exceptions.ClientError as e:
@@ -1378,21 +1380,21 @@ class Stack:
         if dbstate == 'stopped':
             try:
                 response = rds.start_db_instance(DBInstanceIdentifier=rds_name)
+                self.log_msg(INFO, f'RDS for stack {self.stack_name} is waking up', write_to_changelog=True)
             except Exception as e:
-                log.exception('An error occurred sleeping the stack')
-                self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
+                log.exception('An error occurred waking the stack')
+                self.log_msg(ERROR, f'An error occurred waking the stack: {e}', write_to_changelog=True)
                 return False
         else:
             self.log_msg(INFO, f'The RDS is currently in state : {dbstate}', write_to_changelog=True)
-        self.log_msg(INFO, f'Stack {self.stack_name} is now catching some ZZZs', write_to_changelog=True)
 
         stack_changed = False
         # remove tag sleeping=true
         tags = self.get_tags()
         if any(d.get('Key', None) == 'sleeping' for d in tags):
             tags.remove({'Key': 'sleeping', 'Value': 'true'})
-            tack_changed = True
-            self.log_msg(INFO, 'Stack already has the sleeping tag', write_to_changelog=True)
+            stack_changed = True
+            self.log_msg(INFO, 'Removed sleeping tag from stack', write_to_changelog=True)
         else:
             self.log_msg(INFO, 'Stack not currently tagged as sleeping', write_to_changelog=True)
         # if stack nodecount is 0, update stack to nodecount of 1
