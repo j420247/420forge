@@ -195,7 +195,7 @@ class Stack:
             if not topic_arn:
                 sns.create_topic(Name='atl-cfn-forge-action-msgs')
                 topic_arn = self.get_sns_topic_arn()
-            sns.publish(
+            published_msg = sns.publish(
                 TopicArn=topic_arn,
                 Message=json.dumps(
                     {
@@ -211,6 +211,7 @@ class Stack:
                 ),
                 MessageStructure='json',
             )
+            return published_msg
         except Exception as e:
             log.exception('Error occurred sending sns message')
             self.log_msg(ERROR, f'Error occurred sending sns message: {e}', write_to_changelog=True)

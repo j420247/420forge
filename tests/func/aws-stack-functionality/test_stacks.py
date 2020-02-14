@@ -361,6 +361,30 @@ class TestAwsStacks:
     @moto.mock_ec2
     @moto.mock_elbv2
     @moto.mock_s3
+    @moto.mock_sns
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_sns(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        action_msg = 'test msg'
+        with app.test_request_context(''):
+            session = {'saml': {'subject': 'UserA'}}
+            topic_arn = mystack.get_sns_topic_arn()
+            # confirm there is no topic for forge msgs
+            assert topic_arn is None
+            # send a msg
+            published_msg = mystack.send_sns_msg(action_msg)
+            topic_arn = mystack.get_sns_topic_arn()
+            # confirm a topic has been created for forge msgs
+            assert topic_arn is not None
+            # confirm the message was sent successfully
+            assert published_msg is not None
+            assert published_msg['MessageId'] is not None
+
+    @moto.mock_ec2
+    @moto.mock_elbv2
+    @moto.mock_s3
     @moto.mock_route53
     @moto.mock_cloudformation
     def test_tagging(self):
