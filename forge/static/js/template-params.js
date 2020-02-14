@@ -20,6 +20,12 @@ function readyTheTemplate() {
       e.preventDefault();
       AJS.dialog2("#modal-dialog").hide();
   });
+
+  $('#getPreviousParams-button').click(function() {
+    if (!event.currentTarget.hasAttribute('disabled')) {
+      populatePreviousValues();
+    }
+  });
 }
 
 function templateHandler(selected_stack_name) {
@@ -128,6 +134,7 @@ function displayTemplateParams(responseText) {
   var paramsList = document.getElementById("paramsList");
   paramsList.appendChild(fieldset);
   $("#stack-name-input").show();
+  enableExtraActions();
   enableActionButton();
 }
 
@@ -203,6 +210,7 @@ function displayStackParams(responseText) {
   if (document.getElementById("clone-params"))
     $("#clone-params").show();
   $("#paramsForm").show();
+  enableExtraActions();
   enableActionButton();
 }
 
@@ -455,6 +463,13 @@ function sendParamsAsJson() {
   jsonArray.push(newParamsArray);
   jsonArray.push(origParams);
 
+  // store values for re-use during this session
+  sessionStorage.setItem('p', Base64Encode(JSON.stringify({
+    action: action,
+    stack: stackNameForAction,
+    params: newParamsArray
+  })));
+
   if (action === 'update') {
     createChangeset(stackNameForAction, url, JSON.stringify(jsonArray));
   } else {
@@ -465,5 +480,65 @@ function sendParamsAsJson() {
       appendRegion = "&region=" + $("#regionSelector")[0].value;
 
     redirectToLog(stackNameForAction, appendRegion);
+  }
+}
+
+function enableExtraActions() {
+  $('#extraActionsDropdown aui-item-link').each(function() {
+    $(this).attr("disabled", false).attr("aria-disabled", false);
+  })
+}
+
+function populatePreviousValues() {
+  var currentStackName = scrapePageForStackName();
+  if (currentStackName === "") {
+    AJS.flag({
+       type: 'info',
+       body: 'Please enter a stack name',
+       close: 'auto'
+    });
+    return;
+  }
+
+  try {
+    var storedValues = JSON.parse(Base64Decode(sessionStorage.getItem('p')));
+  } catch(e) {
+    AJS.flag({
+       type: 'info',
+       title: 'No previous values',
+       body: 'Previous values only persist through your current browser session (your current tab or window).',
+       close: 'auto'
+    });
+    return;
+  }
+
+  var same_action = storedValues['action'] === action;
+  var same_stackname = storedValues['stack'] === currentStackName;
+
+  if (same_action && same_stackname) {
+    storedValues['params'].forEach(function(param) {
+      var element = $("#" + param['ParameterKey'] + "Val");
+      if (element.is("input")) {
+        element.val(param['ParameterValue']);
+      }
+      else if (element.is("a")) {
+        element.text(param['ParameterValue']);
+      }
+      else if (element.is("aui-select")) {
+        element[0].value = param['ParameterValue'];
+      }
+      element.trigger('change');
+    });
+    AJS.flag({
+       type: 'success',
+       body: 'Previous values used for stack name "' + currentStackName + '" and action "' + action + '" have been applied.',
+       close: 'auto'
+    });
+  } else {
+    AJS.flag({
+       type: 'error',
+       body: 'No previous values matching this stack name and action were found!',
+       close: 'auto'
+    });
   }
 }

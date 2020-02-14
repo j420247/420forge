@@ -1,11 +1,14 @@
 {% extends "page-content.html" %}
 {% block head %}
     {{ super() }}
+    <script src="/static/base64js.min.js"></script>
     <script src="{{ get_filename_with_last_update_time('static/js/template-params.js') }}"></script>
 {% endblock head %}
-    {% block descriptionPanel %}
-    Update template parameters for a stack
-    {% endblock descriptionPanel %}
+
+{% block descriptionPanel %}
+Update template parameters for a stack
+{% endblock descriptionPanel %}
+
 {% block templateSelector %}
 <a id="templateSelector" href="#templateSelection" aria-owns="templateSelection" aria-haspopup="true"
    class="aui-button aui-style-default aui-dropdown2-trigger">
@@ -16,6 +19,17 @@
     <ul class="aui-list-truncate" id="templates"></ul>
 </div>
 {% endblock templateSelector %}
+
+{% block extraActionsDropdown %}
+<button class="aui-button aui-dropdown2-trigger aui-dropdown2-trigger-arrowless" aria-controls="extraActionsDropdown">
+    <span class="aui-icon aui-icon-small aui-iconfont-more">More</span>
+</button>
+<aui-dropdown-menu id="extraActionsDropdown">
+    {% block extraActionsDropdownItems %}
+    <aui-item-link id="getPreviousParams-button" disabled>Get previous parameters</aui-item-link>
+    {% endblock extraActionsDropdownItems %}
+</aui-dropdown-menu>
+{% endblock extraActionsDropdown %}
 
 {% block Parameters %}
 {% block ParametersTop %}
