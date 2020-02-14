@@ -1305,7 +1305,7 @@ class Stack:
         return False
 
     def sleep(self):
-        self.log_change(f'sleeping: {self.stack_name}')
+        self.log_msg(INFO, f'Beginning sleep for {self.stack_name}', write_to_changelog=True)
         stack_changed = False
         # add tag sleeping=true
         tags = self.get_tags()
