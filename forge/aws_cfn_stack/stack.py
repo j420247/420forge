@@ -64,10 +64,23 @@ class Stack:
         try:
             resource_details = cfn.describe_stack_resource(StackName=self.stack_name, LogicalResourceId=resource_to_get)
             resource_value = resource_details['StackResourceDetail']['PhysicalResourceId']
+        except botocore.exceptions.ClientError as e:
+            # log and allow tenacity to retry
+            self.log_msg(ERROR, f'ClientError received during get_resource_value. Request will be retried a maximum of 5 times. Exception is: {e}', write_to_changelog=False)
+            raise
         except TypeError:
             log.exception(f'Error retrieving resource value; no resource {resource_to_get} available')
+        except Exception as e:
+            log.exception(f'Exception occurred during get_resource_value')
+            return False
         return resource_value
 
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(),
+        stop=tenacity.stop_after_attempt(5),
+        retry=tenacity.retry_if_exception_type(botocore.exceptions.ClientError),
+        before=tenacity.after_log(log, DEBUG),
+    )
     def get_service_url(self):
         if hasattr(self, 'service_url'):
             return self.service_url
