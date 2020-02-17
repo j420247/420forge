@@ -1367,7 +1367,7 @@ class Stack:
     def wake(self):
         self.log_msg(INFO, f'Beginning wake for {self.stack_name}', write_to_changelog=True)
 
-        # now try to start the RDS if it is "available"
+        # now try to start the RDS if it is "stopped"
         rds_name = self.get_resource_value('DB')
         rds = boto3.client('rds', region_name=self.region)
         try:
@@ -1399,6 +1399,10 @@ class Stack:
             self.log_msg(INFO, 'Stack not currently tagged as sleeping', write_to_changelog=True)
         # if stack nodecount is 0, update stack to nodecount of 1
         stack_params = self.get_params()
+        if self.get_param_value('ClusterNodeMax') == '0':
+            self.update_paramlist(stack_params, 'ClusterNodeMax', '1')
+            self.update_paramlist(stack_params, 'ClusterNodeMin', '1')
+            stack_changed = True
         if self.get_param_value('ClusterNodeCount') == '0':
             self.update_paramlist(stack_params, 'ClusterNodeCount', '1')
             stack_changed = True
@@ -1414,7 +1418,7 @@ class Stack:
                 self.log_msg(ERROR, f'An error occurred waking the stack: {e}', write_to_changelog=True)
                 return False
             if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                self.log_msg(INFO, f'Successfully woke stack {self.stack_name}', write_to_changelog=False)
+                self.log_msg(INFO, f'Successfully woke stack {self.stack_name}', write_to_changelog=True)
             else:
                 self.log_msg(INFO, 'Could not wake stack {self.stack_name}', write_to_changelog=True)
                 self.log_msg(INFO, 'Wake complete - failed', write_to_changelog=True)
