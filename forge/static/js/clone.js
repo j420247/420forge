@@ -18,12 +18,18 @@ function onReady() {
         getKmsKeys(clone_region);
         getSslCerts(clone_region);
     });
+
+    $('#getCloneDefaults-button').click(function(event) {
+        if (!event.currentTarget.hasAttribute('disabled')) {
+            getCloneDefaults();
+        }
+    });
 }
 
 function getCloneDefaults(){
     var stack_name = $("#StackNameVal").val();
     if (!stack_name) {
-        displayAUIFlag('Please enter a stack name', 'error');
+        displayAUIFlag('Please enter a stack name', 'info');
         return;
     }
     send_http_get_request(baseUrl + "/getCloneDefaults/" + stack_name, applyCloneDefaults);

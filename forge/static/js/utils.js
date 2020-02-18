@@ -331,3 +331,14 @@ function setModalSize(selector, size) {
         })
         .addClass('aui-dialog2-' + size);
 }
+
+// https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
+function Base64Encode(str, encoding = 'utf-8') {
+    var bytes = new (typeof TextEncoder === "undefined" ? TextEncoderLite : TextEncoder)(encoding).encode(str);
+    return base64js.fromByteArray(bytes);
+}
+
+function Base64Decode(str, encoding = 'utf-8') {
+    var bytes = base64js.toByteArray(str);
+    return new (typeof TextDecoder === "undefined" ? TextDecoderLite : TextDecoder)(encoding).decode(bytes);
+}
