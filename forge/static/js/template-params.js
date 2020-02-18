@@ -470,17 +470,17 @@ function sendParamsAsJson() {
     params: newParamsArray
   })));
 
-  // if (action === 'update') {
-  //   createChangeset(stackNameForAction, url, JSON.stringify(jsonArray));
-  // } else {
-  //   send_http_post_request(url, JSON.stringify(jsonArray));
+  if (action === 'update') {
+    createChangeset(stackNameForAction, url, JSON.stringify(jsonArray));
+  } else {
+    send_http_post_request(url, JSON.stringify(jsonArray));
 
-  //   var appendRegion = "";
-  //   if (action === 'clone')
-  //     appendRegion = "&region=" + $("#regionSelector")[0].value;
+    var appendRegion = "";
+    if (action === 'clone')
+      appendRegion = "&region=" + $("#regionSelector")[0].value;
 
-  //   redirectToLog(stackNameForAction, appendRegion);
-  // }
+    redirectToLog(stackNameForAction, appendRegion);
+  }
 }
 
 function enableExtraActions() {
