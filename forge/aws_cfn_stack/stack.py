@@ -1350,14 +1350,14 @@ class Stack:
         if stack_changed:
             cfn = boto3.client('cloudformation', region_name=self.region)
             try:
-                self.log_msg(INFO, 'Readying stack for sleeping (singleAZ, zero nodes, remove any db replica)', write_to_changelog=False)
+                self.log_msg(INFO, 'Readying stack for sleeping (singleAZ, zero nodes, remove any db replica)', write_to_changelog=True)
                 cfn.update_stack(StackName=self.stack_name, Parameters=stack_params, UsePreviousTemplate=True, Tags=tags, Capabilities=['CAPABILITY_IAM'])
             except Exception as e:
                 log.exception('An error occurred sleeping the stack')
                 self.log_msg(ERROR, f'An error occurred sleeping the stack: {e}', write_to_changelog=True)
                 return False
             if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                self.log_msg(INFO, 'Successfully readied stack for sleeping', write_to_changelog=False)
+                self.log_msg(INFO, 'Successfully readied stack for sleeping', write_to_changelog=True)
             else:
                 self.log_msg(INFO, 'Could not ready stack for sleeping', write_to_changelog=True)
                 self.log_msg(INFO, 'Sleep complete - failed', write_to_changelog=True)
