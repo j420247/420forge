@@ -1332,7 +1332,12 @@ class Stack:
         if self.get_param_value('DBMultiAZ') == 'true':
             self.update_paramlist(stack_params, 'DBMultiAZ', 'false')
             stack_changed = True
-        if self.get_param_value('ClusterNodeCount') != '0':
+        cluster_node_max = self.get_param_value('ClusterNodeMax')
+        if cluster_node_max and int(cluster_node_max) > 0:
+            self.update_paramlist(stack_params, 'ClusterNodeCount', '0')
+            stack_changed = True
+        cluster_node_count = self.get_param_value('ClusterNodeCount')
+        if cluster_node_count and int(cluster_node_count) > 0:
             self.update_paramlist(stack_params, 'ClusterNodeCount', '0')
             stack_changed = True
         # if this is a prod-like stack with a read-replica, change param to remove the replica
