@@ -205,6 +205,7 @@ class Stack:
                                 "msg": action_msg,
                                 "stack": self.stack_name,
                                 "timestamp": str(int(time.time())),
+                                "tags": json.dumps({"name": "Action performed by Forge"}),
                             }
                         )
                     }

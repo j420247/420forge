@@ -15,18 +15,18 @@ It can be modified to send events to other services.
 
 def lambda_handler(event, context):
     message = json.loads(event['Records'][0]['Sns']['Message'])
-    stack_name = message["stack"]
-    msg = f"{message['msg']} by {message['user']}"
+    stack_name = message['stack']
+    note = f"{message['msg']} by {message['user']}"
     resource_group = get_lm_resource_group(stack_name)
     if resource_group is None:
         print(f'Resource group for stack {stack_name} not found')
         return 'Failed'
-    status_code = logicmonitor_register_opsnote(resource_group, msg, message["timestamp"])
+    status_code = logicmonitor_register_opsnote(resource_group, note, message["timestamp"], message["tags"])
     return status_code
 
 
-def logicmonitor_register_opsnote(logicmonitor_resource_group, message, timestamp):
-    data = f'{{"note":"{message}","happenOnInSec":"{timestamp}","scopes":[{{"type":"deviceGroup","groupId":{logicmonitor_resource_group}}}],"tags":[{{"name":"Action performed by Forge"}}]}}'
+def logicmonitor_register_opsnote(logicmonitor_resource_group, note, timestamp, tags):
+    data = f'{{"note":"{note}","happenOnInSec":"{timestamp}","scopes":[{{"type":"deviceGroup","groupId":{logicmonitor_resource_group}}}],"tags":[{tags}]}}'
     print(data)
     resource_path = '/setting/opsnotes'
     query_params = ''
