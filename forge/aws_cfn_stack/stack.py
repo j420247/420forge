@@ -13,7 +13,7 @@ import botocore
 import requests
 import tenacity
 from botocore.exceptions import ClientError
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, session
 from humanfriendly import format_timespan
 from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
@@ -53,7 +53,10 @@ class Stack:
         self.preupgrade_app_node_count = None
         self.preupgrade_synchrony_node_count = None
 
-    ## Stack - micro function methods
+    ##
+    # Stack - micro function methods
+    #
+
     @tenacity.retry(
         wait=tenacity.wait_exponential(),
         stop=tenacity.stop_after_attempt(5),
@@ -172,7 +175,51 @@ class Stack:
             result = self.wait_for_cmd_result(cmd_id)
         return result
 
-    ## Stack - helper methods
+    def get_sns_topic_arn(self):
+        sns = boto3.client('sns', region_name=self.region)
+        try:
+            topics = sns.list_topics()
+            if 'Topics' in topics:
+                for topic in topics['Topics']:
+                    if 'atl-cfn-forge-action-msgs' in topic['TopicArn']:
+                        return topic['TopicArn']
+        except Exception as e:
+            log.exception('Error occurred getting sns topic')
+            self.log_msg(ERROR, f'Error occurred getting sns topic: {e}', write_to_changelog=True)
+            return False
+
+    def send_sns_msg(self, action_msg):
+        sns = boto3.client('sns', region_name=self.region)
+        try:
+            topic_arn = self.get_sns_topic_arn()
+            if not topic_arn:
+                sns.create_topic(Name='atl-cfn-forge-action-msgs')
+                topic_arn = self.get_sns_topic_arn()
+            published_msg = sns.publish(
+                TopicArn=topic_arn,
+                Message=json.dumps(
+                    {
+                        'default': json.dumps(
+                            {
+                                "user": session['saml']['subject'] if 'saml' in session else 'Unknown User',
+                                "msg": action_msg,
+                                "stack": self.stack_name,
+                                "timestamp": str(int(time.time())),
+                                "tags": json.dumps({"name": "Action performed by Forge"}),
+                            }
+                        )
+                    }
+                ),
+                MessageStructure='json',
+            )
+            return published_msg
+        except Exception as e:
+            log.exception('Error occurred sending sns message')
+            self.log_msg(ERROR, f'Error occurred sending sns message: {e}', write_to_changelog=True)
+
+    ##
+    # Stack - helper methods
+    #
 
     def spindown_to_zero_appnodes(self, app_type):
         self.log_msg(INFO, f'Spinning {self.stack_name} stack down to 0 nodes', write_to_changelog=True)
@@ -795,20 +842,22 @@ class Stack:
             self.log_msg(ERROR, f'Error getting stack events: {e}', write_to_changelog=False)
         return logged_events
 
-    ## Stack - Major Action Methods
+    ##
+    # Stack - Major Action Methods
+    #
 
     def upgrade(self, new_version):
-        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}', write_to_changelog=False)
+        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}', write_to_changelog=False, send_sns_msg=True)
         if self.is_app_clustered():
             if not self.upgrade_dc(new_version):
-                self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True)
+                self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
         else:
             if not self.upgrade_server(new_version):
-                self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True)
+                self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
         self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}', write_to_changelog=False)
-        self.log_msg(INFO, 'Upgrade complete', write_to_changelog=True)
+        self.log_msg(INFO, 'Upgrade complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
     def upgrade_dc(self, new_version):
@@ -878,18 +927,18 @@ class Stack:
         return True
 
     def upgrade_zdu(self, new_version, username, password):
-        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}', write_to_changelog=False)
+        self.log_msg(INFO, f'Beginning upgrade for {self.stack_name}', write_to_changelog=False, send_sns_msg=True)
         # get product
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         try:
             if not self.get_service_url():
-                self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+                self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
         except tenacity.RetryError:
-            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         self.session = BaseUrlSession(base_url=self.service_url)
         self.session.auth = (username, password)
@@ -900,11 +949,11 @@ class Stack:
         zdu_state = self.get_zdu_state()
         if zdu_state != 'STABLE':
             self.log_msg(INFO, f'Expected STABLE but ZDU state is {zdu_state}', write_to_changelog=True)
-            self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         if not self.enable_zdu_mode():
             self.log_msg(ERROR, 'Could not enable ZDU mode', write_to_changelog=True)
-            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         # update the version in stack parameters
         stack_params = self.get_params()
@@ -919,35 +968,38 @@ class Stack:
             else:
                 log.exception('An error occurred updating the version')
                 self.log_msg(ERROR, f'An error occurred updating the version: {e}', write_to_changelog=True)
+                self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
                 self.cancel_zdu_mode()
                 return False
         if self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
             self.log_msg(INFO, 'Successfully updated version in stack parameters', write_to_changelog=False)
         else:
             self.log_msg(INFO, 'Could not update version in stack parameters', write_to_changelog=True)
-            self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(INFO, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
             self.cancel_zdu_mode()
             return False
         # terminate the nodes and allow new ones to spin up
         if not self.rolling_rebuild():
-            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
         state = self.get_zdu_state()
         action_start = time.time()
         action_timeout = current_app.config['ACTION_TIMEOUTS']['zdu_ready_to_run_upgrade_tasks']
         while state != 'READY_TO_RUN_UPGRADE_TASKS':
             if (time.time() - action_start) > action_timeout:
-                self.log_msg(ERROR, f'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
+                self.log_msg(
+                    ERROR, f'Stack is not in READY_TO_RUN_UPGRADE_TASKS mode after {format_timespan(action_timeout)} - aborting', write_to_changelog=True, send_sns_msg=True
+                )
                 return False
             time.sleep(5)
             state = self.get_zdu_state()
         # approve the upgrade and allow upgrade tasks to run
         if self.approve_zdu_upgrade():
             self.log_msg(INFO, f'Upgrade successful for {self.stack_name} at {self.region} to version {new_version}', write_to_changelog=False)
-            self.log_msg(INFO, 'Upgrade complete', write_to_changelog=True)
+            self.log_msg(INFO, 'Upgrade complete', write_to_changelog=True, send_sns_msg=True)
             return True
         else:
             self.log_msg(ERROR, 'Could not approve upgrade. The upgrade will need to be manually approved or cancelled.', write_to_changelog=True)
-            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Upgrade complete - failed', write_to_changelog=True, send_sns_msg=True)
 
     def destroy(self, delete_changelogs, delete_threaddumps):
         self.log_msg(INFO, f'Destroying stack {self.stack_name} in {self.region}', write_to_changelog=not delete_changelogs)
@@ -976,14 +1028,14 @@ class Stack:
         return True
 
     def clone(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from):
-        self.log_msg(INFO, 'Initiating clone', write_to_changelog=True)
+        self.log_msg(INFO, 'Initiating clone', write_to_changelog=True, send_sns_msg=True)
         # TODO popup confirming if you want to destroy existing
         if not self.destroy(delete_changelogs=False, delete_threaddumps=False):
-            self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
+            self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True, send_sns_msg=True)
             self.clear_current_action()
             return False
         if not self.create(stack_params, template_file, app_type, clustered, creator, region, cloned_from):
-            self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True)
+            self.log_msg(INFO, 'Clone complete - failed', write_to_changelog=True, send_sns_msg=True)
             self.clear_current_action()
             return False
         self.log_change('Create complete, looking for post-clone SQL')
@@ -995,9 +1047,9 @@ class Stack:
                 self.full_restart()
             else:
                 self.clear_current_action()
-                self.log_msg(INFO, 'Clone complete - Run SQL failed', write_to_changelog=True)
+                self.log_msg(INFO, 'Clone complete - Run SQL failed', write_to_changelog=True, send_sns_msg=True)
                 return False
-        self.log_msg(INFO, 'Clone complete', write_to_changelog=True)
+        self.log_msg(INFO, 'Clone complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
     def create_change_set(self, stack_params, template_file):
@@ -1067,6 +1119,7 @@ class Stack:
                 self.log_msg(INFO, 'Changeset execution complete - failed', write_to_changelog=True)
                 return False
         self.log_msg(INFO, 'Changeset execution complete', write_to_changelog=True)
+        self.send_sns_msg(f'Executed changeset: {change_set_name}')
         return True
 
     def create(self, stack_params, template_file, app_type, clustered, creator, region, cloned_from=False):
@@ -1121,26 +1174,26 @@ class Stack:
         return True
 
     def rolling_restart(self):
-        self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}', write_to_changelog=True)
+        self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}', write_to_changelog=True, send_sns_msg=True)
         app_type = self.get_tag('product')
         if not app_type:
             self.log_msg(ERROR, 'Could not determine product', write_to_changelog=True)
-            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         nodes = self.get_stacknodes()
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # determine if app is clustered or has a single node (rolling restart may cause an unexpected outage)
         if not self.is_app_clustered():
             self.log_msg(ERROR, 'App is not clustered - rolling restart not supported (use full restart)', write_to_changelog=True)
-            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         if len(nodes) == 0:
             self.log_msg(ERROR, 'Node count is 0: nothing to restart', write_to_changelog=True)
-            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         elif len(nodes) == 1:
             self.log_msg(ERROR, 'App only has one node - rolling restart not supported (use full restart)', write_to_changelog=True)
-            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         # determine if the nodes are running or not
         running_nodes = []
@@ -1155,41 +1208,41 @@ class Stack:
         for node in itertools.chain(non_running_nodes, running_nodes):
             if not self.shutdown_app(app_type, [node]):
                 self.log_msg(INFO, f'Failed to stop application on node {node}', write_to_changelog=True)
-                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
             if not self.startup_app(app_type, [node]):
                 self.log_msg(INFO, f'Failed to start application on node {node}', write_to_changelog=True)
-                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
             node_ip = list(node.values())[0]
             if not self.validate_node_responding(node_ip):
-                self.log_msg(INFO, 'Rolling restart complete - failed', write_to_changelog=True)
+                self.log_msg(INFO, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
-        self.log_msg(INFO, 'Rolling restart complete', write_to_changelog=True)
+        self.log_msg(INFO, 'Rolling restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
     def full_restart(self):
-        self.log_msg(INFO, f'Beginning Full Restart for {self.stack_name}', write_to_changelog=True)
+        self.log_msg(INFO, f'Beginning Full Restart for {self.stack_name}', write_to_changelog=True, send_sns_msg=True)
         app_type = self.get_tag('product')
         if not app_type:
-            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         nodes = self.get_stacknodes()
         if len(nodes) == 0:
             self.log_msg(ERROR, 'Node count is 0: nothing to restart', write_to_changelog=True)
-            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         if not self.shutdown_app(app_type, nodes):
-            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Full restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         for node in nodes:
             self.startup_app(app_type, [node])
-        self.log_msg(INFO, 'Full restart complete', write_to_changelog=True)
+        self.log_msg(INFO, 'Full restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
     def rolling_rebuild(self):
-        self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True)
+        self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True, send_sns_msg=True)
         ec2 = boto3.client('ec2', region_name=self.region)
         old_nodes = self.get_stacknodes()
         self.log_msg(INFO, f'Old nodes: {old_nodes}', write_to_changelog=True)
@@ -1221,21 +1274,22 @@ class Stack:
                                 waiting_for_new_node_creation = False
                     if (time.time() - action_start) > action_timeout:
                         self.log_msg(ERROR, f'New node failed to be created after {format_timespan(action_timeout)} - aborting', write_to_changelog=True)
+                        self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True, send_sns_msg=True)
                         return False
                     time.sleep(30)
                     nodes = self.get_stacknodes()
                 # wait for the new node to come up
                 node_ip = list(replacement_node.values())[0]
                 if not self.validate_node_responding(node_ip):
-                    self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True)
+                    self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True, send_sns_msg=True)
                     return False
-            self.log_msg(INFO, 'Rolling rebuild complete', write_to_changelog=True)
+            self.log_msg(INFO, 'Rolling rebuild complete', write_to_changelog=True, send_sns_msg=True)
             self.log_change(f'New nodes are: {new_nodes}')
             return True
         except Exception as e:
             log.exception('An error occurred during rolling rebuild')
             self.log_msg(ERROR, f'An error occurred during rolling rebuild: {e}', write_to_changelog=True)
-            self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True)
+            self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
 
     def thread_dump(self, alsoHeaps=False):
@@ -1248,6 +1302,7 @@ class Stack:
         self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
         self.log_msg(INFO, 'Thread dumps complete', write_to_changelog=False)
+        self.send_sns_msg('Thread dumps generated')
         return True
 
     def heap_dump(self):
@@ -1260,6 +1315,7 @@ class Stack:
             if 'TESTING' not in current_app.config:
                 time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
+        self.send_sns_msg('Heap dumps generated')
         return True
 
     def get_thread_dump_links(self):
@@ -1307,6 +1363,7 @@ class Stack:
             self.log_msg(INFO, 'No post clone SQL files found', write_to_changelog=True)
             return True
         self.log_msg(INFO, 'Run SQL complete', write_to_changelog=True)
+        self.send_sns_msg('SQL run against stack')
         return True
 
     def tag(self, tags):
@@ -1340,7 +1397,10 @@ class Stack:
             return True
         return False
 
+    ##
     # Logging functions
+    #
+
     def create_action_log(self, action):
         # create a datestamped file for the action
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -1354,7 +1414,7 @@ class Stack:
         open(filename, 'w').close()
         self.logfile = filename
 
-    def log_msg(self, level, message, write_to_changelog):
+    def log_msg(self, level, message, write_to_changelog, send_sns_msg=False):
         if self.logfile is not None:
             logline = f'{datetime.now().strftime("%Y-%m-%d %X")} {getLevelName(level)} {message}'
             log.log(level, message)
@@ -1364,6 +1424,8 @@ class Stack:
         # if more appropriate, use log_change directly to log an altered message to the changelog
         if write_to_changelog:
             self.log_change(message)
+        if send_sns_msg:
+            self.send_sns_msg(message)
 
     def create_change_log(self, action):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
