@@ -15,7 +15,7 @@ function onReady() {
         region = params.get("region");
     selectStack(stack_name);
     refreshLogs(stack_name, 2000, action);
-    refreshStackInfo(stack_name, region, action);
+    refreshStackInfo(stack_name, region);
 }
 
 function action_complete(this_action) {
@@ -43,7 +43,7 @@ function refreshLogs(stack_name, refresh_interval, this_action) {
     }, refresh_interval)
 }
 
-function refreshStackInfo(stack_name, region, this_action) {
+function refreshStackInfo(stack_name, region) {
     // Refresh stack info every 10s
     refreshStackInfoInterval = setInterval(function () {
         updateStackInfo(stack_name, region);

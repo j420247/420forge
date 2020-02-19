@@ -13,7 +13,7 @@ function onReady() {
             getLogs(stack_name);
             updateStackInfo(stack_name);
             refreshLogs(stack_name, 2000, action);
-            refreshStackInfo(stack_name, region, action);
+            refreshStackInfo(stack_name, region);
         }, false);
     }
 }
