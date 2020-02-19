@@ -8,12 +8,12 @@ function onReady() {
         stacks[i].addEventListener("click", function (data) {
             var stack_name = data.target.text;
             clearTimeout(refreshLogsTimer);
-            clearTimeout(refreshStackInfoTimer);
+            clearInterval(refreshStackInfoInterval);
             selectStack(stack_name);
             getLogs(stack_name);
             updateStackInfo(stack_name);
-            refreshLogs(stack_name, true, 2000, action);
-            refreshStackInfo(stack_name, region, true);
+            refreshLogs(stack_name, 2000, action);
+            refreshStackInfo(stack_name, region, action);
         }, false);
     }
 }
