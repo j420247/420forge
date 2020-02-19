@@ -43,7 +43,7 @@ function updateStackInfo(stack_name, stack_region) {
 
 function displayStackInfo(responseText) {
   var stackInfo = JSON.parse(responseText);
-  if (typeof(stackInfo) === 'string' && stackInfo.indexOf('does not exist') > -1) {
+  if (action === 'destroy' && typeof(stackInfo) === 'string' && stackInfo.indexOf('does not exist') > -1) {
       $("#stackState").html("Stack status: " + getStatusLozenge("DELETE_COMPLETE"));
       $("#stackPanel").find("aui-spinner").remove();
   } else {
