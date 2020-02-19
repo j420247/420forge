@@ -295,6 +295,9 @@ Resources:
                 - route53:GetChange
                 - route53:ListHostedZones
                 - route53:ListResourceRecordSets
+                - sns:CreateTopic
+                - sns:ListTopics
+                - sns:Publish
                 - ssm:ListCommands
                 - ssm:PutParameter
                 - ssm:SendCommand
