@@ -37,44 +37,20 @@ function updateStackInfo(stack_name, stack_region) {
   if ($("#nodes").length && $("#nodes").html().length <= 4)
     $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
 
-  var functionParams = {
-    stack_name: stack_name,
-    stack_region: stack_region
-  };
-
-  // request stack info
-  send_http_get_request(baseUrl + "/stackState/" + stack_region + "/" +
-    stack_name, displayStackStateAndRequestServiceStatus, functionParams);
-  send_http_get_request(baseUrl + "/getActionInProgress/" + stack_region + "/" +
-    stack_name, displayActionInProgress);
-  send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" +
-    stack_name, displayVersion);
-  send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" +
-    stack_name, displayNodes);
+  send_http_get_request(baseUrl + "/getStackInfo/" + stack_region + "/" +
+    stack_name, displayStackInfo);
 }
 
-function displayStackStateAndRequestServiceStatus(responseText, functionParams) {
-  $("#stackState").html("Stack status: " + getStatusLozenge(responseText));
-  if (responseText.trim() === "\"CREATE_COMPLETE\"" ||
-    responseText.trim() === "\"UPDATE_COMPLETE\"" ||
-    responseText.trim() === "\"UPDATE_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
-  // only request service status if stack actions are complete and successful
-    send_http_get_request(baseUrl + "/serviceStatus/" + functionParams.stack_region +
-    "/" + functionParams.stack_name, displayServiceStatus);
-  else
-    $("#serviceStatus").html("Service status: ");
+function displayStackInfo(responseText) {
+  var stackInfo = JSON.parse(responseText);
+  $("#stackState").html("Stack status: " + getStatusLozenge(stackInfo['stack_status']));
+  $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : ''));
+  $("#currentVersion").html("Current version: " + stackInfo['version']);
+  displayActionInProgress(stackInfo['action_in_progress']);
+  displayNodes(stackInfo['nodes'])
 }
 
-function displayServiceStatus(responseText) {
-  $("#serviceStatus").html("Service status: " + getStatusLozenge(responseText));
-}
-
-function displayActionInProgress(responseText) {
-  var actionInProgress = JSON.parse(responseText);
+function displayActionInProgress(actionInProgress) {
   $("#currentAction").html("Action in progress: " + getStatusLozenge(
     actionInProgress, "moved"));
   if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf(
@@ -89,14 +65,8 @@ function displayActionInProgress(responseText) {
   }
 }
 
-function displayVersion(responseText) {
-  var version = JSON.parse(responseText);
-  $("#currentVersion").html("Current version: " + version);
-}
-
-function displayNodes(responseText) {
+function displayNodes(nodes) {
   $("#nodes").html("");
-  var nodes = JSON.parse(responseText);
   if (!nodes[0]) {
     $("#nodes").html("None");
     return;
