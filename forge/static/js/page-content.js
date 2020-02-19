@@ -43,11 +43,16 @@ function updateStackInfo(stack_name, stack_region) {
 
 function displayStackInfo(responseText) {
   var stackInfo = JSON.parse(responseText);
-  $("#stackState").html("Stack status: " + getStatusLozenge(stackInfo['stack_status']));
-  $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : ''));
-  $("#currentVersion").html("Current version: " + stackInfo['version']);
-  displayActionInProgress(stackInfo['action_in_progress']);
-  displayNodes(stackInfo['nodes'])
+  if (typeof(stackInfo) === 'string' && stackInfo.indexOf('does not exist') > -1) {
+      $("#stackState").html("Stack status: " + getStatusLozenge("DELETE_COMPLETE"));
+      $("#stackPanel").find("aui-spinner").remove();
+  } else {
+    $("#stackState").html("Stack status: " + getStatusLozenge(stackInfo['stack_status']));
+    $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : ''));
+    $("#currentVersion").html("Current version: " + stackInfo['version']);
+    displayActionInProgress(stackInfo['action_in_progress']);
+    displayNodes(stackInfo['nodes'])
+  }
 }
 
 function displayActionInProgress(actionInProgress) {
