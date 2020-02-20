@@ -267,6 +267,7 @@ Resources:
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
+                - iam:TagRole
                 - kms:CreateAlias
                 - kms:CreateGrant
                 - kms:CreateKey
