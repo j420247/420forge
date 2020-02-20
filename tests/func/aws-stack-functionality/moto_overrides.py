@@ -72,6 +72,26 @@ def create_change_set(self):
         return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
 
+def describe_stack_resource(self):
+    dummy_resource_set = {
+        "DB": {
+            "StackResourceDetail": {
+                "StackId": "arn:aws:cloudformation:us-east-1:555555555555:stack/mystack/aacf6df0-4163-11ea-bf2a-0aabbccddbcc",
+                "ResourceStatus": "CREATE_COMPLETE",
+                "DriftInformation": {"StackResourceDriftStatus": "NOT_CHECKED"},
+                "ResourceType": "AWS::RDS::DBInstance",
+                "LastUpdatedTimestamp": "2020-01-28T00:29:11.546Z",
+                "StackName": "mystack",
+                "PhysicalResourceId": "fdvhrfurrypleb",
+                "Metadata": "{}",
+                "LogicalResourceId": "DB",
+            }
+        }
+    }
+    response = dummy_resource_set[self.querystring['LogicalResourceId'][0]]
+    return json.dumps(response)
+
+
 # elbv2 models.py
 def create_target_group(self, name, **kwargs):
     if len(name) > 32:

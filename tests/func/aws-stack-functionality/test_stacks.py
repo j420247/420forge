@@ -32,6 +32,7 @@ app.config['ACTION_TIMEOUTS'] = {
 # override buggy moto functions
 moto.cloudformation.parsing.parse_condition = moto_overrides.parse_condition
 moto.cloudformation.responses.CloudFormationResponse.create_change_set = moto_overrides.create_change_set
+moto.cloudformation.responses.CloudFormationResponse.describe_stack_resource = moto_overrides.describe_stack_resource
 moto.elbv2.models.ELBv2Backend.create_target_group = moto_overrides.create_target_group
 
 
@@ -420,3 +421,21 @@ class TestAwsStacks:
         with app.app_context():
             mystack.upgrade('6.11.1')
         assert mystack.get_param_value('ProductVersion') == '6.11.1'
+
+    @moto.mock_ec2
+    @moto.mock_elbv2
+    @moto.mock_s3
+    @moto.mock_rds
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_wake(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        stack_params = mystack.get_params()
+        # start with 0 nodes
+        mystack.update_paramlist(stack_params, 'ClusterNodeCount', '0')
+        # wake
+        mystack.wake()
+        # check nodes = 1
+        nodes = mystack.get_param_value('ClusterNodeCount')
+        assert nodes == '1'
