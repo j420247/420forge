@@ -312,14 +312,14 @@ class Stack:
             spinup_params = self.update_paramlist(spinup_params, 'JiraVersion', new_version)
         elif app_type == 'confluence':
             spinup_params = self.update_paramlist(spinup_params, 'ConfluenceVersion', new_version)
+            if self.preupgrade_synchrony_node_count is not None:
+                if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', '1')
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', '1')
+                else:
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
         elif app_type == 'crowd':
             spinup_params = self.update_paramlist(spinup_params, 'CrowdVersion', new_version)
-        if hasattr(self, 'preupgrade_synchrony_node_count'):
-            if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', '1')
-                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', '1')
-            else:
-                spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
         try:
             client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
             update_stack = cfn.update_stack(
@@ -454,7 +454,7 @@ class Stack:
             spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMin', self.preupgrade_app_node_count)
         else:
             spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeCount', self.preupgrade_app_node_count)
-        if hasattr(self, 'preupgrade_synchrony_node_count'):
+        if self.preupgrade_synchrony_node_count is not None:
             if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', self.preupgrade_synchrony_node_count)
                 spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', self.preupgrade_synchrony_node_count)
