@@ -242,7 +242,7 @@ class Stack:
                 StackName=self.stack_name, Parameters=spindown_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
             )
         except Exception as e:
-            if 'No updates are to be performed' in e:
+            if 'No updates are to be performed' in e.args[0]:
                 self.log_msg(INFO, 'Stack is already at 0 nodes', write_to_changelog=True)
                 return True
             else:
