@@ -414,15 +414,16 @@ class Stack:
         state = stack_state['Stacks'][0]['StackStatus']
         return state
 
-    def check_node_status(self, node_ip, logMsgs=True):
+    def check_node_status(self, node_ip, logMsgs=True, stack=False):
         cfn = boto3.client('cloudformation', region_name=self.region)
-        try:
-            stack = cfn.describe_stacks(StackName=self.stack_name)
-        except Exception as e:
-            log.exception('Error checking node status')
-            return f'Error checking node status: {e}'
-        context_path = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
-        port = [param['ParameterValue'] for param in stack['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
+        if not stack:
+            try:
+                stack = cfn.describe_stacks(StackName=self.stack_name)['Stacks'][0]
+            except Exception as e:
+                log.exception('Error checking node status')
+                return f'Error checking node status: {e}'
+        context_path = [param['ParameterValue'] for param in stack['Parameters'] if param['ParameterKey'] == 'TomcatContextPath'][0]
+        port = [param['ParameterValue'] for param in stack['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
         if logMsgs:
             self.log_msg(INFO, f' ==> checking node status at {node_ip}:{port}{context_path}/status', write_to_changelog=False)
         try:
@@ -444,6 +445,43 @@ class Stack:
             log.exception('Error checking node status')
             return f'Error checking node status: {e}'
         return 'Timed Out'
+
+    def get_stack_info(self):
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        stack_info = {}
+        try:
+            stack = cfn.describe_stacks(StackName=self.stack_name)['Stacks'][0]
+            stack_info['stack_status'] = stack['StackStatus']
+            if stack['StackStatus'] in (
+                'CREATE_COMPLETE',
+                'UPDATE_COMPLETE',
+                'UPDATE_IN_PROGRESS',
+                'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_ROLLBACK_IN_PROGRESS',
+                'UPDATE_ROLLBACK_COMPLETE',
+            ):
+                stack_info['service_status'] = self.check_service_status(logMsgs=False)
+            action_in_progress = self.get_stack_action_in_progress()
+            stack_info['action_in_progress'] = action_in_progress if action_in_progress else 'none'
+            stack_info['version'] = self.get_param_value('ProductVersion', stack['Parameters'])
+            # get nodes
+            instances = self.get_stacknodes()
+            nodes_list = []
+            for instance in instances:
+                node = {}
+                node_ip = list(instance.values())[0]
+                node['ip'] = node_ip
+                node['status'] = self.check_node_status(node_ip, False, stack)
+                nodes_list.append(node)
+            stack_info['nodes'] = nodes_list
+        except Exception as e:
+            if e.response and "does not exist" in e.response['Error']['Message']:
+                print(f'Stack {self.stack_name} does not exist')
+                return f'Stack {self.stack_name} does not exist'
+            log.exception('Error getting stack info')
+            return f'Error getting stack info: {e}'
+        return stack_info
 
     def spinup_remaining_nodes(self):
         self.log_msg(INFO, 'Spinning up any remaining nodes in stack', write_to_changelog=True)

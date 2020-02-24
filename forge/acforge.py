@@ -388,26 +388,6 @@ class GetGitRevision(Resource):
         return result[:7]
 
 
-class ServiceStatus(Resource):
-    def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        return mystack.check_service_status(logMsgs=False)
-
-
-class StackState(Resource):
-    def get(self, region, stack_name):
-        cfn = boto3.client('cloudformation', region_name=region)
-        try:
-            stack_state = cfn.describe_stacks(StackName=stack_name)
-        except Exception as e:
-            if e.response and "does not exist" in e.response['Error']['Message']:
-                print(f'Stack {stack_name} does not exist')
-                return f'Stack {stack_name} does not exist'
-            log.exception('Error checking stack state')
-            return f'Error checking stack state: {e}'
-        return stack_state['Stacks'][0]['StackStatus']
-
-
 class TemplateParams(Resource):
     def get(self, repo_name, template_name):
         if 'atlassian-aws-deployment' in repo_name:
@@ -511,6 +491,13 @@ class GetSql(Resource):
         return mystack.get_sql()
 
 
+class GetStackInfo(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        stack_info = mystack.get_stack_info()
+        return stack_info
+
+
 class GetStackActionInProgress(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
@@ -523,26 +510,6 @@ class ClearStackActionInProgress(Resource):
         mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
-
-
-class GetVersion(Resource):
-    def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        return mystack.get_param_value('ProductVersion')
-
-
-class GetNodes(Resource):
-    def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        instances = mystack.get_stacknodes()
-        nodes_list = []
-        for instance in instances:
-            node = {}
-            node_ip = list(instance.values())[0]
-            node['ip'] = node_ip
-            node['status'] = mystack.check_node_status(node_ip, False)
-            nodes_list.append(node)
-        return nodes_list
 
 
 class GetTags(Resource):
