@@ -1,5 +1,5 @@
 var refreshLogsTimer;
-var refreshStackInfoTimer;
+var refreshStackInfoInterval;
 
 function onReady() {
     $("#action-button").hide();
@@ -14,50 +14,40 @@ function onReady() {
     if (params.has("region"))
         region = params.get("region");
     selectStack(stack_name);
-    clearTimeout(refreshLogsTimer);
-    clearTimeout(refreshStackInfoTimer);
-    refreshLogs(stack_name, true, 3000, action);
-    refreshStackInfo(stack_name, region, true);
+    refreshLogs(stack_name, 2000, action);
+    refreshStackInfo(stack_name, region);
 }
 
-// Refresh the status while the action is still underway
-function refreshLogs(stack_name, cont, refresh_interval, this_action) {
-    if (cont) {
-        refreshLogsTimer = setTimeout(function () {
-            getLogs(stack_name);
-
-            // Stop once action is complete
-            var logText = $("#log").contents().text().toLowerCase();
-            if (action === 'diagnostics' && countOccurences(logText, "dumps complete") >= 1 ||
-            countOccurences(logText
-                    .replace(/ restart/g, 'restart')
-                    .replace(/run sql/g, 'runsql')
-                    .replace(/changeset execution/g, 'update'),
-                    (this_action.toLowerCase() + " complete")) >= 1) {
-                notify(this_action + " is complete");
-                refreshLogs(stack_name, false, 0, this_action);
-            }
-            else
-                refreshLogs(stack_name, true, 5000, this_action);
-        }, refresh_interval)
-    } else {
-        refreshStackInfo(stack_name, region, false);
-        clearTimeout(refreshLogsTimer);
-    }
+function action_complete(this_action) {
+    var logText = $("#log").contents().text().toLowerCase();
+    return countOccurences(logText
+            .replace(/ restart/g, 'restart')
+            .replace(/run sql/g, 'runsql')
+            .replace(/changeset execution/g, 'update')
+            .replace(/(thread|heap) dumps/g, 'diagnostics'),
+        (this_action.toLowerCase() + " complete")) >= 1;
 }
 
-function refreshStackInfo(stack_name, region, cont) {
-    // Refresh every 10s
-    //TODO check more frequently until stack_state is IN_PROGRESS
-    if (cont) {
-        refreshStackInfoTimer = setTimeout(function () {
-            updateStackInfo(stack_name, region);
-            refreshStackInfo(stack_name, region, true);
-        }, 10000)
-    } else {
+// Refresh the logs while the action is still underway
+function refreshLogs(stack_name, refresh_interval, this_action) {
+    refreshLogsTimer = setTimeout(function () {
+        getLogs(stack_name);
+        // Stop once action is complete
+        if (action_complete(this_action)) {
+            notify(this_action + " is complete");
+            clearTimeout(refreshLogsTimer);
+        } else {
+            // Otherwise keep refreshing
+            refreshLogs(stack_name, 5000, this_action);
+        }
+    }, refresh_interval)
+}
+
+function refreshStackInfo(stack_name, region) {
+    // Refresh stack info every 10s
+    refreshStackInfoInterval = setInterval(function () {
         updateStackInfo(stack_name, region);
-        clearTimeout(refreshStackInfoTimer);
-    }
+    }, 10000);
 }
 
 function getLogs(stack_name) {
