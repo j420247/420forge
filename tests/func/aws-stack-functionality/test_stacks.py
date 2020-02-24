@@ -357,6 +357,8 @@ class TestAwsStacks:
             assert rolling_result is True
             full_result = mystack.full_restart()
             assert full_result is True
+            restart_node_result = mystack.restart_node('10.111.22.333')
+            assert restart_node_result is True
 
     @moto.mock_ec2
     @moto.mock_elbv2
@@ -408,10 +410,16 @@ class TestAwsStacks:
         # setup mocks
         mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
         with app.app_context():
+            # test thread dumps
             thread_result = mystack.thread_dump(alsoHeaps=False)
             assert thread_result is True
+            single_node_thread_result = mystack.thread_dump(node='10.111.22.333', alsoHeaps=False)
+            assert single_node_thread_result is True
+            # test heap dumps
             heap_result = mystack.heap_dump()
             assert heap_result is True
+            single_node_heap_result = mystack.heap_dump(node='10.111.22.333')
+            assert single_node_heap_result is True
 
     @moto.mock_ec2
     @moto.mock_elbv2
