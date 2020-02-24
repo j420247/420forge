@@ -1145,7 +1145,7 @@ class Stack:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
             # wait for the template to upload to avoid race conditions
-            if 'TESTING' not in current_app.config:
+            if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
                 time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
             client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
@@ -1312,7 +1312,7 @@ class Stack:
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:
             self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            if 'TESTING' not in current_app.config:
+            if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
                 time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         self.send_sns_msg('Heap dumps generated')
