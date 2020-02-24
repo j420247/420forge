@@ -1,0 +1,22 @@
+{% extends "restart.html" %}
+{% block head %}
+    {{ super() }}
+    <script src="{{ get_filename_with_last_update_time('static/js/restartnode.js') }}"></script>
+{% endblock head %}
+
+{% block secondarySelector %}
+    <a id="nodeSelector" href="#nodeSelection" aria-owns="nodeSelection" aria-haspopup="true"
+       class="aui-button aui-style-default aui-dropdown2-trigger">
+        Select Node
+    </a>
+    <!-- Nodes dropdown -->
+    <div id="nodeSelection" class="aui-style-default aui-dropdown2">
+        <ul class="aui-list-truncate" id="nodesList"></ul>
+    </div>
+{% endblock secondarySelector %}
+
+{% block descriptionPanel %}
+    Restart a single node in the cluster
+{% endblock descriptionPanel %}
+
+{% block buttonText %}Restart node{% endblock buttonText %}

@@ -86,3 +86,7 @@ div.aui-popover[role=listbox] {
 #modal-dialog #changesetError {
     margin-top: 0;
 }
+
+#nodesList aui-spinner {
+    margin:10px;
+}

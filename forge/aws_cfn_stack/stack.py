@@ -1241,6 +1241,26 @@ class Stack:
         self.log_msg(INFO, 'Full restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
+    def restart_node(self, node):
+        self.log_msg(INFO, f'Beginning restart on node {node}', write_to_changelog=True, send_sns_msg=True)
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Node restart complete - failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        nodes = self.get_stacknodes()
+        node_to_restart = []
+        for instance in nodes:
+            if node == list(instance.values())[0]:
+                node_to_restart.append(instance)
+        if not self.shutdown_app(app_type, node_to_restart):
+            self.log_msg(ERROR, 'Node restart complete - shutdown failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        if not self.startup_app(app_type, node_to_restart):
+            self.log_msg(ERROR, 'Node restart complete - startup failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        self.log_msg(INFO, 'Node restart complete', write_to_changelog=True, send_sns_msg=True)
+        return True
+
     def rolling_rebuild(self):
         self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True, send_sns_msg=True)
         ec2 = boto3.client('ec2', region_name=self.region)
@@ -1292,12 +1312,16 @@ class Stack:
             self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
 
-    def thread_dump(self, alsoHeaps=False):
+    def thread_dump(self, node=False, alsoHeaps=False):
         heaps_to_come_log_line = ''
         if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
         self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}', write_to_changelog=False)
         nodes = self.get_stacknodes()
+        if node:
+            for instance in nodes:
+                if node != list(instance.values())[0]:
+                    nodes.remove(instance)
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
@@ -1305,9 +1329,13 @@ class Stack:
         self.send_sns_msg('Thread dumps generated')
         return True
 
-    def heap_dump(self):
+    def heap_dump(self, node=False):
         self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}', write_to_changelog=False)
         nodes = self.get_stacknodes()
+        if node:
+            for instance in nodes:
+                if node != list(instance.values())[0]:
+                    nodes.remove(instance)
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:

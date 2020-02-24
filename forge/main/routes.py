@@ -62,6 +62,12 @@ def rollingrestart():
     return render_template('rollingrestart.html')
 
 
+@main.route('/restartnode', methods=['GET'])
+def restartnode():
+    set_action('restartnode')
+    return render_template('restartnode.html')
+
+
 @main.route('/rollingrebuild', methods=['GET'])
 def rollingrebuild():
     set_action('rollingrebuild')
