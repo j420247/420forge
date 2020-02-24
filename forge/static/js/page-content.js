@@ -31,6 +31,9 @@ function updateStackInfo(stack_name, stack_region) {
   if ($("#stackState").find('span.aui-lozenge').length == 0)
     $("#stackState").html(
       "Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
+  if ($("#currentAction").find('span.aui-lozenge').length == 0)
+    $("#currentAction").html(
+        "Action in progress: <aui-spinner size=\"small\" ></aui-spinner>");
   if ($("#currentVersion").length && $("#currentVersion").html().length <= 17)
     $("#currentVersion").html(
       "Current version: <aui-spinner size=\"small\" ></aui-spinner>");
@@ -48,7 +51,7 @@ function displayStackInfo(responseText) {
       $("#stackPanel").find("aui-spinner").remove();
   } else {
     $("#stackState").html("Stack status: " + getStatusLozenge(stackInfo['stack_status']));
-    $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : ''));
+    $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : 'unknown'));
     $("#currentVersion").html("Current version: " + stackInfo['version']);
     displayActionInProgress(stackInfo['action_in_progress']);
     displayNodes(stackInfo['nodes'])
