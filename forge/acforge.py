@@ -531,6 +531,12 @@ class ClearStackActionInProgress(Resource):
         return True
 
 
+class GetNodeCPU(Resource):
+    def get(self, region, stack_name, node):
+        mystack = Stack(stack_name, region)
+        return mystack.get_node_cpu(node)
+
+
 class GetTags(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)

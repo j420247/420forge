@@ -330,6 +330,19 @@ class TestAwsStacks:
             assert [param for param in stacks['Stacks'][0]['Parameters'] if param['ParameterKey'] == 'TomcatConnectionTimeout'][0]['ParameterValue'] == '20001'
 
     @moto.mock_ec2
+    @moto.mock_cloudwatch
+    @moto.mock_s3
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_node_cpu(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+        result = mystack.get_node_cpu('10.111.22.333')
+        # moto returns no metrics, but this proves that the function completed successfully
+        assert result == {}
+
+    @moto.mock_ec2
     @moto.mock_elbv2
     @moto.mock_s3
     @moto.mock_ssm

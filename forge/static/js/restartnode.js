@@ -4,6 +4,10 @@ function onReady() {
         stacks[i].addEventListener("click", function (data) {
             var stack_name = data.target.text;
             selectStack(stack_name);
+            $("#nodesList").empty();
+            $("#nodeSelector")[0].text = "Select Node";
+            $("#cpuChartDiv").empty();
+            $("#cpuChartDiv").append("<canvas id='cpuChart' hidden>");
             listNodes(stack_name);
         }, false);
     }    $("#action-button").on("click", performNodeRestart);
@@ -49,8 +53,66 @@ function listNodes(stack_name) {
         $("#nodeSelector").text(selectedNode);
         $("#takeThreadDumps").removeAttr("disabled");
         $("#takeHeapDumps").removeAttr("disabled");
+        $("#cpuChartDiv").empty();
+        $("#cpuChartDiv").append("<canvas id='cpuChart' hidden>");
+        getNodeCPU(this.innerText);
         enableActionButton();
     });
+}
+
+function getNodeCPU(node) {
+    var stack_name = scrapePageForStackName();
+    var url = [baseUrl, 'getNodeCPU', region, stack_name, node].join('/');
+    send_http_get_request(url, displayNodeCPU);
+}
+
+function displayNodeCPU(responseText) {
+    var cpu_data_dict = JSON.parse(responseText);
+    var timestamps = Object.keys(cpu_data_dict);
+    timestamps.sort();
+    var timestamps_sorted = [];
+    var cpu_sorted = [];
+    for (var i = 0; i < timestamps.length; i++) {
+        var date = new Date(parseInt(timestamps[i]) * 1000);
+        var month = date.getMonth() + 1;
+        var day_num = date.getDate().toString().length === 1 ? "0" + date.getDate() : date.getDate();
+        var hours = date.getHours().toString().length === 1 ? "0" + date.getHours() : date.getHours();
+        var minutes = date.getMinutes().toString().length === 1 ? "0" + date.getMinutes() : date.getMinutes();
+        timestamps_sorted.push(month + "/" + (day_num) + " " + hours + ":" + minutes);
+        cpu_sorted.push(cpu_data_dict[timestamps[i]]);
+    }
+
+    var border_color = '#00875A';
+    for (var i = cpu_sorted.length - 6; i < cpu_sorted.length; i++) {
+        if (cpu_sorted[i] > 80) {
+            border_color = '#DE3505';
+            break;
+        }
+    }
+
+    var ctx = document.getElementById('cpuChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps_sorted,
+            datasets: [{
+                label: 'CPU Utilization over the last 30 minutes',
+                borderColor: border_color,
+                data: cpu_sorted
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }]
+            }
+        }
+    });
+    $("#cpuChart").removeAttr("hidden");
 }
 
 function  performNodeRestart() {

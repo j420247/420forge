@@ -4,9 +4,10 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import DEBUG, ERROR, INFO, WARN, getLevelName
 from pathlib import Path
+from pytz import UTC
 
 import boto3
 import botocore
@@ -879,6 +880,35 @@ class Stack:
             log.exception('Error getting stack events')
             self.log_msg(ERROR, f'Error getting stack events: {e}', write_to_changelog=False)
         return logged_events
+
+    def get_node_cpu(self, node):
+        nodes = self.get_stacknodes()
+        node_id = None
+        for instance in nodes:
+            if node == list(instance.values())[0]:
+                node_id = list(instance.keys())[0]
+        if node_id is None:
+            self.log_msg(ERROR, f'Error getting node information', write_to_changelog=True)
+            return False
+        cloud_watch = boto3.client('cloudwatch', region_name=self.region)
+        try:
+            response = cloud_watch.get_metric_statistics(
+                Namespace='AWS/EC2',
+                MetricName='CPUUtilization',
+                Dimensions=[{'Name': 'InstanceId', 'Value': node_id}],
+                StartTime=datetime.now(UTC) - timedelta(minutes=30),
+                EndTime=datetime.now(UTC),
+                Period=60,
+                Statistics=['Average'],
+            )
+            cpu_data = {}
+            for datapoint in response['Datapoints']:
+                seconds_since_epoch = int((datapoint['Timestamp'] - datetime(1970, 1, 1, 0, 0, tzinfo=datapoint['Timestamp'].tzinfo)).total_seconds())
+                cpu_data[seconds_since_epoch] = datapoint['Average']
+        except Exception as e:
+            log.exception('Error getting node CPU')
+            self.log_msg(ERROR, f'Error getting node CPU: {e}', write_to_changelog=False)
+        return cpu_data
 
     ##
     # Stack - Major Action Methods
