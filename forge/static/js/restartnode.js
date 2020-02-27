@@ -24,7 +24,7 @@ function listNodes(stack_name) {
         $("#nodesList").append(li);
     }
     // If nodes not yet in stack info, sleep 1s
-    if ($('#nodes').length > 0 && $('#nodes').find(".aui-spinner").length !== 0) {
+    if ($('#nodes').length > 0 && $('#nodes').find("aui-spinner").length !== 0) {
         setTimeout(function() {
             listNodes(stack_name)
         }, 1000);
