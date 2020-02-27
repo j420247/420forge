@@ -24,7 +24,7 @@ function listNodes(stack_name) {
         $("#nodesList").append(li);
     }
     // If nodes not yet in stack info, sleep 1s
-    if ($('#nodes').length > 0 && $('#nodes').find("aui-spinner").length !== 0) {
+    if ($('#nodes .nodes').length === 0 && $('#nodes').text() !== 'None') {
         setTimeout(function() {
             listNodes(stack_name)
         }, 1000);
@@ -75,6 +75,7 @@ function drawChart(timestamps_sorted, cpu_sorted, border_color) {
             labels: timestamps_sorted,
             datasets: [{
                 label: 'CPU Utilization over the last 30 minutes',
+                backgroundColor: 'rgba(255, 255, 255, 0)',
                 borderColor: border_color,
                 data: cpu_sorted
             }]
