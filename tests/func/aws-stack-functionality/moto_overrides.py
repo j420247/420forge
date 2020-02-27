@@ -8,6 +8,10 @@ from moto.elbv2.exceptions import DuplicateTargetGroupName, InvalidConditionValu
 from moto.elbv2.models import FakeTargetGroup
 from moto.elbv2.utils import make_arn_for_target_group
 
+###
+## These override functions are used to fix bugs in moto
+## If you are trying to return something other than what moto returns, use a MagicMock instead
+##
 
 # cloudformation parsing.py
 def parse_condition(condition, resources_map, condition_map):

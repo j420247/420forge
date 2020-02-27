@@ -83,7 +83,7 @@ function displayNodes(nodes) {
   $('#nodesCount').trigger('nodeCountChanged');
 
   for (var node in nodes) {
-    $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
+    $("#nodes").append("<span class='nodes'>" + nodes[node].ip + ": </span>" + getStatusLozenge(nodes[node].status));
     if (node < nodes.length)
       $("#nodes").append("<br>");
   }

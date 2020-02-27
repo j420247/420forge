@@ -206,6 +206,25 @@ class DoRollingRestart(RestrictedResource):
         return
 
 
+class DoRestartNode(RestrictedResource):
+    def get(self, region, stack_name, node, threads, heaps):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('restartnode', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            if threads == 'true':
+                mystack.thread_dump(node=node, alsoHeaps=heaps)
+            if heaps == 'true':
+                mystack.heap_dump(node=node)
+            mystack.restart_node(node)
+        except Exception as e:
+            log.exception('Error occurred doing node restart')
+            mystack.log_msg(ERROR, f'Error occurred doing node restart: {e}', write_to_changelog=True)
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
 class DoRollingRebuild(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
@@ -510,6 +529,12 @@ class ClearStackActionInProgress(Resource):
         mystack = Stack(stack_name, region)
         mystack.clear_current_action()
         return True
+
+
+class GetNodeCPU(Resource):
+    def get(self, region, stack_name, node):
+        mystack = Stack(stack_name, region)
+        return mystack.get_node_cpu(node)
 
 
 class GetTags(Resource):

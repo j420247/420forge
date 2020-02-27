@@ -13,6 +13,14 @@ section.aui-page-panel-content img {
     left: 330px;
 }
 
+#cpuChart {
+    padding-top: 30px;
+}
+
+.cpuChartEmpty {
+    opacity: 30%;
+}
+
 #serviceStatus, #stackState, #currentVersion {
     max-height: 20px;
 }
@@ -89,4 +97,8 @@ div.aui-popover[role=listbox] {
 
 #modal-dialog #changesetError {
     margin-top: 0;
+}
+
+#nodesList aui-spinner {
+    margin:10px;
 }

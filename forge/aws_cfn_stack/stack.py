@@ -4,9 +4,10 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import DEBUG, ERROR, INFO, WARN, getLevelName
 from pathlib import Path
+from pytz import UTC
 
 import boto3
 import botocore
@@ -880,6 +881,35 @@ class Stack:
             self.log_msg(ERROR, f'Error getting stack events: {e}', write_to_changelog=False)
         return logged_events
 
+    def get_node_cpu(self, node):
+        nodes = self.get_stacknodes()
+        node_id = None
+        for instance in nodes:
+            if node == list(instance.values())[0]:
+                node_id = list(instance.keys())[0]
+        if node_id is None:
+            self.log_msg(ERROR, f'Error getting node information', write_to_changelog=True)
+            return False
+        cloud_watch = boto3.client('cloudwatch', region_name=self.region)
+        try:
+            response = cloud_watch.get_metric_statistics(
+                Namespace='AWS/EC2',
+                MetricName='CPUUtilization',
+                Dimensions=[{'Name': 'InstanceId', 'Value': node_id}],
+                StartTime=datetime.now(UTC) - timedelta(minutes=30),
+                EndTime=datetime.now(UTC),
+                Period=60,
+                Statistics=['Average'],
+            )
+            cpu_data = {}
+            for datapoint in response['Datapoints']:
+                seconds_since_epoch = int((datapoint['Timestamp'] - datetime(1970, 1, 1, 0, 0, tzinfo=datapoint['Timestamp'].tzinfo)).total_seconds())
+                cpu_data[seconds_since_epoch] = datapoint['Average']
+        except Exception as e:
+            log.exception('Error getting node CPU')
+            self.log_msg(ERROR, f'Error getting node CPU: {e}', write_to_changelog=False)
+        return cpu_data
+
     ##
     # Stack - Major Action Methods
     #
@@ -1183,7 +1213,7 @@ class Stack:
             self.upload_template(template, template_file.name)
             cfn = boto3.client('cloudformation', region_name=region)
             # wait for the template to upload to avoid race conditions
-            if 'TESTING' not in current_app.config:
+            if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
                 time.sleep(5)
             # TODO spin up to one node first, then spin up remaining nodes
             client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
@@ -1279,6 +1309,26 @@ class Stack:
         self.log_msg(INFO, 'Full restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
+    def restart_node(self, node):
+        self.log_msg(INFO, f'Beginning restart on node {node}', write_to_changelog=True, send_sns_msg=True)
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Node restart complete - failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        nodes = self.get_stacknodes()
+        node_to_restart = []
+        for instance in nodes:
+            if node == list(instance.values())[0]:
+                node_to_restart.append(instance)
+        if not self.shutdown_app(app_type, node_to_restart):
+            self.log_msg(ERROR, 'Node restart complete - shutdown failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        if not self.startup_app(app_type, node_to_restart):
+            self.log_msg(ERROR, 'Node restart complete - startup failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        self.log_msg(INFO, 'Node restart complete', write_to_changelog=True, send_sns_msg=True)
+        return True
+
     def rolling_rebuild(self):
         self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True, send_sns_msg=True)
         ec2 = boto3.client('ec2', region_name=self.region)
@@ -1330,12 +1380,14 @@ class Stack:
             self.log_msg(ERROR, 'Rolling rebuild complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
 
-    def thread_dump(self, alsoHeaps=False):
+    def thread_dump(self, node=False, alsoHeaps=False):
         heaps_to_come_log_line = ''
         if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
         self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}', write_to_changelog=False)
         nodes = self.get_stacknodes()
+        if node:
+            nodes = list(filter(lambda instance: list(instance.values())[0] == node, nodes))
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
@@ -1343,14 +1395,16 @@ class Stack:
         self.send_sns_msg('Thread dumps generated')
         return True
 
-    def heap_dump(self):
+    def heap_dump(self, node=False):
         self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}', write_to_changelog=False)
         nodes = self.get_stacknodes()
+        if node:
+            nodes = list(filter(lambda instance: list(instance.values())[0] == node, nodes))
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:
             self.ssm_send_and_wait_response(list(node.keys())[0], '/usr/local/bin/j2ee_heap_dump_live')
-            if 'TESTING' not in current_app.config:
+            if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
                 time.sleep(30)  # give node time to recover and rejoin cluster
         self.log_msg(INFO, 'Heap dumps complete', write_to_changelog=False)
         self.send_sns_msg('Heap dumps generated')
