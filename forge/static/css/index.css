@@ -13,6 +13,10 @@ section.aui-page-panel-content img {
     left: 330px;
 }
 
+#cpuChart {
+    padding-top: 30px;
+}
+
 .cpuChartEmpty {
     opacity: 30%;
 }

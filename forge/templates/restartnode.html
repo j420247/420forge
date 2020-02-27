@@ -7,7 +7,7 @@
 
 
 {% block extraInput %}
-{% block secondarySelector %}
+{% block nodeSelector %}
     <a id="nodeSelector" href="#nodeSelection" aria-owns="nodeSelection" aria-haspopup="true"
        class="aui-button aui-style-default aui-dropdown2-trigger">
         Select Node
@@ -16,7 +16,7 @@
     <div id="nodeSelection" class="aui-style-default aui-dropdown2">
         <ul class="aui-list-truncate" id="nodesList"></ul>
     </div>
-{% endblock secondarySelector %}
+{% endblock nodeSelector %}
 <div id="cpuChartDiv"></div>
 <form class="aui">
     <fieldset class="group">
