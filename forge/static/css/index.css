@@ -13,6 +13,10 @@ section.aui-page-panel-content img {
     left: 330px;
 }
 
+.cpuChartEmpty {
+    opacity: 30%;
+}
+
 #serviceStatus, #stackState, #currentVersion {
     max-height: 20px;
 }

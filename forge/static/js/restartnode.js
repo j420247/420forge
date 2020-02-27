@@ -54,7 +54,8 @@ function listNodes(stack_name) {
         $("#takeThreadDumps").removeAttr("disabled");
         $("#takeHeapDumps").removeAttr("disabled");
         $("#cpuChartDiv").empty();
-        $("#cpuChartDiv").append("<canvas id='cpuChart' hidden>");
+        $("#cpuChartDiv").append("<canvas id='cpuChart' class='cpuChartEmpty' hidden>");
+        drawChart([],[], '');
         getNodeCPU(this.innerText);
         enableActionButton();
     });
@@ -64,6 +65,31 @@ function getNodeCPU(node) {
     var stack_name = scrapePageForStackName();
     var url = [baseUrl, 'getNodeCPU', region, stack_name, node].join('/');
     send_http_get_request(url, displayNodeCPU);
+}
+
+function drawChart(timestamps_sorted, cpu_sorted, border_color) {
+    var ctx = document.getElementById('cpuChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps_sorted,
+            datasets: [{
+                label: 'CPU Utilization over the last 30 minutes',
+                borderColor: border_color,
+                data: cpu_sorted
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }]
+            }
+        }
+    });
 }
 
 function displayNodeCPU(responseText) {
@@ -89,29 +115,8 @@ function displayNodeCPU(responseText) {
             break;
         }
     }
-
-    var ctx = document.getElementById('cpuChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: timestamps_sorted,
-            datasets: [{
-                label: 'CPU Utilization over the last 30 minutes',
-                borderColor: border_color,
-                data: cpu_sorted
-            }]
-        },
-        options: {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        suggestedMin: 0,
-                        suggestedMax: 100
-                    }
-                }]
-            }
-        }
-    });
+    drawChart(timestamps_sorted, cpu_sorted, border_color);
+    $("#cpuChart").removeClass("cpuChartEmpty");
     $("#cpuChart").removeAttr("hidden");
 }
 
