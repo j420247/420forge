@@ -245,6 +245,7 @@ Resources:
                 - cloudformation:*
                 - cloudwatch:DeleteAlarms
                 - cloudwatch:PutMetricAlarm
+                - cloudwatch:GetMetricStatistics
                 - ec2:*
                 - elasticfilesystem:CreateFileSystem
                 - elasticfilesystem:CreateMountTarget
