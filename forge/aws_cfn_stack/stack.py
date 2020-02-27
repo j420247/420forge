@@ -1385,7 +1385,9 @@ class Stack:
         if alsoHeaps == 'true':
             heaps_to_come_log_line = ', heap dumps to follow'
         self.log_msg(INFO, f'Beginning thread dumps on {self.stack_name}{heaps_to_come_log_line}', write_to_changelog=False)
-        nodes = [node] if node else self.get_stacknodes()
+        nodes = self.get_stacknodes()
+        if node:
+            nodes = list(filter(lambda instance: list(instance.values())[0] == node, nodes))
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         self.run_command(nodes, '/usr/local/bin/j2ee_thread_dump')
         self.log_msg(INFO, 'Successful thread dumps can be downloaded from the main Diagnostics page', write_to_changelog=False)
@@ -1395,7 +1397,9 @@ class Stack:
 
     def heap_dump(self, node=False):
         self.log_msg(INFO, f'Beginning heap dumps on {self.stack_name}', write_to_changelog=False)
-        nodes = [node] if node else self.get_stacknodes()
+        nodes = self.get_stacknodes()
+        if node:
+            nodes = list(filter(lambda instance: list(instance.values())[0] == node, nodes))
         self.log_msg(INFO, f'{self.stack_name} nodes are {nodes}', write_to_changelog=False)
         # Wait for each heap dump to finish before starting the next, to avoid downtime
         for node in nodes:
