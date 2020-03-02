@@ -215,6 +215,7 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Action:
+                - acm:ListCerfificates
                 - autoscaling:*
                 - cloudformation:*
                 - cloudwatch:DeleteAlarms
