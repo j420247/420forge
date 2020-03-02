@@ -23,6 +23,7 @@ REGION = 'us-east-1'
 # Configure app
 app = Flask(__name__)
 app.config['S3_BUCKET'] = 'mock_bucket'
+app.config['SNS_REGION'] = 'us-east-1'
 app.config['TESTING'] = True
 app.config['ACTION_TIMEOUTS'] = {
     'validate_node_responding': 3600,
