@@ -1418,13 +1418,14 @@ class Stack:
                 self.log_msg(ERROR, f'An error occurred waking the stack: {e}', write_to_changelog=True)
                 return False
             if self.wait_stack_action_complete('UPDATE_IN_PROGRESS'):
-                self.log_msg(INFO, f'Successfully woke stack {self.stack_name}', write_to_changelog=True)
+                self.log_msg(INFO, f'Successfully woke stack compute to 1 node {self.stack_name}', write_to_changelog=True)
             else:
                 self.log_msg(INFO, 'Could not wake stack {self.stack_name}', write_to_changelog=True)
                 self.log_msg(INFO, 'Wake complete - failed', write_to_changelog=True)
                 return False
         else:
             self.log_msg(INFO, f'No cloudformation change is required to wake this stack', write_to_changelog=True)
+
         return True
 
     # Logging functions

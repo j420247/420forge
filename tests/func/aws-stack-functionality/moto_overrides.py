@@ -81,7 +81,7 @@ def describe_stack_resource(self):
                 "DriftInformation": {"StackResourceDriftStatus": "NOT_CHECKED"},
                 "ResourceType": "AWS::RDS::DBInstance",
                 "LastUpdatedTimestamp": "2020-01-28T00:29:11.546Z",
-                "StackName": "mystack",
+                "StackName": "my-confluence",
                 "PhysicalResourceId": "fdvhrfurrypleb",
                 "Metadata": "{}",
                 "LogicalResourceId": "DB",
@@ -89,7 +89,7 @@ def describe_stack_resource(self):
         }
     }
     response = dummy_resource_set[self.querystring['LogicalResourceId'][0]]
-    return json.dumps(response)
+    return response
 
 
 # elbv2 models.py
