@@ -177,7 +177,7 @@ class Stack:
         return result
 
     def get_sns_topic_arn(self):
-        sns = boto3.client('sns', region_name=self.region)
+        sns = boto3.client('sns', region_name=current_app.config['SNS_REGION'])
         try:
             topics = sns.list_topics()
             if 'Topics' in topics:
@@ -190,7 +190,7 @@ class Stack:
             return False
 
     def send_sns_msg(self, action_msg):
-        sns = boto3.client('sns', region_name=self.region)
+        sns = boto3.client('sns', region_name=current_app.config['SNS_REGION'])
         try:
             topic_arn = self.get_sns_topic_arn()
             if not topic_arn:
