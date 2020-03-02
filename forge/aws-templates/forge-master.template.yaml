@@ -240,6 +240,7 @@ Resources:
                 - iam:DeleteRole
                 - iam:DeleteRolePolicy
                 - iam:DetachRolePolicy
+                - iam:GetRole
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
