@@ -98,6 +98,9 @@ class BaseConfig(object):
     # disable SAML by default
     NO_SAML = True
 
+    # Defauly SNS region
+    SNS_REGION = 'us-east-1'
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
