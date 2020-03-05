@@ -219,8 +219,8 @@ Resources:
                 - autoscaling:*
                 - cloudformation:*
                 - cloudwatch:DeleteAlarms
-                - cloudwatch:PutMetricAlarm
                 - cloudwatch:GetMetricStatistics
+                - cloudwatch:PutMetricAlarm
                 - ec2:*
                 - elasticfilesystem:CreateFileSystem
                 - elasticfilesystem:CreateMountTarget
@@ -241,6 +241,7 @@ Resources:
                 - iam:DeleteRolePolicy
                 - iam:DetachRolePolicy
                 - iam:GetRole
+                - iam:GetRolePolicy
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
@@ -273,6 +274,8 @@ Resources:
                 - route53:GetChange
                 - route53:ListHostedZones
                 - route53:ListResourceRecordSets
+                - s3:GetObject
+                - s3:ListBucket
                 - sns:CreateTopic
                 - sns:ListTopics
                 - sns:Publish
