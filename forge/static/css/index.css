@@ -13,13 +13,25 @@ section.aui-page-panel-content img {
     left: 330px;
 }
 
+#cpuChart {
+    padding-top: 30px;
+}
+
+.cpuChartEmpty {
+    opacity: 30%;
+}
+
 #serviceStatus, #stackState, #currentVersion {
     max-height: 20px;
 }
 
-#serviceStatus aui-spinner, #stackState aui-spinner, #currentVersion aui-spinner {
-    left: 110px;
+#serviceStatus aui-spinner, #stackState aui-spinner, #currentAction aui-spinner, #currentVersion aui-spinner{
+    left: 130px;
     top: -20px;
+}
+
+#stackPanel .aui-page-notification {
+    min-width: 180px;
 }
 
 #paramsList {
@@ -30,12 +42,14 @@ section.aui-page-panel-content img {
     min-width: 500px;
 }
 
-#ebsSnapshotSelection {
-    min-width: 350px;
-}
-
-#rdsSnapshotSelection {
-    min-width: 360px;
+form.aui .aui-select2-container .select2-choices,
+form.aui .multi-select,
+form.aui .password,
+form.aui .select,
+form.aui .text,
+form.aui .textarea,
+form.aui aui-select {
+    max-width: 370px;
 }
 
 #descriptionPanel {
@@ -45,12 +59,15 @@ section.aui-page-panel-content img {
 #descriptionPanel code {
     background-color: #F4F5F7;
 }
+
 #modal-dialog {
     height: inherit;
 }
-.aui-dropdown2 {
-    max-height:250px;
-    overflow:scroll;
+
+.aui-dropdown2,
+div.aui-popover[role=listbox] {
+    max-height: 250px;
+    overflow: scroll;
 }
 
 #updateTemplatesBtn.update-templates {
@@ -84,4 +101,8 @@ section.aui-page-panel-content img {
 
 #modal-dialog #changesetError {
     margin-top: 0;
+}
+
+#nodesList aui-spinner {
+    margin:10px;
 }

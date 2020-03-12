@@ -31,6 +31,14 @@ function notify(message) {
     }
 }
 
+// Find and return the value from a JSON object inside an array of JSON objects (case insensitive)
+var getObjectFromArrayByValue = function (array, key, value) {
+    var obj = array.filter(function (object) {
+        return object[key].toLowerCase() === value.toLowerCase();
+    });
+    return obj[0].Value;
+};
+
 // API helpers
 function send_http_get_request(url, onreadystatechange, optionalFunctionParams) {
     var getRequest = new XMLHttpRequest();
@@ -66,56 +74,37 @@ function send_http_post_request(url, data, onreadystatechange) {
 }
 
 // Create/modify page elements
-function createDropdown(parameterKey, defaultValue, dropdownOptions, div) {
-    var dropdownAnchor = document.createElement("A");
-    dropdownAnchor.className = "aui-button aui-style-default aui-dropdown2-trigger";
-    dropdownAnchor.setAttribute("aria-owns", parameterKey + "DropdownDiv");
-    dropdownAnchor.setAttribute("aria-haspopup", "true");
-    dropdownAnchor.setAttribute("href", "#" + parameterKey + "DropdownDiv");
-    dropdownAnchor.id = parameterKey + "Val";
-    if (defaultValue !== undefined && defaultValue.length !== 0)
-        dropdownAnchor.text = defaultValue;
-    else
-        dropdownAnchor.text = 'Select';
+function createSingleSelect(parameterKey, defaultValue, dropdownOptions, placeholder='') {
+    // determine whether the dropdownOptions includes labels or not
+    var hasLabels = typeof dropdownOptions[0] === 'object' ? true : false;
 
-    var dropdownDiv = document.createElement("DIV");
-    dropdownDiv.id = parameterKey + "DropdownDiv";
-    dropdownDiv.className = "aui-style-default aui-dropdown2";
-
-    var ul = document.createElement("UL");
-    ul.className = "aui-list-truncate";
-
-    for (var option in dropdownOptions) {
-        var li = document.createElement("LI");
-        var liAnchor = document.createElement("A");
-        var text = document.createTextNode(dropdownOptions[option]);
-        liAnchor.appendChild(text);
-        liAnchor.addEventListener("click", function (data) {
-            dropdownAnchor.text = data.target.text;
-
-            // Set some smart defaults based on dropdown selections
-            // TODO: remove these fields being toggled by TomcatSchemeVal; the fields were
-            //       removed on 2018/11/19, but we don't want to break this functionality
-            //       for older templates (yet), so targeting removal of these for Feb 2019.
-            if (dropdownAnchor.id === "TomcatSchemeVal") {
-                if (data.target.text === "https") {
-                    updateTextField("TomcatProxyPort", "443");
-                    updateTextField("TomcatSecure", "true");
-                }
-                else if (data.target.text === "http") {
-                    updateTextField("TomcatProxyPort", "80");
-                    updateTextField("TomcatSecure", "false");
-                }
-            } else if (dropdownAnchor.id === "VPCVal") {
-                getSubnets(data.target.text, 'update');
-            }
-        }, false);
-        li.appendChild(liAnchor);
-        ul.appendChild(li);
+    // build an array of strings to represent HTML aui-select element
+    var singleSelectHtml = [];
+    singleSelectHtml.push(`<aui-select id=${parameterKey + "Val"} name=${parameterKey + "DropdownDiv"} placeholder="${placeholder}">`);
+    for (var option of dropdownOptions) {
+        var html_value = hasLabels ? option['value'] : option;
+        var html_label = hasLabels ? option['label'] : option;
+        var html_selected = defaultValue.toString() === html_label.toString() ? ' selected' : '';
+        singleSelectHtml.push(`<aui-option value="${html_value}"${html_selected}>${html_label}</aui-option>`);
     }
-    dropdownDiv.appendChild(ul);
-    div.append(dropdownAnchor);
-    div.append(dropdownDiv);
+    singleSelectHtml.push("</aui-select>");
+
+    // build HTML from the array of strings
+    var singleSelect = $(singleSelectHtml.join(''));
+
+    // attach change event handler, if applicable
+    if (parameterKey === 'VPC') {
+        singleSelect.change(function (data) {
+            getSubnets(this.value, 'update');
+        });
+    } else if (parameterKey === 'SSLCertificateARN') {
+        singleSelect.change(function (data) {
+            $('#TomcatSchemeVal')[0].value = this._input.value === '' ? 'http' : 'https';
+        });
+    }
+
+    // return the element for DOM insertion
+    return singleSelect;
 }
 
 function createMultiSelect(parameterKey, defaultValue, multiSelectOptions, div) {
@@ -149,30 +138,71 @@ function createInputParameter(param, fieldset) {
     div.appendChild(label);
 
     if (param.AllowedValues) {
-        createDropdown(param.ParameterKey, param.ParameterValue, param['AllowedValues'], div);
+        var input = createSingleSelect(param.ParameterKey, param.ParameterValue, param['AllowedValues']);
     } else if (param.ParameterKey === "VPC") {
         if (action === 'clone')
-            getVPCs($("#regionSelector").text().trim());
+            getVPCs($("#regionSelector")[0].value);
         else
             getVPCs(region, param.ParameterValue);
+    } else if (param.ParameterKey === "KmsKeyArn") {
+        if (action === 'clone')
+            getKmsKeys($("#regionSelector")[0].value);
+        else
+            getKmsKeys(region, param.ParameterValue);
+    } else if (param.ParameterKey === "SSLCertificateARN") {
+        if (action === 'clone')
+            getSslCerts($("#regionSelector")[0].value);
+        else
+            getSslCerts(region, param.ParameterValue);
     } else {
         var input = document.createElement("INPUT");
         input.className = "text";
         input.id = param.ParameterKey + "Val";
         input.value = param.ParameterValue;
 
-        if ((action === 'clone' || action === 'create')
-            && (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword")) {
-            input.setAttribute("data-aui-validation-field", "");
-            input.type = "password";
-            input.value = "";
-            input.required = true;
+        if (param.ParameterKey === "DBMasterUserPassword" || param.ParameterKey === "DBPassword") {
+            if (action === 'clone' || action === 'create') {
+                input.setAttribute("data-aui-validation-field", "");
+                input.setAttribute("data-aui-validation-pattern-msg", "Value must satisfy regular expression pattern: " + param.AllowedPattern);
+                input.type = "password";
+                input.value = "";
+                input.required = true;
+                input.pattern = param.AllowedPattern;
+            } else if (action === 'update'){
+                // don't display passwords in the update action
+                return;
+            }
         } else if ((param.ParameterKey === "KeyName" || param.ParameterKey === "KeyPairName") && $("meta[name=ssh_key_name]").attr("value") !== "") {
             input.value = $("meta[name=ssh_key_name]").attr("value");
         } else if (param.ParameterKey === "HostedZone" && $("meta[name=hosted_zone]").attr("value") !== "") {
             input.value = $("meta[name=hosted_zone]").attr("value");
         }
-        div.appendChild(input);
+        if (param.AllowedPattern) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.setAttribute("data-aui-validation-pattern-msg","Value must satisfy regular expression pattern: " + param.AllowedPattern);
+            input.pattern = param.AllowedPattern;
+        }
+        if (param.MinValue) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "number";
+            input.min = param.MinValue;
+        }
+        if (param.MaxValue) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.type = "number";
+            input.max = param.MaxValue;
+        }
+        if (param.MinLength) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.minLength = param.MinLength;
+        }
+        if (param.MaxLength) {
+            input.setAttribute("data-aui-validation-field", "");
+            input.maxLength = param.MaxLength;
+        }
+    }
+    if (typeof input !== 'undefined') {
+        $(div).append(input);
     }
     if (param.ParameterDescription) {
         var description = document.createElement("DIV");
@@ -227,6 +257,20 @@ function enableActionButton() {
 function disableActionButton() {
     $("#action-button").attr("aria-disabled", true);
 }
+
+function replaceModalContents(title, text, optional_elements) {
+    var modalTitleElement = $("#modal-title");
+    modalTitleElement.empty();
+    modalTitleElement.text(title);
+
+    var modalContentsElement = $("#modal-contents");
+    modalContentsElement.empty();
+    modalContentsElement.append("<p>" + text + "</p>");
+
+    if (optional_elements)
+        modalContentsElement.append(optional_elements);
+}
+
 // Forge common functions
 function checkAuthenticated() {
     var stacks = document.getElementsByClassName("selectStackOption");
@@ -286,4 +330,15 @@ function setModalSize(selector, size) {
             return (className.match (/(^|\s)aui-dialog2-(small|medium|large|xlarge)/g) || []).join(' ');
         })
         .addClass('aui-dialog2-' + size);
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding
+function Base64Encode(str, encoding = 'utf-8') {
+    var bytes = new (typeof TextEncoder === "undefined" ? TextEncoderLite : TextEncoder)(encoding).encode(str);
+    return base64js.fromByteArray(bytes);
+}
+
+function Base64Decode(str, encoding = 'utf-8') {
+    var bytes = base64js.toByteArray(str);
+    return new (typeof TextDecoder === "undefined" ? TextDecoderLite : TextDecoder)(encoding).decode(bytes);
 }

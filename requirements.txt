@@ -11,8 +11,9 @@ flask_sqlalchemy
 gevent
 gitpython
 gunicorn
+humanfriendly
 importanize
-moto
+moto==1.3.14
 psutil
 pre-commit
 pytest

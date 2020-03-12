@@ -1,12 +1,13 @@
 function onReady() {
     readyTheTemplate();
-    getTemplates("all");
 
-    // allows the modal to be dismissed via the "Cancel" button
-    AJS.$(document).on("click", "#modal-cancel-btn", function (e) {
-        e.preventDefault();
-        AJS.dialog2("#modal-dialog").hide();
-    });
+    // Add event listener for stack dropdown
+    var stacks = document.getElementsByClassName("selectStackOption");
+    for (var i = 0; i < stacks.length; i++) {
+        stacks[i].addEventListener("click", function (data) {
+            templateHandler(data.target.text);
+        });
+    }
 
     // if the modal is dismissed for any reason, reset and cancel the request
     AJS.dialog2("#modal-dialog").on("hide", function() {
@@ -14,6 +15,41 @@ function onReady() {
         if (typeof changesetRequest !== "undefined") {
             changesetRequest.abort();
         }
+    });
+}
+
+function createChangeset(stackName, url, data) {
+    resetChangesetModal();
+    AJS.dialog2("#modal-dialog").show();
+    if (typeof changesetRequest !== "undefined") {
+        changesetRequest.abort();
+    }
+    changesetRequest = send_http_post_request(url, data, function (response) {
+        try {
+            var changesetArn = JSON.parse(response)['Id'];
+            var changesetName = changesetArn.split('/')[1];
+        } catch(e) {
+            showChangesetErrorModal('Unexpected response from server: ' + response);
+            return;
+        }
+        if (changesetName === undefined) {
+            showChangesetErrorModal('Unexpected response from server: ' + response);
+            return;
+        }
+        presentChangesetForExecution(stackName, changesetName);
+    });
+}
+
+function presentChangesetForExecution(stackName, changesetName) {
+    url = [baseUrl, 'getChangeSetDetails', region, stackName, changesetName].join('/');
+    send_http_get_request(url, function (response) {
+        var changesetDetails = JSON.parse(response);
+        populateChangesetModal(changesetDetails);
+        $("#modal-ok-btn").off("click");
+        $("#modal-ok-btn").on("click", function() {
+            send_http_post_request([baseUrl, 'doexecutechangeset', stackName, changesetName].join('/'));
+            redirectToLog(stackName, '');
+        });
     });
 }
 

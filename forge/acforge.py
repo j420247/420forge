@@ -44,8 +44,7 @@ class DoUpgrade(RestrictedResource):
                 mystack.upgrade(new_version)
         except Exception as e:
             log.exception('Error occurred upgrading stack')
-            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}')
-            mystack.log_change('Upgrade failed, see action log for details')
+            mystack.log_msg(ERROR, f'Error occurred upgrading stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -63,10 +62,6 @@ class DoClone(RestrictedResource):
                 cloned_from = param['ParameterValue']
             elif param['ParameterKey'] == 'Region':
                 region = param['ParameterValue']
-            elif param['ParameterKey'] == 'EBSSnapshotId':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
-            elif param['ParameterKey'] == 'DBSnapshotName':
-                param['ParameterValue'] = param['ParameterValue'].split(': ')[1]
         # find product type for source stack
         source_stack = Stack(
             next(param for param in content if param['ParameterKey'] == 'ClonedFromStackName')['ParameterValue'],
@@ -90,7 +85,7 @@ class DoClone(RestrictedResource):
             return False
         clustered = 'true' if 'Server' not in template_name else 'false'
         creator = session['saml']['subject'] if 'saml' in session else 'unknown'
-        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, region, creator, cloned_from)
+        outcome = clone_stack.clone(params_to_send, template_file, app_type.lower(), clustered, creator, region, cloned_from)
         clone_stack.clear_current_action()
         return outcome
 
@@ -123,7 +118,10 @@ class DoUpdate(RestrictedResource):
             if not next((existing_param for existing_param in existing_template_params if existing_param['ParameterKey'] == param['ParameterKey']), None):
                 continue
             # if param has not changed from previous, delete the value and set UsePreviousValue to true
-            if param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']:
+            if (
+                'ParameterValue' in param
+                and param['ParameterValue'] == next(orig_param for orig_param in orig_params if orig_param['ParameterKey'] == param['ParameterKey'])['ParameterValue']
+            ):
                 del param['ParameterValue']
                 param['UsePreviousValue'] = True
             # if param is subnets and the value has not changed from previous (even if the order has), do not pass in changeset, or pass in correct order if there are additional
@@ -155,9 +153,9 @@ class DoUpdate(RestrictedResource):
         else:
             env = env_param['Value']
             if env == 'stg' or env == 'dr':
-                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'EBSSnapshotId'), None):
+                if not next((param for param in params_for_update if param['ParameterKey'] == 'EBSSnapshotId'), None):
                     params_for_update.append({'ParameterKey': 'EBSSnapshotId', 'UsePreviousValue': True})
-                if not next((parm for parm in params_for_update if parm['ParameterKey'] == 'DBSnapshotName'), None):
+                if not next((param for param in params_for_update if param['ParameterKey'] == 'DBSnapshotName'), None):
                     params_for_update.append({'ParameterKey': 'DBSnapshotName', 'UsePreviousValue': True})
         outcome = mystack.create_change_set(params_for_update, get_template_file(template_name))
         mystack.clear_current_action()
@@ -187,7 +185,7 @@ class DoFullRestart(RestrictedResource):
             mystack.full_restart()
         except Exception as e:
             log.exception('Error occurred doing full restart')
-            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing full restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -206,7 +204,26 @@ class DoRollingRestart(RestrictedResource):
             mystack.rolling_restart()
         except Exception as e:
             log.exception('Error occurred doing rolling restart')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', write_to_changelog=True)
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
+class DoRestartNode(RestrictedResource):
+    def get(self, region, stack_name, node, threads, heaps):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('restartnode', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            if threads == 'true':
+                mystack.thread_dump(node=node, alsoHeaps=heaps)
+            if heaps == 'true':
+                mystack.heap_dump(node=node)
+            mystack.restart_node(node)
+        except Exception as e:
+            log.exception('Error occurred doing node restart')
+            mystack.log_msg(ERROR, f'Error occurred doing node restart: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -221,22 +238,22 @@ class DoRollingRebuild(RestrictedResource):
             mystack.rolling_rebuild()
         except Exception as e:
             log.exception('Error occurred doing rolling rebuild')
-            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}')
+            mystack.log_msg(ERROR, f'Error occurred doing rolling rebuild: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
 
 
 class DoDestroy(RestrictedResource):
-    def get(self, region, stack_name):
+    def get(self, region, stack_name, delete_changelogs, delete_threaddumps):
         mystack = Stack(stack_name, region)
-        if not mystack.store_current_action('destroy', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+        if not mystack.store_current_action('destroy', stack_locking_enabled(), not delete_changelogs, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            mystack.destroy()
+            mystack.destroy(bool(delete_changelogs), bool(delete_threaddumps))
         except Exception as e:
             log.exception('Error occurred destroying stack')
-            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}')
+            mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         session['stacks'] = sorted(get_cfn_stacks_for_region())
         mystack.clear_current_action()
@@ -252,29 +269,16 @@ class DoThreadDumps(RestrictedResource):
             mystack.thread_dump()
         except Exception as e:
             log.exception('Error occurred taking thread dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}')
+            mystack.log_msg(ERROR, f'Error occurred taking thread dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
 
 
 class DoGetThreadDumpLinks(RestrictedResource):
-    def get(self, stack_name):
-        urls = []
-        try:
-            accountId = boto3.client('sts').get_caller_identity().get('Account')
-            s3_bucket = f'atl-cfn-forge-{accountId}'
-            client = boto3.client('s3', region_name=session['region'])
-            list_objects = client.list_objects_v2(Bucket=s3_bucket, Prefix=f'diagnostics/{stack_name}/')
-            if 'Contents' in list_objects:
-                for thread_dump in list_objects['Contents']:
-                    url = client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': s3_bucket, 'Key': thread_dump['Key']})
-                    urls.append(url)
-        except Exception as e:
-            if e.response['Error']['Code'] == 'NoSuchBucket':
-                print(f"S3 bucket '{s3_bucket}' has not yet been created")
-            log.exception('Error occurred getting thread dump links')
-        return urls
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.get_thread_dump_links()
 
 
 class DoHeapDumps(RestrictedResource):
@@ -286,7 +290,7 @@ class DoHeapDumps(RestrictedResource):
             mystack.heap_dump()
         except Exception as e:
             log.exception('Error occurred taking heap dumps')
-            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}')
+            mystack.log_msg(ERROR, f'Error occurred taking heap dumps: {e}', write_to_changelog=True)
             mystack.clear_current_action()
         mystack.clear_current_action()
         return
@@ -301,7 +305,7 @@ class DoRunSql(RestrictedResource):
             outcome = mystack.run_sql()
         except Exception as e:
             log.exception('Error occurred running SQL')
-            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}')
+            mystack.log_msg(ERROR, f'Error occurred running SQL: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -318,7 +322,7 @@ class DoTag(RestrictedResource):
             outcome = mystack.tag(tags)
         except Exception as e:
             log.exception('Error occurred tagging stack')
-            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}')
+            mystack.log_msg(ERROR, f'Error occurred tagging stack: {e}', write_to_changelog=True)
             mystack.clear_current_action()
             return False
         mystack.clear_current_action()
@@ -407,26 +411,6 @@ class GetGitRevision(Resource):
         return result[:7]
 
 
-class ServiceStatus(Resource):
-    def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        return mystack.check_service_status(logMsgs=False)
-
-
-class StackState(Resource):
-    def get(self, region, stack_name):
-        cfn = boto3.client('cloudformation', region_name=region)
-        try:
-            stack_state = cfn.describe_stacks(StackName=stack_name)
-        except Exception as e:
-            if e.response and "does not exist" in e.response['Error']['Message']:
-                print(f'Stack {stack_name} does not exist')
-                return f'Stack {stack_name} does not exist'
-            log.exception('Error checking stack state')
-            return f'Error checking stack state: {e}'
-        return stack_state['Stacks'][0]['StackStatus']
-
-
 class TemplateParams(Resource):
     def get(self, repo_name, template_name):
         if 'atlassian-aws-deployment' in repo_name:
@@ -447,8 +431,19 @@ class TemplateParams(Resource):
                     'ParameterDescription': template_params[param]['Description'] if 'Description' in template_params[param] else '',
                 }
             )
+            # Add validation values to params to send to the front end
             if 'AllowedValues' in template_params[param]:
                 next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedValues'] = template_params[param]['AllowedValues']
+            if 'AllowedPattern' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['AllowedPattern'] = template_params[param]['AllowedPattern']
+            if 'MinValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinValue'] = template_params[param]['MinValue']
+            if 'MaxValue' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxValue'] = template_params[param]['MaxValue']
+            if 'MinLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MinLength'] = template_params[param]['MinLength']
+            if 'MaxLength' in template_params[param]:
+                next(param_to_send for param_to_send in params_to_send if param_to_send['ParameterKey'] == param)['MaxLength'] = template_params[param]['MaxLength']
         return params_to_send
 
 
@@ -475,7 +470,7 @@ class TemplateParamsForStack(Resource):
                 print("Parameter not found: " + stack_param['ParameterKey'])
         # Add new params from the template to the stack params
         for param in template_params['Parameters']:
-            if param != 'DBSnapshotName' and param != 'EBSSnapshotId':
+            if param not in ('DBSnapshotName', 'EBSSnapshotId'):
                 if param not in [stack_param['ParameterKey'] for stack_param in stack_params]:
                     compared_params.append(
                         {'ParameterKey': param, 'ParameterValue': template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''}
@@ -487,6 +482,26 @@ class TemplateParamsForStack(Resource):
                     next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['Default'] = (
                         template_params['Parameters'][param]['Default'] if 'Default' in template_params['Parameters'][param] else ''
                     )
+                if 'AllowedPattern' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['AllowedPattern'] = template_params['Parameters'][param][
+                        'AllowedPattern'
+                    ]
+                if 'MinValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinValue'] = template_params['Parameters'][param][
+                        'MinValue'
+                    ]
+                if 'MaxValue' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxValue'] = template_params['Parameters'][param][
+                        'MaxValue'
+                    ]
+                if 'MinLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MinLength'] = template_params['Parameters'][param][
+                        'MinLength'
+                    ]
+                if 'MaxLength' in template_params['Parameters'][param]:
+                    next(compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param)['MaxLength'] = template_params['Parameters'][param][
+                        'MaxLength'
+                    ]
             compared_param = next((compared_param for compared_param in compared_params if compared_param['ParameterKey'] == param), None)
             if compared_param and 'Description' in template_params['Parameters'][param]:
                 compared_param['ParameterDescription'] = template_params['Parameters'][param]['Description']
@@ -497,6 +512,13 @@ class GetSql(Resource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)
         return mystack.get_sql()
+
+
+class GetStackInfo(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        stack_info = mystack.get_stack_info()
+        return stack_info
 
 
 class GetStackActionInProgress(Resource):
@@ -513,24 +535,10 @@ class ClearStackActionInProgress(Resource):
         return True
 
 
-class GetVersion(Resource):
-    def get(self, region, stack_name):
+class GetNodeCPU(Resource):
+    def get(self, region, stack_name, node):
         mystack = Stack(stack_name, region)
-        return mystack.get_param('Version')
-
-
-class GetNodes(Resource):
-    def get(self, region, stack_name):
-        mystack = Stack(stack_name, region)
-        mystack.get_stacknodes()
-        nodes = []
-        for instance in mystack.instancelist:
-            node = {}
-            node_ip = list(instance.values())[0]
-            node['ip'] = node_ip
-            node['status'] = mystack.check_node_status(node_ip, False)
-            nodes.append(node)
-        return nodes
+        return mystack.get_node_cpu(node)
 
 
 class GetTags(Resource):
@@ -540,9 +548,15 @@ class GetTags(Resource):
         return tags
 
 
+class HasTerminationProtection(Resource):
+    def get(self, region, stack_name):
+        mystack = Stack(stack_name, region)
+        return mystack.has_termination_protection()
+
+
 class GetCloneDefaults(Resource):
     def get(self, stack_name):
-        clone_defaults = current_app.config['CLONE_DEFAULTS']['all']
+        clone_defaults = current_app.config['CLONE_DEFAULTS']['all'].copy()
         if stack_name in current_app.config['CLONE_DEFAULTS']:
             clone_defaults.update(current_app.config['CLONE_DEFAULTS'][stack_name])
         return clone_defaults
@@ -578,8 +592,8 @@ class GetEbsSnapshots(Resource):
                 start_time = start_time.split('.')[0]
             else:
                 start_time = start_time.split('+')[0]
-            snapshotIds.append(start_time + ": " + snap['SnapshotId'])
-        snapshotIds.sort(reverse=True)
+            snapshotIds.append({'label': f"{start_time} ({snap['SnapshotId']})", 'value': snap['SnapshotId']})
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -595,17 +609,17 @@ class GetRdsSnapshots(Resource):
             snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name)
             for snap in snapshots_response['DBSnapshots']:
                 if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                    snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                    snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
             # if there are more than 100 snapshots the response will contain a marker, get the next lot of snapshots and add them to the list
             while 'Marker' in snapshots_response:
                 snapshots_response = rds.describe_db_snapshots(DBInstanceIdentifier=rds_name, Marker=snapshots_response['Marker'])
                 for snap in snapshots_response['DBSnapshots']:
                     if 'SnapshotCreateTime' in snap and 'DBSnapshotIdentifier' in snap:
-                        snapshotIds.append(str(snap['SnapshotCreateTime']).split('.')[0] + ": " + snap['DBSnapshotIdentifier'])
+                        snapshotIds.append({'label': f"{str(snap['SnapshotCreateTime']).split('.')[0]} ({snap['DBSnapshotIdentifier']})", 'value': snap['DBSnapshotIdentifier']})
         except botocore.exceptions.ClientError:
             log.exception('Error occurred getting RDS snapshots')
             return
-        snapshotIds.sort(reverse=True)
+        snapshotIds = sorted(snapshotIds, key=lambda x: x['label'], reverse=True)
         return snapshotIds
 
 
@@ -696,6 +710,33 @@ class GetTemplateRepos(Resource):
                 repos.append(directory.split('/')[1])
         repos.sort()
         return repos
+
+
+class GetKmsKeys(Resource):
+    def get(self, region):
+        keys = []
+        account_id = boto3.client('sts').get_caller_identity().get('Account')
+        client = boto3.client('kms', region)
+        paginator = client.get_paginator('list_aliases')
+        response_iterator = paginator.paginate()
+        for kms_keys_aliases in response_iterator:
+            for key in kms_keys_aliases['Aliases']:
+                if key.get('TargetKeyId') and not key['AliasName'].startswith('alias/aws'):
+                    keys.append({'label': key['AliasName'].replace('alias/', ''), 'value': f'arn:aws:kms:{region}:{account_id}:key/{key["TargetKeyId"]}'})
+        return keys
+
+
+class GetSslCerts(Resource):
+    def get(self, region):
+        ssl_certs = []
+        client = boto3.client('acm', region)
+        paginator = client.get_paginator('list_certificates')
+        response_iterator = paginator.paginate()
+        for ssl_certs_aliases in response_iterator:
+            for cert in ssl_certs_aliases['CertificateSummaryList']:
+                ssl_certs.append({'label': cert['DomainName'], 'value': cert['CertificateArn']})
+        ssl_certs = sorted(ssl_certs, key=lambda x: x['label'])
+        return ssl_certs
 
 
 class SetStackLocking(Resource):

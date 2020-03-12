@@ -20,8 +20,6 @@ function selectStack(stack_name) {
   updateStackInfo(stack_name);
 }
 
-
-
 function updateStackInfo(stack_name, stack_region) {
   if (stack_name === 'actionreadytostart') return;
   if (!stack_region) stack_region = region;
@@ -33,52 +31,34 @@ function updateStackInfo(stack_name, stack_region) {
   if ($("#stackState").find('span.aui-lozenge').length == 0)
     $("#stackState").html(
       "Stack status: <aui-spinner size=\"small\" ></aui-spinner>");
+  if ($("#currentAction").find('span.aui-lozenge').length == 0)
+    $("#currentAction").html(
+        "Action in progress: <aui-spinner size=\"small\" ></aui-spinner>");
   if ($("#currentVersion").length && $("#currentVersion").html().length <= 17)
     $("#currentVersion").html(
       "Current version: <aui-spinner size=\"small\" ></aui-spinner>");
   if ($("#nodes").length && $("#nodes").html().length <= 4)
     $("#nodes").html("<aui-spinner size=\"small\" ></aui-spinner>");
 
-  var functionParams = {
-    stack_name: stack_name,
-    stack_region: stack_region
-  };
-
-  // request stack info
-  send_http_get_request(baseUrl + "/stackState/" + stack_region + "/" +
-    stack_name, displayStackStateAndRequestServiceStatus, functionParams);
-  send_http_get_request(baseUrl + "/getActionInProgress/" + stack_region + "/" +
-    stack_name, displayActionInProgress);
-  send_http_get_request(baseUrl + "/getVersion/" + stack_region + "/" +
-    stack_name, displayVersion);
-  send_http_get_request(baseUrl + "/getNodes/" + stack_region + "/" +
-    stack_name, displayNodes);
+  send_http_get_request(baseUrl + "/getStackInfo/" + stack_region + "/" +
+    stack_name, displayStackInfo);
 }
 
-
-
-function displayStackStateAndRequestServiceStatus(responseText, functionParams) {
-  $("#stackState").html("Stack status: " + getStatusLozenge(responseText));
-  if (responseText.trim() === "\"CREATE_COMPLETE\"" ||
-    responseText.trim() === "\"UPDATE_COMPLETE\"" ||
-    responseText.trim() === "\"UPDATE_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_IN_PROGRESS\"" ||
-    responseText.trim() === "\"UPDATE_ROLLBACK_COMPLETE\"")
-  // only request service status if stack actions are complete and successful
-    send_http_get_request(baseUrl + "/serviceStatus/" + functionParams.stack_region +
-    "/" + functionParams.stack_name, displayServiceStatus);
-  else
-    $("#serviceStatus").html("Service status: ");
+function displayStackInfo(responseText) {
+  var stackInfo = JSON.parse(responseText);
+  if (action === 'destroy' && typeof(stackInfo) === 'string' && stackInfo.indexOf('does not exist') > -1) {
+      $("#stackState").html("Stack status: " + getStatusLozenge("DELETE_COMPLETE"));
+      $("#stackPanel").find("aui-spinner").remove();
+  } else {
+    $("#stackState").html("Stack status: " + getStatusLozenge(stackInfo['stack_status']));
+    $("#serviceStatus").html("Service status: " + ('service_status' in stackInfo ? getStatusLozenge(stackInfo['service_status']) : 'unknown'));
+    $("#currentVersion").html("Current version: " + stackInfo['version']);
+    displayActionInProgress(stackInfo['action_in_progress']);
+    displayNodes(stackInfo['nodes'])
+  }
 }
 
-function displayServiceStatus(responseText) {
-  $("#serviceStatus").html("Service status: " + getStatusLozenge(responseText));
-}
-
-function displayActionInProgress(responseText) {
-  var actionInProgress = JSON.parse(responseText);
+function displayActionInProgress(actionInProgress) {
   $("#currentAction").html("Action in progress: " + getStatusLozenge(
     actionInProgress, "moved"));
   if (actionInProgress.toLowerCase() !== "none" && window.location.href.indexOf(
@@ -93,14 +73,8 @@ function displayActionInProgress(responseText) {
   }
 }
 
-function displayVersion(responseText) {
-  var version = JSON.parse(responseText);
-  $("#currentVersion").html("Current version: " + version);
-}
-
-function displayNodes(responseText) {
+function displayNodes(nodes) {
   $("#nodes").html("");
-  var nodes = JSON.parse(responseText);
   if (!nodes[0]) {
     $("#nodes").html("None");
     return;
@@ -109,7 +83,7 @@ function displayNodes(responseText) {
   $('#nodesCount').trigger('nodeCountChanged');
 
   for (var node in nodes) {
-    $("#nodes").append(nodes[node].ip + ": " + getStatusLozenge(nodes[node].status));
+    $("#nodes").append("<span class='nodes'>" + nodes[node].ip + ": </span>" + getStatusLozenge(nodes[node].status));
     if (node < nodes.length)
       $("#nodes").append("<br>");
   }
@@ -163,6 +137,12 @@ document.addEventListener('DOMContentLoaded', function() {
   onReady();
   checkAuthenticated();
   displayAvatar();
+
+  // allows modals to be dismissed via the "Cancel" button
+  AJS.$(document).on("click", "#modal-cancel-btn", function (e) {
+    e.preventDefault();
+    AJS.dialog2("#modal-dialog").hide();
+  });
 }, false);
 
 function closeModal() {

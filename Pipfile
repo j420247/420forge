@@ -19,9 +19,10 @@ Flask-SQLAlchemy = "*"
 gevent = "*"
 gitpython = "*"
 gunicorn = "~=19.9"
+humanfriendly = "*"
 importanize = "*"
 migrate = "*"
-moto = "*"
+moto = "==1.3.14"
 pre-commit = "*"
 psutil = "*"
 pysaml2 = "~=4.7.0"
@@ -36,8 +37,8 @@ tenacity="*"
 [dev-packages]
 
 [requires]
-python_version = "3.6"
+python_version = "3"
 
 [scripts]
-forge-flask-dev-server = "python3 /home/forge/atl-cfn-forge/run.py"
-forge-gunicorn = "gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app"
+forge-flask-dev-server = "python3 ./run.py"
+forge-gunicorn = "bash -c \"mkdir -p logs && gunicorn --worker-class gevent --timeout 600 --log-file logs/forge.log --error-logfile logs/forge.log --access-logfile logs/forge_access.log --disable-redirect-access-to-syslog -b 0.0.0.0:8000 run:app\""

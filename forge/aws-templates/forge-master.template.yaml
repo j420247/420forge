@@ -15,6 +15,7 @@ Metadata:
         - Label:
             default: EC2 Config
           Parameters:
+            - LatestAmiId
             - KeyPairName
             - NodeInstanceType
             - NodeVolumeSize
@@ -56,6 +57,8 @@ Metadata:
           default: IP range permitted to access forge
         HostedZone:
           default: Route 53 Hosted Zone
+        LatestAmiId:
+          default: Lookup for latest AMI from public Systems Manager Parameter
         KeyPairName:
           default: Key Pair
         LocalAnsibleGitRepo:
@@ -136,6 +139,10 @@ Parameters:
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
+  LatestAmiId:
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    Description: 'The key to use for the latest AMI lookup from AWS public Systems Manager'
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
   LocalAnsibleGitRepo:
     Default: ''
     Description: For additional node customization, provide ansible repo location to git clone. This may be in either http or ssh format, but it must be in the correct format for your git hosting provider (as it is passed directly to a 'git clone' command), eg git@bitbucket.org:atlassian/atlassian-local-ansible-example.git if using Bitbucket Cloud, or ssh://git@bitbucketserver.example.com:7997/my-local-ansible.git (ie protocol included) if using Bitbucket Server.
@@ -180,39 +187,6 @@ Parameters:
     Description: Virtual Private Cloud (VPC)
     Type: AWS::EC2::VPC::Id
 
-Mappings:
-  RegionAmiMap:
-    ap-northeast-1:
-      "ami": "ami-06cd52961ce9f0d85"
-    ap-northeast-2:
-      "ami": "ami-0a10b2721688ce9d2"
-    ap-south-1:
-      "ami": "ami-0912f71e06545ad88"
-    ap-southeast-1:
-      "ami": "ami-08569b978cc4dfa10"
-    ap-southeast-2:
-      "ami": "ami-09b42976632b27e9b"
-    ca-central-1:
-      "ami": "ami-0b18956f"
-    eu-central-1:
-      "ami": "ami-0233214e13e500f77"
-    eu-west-1:
-      "ami": "ami-047bb4163c506cd98"
-    eu-west-2:
-      "ami": "ami-f976839e"
-    eu-west-3:
-      "ami": "ami-0ebc281c20e89ba4b"
-    sa-east-1:
-      "ami": "ami-07b14488da8ea02a0"
-    us-east-1:
-      "ami": "ami-0ff8a91507f77f867"
-    us-east-2:
-      "ami": "ami-0b59bfac6be064b78"
-    us-west-1:
-      "ami": "ami-0bdb828fd58c52235"
-    us-west-2:
-      "ami": "ami-a0cfeed8"
-
 Conditions:
   InternetAccessible:
     !Equals [!Ref InternetAccessible, true]
@@ -241,9 +215,11 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Action:
+                - acm:ListCertificates
                 - autoscaling:*
                 - cloudformation:*
                 - cloudwatch:DeleteAlarms
+                - cloudwatch:GetMetricStatistics
                 - cloudwatch:PutMetricAlarm
                 - ec2:*
                 - elasticfilesystem:CreateFileSystem
@@ -264,9 +240,12 @@ Resources:
                 - iam:DeleteRole
                 - iam:DeleteRolePolicy
                 - iam:DetachRolePolicy
+                - iam:GetRole
+                - iam:GetRolePolicy
                 - iam:PassRole
                 - iam:PutRolePolicy
                 - iam:RemoveRoleFromInstanceProfile
+                - iam:TagRole
                 - kms:CreateAlias
                 - kms:CreateGrant
                 - kms:CreateKey
@@ -295,6 +274,11 @@ Resources:
                 - route53:GetChange
                 - route53:ListHostedZones
                 - route53:ListResourceRecordSets
+                - s3:GetObject
+                - s3:ListBucket
+                - sns:CreateTopic
+                - sns:ListTopics
+                - sns:Publish
                 - ssm:ListCommands
                 - ssm:PutParameter
                 - ssm:SendCommand
@@ -351,12 +335,11 @@ Resources:
               gcc: []
               git: []
               jq: []
-              python36-devel: []
-              python36-pip: []
-              python36: []
+              python3-devel: []
+              python3-pip: []
+              python3: []
               xmlsec1-openssl: []
               xmlsec1: []
-              xmlstarlet: []
           files:
             /etc/atl:
               content: !Sub
@@ -383,26 +366,22 @@ Resources:
               content: !Sub
                 - |
                   #!/usr/bin/env bash
-
-                  # long paths are required for the atlassian-aws-deployment submodule to clone correctly
-                  git config --global user.email "forge-server@example.com"
-                  git config --global user.name "Forge Server"
-                  git config --global core.longpaths true
-
                   forgepath=/home/forge/atl-cfn-forge
-
                   if [ -d $forgepath ]; then
                       cd $forgepath
                       git pull
                   else
                       useradd -d /home/forge forge
                       cd /home/forge
-                      git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart
                       sudo -u forge /bin/bash -c 'git config --global url."https://github.com/aws-quickstart".insteadOf git@github.com:aws-quickstart'
-                      git clone https://bitbucket.org/atlassian/atl-cfn-forge.git  $forgepath
+                      sudo -u forge /bin/bash -c 'git config --global user.email "forge-server@example.com"'
+                      sudo -u forge /bin/bash -c 'git config --global user.name "Forge Server"'
+                      # long paths are required for the atlassian-aws-deployment submodule to clone correctly
+                      sudo -u forge /bin/bash -c 'git config --global core.longpaths true'
+                      sudo -u forge /bin/bash -c 'git clone https://bitbucket.org/atlassian/atl-cfn-forge.git $forgepath'
                       cd $forgepath
-                      git submodule update --init
-                      git submodule foreach git checkout master
+                      sudo -u forge /bin/bash -c 'git submodule update --init'
+                      sudo -u forge /bin/bash -c 'git submodule foreach git checkout master'
                   fi
                   # make the log directory and files if they don't exist so gunicorn can log to them during startup
                   if [[ ! -d $forgepath/logs ]]; then
@@ -410,7 +389,7 @@ Resources:
                       touch $forgepath/logs/forge.log
                       touch $forgepath/logs/forge_access.log
                   fi
-                  /usr/bin/pip-3.6 install --upgrade pipenv
+                  /usr/bin/pip3 install --upgrade pipenv
                   chown -R forge:forge /home/forge
 
                   # create s3 bucket for forge objects
@@ -430,9 +409,10 @@ Resources:
                       chmod 400 /home/forge/gitkey
                     fi
                     # clone the repo
-                    mkdir $forgepath/custom-templates
+                    mkdir -p $forgepath/custom-templates
+                    chown -R forge:forge /home/forge
                     cd $forgepath/custom-templates
-                    git clone "${CustomTemplateRepo}"
+                    sudo -u forge /bin/bash -c 'export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i /home/forge/gitkey" && git clone "${CustomTemplateRepo}"'
                   fi
 
                   chown forge:forge /etc/atl
@@ -464,23 +444,32 @@ Resources:
               mode: "000700"
               owner: root
               group: root
-            /etc/init/forge.conf:
+            /etc/systemd/system/multi-user.target.wants/forge.service:
               content: !Sub
                 - |
-                  #!upstart
-                  description "Atlassian Cloudformation Forge"
+                  [Unit]
+                  Description=Atlassian CloudFormation Forge
+                  After=network-online.target
 
-                  start on started mountall
-                  stop on shutdown
+                  [Service]
+                  User=forge
+                  Group=forge
 
-                  # Automatically Respawn:
-                  respawn
-                  respawn limit 3 5
+                  Environment=LC_ALL=en_US.UTF-8
+                  Environment=LANG=en_US.UTF-8
+                  Environment=REGION=${region}
+                  ${noSaml}
 
-                  script
-                    exec sudo -u forge /bin/bash -c "cd /home/forge/atl-cfn-forge && export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export REGION=${region} ${noSaml} && /usr/local/bin/pipenv install --skip-lock && /usr/local/bin/pipenv run forge-gunicorn" >> /var/log/forge.log 2>&1
-                  end script
-                - noSaml: !If [NoSamlMetadata, "&& export NO_SAML=1", '']
+                  StandardOutput=file:/var/log/forge.log
+                  StandardError=file:/var/log/forge.log
+                  WorkingDirectory=/home/forge/atl-cfn-forge
+                  ExecStartPre=/usr/local/bin/pipenv install --skip-lock
+                  ExecStart=/usr/local/bin/pipenv run forge-gunicorn
+                  Restart=always
+
+                  [Install]
+                  WantedBy=multi-user.target
+                - noSaml: !If [NoSamlMetadata, "&& Environment=NO_SAML=1", '']
                   region: !Ref AWS::Region
               mode: "000600"
               owner: root
@@ -523,7 +512,7 @@ Resources:
               ignoreErrors: true
             030_run_forge:
               command:
-                start forge
+                /bin/systemctl start forge.service
     Properties:
       AssociatePublicIpAddress: false
       BlockDeviceMappings:
@@ -532,7 +521,7 @@ Resources:
             VolumeSize: !Ref NodeVolumeSize
             DeleteOnTermination: true
       IamInstanceProfile: !Ref ForgeNodeInstanceProfile
-      ImageId: !FindInMap [RegionAmiMap, !Ref "AWS::Region", "ami"]
+      ImageId: !Ref LatestAmiId
       InstanceType: !Ref NodeInstanceType
       KeyName: !Ref KeyPairName
       SecurityGroups: [!Ref ForgeNodeSecurityGroup]
