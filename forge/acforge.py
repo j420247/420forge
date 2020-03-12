@@ -762,6 +762,7 @@ class DoForgeRestart(RestrictedResource):
 #### Common functions
 ##
 
+
 @retry(botocore.exceptions.ClientError, tries=5, delay=2, backoff=2)
 def get_cfn_stacks_for_region(region=None):
     cfn = boto3.client('cloudformation', region if region else session['region'])

@@ -86,13 +86,17 @@
 <!-- Modal prompt -->
 <section id="modal-dialog" class="aui-dialog2 aui-dialog2-medium aui-layer" data-aui-modal="true" role="dialog" aria-hidden="true">
     <header class="aui-dialog2-header">
-        <h2 class="aui-dialog2-header-main" id="modal-title">{% block modalTitle %}{% endblock modalTitle %}</h2>
+        <h2 class="aui-dialog2-header-main" id="modal-title">
+            {% block modalTitle %}
+            {% endblock modalTitle %}
+        </h2>
         <a class="aui-dialog2-header-close">
             <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
         </a>
     </header>
     <div class="aui-dialog2-content" id="modal-contents">
-        {% block modalContents %}{% endblock modalContents %}
+        {% block modalContents %}
+        {% endblock modalContents %}
     </div>
     <footer class="aui-dialog2-footer">
         {% block modalFooterContents %}
