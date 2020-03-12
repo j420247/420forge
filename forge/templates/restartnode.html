@@ -20,6 +20,11 @@
 <div id="cpuChartDiv"></div>
 <form class="aui">
     <fieldset class="group">
+        <legend><span>Options</span></legend>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="drainNodes" id="drainNodes" disabled>
+            <label for="drainNodes">Drain nodes from the load balancer before restarting. NB: Only works for ELBV2 load balancers, and will cause the restart to be slower.</label>
+        </div>
         <legend><span>Diagnostics</span></legend>
         <div class="checkbox">
             <input class="checkbox" type="checkbox" name="takeThreadDumps" id="takeThreadDumps" disabled>
