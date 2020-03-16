@@ -11,6 +11,7 @@ from pytz import UTC
 
 import boto3
 import botocore
+from itertools import islice, chain
 import requests
 import tenacity
 from botocore.exceptions import ClientError
@@ -20,8 +21,19 @@ from requests_toolbelt.sessions import BaseUrlSession
 from retry import retry
 
 
+## Python helpers
+#
+
+
 def version_tuple(version):
     return tuple(int(i) for i in version.replace('-m', '.').split('.'))
+
+
+def batch(iterable, size):
+    source_iterator = iter(iterable)
+    while True:
+        batch_iterator = islice(source_iterator, size)
+        yield chain([next(batch_iterator)], batch_iterator)
 
 
 ZDU_MINIMUM_JIRACORE_VERSION = version_tuple('7.3')
@@ -255,6 +267,125 @@ class Stack:
             return True
         return False
 
+    def spinup_to_one_appnode(self, app_type, new_version):
+        self.log_msg(INFO, "Spinning stack up to one app node", write_to_changelog=True)
+        # for connie 1 app node and 1 synchrony
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        spinup_params = self.get_params()
+        if any(param for param in spinup_params if param['ParameterKey'] == 'ClusterNodeMax'):
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMax', '1')
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMin', '1')
+        else:
+            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeCount', '1')
+        if any(param for param in spinup_params if param['ParameterKey'] == 'ProductVersion'):
+            spinup_params = self.update_paramlist(spinup_params, 'ProductVersion', new_version)
+        elif app_type == 'jira':
+            spinup_params = self.update_paramlist(spinup_params, 'JiraVersion', new_version)
+        elif app_type == 'confluence':
+            spinup_params = self.update_paramlist(spinup_params, 'ConfluenceVersion', new_version)
+            if self.preupgrade_synchrony_node_count is not None:
+                if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', '1')
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', '1')
+                else:
+                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
+        elif app_type == 'crowd':
+            spinup_params = self.update_paramlist(spinup_params, 'CrowdVersion', new_version)
+        try:
+            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            update_stack = cfn.update_stack(
+                StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
+            )
+        except botocore.exceptions.ClientError as e:
+            self.log_msg(INFO, f'Stack spinup failed: {e}', write_to_changelog=True)
+            return False
+        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
+            return False
+        self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond', write_to_changelog=False)
+        if not self.validate_service_responding():
+            return False
+        self.log_msg(INFO, f'Updated stack: {update_stack}', write_to_changelog=True)
+        return True
+
+    def get_target_group_arn(self, resources):
+        for resource in resources['StackResources']:
+            if resource['ResourceType'] == 'AWS::ElasticLoadBalancingV2::TargetGroup' and resource['LogicalResourceId'] == 'MainTargetGroup':
+                return resource['PhysicalResourceId']
+        return None
+
+    def get_target_state(self, target_group_arn, target_id):
+        elbv2 = boto3.client('elbv2', region_name=self.region)
+        target_state = False
+        try:
+            response = elbv2.describe_target_health(TargetGroupArn=target_group_arn, Targets=[{'Id': target_id}])
+            if 'TargetHealthDescriptions' in response:
+                target_state = response['TargetHealthDescriptions'][0]['TargetHealth']['State']
+                if target_state == 'unused' and response['TargetHealthDescriptions'][0]['TargetHealth']['Reason'] == 'Target.NotRegistered':
+                    target_state = 'notregistered'
+        except Exception as e:
+            log.exception(f'Error occurred getting target state for {target_id}')
+        return target_state
+
+    def wait_node_registered(self, node):
+        try:
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            resources = cfn.describe_stack_resources(StackName=self.stack_name)
+            target_group_arn = self.get_target_group_arn(resources)
+            if target_group_arn is None:
+                self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node registration', write_to_changelog=True)
+                return True
+            self.log_msg(INFO, f"Waiting for node {node} to report 'healthy' in the load balancer", write_to_changelog=False)
+            target_id = list(node.keys())[0]
+            target_state = self.get_target_state(target_group_arn, target_id)
+            stack = boto3.client('cloudformation', self.region).describe_stacks(StackName=self.stack_name)['Stacks'][0]
+            port = [param['ParameterValue'] for param in stack['Parameters'] if param['ParameterKey'] == 'TomcatDefaultConnectorPort'][0]
+            elbv2 = boto3.client('elbv2', region_name=self.region)
+            response = elbv2.register_targets(TargetGroupArn=target_group_arn, Targets=[{'Id': target_id, 'Port': int(port)}])
+            action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['node_registration_deregistration']
+            while target_state != 'healthy':
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(
+                        ERROR, f'Node {node} failed to register after {format_timespan(action_timeout)}. ' f'Target state is : {target_state}', write_to_changelog=True,
+                    )
+                    return False
+                if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
+                    time.sleep(10)
+                target_state = self.get_target_state(target_group_arn, target_id)
+        except Exception as e:
+            return False
+        self.log_msg(INFO, f'Node {node} is reporting healthy', write_to_changelog=False)
+        return True
+
+    def wait_node_deregistered(self, node):
+        try:
+            self.log_msg(INFO, f'Waiting for node {node} to drain from the load balancer', write_to_changelog=False)
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            resources = cfn.describe_stack_resources(StackName=self.stack_name)
+            target_group_arn = self.get_target_group_arn(resources)
+            if target_group_arn is None:
+                self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node deregistration', write_to_changelog=True)
+                return True
+            target_id = list(node.keys())[0]
+            target_state = self.get_target_state(target_group_arn, target_id)
+            elbv2 = boto3.client('elbv2', region_name=self.region)
+            elbv2.deregister_targets(TargetGroupArn=target_group_arn, Targets=[{'Id': target_id}])
+            action_start = time.time()
+            action_timeout = current_app.config['ACTION_TIMEOUTS']['node_registration_deregistration']
+            while target_state != 'notregistered':
+                if (time.time() - action_start) > action_timeout:
+                    self.log_msg(
+                        ERROR, f'Node {node} failed to deregister after {format_timespan(action_timeout)}. ' f'Target state is : {target_state}', write_to_changelog=True,
+                    )
+                    return False
+                if 'TESTING' not in current_app.config or current_app.config['TESTING'] is False:
+                    time.sleep(10)
+                target_state = self.get_target_state(target_group_arn, target_id)
+        except Exception as e:
+            return False
+        self.log_msg(INFO, f'Node {node} is deregistered', write_to_changelog=False)
+        return True
+
     def wait_stack_action_complete(self, in_progress_state, client_request_token):
         self.log_msg(INFO, 'Waiting for stack action to complete', write_to_changelog=False)
         try:
@@ -295,46 +426,6 @@ class Stack:
             self.log_msg(ERROR, f'An error occurred waiting for change set to create: {e}', write_to_changelog=True)
             return False
         self.log_msg(INFO, 'Change set creation complete', write_to_changelog=True)
-        return True
-
-    def spinup_to_one_appnode(self, app_type, new_version):
-        self.log_msg(INFO, "Spinning stack up to one app node", write_to_changelog=True)
-        # for connie 1 app node and 1 synchrony
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        spinup_params = self.get_params()
-        if any(param for param in spinup_params if param['ParameterKey'] == 'ClusterNodeMax'):
-            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMax', '1')
-            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeMin', '1')
-        else:
-            spinup_params = self.update_paramlist(spinup_params, 'ClusterNodeCount', '1')
-        if any(param for param in spinup_params if param['ParameterKey'] == 'ProductVersion'):
-            spinup_params = self.update_paramlist(spinup_params, 'ProductVersion', new_version)
-        elif app_type == 'jira':
-            spinup_params = self.update_paramlist(spinup_params, 'JiraVersion', new_version)
-        elif app_type == 'confluence':
-            spinup_params = self.update_paramlist(spinup_params, 'ConfluenceVersion', new_version)
-            if self.preupgrade_synchrony_node_count is not None:
-                if any(param for param in spinup_params if param['ParameterKey'] == 'SynchronyClusterNodeMax'):
-                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMax', '1')
-                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeMin', '1')
-                else:
-                    spinup_params = self.update_paramlist(spinup_params, 'SynchronyClusterNodeCount', '1')
-        elif app_type == 'crowd':
-            spinup_params = self.update_paramlist(spinup_params, 'CrowdVersion', new_version)
-        try:
-            client_request_token = f'{self.stack_name}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
-            update_stack = cfn.update_stack(
-                StackName=self.stack_name, Parameters=spinup_params, UsePreviousTemplate=True, Capabilities=['CAPABILITY_IAM'], ClientRequestToken=client_request_token
-            )
-        except botocore.exceptions.ClientError as e:
-            self.log_msg(INFO, f'Stack spinup failed: {e}', write_to_changelog=True)
-            return False
-        if not self.wait_stack_action_complete('UPDATE_IN_PROGRESS', client_request_token):
-            return False
-        self.log_msg(INFO, 'Spun up to 1 node, waiting for service to respond', write_to_changelog=False)
-        if not self.validate_service_responding():
-            return False
-        self.log_msg(INFO, f'Updated stack: {update_stack}', write_to_changelog=True)
         return True
 
     def validate_service_responding(self):
@@ -1241,7 +1332,7 @@ class Stack:
         self.log_msg(INFO, 'Create complete', write_to_changelog=True)
         return True
 
-    def rolling_restart(self):
+    def rolling_restart(self, drain):
         self.log_msg(INFO, f'Beginning Rolling Restart for {self.stack_name}', write_to_changelog=True, send_sns_msg=True)
         app_type = self.get_tag('product')
         if not app_type:
@@ -1274,6 +1365,10 @@ class Stack:
                 non_running_nodes.append(node)
         # restart non running nodes first
         for node in itertools.chain(non_running_nodes, running_nodes):
+            if drain and not self.wait_node_deregistered(node):
+                self.log_msg(INFO, f'Failed to drain node {node}', write_to_changelog=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
+                return False
             if not self.shutdown_app(app_type, [node]):
                 self.log_msg(INFO, f'Failed to stop application on node {node}', write_to_changelog=True)
                 self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
@@ -1285,6 +1380,10 @@ class Stack:
             node_ip = list(node.values())[0]
             if not self.validate_node_responding(node_ip):
                 self.log_msg(INFO, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
+                return False
+            if not self.wait_node_registered(node):
+                self.log_msg(INFO, f'Failed to register node {node} in the target group', write_to_changelog=True)
+                self.log_msg(ERROR, 'Rolling restart complete - failed', write_to_changelog=True, send_sns_msg=True)
                 return False
         self.log_msg(INFO, 'Rolling restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
@@ -1309,7 +1408,7 @@ class Stack:
         self.log_msg(INFO, 'Full restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
-    def restart_node(self, node):
+    def restart_node(self, node, drain):
         self.log_msg(INFO, f'Beginning restart on node {node}', write_to_changelog=True, send_sns_msg=True)
         app_type = self.get_tag('product')
         if not app_type:
@@ -1320,11 +1419,19 @@ class Stack:
         for instance in nodes:
             if node == list(instance.values())[0]:
                 node_to_restart.append(instance)
+        if drain and not self.wait_node_deregistered(node_to_restart[0]):
+            self.log_msg(INFO, f'Failed to drain node {node}', write_to_changelog=True)
+            self.log_msg(ERROR, 'Node restart complete - failed', write_to_changelog=True, send_sns_msg=True)
+            return False
         if not self.shutdown_app(app_type, node_to_restart):
             self.log_msg(ERROR, 'Node restart complete - shutdown failed', write_to_changelog=True, send_sns_msg=True)
             return False
         if not self.startup_app(app_type, node_to_restart):
             self.log_msg(ERROR, 'Node restart complete - startup failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        if not self.wait_node_registered(node_to_restart[0]):
+            self.log_msg(INFO, f'Failed to register node {node} in the target group', write_to_changelog=True)
+            self.log_msg(ERROR, 'Node restart complete - failed', write_to_changelog=True, send_sns_msg=True)
             return False
         self.log_msg(INFO, 'Node restart complete', write_to_changelog=True, send_sns_msg=True)
         return True

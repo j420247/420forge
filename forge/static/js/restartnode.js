@@ -53,6 +53,7 @@ function listNodes(stack_name) {
         $("#nodeSelector").text(selectedNode);
         $("#takeThreadDumps").removeAttr("disabled");
         $("#takeHeapDumps").removeAttr("disabled");
+        $("#drainNodes").removeAttr("disabled");
         $("#cpuChartDiv").empty();
         $("#cpuChartDiv").append("<canvas id='cpuChart' class='cpuChartEmpty' hidden>");
         drawChart([],[], '');
@@ -123,7 +124,7 @@ function displayNodeCPU(responseText) {
 
 function  performNodeRestart() {
     var stack_name = scrapePageForStackName();
-    var url = [baseUrl, 'dorestartnode', region, stack_name, $("#nodeSelector").text(), $("#takeThreadDumps").is(':checked'), $("#takeHeapDumps").is(':checked')].join('/');
+    var url = [baseUrl, 'dorestartnode', region, stack_name, $("#nodeSelector").text(), $("#drainNodes").is(':checked'), $("#takeThreadDumps").is(':checked'), $("#takeHeapDumps").is(':checked')].join('/');
     send_http_get_request(url);
     redirectToLog(stack_name);
 }

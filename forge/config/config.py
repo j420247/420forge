@@ -32,6 +32,7 @@ class BaseConfig(object):
         'cancel_zdu_mode': 300,
         'enable_zdu_mode': 300,
         'node_initialisation': 3600,
+        'node_registration_deregistration': 3600,
         'validate_node_responding': 3600,
         'validate_service_responding': 3600,
         'zdu_ready_to_run_upgrade_tasks': 600,

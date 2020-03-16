@@ -188,7 +188,7 @@ class DoFullRestart(RestrictedResource):
 
 
 class DoRollingRestart(RestrictedResource):
-    def get(self, region, stack_name, threads, heaps):
+    def get(self, region, stack_name, drain, threads, heaps):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('rollingrestart', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
@@ -197,7 +197,7 @@ class DoRollingRestart(RestrictedResource):
                 mystack.thread_dump(alsoHeaps=heaps)
             if heaps == 'true':
                 mystack.heap_dump()
-            mystack.rolling_restart()
+            mystack.rolling_restart(bool(drain))
         except Exception as e:
             log.exception('Error occurred doing rolling restart')
             mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', write_to_changelog=True)
@@ -207,7 +207,7 @@ class DoRollingRestart(RestrictedResource):
 
 
 class DoRestartNode(RestrictedResource):
-    def get(self, region, stack_name, node, threads, heaps):
+    def get(self, region, stack_name, node, drain, threads, heaps):
         mystack = Stack(stack_name, region)
         if not mystack.store_current_action('restartnode', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
             return False
@@ -216,7 +216,7 @@ class DoRestartNode(RestrictedResource):
                 mystack.thread_dump(node=node, alsoHeaps=heaps)
             if heaps == 'true':
                 mystack.heap_dump(node=node)
-            mystack.restart_node(node)
+            mystack.restart_node(node, bool(drain))
         except Exception as e:
             log.exception('Error occurred doing node restart')
             mystack.log_msg(ERROR, f'Error occurred doing node restart: {e}', write_to_changelog=True)
