@@ -197,7 +197,7 @@ class DoRollingRestart(RestrictedResource):
                 mystack.thread_dump(alsoHeaps=heaps)
             if heaps == 'true':
                 mystack.heap_dump()
-            mystack.rolling_restart(bool(drain))
+            mystack.rolling_restart(drain == 'true')
         except Exception as e:
             log.exception('Error occurred doing rolling restart')
             mystack.log_msg(ERROR, f'Error occurred doing rolling restart: {e}', write_to_changelog=True)
@@ -216,7 +216,7 @@ class DoRestartNode(RestrictedResource):
                 mystack.thread_dump(node=node, alsoHeaps=heaps)
             if heaps == 'true':
                 mystack.heap_dump(node=node)
-            mystack.restart_node(node, bool(drain))
+            mystack.restart_node(node, drain == 'true')
         except Exception as e:
             log.exception('Error occurred doing node restart')
             mystack.log_msg(ERROR, f'Error occurred doing node restart: {e}', write_to_changelog=True)
@@ -246,7 +246,7 @@ class DoDestroy(RestrictedResource):
         if not mystack.store_current_action('destroy', stack_locking_enabled(), not delete_changelogs, session['saml']['subject'] if 'saml' in session else False):
             return False
         try:
-            mystack.destroy(bool(delete_changelogs), bool(delete_threaddumps))
+            mystack.destroy(delete_changelogs == 'true', delete_threaddumps == 'true')
         except Exception as e:
             log.exception('Error occurred destroying stack')
             mystack.log_msg(ERROR, f'Error occurred destroying stack: {e}', write_to_changelog=True)
