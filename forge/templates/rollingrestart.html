@@ -6,4 +6,28 @@
 {% block descriptionPanel %}
     Restart all nodes in the cluster one by one. This can only be run on stacks with more than one node in the cluster, and will not result in downtime.
 {% endblock descriptionPanel %}
+
+{% block extraInput %}
+{% block nodeSelector %}
+{% endblock nodeSelector %}
+<form class="aui">
+    <fieldset class="group">
+        <legend><span>Options</span></legend>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="drainNodes" id="drainNodes" disabled>
+            <label for="drainNodes">Drain nodes from the load balancer before restarting. NB: Only works for ELBV2 load balancers, and will cause the restart to be slower.</label>
+        </div>
+        <legend><span>Diagnostics</span></legend>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeThreadDumps" id="takeThreadDumps" disabled>
+            <label for="takeThreadDumps">Take thread dumps</label>
+        </div>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeHeapDumps" id="takeHeapDumps" disabled>
+            <label for="takeHeapDumps">Take heap dumps</label>
+        </div>
+    </fieldset>
+</form>
+{% endblock extraInput %}
+
 {% block buttonText %}Rolling Restart{% endblock buttonText %}

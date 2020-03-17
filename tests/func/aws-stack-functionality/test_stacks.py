@@ -26,6 +26,7 @@ app.config['S3_BUCKET'] = 'mock_bucket'
 app.config['SNS_REGION'] = 'us-east-1'
 app.config['TESTING'] = True
 app.config['ACTION_TIMEOUTS'] = {
+    'node_registration_deregistration': 3600,
     'validate_node_responding': 3600,
     'validate_service_responding': 3600,
 }
@@ -346,6 +347,7 @@ class TestAwsStacks:
     @moto.mock_ec2
     @moto.mock_elbv2
     @moto.mock_s3
+    @moto.mock_sns
     @moto.mock_ssm
     @moto.mock_route53
     @moto.mock_cloudformation
@@ -357,22 +359,33 @@ class TestAwsStacks:
         mystack.check_node_status = MagicMock(return_value='RUNNING')
         mystack.get_tag = MagicMock(return_value='Confluence')
         mystack.is_app_clustered = MagicMock(return_value=True)
+        drain_target_states = ['healthy', 'draining', 'notregistered', 'initial', 'initial', 'healthy', 'healthy', 'draining', 'notregistered', 'initial', 'initial', 'healthy']
+        no_drain_target_states = ['initial', 'initial', 'healthy', 'initial', 'initial', 'healthy']
         with app.app_context():
             # perform restarts
             # expect failures as node count is 0
-            rolling_result = mystack.rolling_restart()
+            rolling_result = mystack.rolling_restart(False)
             assert rolling_result is False
             full_result = mystack.full_restart()
             assert full_result is False
-            # mock nodes
+            # mock nodes and target states
             mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+            mystack.get_target_state = MagicMock(side_effect=no_drain_target_states)
             # expect restarts to pass
-            rolling_result = mystack.rolling_restart()
+            rolling_result = mystack.rolling_restart(False)
             assert rolling_result is True
+            mystack.get_target_state = MagicMock(side_effect=drain_target_states)
+            rolling_drain_result = mystack.rolling_restart(True)
+            assert rolling_drain_result is True
             full_result = mystack.full_restart()
             assert full_result is True
-            restart_node_result = mystack.restart_node('10.111.22.333')
+            # test node restart with and without draining
+            mystack.get_target_state = MagicMock(side_effect=no_drain_target_states)
+            restart_node_result = mystack.restart_node('10.111.22.333', False)
             assert restart_node_result is True
+            mystack.get_target_state = MagicMock(side_effect=drain_target_states)
+            restart_node_drain_result = mystack.restart_node('10.111.22.444', True)
+            assert restart_node_drain_result is True
 
     @moto.mock_ec2
     @moto.mock_elbv2
