@@ -324,6 +324,7 @@ class Stack:
                     target_state = 'notregistered'
         except Exception as e:
             log.exception(f'Error occurred getting target state for {target_id}')
+            self.log_msg(ERROR, f'Error occurred getting target state for {target_id}: {e}', write_to_changelog=False)
         return target_state
 
     def wait_node_registered(self, node):
@@ -353,6 +354,8 @@ class Stack:
                     time.sleep(10)
                 target_state = self.get_target_state(target_group_arn, target_id)
         except Exception as e:
+            log.exception(f'Node {node} failed to register')
+            self.log_msg(ERROR, f'Node {node} failed to register: {e}', write_to_changelog=True)
             return False
         self.log_msg(INFO, f'Node {node} is reporting healthy', write_to_changelog=False)
         return True
@@ -382,6 +385,8 @@ class Stack:
                     time.sleep(10)
                 target_state = self.get_target_state(target_group_arn, target_id)
         except Exception as e:
+            log.exception(f'Node {node} failed to deregister')
+            self.log_msg(ERROR, f'Node {node} failed to deregister: {e}', write_to_changelog=True)
             return False
         self.log_msg(INFO, f'Node {node} is deregistered', write_to_changelog=False)
         return True
