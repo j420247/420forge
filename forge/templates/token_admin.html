@@ -17,22 +17,13 @@
 
 {% endblock extraInput %}
 
-{% block modalDialogHeader %}
-Token Created
-{% endblock modalDialogHeader %}
-{% block modalDialogContent %}
-<p><br>
-    A new token has been created, please save it somewhere secure for future use.</p>
-<div id="tokenDisplayMessage" class="aui-message">
-    <p class="title">
-        <strong>Token Created</strong>
-    </p>
-    <p id="tokenContent"></p>
-</div>
-{% endblock modalDialogContent %}
-
-{% block modalDialogFooterContent %}
-<div class="aui-dialog2-footer-actions">
-    <button class="aui-button aui-button-primary" id="auth-ok-btn" onclick="closeModal()">Okay</button>
-</div>
-{% endblock modalDialogFooterContent %}
+{% block modalTitle %}Token created{% endblock modalTitle %}
+{% block modalContents %}
+    <p>A new token has been created, please save it somewhere secure for future use.</p>
+    <div id="tokenDisplayMessage" class="aui-message">
+        <p class="title">
+            <strong>Token Created</strong>
+        </p>
+        <p id="tokenContent"></p>
+    </div>
+{% endblock modalContents %}

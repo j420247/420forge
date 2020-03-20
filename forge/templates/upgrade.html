@@ -43,29 +43,3 @@
 {% endblock extraInput %}
 
 {% block buttonText %}Upgrade{% endblock buttonText %}
-
-{% block modalDialogHeader %}
-Jira Authentication
-{% endblock modalDialogHeader %}
-{% block modalDialogContent %}
-<p>This action requires admin authentication to the Jira server.<br><br>
-    NB: We do NOT recommend entering your credentials unless both Forge and the Jira server use SSL.<br><br>
-    Please enter your Jira administrator username and password:</p>
-<form class="aui top-label">
-    <fieldset class="top-label">
-        <div class="field-group">
-            <label for="username">Username</label>
-            <input class="text" type="text" id="username" name="username">
-            <label for="username">Password</label>
-            <input class="password" type="password" id="password" name="password">
-        </div>
-    </fieldset>
-</form>
-{% endblock modalDialogContent %}
-
-{% block modalDialogFooterContent %}
-<div class="aui-dialog2-footer-actions">
-    <button class="aui-button aui-button-primary" id="auth-ok-btn">Okay</button>
-    <button class="aui-button aui-button-link" onclick="closeModal()">Cancel</button>
-</div>
-{% endblock modalDialogFooterContent %}
