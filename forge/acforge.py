@@ -225,6 +225,25 @@ class DoRestartNode(RestrictedResource):
         return
 
 
+class DoToggleNode(RestrictedResource):
+    def get(self, region, stack_name, node, threads, heaps):
+        mystack = Stack(stack_name, region)
+        if not mystack.store_current_action('togglenode', stack_locking_enabled(), True, session['saml']['subject'] if 'saml' in session else False):
+            return False
+        try:
+            if threads == 'true':
+                mystack.thread_dump(node=node, alsoHeaps=heaps)
+            if heaps == 'true':
+                mystack.heap_dump(node=node)
+            mystack.toggle_node_registration(node)
+        except Exception as e:
+            log.exception('Error occurred toggling node registration')
+            mystack.log_msg(ERROR, f'Error occurred toggling node registration: {e}', write_to_changelog=True)
+            mystack.clear_current_action()
+        mystack.clear_current_action()
+        return
+
+
 class DoRollingRebuild(RestrictedResource):
     def get(self, region, stack_name):
         mystack = Stack(stack_name, region)

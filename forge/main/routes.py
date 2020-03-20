@@ -68,6 +68,12 @@ def restartnode():
     return render_template('restartnode.html')
 
 
+@main.route('/togglenode', methods=['GET'])
+def togglenode():
+    set_action('togglenode')
+    return render_template('togglenode.html')
+
+
 @main.route('/rollingrebuild', methods=['GET'])
 def rollingrebuild():
     set_action('rollingrebuild')

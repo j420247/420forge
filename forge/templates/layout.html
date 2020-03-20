@@ -110,6 +110,9 @@
                                     <li {% if session['nice_action_name'] == 'Restart node' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.restartnode') }}" aria-owns="aui-menu-restartnode" id="restartnode-link">Restart Node</a>
                                     </li>
+                                    <li {% if session['nice_action_name'] == 'Restart node' %} class="aui-nav-selected" {% endif %} >
+                                        <a href="{{ url_for('main.togglenode') }}" aria-owns="aui-menu-togglenode" id="togglenode-link">Toggle Node Registration</a>
+                                    </li>
                                     <li {% if session['nice_action_name'] == 'Rebuild nodes' %} class="aui-nav-selected" {% endif %} >
                                         <a href="{{ url_for('main.rollingrebuild') }}" aria-owns="aui-menu-rollingrebuild" id="rollingrebuild-link">Rebuild Nodes</a>
                                     </li>

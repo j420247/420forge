@@ -1441,6 +1441,41 @@ class Stack:
         self.log_msg(INFO, 'Node restart complete', write_to_changelog=True, send_sns_msg=True)
         return True
 
+    def toggle_node_registration(self, node):
+        self.log_msg(INFO, f'Beginning node registration toggle on node {node}', write_to_changelog=True, send_sns_msg=True)
+        app_type = self.get_tag('product')
+        if not app_type:
+            self.log_msg(ERROR, 'Node toggle complete - failed', write_to_changelog=True, send_sns_msg=True)
+            return False
+        nodes = self.get_stacknodes()
+        node_to_toggle = []
+        for instance in nodes:
+            if node == list(instance.values())[0]:
+                node_to_toggle.append(instance)
+        cfn = boto3.client('cloudformation', region_name=self.region)
+        resources = cfn.describe_stack_resources(StackName=self.stack_name)
+        target_group_arn = self.get_target_group_arn(resources)
+        if target_group_arn is None:
+            self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node registration', write_to_changelog=True)
+            return True
+        target_id = list(node_to_toggle[0].keys())[0]
+        target_state = self.get_target_state(target_group_arn, target_id)
+        self.log_msg(INFO, f'Node {node} state is {target_state}', write_to_changelog=True)
+        if target_state is not 'notregistered':
+            self.log_msg(INFO, 'Node is registered, so will be removed from the load balancer', write_to_changelog=True)
+            if not self.wait_node_deregistered(node_to_toggle[0]):
+                self.log_msg(INFO, f'Failed to deregister node {node} in the target group', write_to_changelog=True)
+                self.log_msg(ERROR, 'Node toggle complete - failed', write_to_changelog=True, send_sns_msg=True)
+                return False
+        else:
+            self.log_msg(INFO, 'Node is not registered, so will be added to the load balancer', write_to_changelog=True)
+            if not self.wait_node_registered(node_to_toggle[0]):
+                self.log_msg(INFO, f'Failed to register node {node} in the target group', write_to_changelog=True)
+                self.log_msg(ERROR, 'Node toggle complete - failed', write_to_changelog=True, send_sns_msg=True)
+                return False
+        self.log_msg(INFO, 'Node toggle complete', write_to_changelog=True, send_sns_msg=True)
+        return True
+
     def rolling_rebuild(self):
         self.log_msg(INFO, 'Rolling rebuild has begun', write_to_changelog=True, send_sns_msg=True)
         ec2 = boto3.client('ec2', region_name=self.region)
