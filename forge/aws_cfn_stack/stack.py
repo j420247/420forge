@@ -307,10 +307,16 @@ class Stack:
         self.log_msg(INFO, f'Updated stack: {update_stack}', write_to_changelog=True)
         return True
 
-    def get_target_group_arn(self, resources):
-        for resource in resources['StackResources']:
-            if resource['ResourceType'] == 'AWS::ElasticLoadBalancingV2::TargetGroup' and resource['LogicalResourceId'] == 'MainTargetGroup':
-                return resource['PhysicalResourceId']
+    def get_target_group_arn(self):
+        try:
+            cfn = boto3.client('cloudformation', region_name=self.region)
+            resources = cfn.describe_stack_resources(StackName=self.stack_name)
+            for resource in resources['StackResources']:
+                if resource['ResourceType'] == 'AWS::ElasticLoadBalancingV2::TargetGroup' and resource['LogicalResourceId'] == 'MainTargetGroup':
+                    return resource['PhysicalResourceId']
+        except Exception as e:
+            log.exception(f'Error occurred getting target group arn')
+            self.log_msg(ERROR, f'Error occurred getting target group arn: {e}', write_to_changelog=False)
         return None
 
     def get_target_state(self, target_group_arn, target_id):
@@ -329,9 +335,7 @@ class Stack:
 
     def wait_node_registered(self, node):
         try:
-            cfn = boto3.client('cloudformation', region_name=self.region)
-            resources = cfn.describe_stack_resources(StackName=self.stack_name)
-            target_group_arn = self.get_target_group_arn(resources)
+            target_group_arn = self.get_target_group_arn()
             if target_group_arn is None:
                 self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node registration', write_to_changelog=True)
                 return True
@@ -363,9 +367,7 @@ class Stack:
     def wait_node_deregistered(self, node):
         try:
             self.log_msg(INFO, f'Waiting for node {node} to drain from the load balancer', write_to_changelog=False)
-            cfn = boto3.client('cloudformation', region_name=self.region)
-            resources = cfn.describe_stack_resources(StackName=self.stack_name)
-            target_group_arn = self.get_target_group_arn(resources)
+            target_group_arn = self.get_target_group_arn()
             if target_group_arn is None:
                 self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node deregistration', write_to_changelog=True)
                 return True
@@ -565,15 +567,17 @@ class Stack:
             # get nodes
             instances = self.get_stacknodes()
             nodes_list = []
+            target_group_arn = self.get_target_group_arn()
             for instance in instances:
                 node = {}
                 node_ip = list(instance.values())[0]
                 node['ip'] = node_ip
                 node['status'] = self.check_node_status(node_ip, False, stack)
+                node['registration_status'] = self.get_target_state(target_group_arn, list(instance.keys())[0])
                 nodes_list.append(node)
             stack_info['nodes'] = nodes_list
         except Exception as e:
-            if e.response and "does not exist" in e.response['Error']['Message']:
+            if e.response and 'does not exist' in e.response['Error']['Message']:
                 print(f'Stack {self.stack_name} does not exist')
                 return f'Stack {self.stack_name} does not exist'
             log.exception('Error getting stack info')
@@ -1452,9 +1456,7 @@ class Stack:
         for instance in nodes:
             if node == list(instance.values())[0]:
                 node_to_toggle.append(instance)
-        cfn = boto3.client('cloudformation', region_name=self.region)
-        resources = cfn.describe_stack_resources(StackName=self.stack_name)
-        target_group_arn = self.get_target_group_arn(resources)
+        target_group_arn = self.get_target_group_arn()
         if target_group_arn is None:
             self.log_msg(WARN, f'Stack {self.stack_name} does not use ELBV2, skipping wait for node registration', write_to_changelog=True)
             return True
