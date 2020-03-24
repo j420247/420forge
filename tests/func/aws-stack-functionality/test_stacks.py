@@ -371,12 +371,13 @@ class TestAwsStacks:
             # mock nodes and target states
             mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
             mystack.get_target_state = MagicMock(side_effect=no_drain_target_states)
-            # expect restarts to pass
+            # test rolling restart with and without draining
             rolling_result = mystack.rolling_restart(False)
             assert rolling_result is True
             mystack.get_target_state = MagicMock(side_effect=drain_target_states)
             rolling_drain_result = mystack.rolling_restart(True)
             assert rolling_drain_result is True
+            # test full restart
             full_result = mystack.full_restart()
             assert full_result is True
             # test node restart with and without draining
@@ -463,6 +464,46 @@ class TestAwsStacks:
         with app.app_context():
             thread_dump_links = mystack.get_thread_dump_links()
             assert len(thread_dump_links) > 0
+
+    @moto.mock_ec2
+    @moto.mock_elbv2
+    @moto.mock_s3
+    @moto.mock_sns
+    @moto.mock_ssm
+    @moto.mock_route53
+    @moto.mock_cloudformation
+    def test_toggle_node(self):
+        setup_stack()
+        mystack = aws_stack.Stack(CONF_STACKNAME, REGION)
+        # setup mocks
+        mystack.check_service_status = MagicMock(return_value='RUNNING')
+        mystack.check_node_status = MagicMock(return_value='RUNNING')
+        mystack.get_tag = MagicMock(return_value='Confluence')
+        mystack.is_app_clustered = MagicMock(return_value=True)
+        deregister_target_states = ['healthy', 'healthy', 'draining', 'draining', 'notregistered']
+        register_target_states = ['notregistered', 'notregistered', 'initial', 'initial', 'healthy']
+        with app.app_context():
+            with app.test_request_context(''):
+                session = {'saml': {'subject': 'UserA'}}
+                # mock nodes
+                mystack.get_stacknodes = MagicMock(return_value=[{'i-0bcf57c789637b10f': '10.111.22.333'}, {'i-0fdacb1ab66016786': '10.111.22.444'}])
+                # register node initially
+                mystack.get_target_state = MagicMock(side_effect=register_target_states)
+                register_result = mystack.toggle_node_registration(node='10.111.22.333')
+                assert register_result is True
+                # deregister node
+                mystack.get_target_state = MagicMock(side_effect=deregister_target_states)
+                deregister_result = mystack.toggle_node_registration(node='10.111.22.333')
+                assert deregister_result is True
+                # re-register node
+                mystack.get_target_state = MagicMock(side_effect=register_target_states)
+                register_result = mystack.toggle_node_registration(node='10.111.22.333')
+                assert register_result is True
+                # confirm a draining node re-registers
+                mystack.get_target_state = MagicMock(side_effect=['draining'])
+                mystack.wait_node_registered = MagicMock(return_value=True)
+                mystack.toggle_node_registration(node='10.111.22.333')
+                assert mystack.wait_node_registered.called
 
     @moto.mock_ec2
     @moto.mock_elbv2

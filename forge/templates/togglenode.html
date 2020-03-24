@@ -1,0 +1,39 @@
+{% extends "page-content.html" %}
+{% block head %}
+{{ super() }}
+<script src="{{ get_filename_with_last_update_time('static/js/togglenode.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+{% endblock head %}
+
+{% block extraInput %}
+{% block nodeSelector %}
+<a id="nodeSelector" href="#nodeSelection" aria-owns="nodeSelection" aria-haspopup="true"
+   class="aui-button aui-style-default aui-dropdown2-trigger">
+    Select Node
+</a>
+<!-- Nodes dropdown -->
+<div id="nodeSelection" class="aui-style-default aui-dropdown2">
+    <ul class="aui-list-truncate" id="nodesList"></ul>
+</div>
+{% endblock nodeSelector %}
+<div id="cpuChartDiv"></div>
+<form class="aui">
+    <fieldset class="group">
+        <legend><span>Diagnostics</span></legend>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeThreadDumps" id="takeThreadDumps" disabled>
+            <label for="takeThreadDumps">Take thread dumps</label>
+        </div>
+        <div class="checkbox">
+            <input class="checkbox" type="checkbox" name="takeHeapDumps" id="takeHeapDumps" disabled>
+            <label for="takeHeapDumps">Take heap dumps</label>
+        </div>
+    </fieldset>
+</form>
+{% endblock extraInput %}
+
+{% block descriptionPanel %}
+Toggle the registration of the node in the load balancer. Only works for stacks that use ELBv2 load balancing.
+{% endblock descriptionPanel %}
+
+{% block buttonText %}Toggle node registration{% endblock buttonText %}

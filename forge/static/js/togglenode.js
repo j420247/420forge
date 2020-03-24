@@ -7,12 +7,12 @@ function onReady() {
             emptyNodeListAndCpuChart();
             listNodes(stack_name);
         }, false);
-    }    $("#action-button").on("click", performNodeRestart);
+    }    $("#action-button").on("click", performNodeToggle);
 }
 
-function  performNodeRestart() {
+function  performNodeToggle() {
     var stack_name = scrapePageForStackName();
-    var url = [baseUrl, 'dorestartnode', region, stack_name, $("#nodeSelector").text(), $("#drainNodes").is(':checked'), $("#takeThreadDumps").is(':checked'), $("#takeHeapDumps").is(':checked')].join('/');
+    var url = [baseUrl, 'dotogglenode', region, stack_name, $("#nodeSelector").text(), $("#takeThreadDumps").is(':checked'), $("#takeHeapDumps").is(':checked')].join('/');
     send_http_get_request(url);
     redirectToLog(stack_name);
 }
