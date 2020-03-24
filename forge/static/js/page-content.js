@@ -83,7 +83,22 @@ function displayNodes(nodes) {
   $('#nodesCount').trigger('nodeCountChanged');
 
   for (var node in nodes) {
-    $("#nodes").append("<span class='nodes'>" + nodes[node].ip + ": </span>" + getStatusLozenge(nodes[node].status));
+    var registration_status = "";
+    switch (nodes[node].registration_status.toUpperCase()) {
+      case "HEALTHY":
+        registration_status = "REGISTERED";
+        break;
+      case "INITIAL":
+        registration_status = "REGISTERING";
+        break;
+      case "NOTREGISTERED":
+        registration_status = "DEREGISTERED";
+        break;
+      default:
+        registration_status = nodes[node].registration_status.toUpperCase()
+    }
+    $("#nodes").append("<span class='nodes'>" + nodes[node].ip + ": </span>" +
+        getStatusLozenge(nodes[node].status) + "&nbsp;" + getStatusLozenge(registration_status));
     if (node < nodes.length)
       $("#nodes").append("<br>");
   }
@@ -98,13 +113,15 @@ function getStatusLozenge(text, cssClass) {
     var cssClass = "";
     text = text.trim();
     text = text.replace(/"/g, "");
-    switch (text) {
+    switch (text.toUpperCase()) {
       case "CREATE_COMPLETE":
       case "UPDATE_COMPLETE":
       case "RUNNING":
       case "FIRST_RUN":
-      case "Valid":
-      case "None":
+      case "NONE":
+      case "REGISTERED":
+      case "REGISTERING":
+      case "VALID":
         cssClass = "success";
         break;
       case "UPDATE_IN_PROGRESS":
@@ -112,7 +129,7 @@ function getStatusLozenge(text, cssClass) {
       case "DELETE_IN_PROGRESS":
         cssClass = "moved";
         break;
-      case "Invalid":
+      case "INVALID":
       default:
         cssClass = "error";
     }
