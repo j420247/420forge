@@ -83,10 +83,22 @@ function displayNodes(nodes) {
   $('#nodesCount').trigger('nodeCountChanged');
 
   for (var node in nodes) {
-    var registration_status = nodes[node].registration_status.toUpperCase();
-    var registered = registration_status === "INITIAL" || registration_status === "HEALTHY" ? "REGISTERED" : "DEREGISTERED";
+    var registration_status = "";
+    switch (nodes[node].registration_status.toUpperCase()) {
+      case "HEALTHY":
+        registration_status = "REGISTERED";
+        break;
+      case "INITIAL":
+        registration_status = "REGISTERING";
+        break;
+      case "NOTREGISTERED":
+        registration_status = "DEREGISTERED";
+        break;
+      default:
+        registration_status = nodes[node].registration_status.toUpperCase()
+    }
     $("#nodes").append("<span class='nodes'>" + nodes[node].ip + ": </span>" +
-        getStatusLozenge(nodes[node].status) + "&nbsp;" + getStatusLozenge(registered));
+        getStatusLozenge(nodes[node].status) + "&nbsp;" + getStatusLozenge(registration_status));
     if (node < nodes.length)
       $("#nodes").append("<br>");
   }
@@ -108,6 +120,7 @@ function getStatusLozenge(text, cssClass) {
       case "FIRST_RUN":
       case "NONE":
       case "REGISTERED":
+      case "REGISTERING":
       case "VALID":
         cssClass = "success";
         break;
