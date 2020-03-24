@@ -499,6 +499,11 @@ class TestAwsStacks:
                 mystack.get_target_state = MagicMock(side_effect=register_target_states)
                 register_result = mystack.toggle_node_registration(node='10.111.22.333')
                 assert register_result is True
+                # confirm a draining node re-registers
+                mystack.get_target_state = MagicMock(side_effect=['draining'])
+                mystack.wait_node_registered = MagicMock(return_value=True)
+                mystack.toggle_node_registration(node='10.111.22.333')
+                assert mystack.wait_node_registered.called
 
     @moto.mock_ec2
     @moto.mock_elbv2
