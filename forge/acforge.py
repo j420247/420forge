@@ -857,11 +857,12 @@ def get_nice_action_name(action):
         'rollingrestart': 'Rolling restart',
         'rollingrebuild': 'Rebuild nodes',
         'runsql': 'Run SQL',
-        'viewlog': 'Stack logs',
         'syslog': 'System logs',
         'tag': 'Tag stack',
+        'togglenode': 'Toggle node registration',
         'update': 'Update stack',
         'upgrade': 'Upgrade',
+        'viewlog': 'Stack logs',
     }
     return switcher.get(action, '')
 
